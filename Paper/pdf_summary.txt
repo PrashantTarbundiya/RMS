@@ -1,0 +1,190 @@
+
+==================================================
+PAPER: 56812775ffb153f2a4869b9fcc3f15801cf8.pdf
+==================================================
+Academic Editors: Bogdan Smolka,
+Karolina Nurzynska and
+Michal Kawulok
+Received: 2 December 2024
+Revised: 13 February 2025
+Accepted: 14 February 2025
+Published: 7 March 2025
+Citation: Alsubhi, A.H.; Jaha, E.S.
+Front-to-Side Hard and Soft
+Biometrics for Augmented Zero-Shot
+Side Face Recognition. Sensors 2025,
+25, 1638. https://doi.org/10.3390/
+s25061638
+Copyright: © 2025 by the authors.
+Licensee MDPI, Basel, Switzerland.
+This article is an open access article
+distributed under the terms and
+conditions of the Creative Commons
+Attribution (CC BY) license
+(https://creativecommons.org/
+licenses/by/4.0/).
+Article
+Front-to-Side Hard and Soft Biometrics for Augmented
+Zero-Shot Side Face Recognition
+Ahuod Hameed Alsubhi * and Emad Sami Jaha
+Department of Computer Science, Faculty of Computing and Information Technology, King Abdulaziz University,
+Jeddah 21589, Saudi Arabia; ejaha@kau.edu.sa
+* Correspondence: aalsubhi0324@stu.kau.edu.sa
+Abstract: Face recognition is a fundamental and versatile technology widely used to iden-
+tify individuals. The human face is a significant nonintrusive biometric modality, attracting
+numerous research studies. Still, much less focus has been on side-face views, with the
+majority merely or mainly concentrating on the frontal face. Despite offering fewer traits
+than the front viewpoint, the side viewpoint of the face is a crucial aspect of an individual’s
+identity and, in numerous cases, can be the only available information. Our research
+proposes new soft biometric traits based on the face anthropometric that can be invariantly
+extracted from the front and side face. We aim to extract and fuse them with vision-based
+deep features to augment zero-shot side face recognition. Our framework uses the person’s
+front face information solely for training, then uses their side face information as the only
+query for biometric matching and identification. For performance evaluation and compari-
+son of the proposed approach, several feature-level fusion experiments were conducted on
+the CMU Multi-PIE dataset. Our results demonstrate that fusing the proposed face soft
+traits with the ResNet-50 deep features significantly improves performance. Furthermore,
+adding global soft biometrics to them improves the accuracy by up to 23%.
+Keywords: human identification; face recognition; side face recognition; front-to-side face;
+zero-shot; hard biometrics; soft biometrics; feature-level fusion; deeplearning; augmentation
+1. Introduction
+Nowadays, among several active research domains, biometrics has emerged as an
+essential field rich in innovations, systems, and many investigations on different biometric
+modalities, such as face, ear, iris, voice, and fingerprint. A typical biometric system refers to
+the process of identifying or verifying individuals’ identities. Face recognition is a biometric
+technique that utilizes an individual’s distinctive facial features to identify or authenticate
+their identity. Face biometrics technology has expanded tremendously and rapidly in
+recent years, becoming useful in a wide range of applications, including security and access
+control (e.g., unlocking cellphones or protecting sensitive locations), user authentication
+(for online banking or social networking), and law enforcement (for example, identifying
+suspects or missing persons) [1].
+Historically, the identification task is closely linked to human evolution, and prior
+to the development of involved modern technologies like computer vision and machine
+learning, early humans relied on vital formal and descriptive features of one another’s
+distinction. Such early enforced features were devoted to various scenarios for crime
+investigation, criminal records, and registration of civil and other identities. In 1879,
+Alphonse Bertillon created a system he hoped would address the deteriorating quality
+Sensors 2025, 25, 1638 https://doi.org/10.3390/s25061638
+
+Sensors 2025, 25, 1638 2 of 25
+of record-keeping and the absence of trustworthy criminal identification mechanisms [2].
+Figure 1 visually demonstrates Bertillon’s solution method, which involves taking a number
+of anthropometric measures with specially created calipers, gauges, and rulers on inflexible
+body parts, including height, head length, and head breadth [3].
+Sensors 2025, 25, x FOR PEER REVIEW 2 of 26  
+ 
+investigation, criminal records, and registration of civil and other identities. In 1879, Al-
+phonse Bertillon created a system he hoped would address the deteriorating quality of 
+record-keeping and the absence of trustworthy criminal identi ﬁcation mechanisms [2]. 
+Figure 1 visually demonstrates Bertillon’s solution method, which involves taking a num-
+ber of anthropometric measures with specially created calipers, gauges, and rulers on in-
+ﬂexible body parts, including height, head length, and head breadth [3]. 
+ 
+Figure 1. Alphonse Bertillon’s human head measurements. 
+The concept of “soft biometrics” describes the identiﬁcation or veriﬁcation of people 
+usin
+
+==================================================
+PAPER: Non-frontal_face_recognition_method_with_a_side-face-correction_generative_adversarial_networks.pdf
+==================================================
+Non-frontal face recognition method with a side-face-
+correction generative adversarial networks 
+ 
+Haixin Lin 
+School of Information Engineering 
+Chang’an University 
+ Xi’an, China 
+* Corresponding author:395721951@qq.com 
+ 
+Weibin Gong 
+School of Information Engineering 
+ Chang’an University 
+ Xi’an, China 
+wbgong@163.com 
+Hongzhi Ma 
+Zhumadian big data center 
+ Zhu’madian, China 
+zmddsjj@126.com 
+ 
+Chao Wang 
+School of Information Engineering 
+Chang’an University 
+ Xi’an, China 
+1031457502@qq.com 
+ 
+Abstract—Frontal face image recognition is the main target of 
+traditional face recognition.The deflection of the human face often 
+causes the dislocation of the facial features,which leads to th e 
+reduction of the recognition accuracy of the non-frontal face.T o 
+solve the above problems,a non-frontal face recognition model 
+based on generative adversarial network is proposed.In this 
+model,the angle information is encoded separately by using a two-
+channel generator and auto-coding network,and the non-frontal 
+face image in natural environment is corrected to obtain the 
+frontal face image.Through the multi-discriminator mechanism of 
+f a c i a l  a t t e n t i o n , w e  s e t  d i s c r i m i n a t o r s  i n  t h e  e y e ,  e y e b r o w ,  n o se, 
+mouth and the whole area of the face image so as to retain the 
+details of the face to the maximum extent while ensuring the clarity 
+of image.Then the corrected face features are extracted by Facenet 
+and MTCNN to obtain the non-frontal face recognition results.The 
+model is validated on multi-PIE dataset and CFP dataset.The 
+results show that the accuracy of non-frontal face recognition is 
+improved by 1% in CFP dataset compared with VGG-FACE, TP-
+CNN and HPN. 
+Keywords-image processing; generative adversarial network; 
+feature extraction; side face correction; recognition on non-frontal 
+face; 
+I. INTRODUCTION 
+Face recognition plays an increasingly important role in 
+today's society[1].Traditional face recognition methods are 
+suitable for face images in experimental environment.However, 
+in the natural environment,it is tough to maintain the front face 
+all along.After the deflection of the facial posture,the facial  
+organs are often displaced,and the self-shielding effect will also 
+occur,which will lead to the loss of most features of the face.  
+When the rotation angle of the face reaches 45° to 90°,the 
+displacement of the facial organs becomes more significant and 
+the accuracy of recognition is greatly reduced. 
+To solve the above problems,researchers proposed a 3D[2-4] 
+modeling method,which can obtain a better standardized multi-
+pose face by building a 3D model of the face.However, 3D 
+modeling based on a single 2D face image will generate too 
+much noise information.Tal Hassner[5] believed that it would 
+greatly increase the cost of the system to set up a 3D face shape 
+for every input face images,so they conducted face detection 
+along 49 facial feature points of the jaw bone,and then used a 
+single unmodified 3D surface as the face shape of all input.Zhu[6] 
+proposed a natural face automatic generation technology,which 
+is a standardized algorithm using 3D deformation model 
+(3DMM) to generate high-fidelity posture and facial 
+expression.In order to enable the generator to synthesize positive 
+face images,Hu[7] used the control signal to guide the 
+generator,and proposed a CAPG-GAN model that can be rotated 
+for faces at any angle based on this method. 
+Using conjunctive models[8-9] and specific attitude 
+models[10-11],facial features can be directly extracted from 
+non-frontal face images to achieve multi-angle face 
+recognition.Face recognition technologies based on deep 
+learning, such as VGGFace[12] and DeepFace[13],have 
+achieved good results in multi-pose face recognition.However, 
+both of them rely on large amounts of training data.In 
+DeepFace,for example,the model's performance was 
+significantly reduced when the face deflection angle varied 
+between 45° and 90°.To solve the problem of low accuracy of 
+face recognition under multi postures,Zhao[14] proposed a 
+recognition algorithm based on dual path convolution neural 
+network.This algorithm is based on a large number of face 
+marker data and it has high requirements for GPU 
+performance,the convergence speed of the model greatly 
+depends on the parallel computing ability of GPU,and its 
+recognition accuracy will be significantly reduced when the face 
+deflection angle is greater than 60°. 
+I n  o r d e r  t o  s o l v e  t h e  a b o v e  p r o b l e m s , w e  p r o p o s e  a  n o n -
+frontal face recognition model based on generative adversarial 
+network (GAN)[15].The work content and innovation of this 
+paper are as follows: 
+We draw a lesson from generative adversarial 
+networks(GAN),and we proposed a non-frontal face recognition 
+method with a side-face-correction generative adversarial 
+network(SFC-GAN).We use generative adversarial networks to 
+correct non-frontal face i

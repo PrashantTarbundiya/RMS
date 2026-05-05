@@ -1,0 +1,48 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Virtual environment
+.venv/
+venv/
+env/
+
+# Large model/data files
+*.pickle
+*.pkl
+*.pth
+*.onnx
+*.tflite
+*.task
+*.h5
+*.hdf5
+
+# Datasets
+dataset/
+dataset_cleaned/
+frontend/dataset/
+
+# Node.js (frontend)
+node_modules/
+frontend/node_modules/
+
+# IDE / Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+Thumbs.db
+.DS_Store
+
+# Misc
+*.log
+.env
