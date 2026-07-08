@@ -56,19 +56,20 @@ export default function ModelsPage() {
   }
 
   return (
-    <div className="fade-in">
-      <h2 className="page-title">Model Management</h2>
+    <div className="animate-fade-in">
+      <h1 className="page-title">Model Management</h1>
       <p className="page-subtitle">Export models for edge deployment or reset the system.</p>
 
       {status.message && (
         <div className="mb-2" style={{
-          padding: '1rem', borderRadius: '8px', 
-          background: status.type === 'error' ? 'rgba(255, 71, 87, 0.1)' : 
-                      status.type === 'success' ? 'rgba(46, 213, 115, 0.1)' : 'rgba(0, 240, 255, 0.1)',
-          border: `1px solid ${status.type === 'error' ? 'var(--danger)' : 
-                               status.type === 'success' ? 'var(--success)' : 'var(--accent-cyan)'}`,
-          color: status.type === 'error' ? 'var(--danger)' : 
-                 status.type === 'success' ? 'var(--success)' : 'var(--accent-cyan)'
+          padding: '0.85rem 1rem', borderRadius: 'var(--radius-md)', 
+          background: status.type === 'error' ? 'var(--error-bg)' : 
+                      status.type === 'success' ? 'var(--success-bg)' : 'var(--info-bg)',
+          border: `1px solid ${status.type === 'error' ? 'rgba(239,68,68,0.3)' : 
+                               status.type === 'success' ? 'rgba(34,197,94,0.3)' : 'rgba(59,130,246,0.3)'}`,
+          color: status.type === 'error' ? 'var(--error)' : 
+                 status.type === 'success' ? 'var(--success)' : 'var(--info)',
+          fontSize: '0.9rem'
         }}>
           {status.message}
         </div>
@@ -90,7 +91,7 @@ export default function ModelsPage() {
 
         <div className="glass-panel model-card">
           <div className="flex-row">
-            <HardDrive size={24} color="var(--accent-purple)" />
+            <HardDrive size={24} color="var(--secondary-light)" />
             <div>
               <div className="model-title">Custom CNN</div>
               <div className="model-subtitle">best_face_model.pth</div>
@@ -143,8 +144,8 @@ export default function ModelsPage() {
         </div>
 
         {/* Danger Zone */}
-        <div className="glass-panel" style={{ padding: '2rem', border: '1px solid rgba(255, 71, 87, 0.3)' }}>
-          <h3 style={{ marginBottom: '1rem', color: 'var(--danger)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <div className="glass-panel" style={{ padding: '2rem', border: '1px solid rgba(239, 68, 68, 0.3)' }}>
+          <h3 style={{ marginBottom: '1rem', color: 'var(--error)', display: 'flex', alignItems: 'center', gap: '8px' }}>
             <AlertTriangle size={20} /> Danger Zone
           </h3>
           <p style={{ color: 'var(--text-secondary)', marginBottom: '1.5rem', fontSize: '0.9rem', lineHeight: 1.5 }}>
@@ -158,7 +159,7 @@ export default function ModelsPage() {
             </button>
           ) : (
             <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-              <span style={{ color: 'var(--danger)', fontWeight: 600 }}>Are you sure?</span>
+              <span style={{ color: 'var(--error)', fontWeight: 600 }}>Are you sure?</span>
               <button className="btn btn-danger" onClick={handleReset} disabled={isResetting}>
                 {isResetting ? 'Deleting...' : 'Yes, Delete Everything'}
               </button>

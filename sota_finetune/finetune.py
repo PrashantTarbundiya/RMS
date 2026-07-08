@@ -60,19 +60,26 @@ def build_mobile_model(num_classes):
     - Runs in real-time on mobile CPUs (no GPU needed)
     - Exportable to ONNX / TFLite for React Native
     """
-    print("📱 Loading Pre-trained MobileNetV2 (lightweight mobile backbone)...")
+    print("[INFO] Loading Pre-trained MobileNetV2 (lightweight mobile backbone)...")
     weights = models.MobileNet_V2_Weights.DEFAULT
     model = models.mobilenet_v2(weights=weights)
     
-    # Freeze early layers for faster training (MobileNet trains fast anyway)
-    for param in list(model.parameters())[:-20]:
+    # Unfreeze the last 40 parameters (more layers) for deeper fine-tuning
+    # This significantly improves accuracy on small face datasets
+    all_params = list(model.parameters())
+    for param in all_params[:-40]:
         param.requires_grad = False
+    for param in all_params[-40:]:
+        param.requires_grad = True
     
-    # Replace classifier head for our face classes
+    # Replace classifier head with a richer head for face classification
     num_ftrs = model.classifier[1].in_features
     model.classifier = nn.Sequential(
-        nn.Dropout(0.3),
-        nn.Linear(num_ftrs, num_classes)
+        nn.Dropout(0.4),
+        nn.Linear(num_ftrs, 256),
+        nn.ReLU(),
+        nn.Dropout(0.2),
+        nn.Linear(256, num_classes)
     )
     
     return model
@@ -105,8 +112,8 @@ def export_to_onnx(model, num_classes, output_path="sideface_mobile.onnx"):
     )
     
     file_size_mb = os.path.getsize(output_path) / (1024 * 1024)
-    print(f"✅ ONNX model exported: {output_path} ({file_size_mb:.1f} MB)")
-    print(f"   → Use this in React Native with 'onnxruntime-react-native' package")
+    print(f"[SUCCESS] ONNX model exported: {output_path} ({file_size_mb:.1f} MB)")
+    print(f"   -> Use this in React Native with 'onnxruntime-react-native' package")
 
 
 # ==============================================================================
@@ -118,21 +125,27 @@ def finetune_mobile_model(data_dir="../dataset_cleaned", num_epochs=25, batch_si
     Uses MobileNetV2 backbone with side-face-specific augmentation.
     """
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    print(f"🚀 Initializing Mobile Fine-Tuning on device: {device}")
+    print(f"[INFO] Initializing Mobile Fine-Tuning on device: {device}")
     
     if not os.path.exists(data_dir):
-        print(f"❌ Error: Dataset directory '{data_dir}' not found.")
+        print(f"[ERROR] Dataset directory '{data_dir}' not found.")
         return
 
-    # Data Augmentation optimized for side-face profiles
+    # Enhanced Data Augmentation for side-face profiles
+    # Includes perspective, blur, erasing, and grayscale for robustness
     train_transform = transforms.Compose([
-        transforms.Resize((224, 224)),
+        transforms.Resize((256, 256)),
+        transforms.RandomCrop(224),
         transforms.RandomHorizontalFlip(p=0.5),
-        transforms.RandomRotation(15),
-        transforms.ColorJitter(brightness=0.3, contrast=0.3, saturation=0.2),
-        transforms.RandomAffine(degrees=0, translate=(0.1, 0.1)),
+        transforms.RandomRotation(20),
+        transforms.RandomPerspective(distortion_scale=0.15, p=0.3),
+        transforms.ColorJitter(brightness=0.4, contrast=0.4, saturation=0.3, hue=0.05),
+        transforms.RandomAffine(degrees=0, translate=(0.1, 0.1), scale=(0.9, 1.1)),
+        transforms.RandomGrayscale(p=0.1),
+        transforms.GaussianBlur(kernel_size=3, sigma=(0.1, 1.5)),
         transforms.ToTensor(),
-        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+        transforms.RandomErasing(p=0.2, scale=(0.02, 0.15)),
     ])
     
     val_transform = transforms.Compose([
@@ -144,7 +157,7 @@ def finetune_mobile_model(data_dir="../dataset_cleaned", num_epochs=25, batch_si
     # Use SafeImageFolder to skip missing/corrupt images
     full_dataset = SafeImageFolder(root=data_dir, transform=train_transform)
     num_classes = len(full_dataset.classes)
-    print(f"📊 Found {len(full_dataset)} valid images across {num_classes} face classes.")
+    print(f"[INFO] Found {len(full_dataset)} valid images across {num_classes} face classes.")
 
     # Split: 80% Train / 20% Validation
     train_size = int(0.8 * len(full_dataset))
@@ -160,23 +173,23 @@ def finetune_mobile_model(data_dir="../dataset_cleaned", num_epochs=25, batch_si
     # Count trainable parameters
     trainable = sum(p.numel() for p in model.parameters() if p.requires_grad)
     total = sum(p.numel() for p in model.parameters())
-    print(f"📐 Parameters: {trainable:,} trainable / {total:,} total")
+    print(f"[INFO] Parameters: {trainable:,} trainable / {total:,} total")
 
-    # Loss with label smoothing
+    # Loss with label smoothing for regularization
     criterion = nn.CrossEntropyLoss(label_smoothing=0.1)
     
-    # AdamW optimizer
+    # AdamW optimizer with lower LR for stability
     optimizer = optim.AdamW(
         filter(lambda p: p.requires_grad, model.parameters()),
-        lr=1e-3, weight_decay=1e-4
+        lr=5e-4, weight_decay=1e-4
     )
     
-    # Learning rate scheduler
-    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', patience=3, factor=0.5)
+    # CosineAnnealing scheduler for smoother convergence
+    scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=num_epochs, eta_min=1e-6)
 
     best_val_acc = 0.0
 
-    print("🔥 Starting Mobile Fine-Tuning...")
+    print("[INFO] Starting Mobile Fine-Tuning...")
     for epoch in range(num_epochs):
         
         # --- TRAIN ---
@@ -222,7 +235,7 @@ def finetune_mobile_model(data_dir="../dataset_cleaned", num_epochs=25, batch_si
         val_loss = val_loss / val_size
         val_acc = 100 * val_correct / val_total
         
-        scheduler.step(val_loss)
+        scheduler.step()
         
         print(f"Epoch [{epoch+1:02d}/{num_epochs}] - Train Loss: {train_loss:.4f}, Acc: {train_acc:.2f}% | Val Loss: {val_loss:.4f}, Val Acc: {val_acc:.2f}%")
         
@@ -232,22 +245,22 @@ def finetune_mobile_model(data_dir="../dataset_cleaned", num_epochs=25, batch_si
             
             # Save PyTorch weights
             torch.save(model.state_dict(), "best_mobile_sideface.pth")
-            print("  🌟 New Best Checkpoint! (best_mobile_sideface.pth)")
+            print("  [SUCCESS] New Best Checkpoint! (best_mobile_sideface.pth)")
             
             # Save class names
             with open("mobile_classes.txt", "w") as f:
                 f.write("\n".join(full_dataset.classes))
 
-    print(f"\n🎉 Training Complete! Best Validation Accuracy: {best_val_acc:.2f}%")
+    print(f"\n[INFO] Training Complete! Best Validation Accuracy: {best_val_acc:.2f}%")
     
     # === EXPORT TO ONNX FOR REACT NATIVE ===
-    print("\n📦 Exporting to ONNX for React Native deployment...")
+    print("\n[INFO] Exporting to ONNX for React Native deployment...")
     best_model = build_mobile_model(num_classes=num_classes)
     best_model.load_state_dict(torch.load("best_mobile_sideface.pth", map_location="cpu"))
     export_to_onnx(best_model, num_classes)
     
     print("\n" + "=" * 60)
-    print("📱 REACT NATIVE INTEGRATION GUIDE:")
+    print("  REACT NATIVE INTEGRATION GUIDE:")
     print("=" * 60)
     print("1. Install: npm install onnxruntime-react-native")
     print("2. Copy 'sideface_mobile.onnx' + 'mobile_classes.txt' to assets/")

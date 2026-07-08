@@ -25,6 +25,45 @@ from clean_dataset import _build_mediapipe_detector, _detect_with_mediapipe, EXT
 
 
 # ============================================================================
+# IMAGE QUALITY VALIDATION
+# ============================================================================
+
+def check_image_quality(img_bgr, min_size=60, blur_threshold=50.0):
+    """
+    Check if an image meets minimum quality standards for face training.
+    
+    Args:
+        img_bgr: OpenCV BGR image
+        min_size: Minimum width/height in pixels
+        blur_threshold: Laplacian variance threshold (lower = blurrier)
+    
+    Returns:
+        tuple: (is_valid: bool, issues: list[str])
+    """
+    issues = []
+    h, w = img_bgr.shape[:2]
+    
+    # Check minimum dimensions
+    if w < min_size or h < min_size:
+        issues.append(f"Image too small ({w}x{h}px, need at least {min_size}x{min_size}px)")
+    
+    # Check blur using Laplacian variance
+    gray = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2GRAY)
+    blur_score = cv2.Laplacian(gray, cv2.CV_64F).var()
+    if blur_score < blur_threshold:
+        issues.append(f"Image is too blurry (score: {blur_score:.1f}, need > {blur_threshold})")
+    
+    # Check if image is too dark or too bright
+    mean_brightness = gray.mean()
+    if mean_brightness < 30:
+        issues.append(f"Image is too dark (brightness: {mean_brightness:.0f}/255)")
+    elif mean_brightness > 240:
+        issues.append(f"Image is too bright/washed out (brightness: {mean_brightness:.0f}/255)")
+    
+    return len(issues) == 0, issues
+
+
+# ============================================================================
 # 1. DEEPFACE — Incremental Embedding Append (No Retrain)
 # ============================================================================
 
@@ -64,6 +103,12 @@ def update_deepface_model(person_name, image_paths, encodings_path='encodings.pi
             if image is None:
                 print(f"   ⚠️ Could not read: {os.path.basename(img_path)}")
                 continue
+
+            # Quality check before processing
+            is_valid, issues = check_image_quality(image)
+            if not is_valid:
+                print(f"   ⚠️ Quality issues for {os.path.basename(img_path)}: {'; '.join(issues)}")
+                # Still process but warn — don't discard, as even noisy data helps with few-shot
 
             # Detect face using our SideFaceDetector
             faces = detector.detect_faces(image, profile_only=False)
@@ -282,15 +327,20 @@ def update_sota_model(person_name, dataset_dir='dataset_cleaned',
     else:
         old_classes.append(person_name)
 
-    # Data transforms (must match sota_finetune/finetune.py)
+    # Data transforms (matches upgraded sota_finetune/finetune.py)
     train_transform = transforms.Compose([
-        transforms.Resize((224, 224)),
+        transforms.Resize((256, 256)),
+        transforms.RandomCrop(224),
         transforms.RandomHorizontalFlip(p=0.5),
-        transforms.RandomRotation(15),
-        transforms.ColorJitter(brightness=0.3, contrast=0.3, saturation=0.2),
-        transforms.RandomAffine(degrees=0, translate=(0.1, 0.1)),
+        transforms.RandomRotation(20),
+        transforms.RandomPerspective(distortion_scale=0.15, p=0.3),
+        transforms.ColorJitter(brightness=0.4, contrast=0.4, saturation=0.3, hue=0.05),
+        transforms.RandomAffine(degrees=0, translate=(0.1, 0.1), scale=(0.9, 1.1)),
+        transforms.RandomGrayscale(p=0.1),
+        transforms.GaussianBlur(kernel_size=3, sigma=(0.1, 1.5)),
         transforms.ToTensor(),
-        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+        transforms.RandomErasing(p=0.2, scale=(0.02, 0.15)),
     ])
 
     # Load dataset
@@ -448,9 +498,6 @@ def add_person_to_all_models(person_name, image_data_list, dataset_dir='dataset_
     if not person_name or not person_name.strip():
         return "❌ Error: Please enter a person name."
 
-    if image_data_list is None or len(image_data_list) == 0:
-        return "❌ Error: Please upload at least one face image."
-
     person_name = person_name.strip().replace(" ", "_")
 
     # Raw images go to dataset/{name}/{angle}/
@@ -460,37 +507,46 @@ def add_person_to_all_models(person_name, image_data_list, dataset_dir='dataset_
     cleaned_base = dataset_dir
 
     saved_cleaned_paths = []
-    angle_counts = {'frontal': 0, 'left': 0, 'right': 0, 'extra': 0}
+    
+    # Check current directory contents to avoid overwriting previous files
+    angle_counts = {}
+    for a in ('frontal', 'left', 'right', 'extra'):
+        dir_to_check = os.path.join(raw_base, person_name, a)
+        if os.path.exists(dir_to_check):
+            # Count existing images
+            existing = [f for f in os.listdir(dir_to_check) if f.lower().endswith(('.jpg', '.jpeg', '.png', '.webp', '.bmp'))]
+            angle_counts[a] = len(existing)
+        else:
+            angle_counts[a] = 0
 
-    for i, (img_array, angle_label) in enumerate(image_data_list):
-        if img_array is None:
-            continue
+    if image_data_list is not None and len(image_data_list) > 0:
+        for i, (img_array, angle_label) in enumerate(image_data_list):
+            if img_array is None:
+                continue
 
-        # Determine angle subfolder
-        angle = angle_label if angle_label in ('frontal', 'left', 'right') else 'extra'
-        angle_counts[angle] += 1
+            # Determine angle subfolder
+            angle = angle_label if angle_label in ('frontal', 'left', 'right') else 'extra'
+            angle_counts[angle] += 1
 
-        # Convert RGB (Gradio) to BGR (OpenCV)
-        img_bgr = cv2.cvtColor(np.array(img_array), cv2.COLOR_RGB2BGR)
+            # Convert RGB (Gradio) to BGR (OpenCV)
+            img_bgr = cv2.cvtColor(np.array(img_array), cv2.COLOR_RGB2BGR)
 
-        filename = f"{person_name}_{angle}_{angle_counts[angle]:03d}.jpg"
+            filename = f"{person_name}_{angle}_{angle_counts[angle]:03d}.jpg"
 
-        # 1. Save RAW image to dataset/{name}/{angle}/
-        raw_dir = os.path.join(raw_base, person_name, angle)
-        os.makedirs(raw_dir, exist_ok=True)
-        raw_path = os.path.join(raw_dir, filename)
-        cv2.imwrite(raw_path, img_bgr)
-        print(f"   📸 Raw saved: {raw_path}")
+            # 1. Save RAW image to dataset/{name}/{angle}/
+            raw_dir = os.path.join(raw_base, person_name, angle)
+            os.makedirs(raw_dir, exist_ok=True)
+            raw_path = os.path.join(raw_dir, filename)
+            cv2.imwrite(raw_path, img_bgr)
+            print(f"   📸 Raw saved: {raw_path}")
 
-        # 2. Clean (face crop) and save to dataset_cleaned/{name}/{angle}/
-        cleaned_dir = os.path.join(cleaned_base, person_name, angle)
-        cleaned_path = os.path.join(cleaned_dir, filename)
-        result_path = clean_and_save_face(img_bgr, cleaned_path)
-        if result_path:
-            saved_cleaned_paths.append(result_path)
-
-    if not saved_cleaned_paths:
-        return "❌ Error: No valid images to save."
+            # 2. Clean (face crop) and save to dataset_cleaned/{name}/{angle}/
+            cleaned_dir = os.path.join(cleaned_base, person_name, angle)
+            os.makedirs(cleaned_dir, exist_ok=True)
+            cleaned_path = os.path.join(cleaned_dir, filename)
+            result_path = clean_and_save_face(img_bgr, cleaned_path)
+            if result_path:
+                saved_cleaned_paths.append(result_path)
 
     # Summary of saved images
     saved_summary = []
@@ -498,18 +554,23 @@ def add_person_to_all_models(person_name, image_data_list, dataset_dir='dataset_
         if angle_counts[angle] > 0:
             saved_summary.append(f"{angle}: {angle_counts[angle]}")
 
-    status_parts = [
-        f"📁 Saved {len(saved_cleaned_paths)} cleaned images ({', '.join(saved_summary)})\n"
-        f"   Raw → `dataset/{person_name}/`\n"
-        f"   Cleaned → `{dataset_dir}/{person_name}/`\n"
-    ]
+    status_parts = []
+    if saved_cleaned_paths:
+        status_parts.append(
+            f"📁 Saved {len(saved_cleaned_paths)} cleaned images ({', '.join(saved_summary)})\n"
+            f"   Raw → `dataset/{person_name}/`\n"
+            f"   Cleaned → `{dataset_dir}/{person_name}/`\n"
+        )
+    else:
+        status_parts.append(f"📁 Retraining on existing dataset for {person_name}.\n")
 
-    # 3. Update DeepFace (instant — no retrain)
-    try:
-        new_encs, new_names, num_added = update_deepface_model(person_name, saved_cleaned_paths)
-        status_parts.append(f"✅ **DeepFace**: Added {num_added} embeddings (total: {len(new_encs)})")
-    except Exception as e:
-        status_parts.append(f"⚠️ **DeepFace**: Error — {e}")
+    # 3. Update DeepFace (instant — no retrain) if we added new images
+    if saved_cleaned_paths:
+        try:
+            new_encs, new_names, num_added = update_deepface_model(person_name, saved_cleaned_paths)
+            status_parts.append(f"✅ **DeepFace**: Added {num_added} embeddings (total: {len(new_encs)})")
+        except Exception as e:
+            status_parts.append(f"⚠️ **DeepFace**: Error — {e}")
 
     # 4. Update Custom CNN (quick fine-tune)
     try:

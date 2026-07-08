@@ -1,7 +1,6 @@
-import React, { useState, useRef, useCallback } from 'react'
-import Webcam from 'react-webcam'
+import React, { useState, useRef, useCallback, useEffect } from 'react'
 import axios from 'axios'
-import { Camera, Image as ImageIcon, Video, RefreshCw, Maximize, Play, X } from 'lucide-react'
+import { Camera, Image as ImageIcon, Video, RefreshCw, Maximize, Play, X, AlertCircle } from 'lucide-react'
 
 const API_BASE = 'http://127.0.0.1:5000/api'
 
@@ -12,35 +11,155 @@ export default function TestPage() {
   const [results, setResults] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [webcamError, setWebcamError] = useState('')
+  const [webcamReady, setWebcamReady] = useState(false)
+  const [isDragActive, setIsDragActive] = useState(false)
   
   const webcamRef = useRef(null)
   const imgRef = useRef(null)
+  const videoRef = useRef(null)
+
+  // Global Clipboard Paste Support
+  useEffect(() => {
+    const handleGlobalPaste = (e) => {
+      if (mode !== 'upload') return
+      const items = e.clipboardData?.items
+      if (!items) return
+      for (let i = 0; i < items.length; i++) {
+        if (items[i].type.indexOf('image') !== -1) {
+          const pastedFile = items[i].getAsFile()
+          if (pastedFile) {
+            setFile(pastedFile)
+            setResults(null)
+            setError('')
+            e.preventDefault()
+            break
+          }
+        }
+      }
+    }
+    window.addEventListener('paste', handleGlobalPaste)
+    return () => window.removeEventListener('paste', handleGlobalPaste)
+  }, [mode])
 
   const handleFileChange = (e) => {
     if (e.target.files && e.target.files[0]) {
-      setFile(e.target.files[0])
+      const selectedFile = e.target.files[0]
+      
+      // Validate file type
+      if (!selectedFile.type.startsWith('image/')) {
+        setError('Please select a valid image file (JPEG, PNG, WebP).')
+        return
+      }
+      
+      // Validate file size (max 10MB)
+      if (selectedFile.size > 10 * 1024 * 1024) {
+        setError('Image file is too large. Maximum size is 10MB.')
+        return
+      }
+
+      setFile(selectedFile)
       setResults(null)
       setError('')
     }
   }
 
-  const captureWebcam = useCallback(() => {
-    if (webcamRef.current) {
-      const imageSrc = webcamRef.current.getScreenshot()
-      if (imageSrc) {
-        // Convert base64 to file
-        fetch(imageSrc)
-          .then(res => res.blob())
-          .then(blob => {
-            const capturedFile = new File([blob], 'webcam_capture.jpg', { type: 'image/jpeg' })
-            setFile(capturedFile)
-            setMode('upload') // Switch to display mode
-            setResults(null)
-            setError('')
-          })
+  // Use native getUserMedia instead of react-webcam for better compatibility
+  const startWebcam = useCallback(async () => {
+    setWebcamError('')
+    setWebcamReady(false)
+    
+    try {
+      // Check if we're on HTTPS or localhost (required for getUserMedia)
+      const isSecure = window.location.protocol === 'https:' || 
+                       window.location.hostname === 'localhost' || 
+                       window.location.hostname === '127.0.0.1'
+      
+      if (!isSecure) {
+        setWebcamError(
+          `Webcam requires HTTPS or localhost. You are accessing from "${window.location.hostname}". ` +
+          'Open the app at http://localhost:5173 instead, or use the Image upload mode.'
+        )
+        return
+      }
+
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        setWebcamError('Your browser does not support webcam access. Please use Image upload mode.')
+        return
+      }
+
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } }
+      })
+      
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream
+        videoRef.current.play()
+        setWebcamReady(true)
+      }
+    } catch (err) {
+      console.error('Webcam error:', err)
+      if (err.name === 'NotAllowedError') {
+        setWebcamError('Camera permission denied. Please allow camera access in your browser settings and refresh.')
+      } else if (err.name === 'NotFoundError') {
+        setWebcamError('No camera device found. Make sure your webcam is connected.')
+      } else if (err.name === 'NotReadableError') {
+        setWebcamError('Camera is in use by another application. Close other apps using the camera and try again.')
+      } else {
+        setWebcamError(`Camera error: ${err.message}. Try using Image upload mode instead.`)
       }
     }
-  }, [webcamRef])
+  }, [])
+
+  const stopWebcam = useCallback(() => {
+    if (videoRef.current && videoRef.current.srcObject) {
+      const tracks = videoRef.current.srcObject.getTracks()
+      tracks.forEach(track => track.stop())
+      videoRef.current.srcObject = null
+    }
+    setWebcamReady(false)
+  }, [])
+
+  const captureWebcam = useCallback(() => {
+    if (!videoRef.current || !webcamReady) return
+
+    try {
+      const canvas = document.createElement('canvas')
+      canvas.width = videoRef.current.videoWidth
+      canvas.height = videoRef.current.videoHeight
+      const ctx = canvas.getContext('2d')
+      ctx.drawImage(videoRef.current, 0, 0)
+      
+      canvas.toBlob((blob) => {
+        if (blob) {
+          const capturedFile = new File([blob], 'webcam_capture.jpg', { type: 'image/jpeg' })
+          setFile(capturedFile)
+          setMode('upload')
+          setResults(null)
+          setError('')
+          stopWebcam()
+        }
+      }, 'image/jpeg', 0.85)
+    } catch (err) {
+      setError('Failed to capture photo: ' + err.message)
+    }
+  }, [webcamReady, stopWebcam])
+
+  // Clean up webcam when switching modes
+  const switchToUpload = useCallback(() => {
+    stopWebcam()
+    setMode('upload')
+    setWebcamError('')
+  }, [stopWebcam])
+
+  const switchToWebcam = useCallback(() => {
+    setMode('webcam')
+    setFile(null)
+    setResults(null)
+    setWebcamError('')
+    // Start webcam after a tick so the video element is rendered
+    setTimeout(() => startWebcam(), 100)
+  }, [startWebcam])
 
   const runPrediction = async () => {
     if (!file) {
@@ -57,7 +176,8 @@ export default function TestPage() {
 
     try {
       const res = await axios.post(`${API_BASE}/predict`, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
+        headers: { 'Content-Type': 'multipart/form-data' },
+        timeout: 30000, // 30 second timeout
       })
       setResults(res.data)
       
@@ -72,7 +192,13 @@ export default function TestPage() {
       }
       
     } catch (err) {
-      setError(err.response?.data?.error || 'Failed to run prediction')
+      if (err.code === 'ECONNABORTED') {
+        setError('Request timed out. The server may be overloaded. Try again.')
+      } else if (!err.response) {
+        setError('Cannot connect to the server. Make sure Flask is running on port 5000.')
+      } else {
+        setError(err.response?.data?.error || 'Failed to run prediction')
+      }
     } finally {
       setLoading(false)
     }
@@ -86,8 +212,9 @@ export default function TestPage() {
       </div>
 
       {error && (
-        <div style={{ padding: '1rem', background: 'rgba(255, 71, 87, 0.1)', border: '1px solid var(--error)', color: 'var(--error)', borderRadius: '8px', marginBottom: '1.5rem' }}>
-          {error}
+        <div style={{ padding: '0.85rem 1rem', background: 'var(--error-bg)', border: '1px solid rgba(239,68,68,0.3)', color: 'var(--error)', borderRadius: 'var(--radius-md)', marginBottom: '1.5rem', display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '0.9rem' }}>
+          <AlertCircle size={18} style={{ flexShrink: 0, marginTop: '2px' }} />
+          <span>{error}</span>
         </div>
       )}
 
@@ -101,7 +228,7 @@ export default function TestPage() {
              {/* Segmented Control */}
              <div style={{ display: 'flex', gap: '4px', background: 'rgba(0,0,0,0.3)', padding: '4px', borderRadius: '12px' }}>
                 <button 
-                  onClick={() => setMode('upload')}
+                  onClick={switchToUpload}
                   style={{ 
                     display: 'flex', alignItems: 'center', gap: '6px',
                     padding: '0.5rem 1rem', fontSize: '0.9rem', fontWeight: '500',
@@ -113,7 +240,7 @@ export default function TestPage() {
                   <ImageIcon size={16} /> Image
                 </button>
                 <button 
-                  onClick={() => { setMode('webcam'); setFile(null); setResults(null); }}
+                  onClick={switchToWebcam}
                   style={{ 
                     display: 'flex', alignItems: 'center', gap: '6px',
                     padding: '0.5rem 1rem', fontSize: '0.9rem', fontWeight: '500',
@@ -127,22 +254,75 @@ export default function TestPage() {
              </div>
           </div>
 
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', background: 'rgba(0,0,0,0.2)', borderRadius: '8px', overflow: 'hidden', position: 'relative', minHeight: '300px' }}>
+          <div 
+            onDragOver={(e) => { e.preventDefault(); e.stopPropagation() }}
+            onDragEnter={(e) => { e.preventDefault(); e.stopPropagation(); if (mode === 'upload') setIsDragActive(true) }}
+            onDragLeave={(e) => { e.preventDefault(); e.stopPropagation(); setIsDragActive(false) }}
+            onDrop={(e) => {
+              e.preventDefault(); e.stopPropagation(); setIsDragActive(false)
+              if (mode === 'upload' && e.dataTransfer.files && e.dataTransfer.files[0]) {
+                const selectedFile = e.dataTransfer.files[0]
+                if (selectedFile.type.startsWith('image/')) {
+                  setFile(selectedFile)
+                  setResults(null)
+                  setError('')
+                } else {
+                  setError('Please select a valid image file (JPEG, PNG, WebP).')
+                }
+              }
+            }}
+            style={{ 
+              flex: 1, 
+              display: 'flex', 
+              flexDirection: 'column', 
+              justifyContent: 'center', 
+              background: 'rgba(0,0,0,0.2)', 
+              borderRadius: '8px', 
+              overflow: 'hidden', 
+              position: 'relative', 
+              minHeight: '300px',
+              border: isDragActive ? '2px dashed var(--primary)' : '1px solid var(--border)',
+              transition: 'border-color 0.2s var(--ease)'
+            }}
+          >
              {mode === 'webcam' ? (
-                <>
-                  <Webcam
-                    audio={false}
-                    ref={webcamRef}
-                    screenshotFormat="image/jpeg"
-                    videoConstraints={{ facingMode: "user" }}
-                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                  />
-                  <div style={{ position: 'absolute', bottom: '1rem', width: '100%', display: 'flex', justifyContent: 'center' }}>
-                     <button className="btn btn-primary" onClick={captureWebcam} style={{ borderRadius: '50px', padding: '0.8rem 2rem' }}>
-                        <Camera size={20} /> Capture Photo
-                     </button>
-                  </div>
-                </>
+                <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                  {webcamError ? (
+                    <div style={{ padding: '2rem', textAlign: 'center' }}>
+                      <AlertCircle size={48} style={{ color: 'var(--warning)', margin: '0 auto 1rem', opacity: 0.7 }} />
+                      <p style={{ color: 'var(--warning)', marginBottom: '1rem', lineHeight: '1.6' }}>{webcamError}</p>
+                      <button className="btn btn-secondary" onClick={startWebcam} style={{ marginRight: '0.5rem' }}>
+                        Retry Camera
+                      </button>
+                      <button className="btn btn-secondary" onClick={switchToUpload}>
+                        Use Image Upload
+                      </button>
+                    </div>
+                  ) : (
+                    <>
+                      <video 
+                        ref={videoRef}
+                        autoPlay 
+                        playsInline 
+                        muted
+                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                      />
+                      {webcamReady && (
+                        <div style={{ position: 'absolute', bottom: '1rem', width: '100%', display: 'flex', justifyContent: 'center' }}>
+                          <button className="btn btn-primary" onClick={captureWebcam} style={{ borderRadius: '50px', padding: '0.8rem 2rem' }}>
+                            <Camera size={20} /> Capture Photo
+                          </button>
+                        </div>
+                      )}
+                      {!webcamReady && !webcamError && (
+                        <div style={{ position: 'absolute', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px' }}>
+                          <RefreshCw className="spin" size={32} style={{ color: 'var(--accent-cyan)' }} />
+                          <span style={{ color: 'var(--text-secondary)' }}>Starting camera...</span>
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
              ) : (
                  file ? (
                   <div style={{ position: 'relative', width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
@@ -174,7 +354,6 @@ export default function TestPage() {
                            const scaleX = previewSize.width / previewSize.naturalWidth
                            const scaleY = previewSize.height / previewSize.naturalHeight
                            
-                           // Calculate offset if image is letterboxed inside the flex container
                            const imgRenderProps = imgRef.current.getBoundingClientRect()
                            const containerProps = imgRef.current.parentElement.getBoundingClientRect()
                            
@@ -219,7 +398,7 @@ export default function TestPage() {
                   <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
                      <ImageIcon size={48} style={{ margin: '0 auto 1rem', opacity: 0.5 }} />
                      <p>Upload an image to start</p>
-                     <input type="file" accept="image/*" id="test-upload" style={{ display: 'none' }} onChange={handleFileChange} />
+                     <input type="file" accept="image/jpeg,image/png,image/webp" id="test-upload" style={{ display: 'none' }} onChange={handleFileChange} />
                      <label htmlFor="test-upload" className="btn btn-secondary" style={{ marginTop: '1rem', display: 'inline-block', cursor: 'pointer' }}>
                         Browse Files
                      </label>
@@ -259,8 +438,38 @@ export default function TestPage() {
                     </div>
                     {results.faces.map((face, i) => (
                       <div key={i} style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', padding: '1rem' }}>
-                         <h3 style={{ margin: '0 0 1rem 0', fontSize: '1.1rem', color: 'var(--accent-1)' }}>Face {i + 1}</h3>
+                         <h3 style={{ margin: '0 0 0.5rem 0', fontSize: '1.1rem', color: 'var(--accent-1)' }}>Face {i + 1}</h3>
                          
+                         {/* Ensemble Result */}
+                         {face.ensemble && (
+                           <div style={{ 
+                             background: 'rgba(0, 240, 255, 0.08)', border: '1px solid rgba(0, 240, 255, 0.2)', 
+                             borderRadius: '8px', padding: '0.8rem', marginBottom: '1rem' 
+                           }}>
+                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                               <div>
+                                 <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '1px' }}>
+                                   Ensemble Result
+                                 </span>
+                                 <div style={{ fontSize: '1.25rem', fontWeight: '700', color: face.ensemble.label === 'Unknown' ? 'var(--warning)' : '#fff', marginTop: '4px' }}>
+                                   {face.ensemble.label}
+                                 </div>
+                               </div>
+                               <div style={{ textAlign: 'right' }}>
+                                 <div style={{ fontSize: '1.5rem', fontWeight: '700', color: 'var(--accent-1)' }}>
+                                   {(face.ensemble.confidence * 100).toFixed(1)}%
+                                 </div>
+                                 <span style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)' }}>
+                                   {face.ensemble.method} · {face.ensemble.agreement}
+                                 </span>
+                               </div>
+                             </div>
+                           </div>
+                         )}
+
+                         <div style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)', marginBottom: '0.5rem', textTransform: 'uppercase', letterSpacing: '1px' }}>
+                           Individual Models
+                         </div>
                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
                             <PredictionRow 
                               model="SOTA MobileNetV2" 

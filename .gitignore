@@ -43,6 +43,20 @@ frontend/node_modules/
 Thumbs.db
 .DS_Store
 
+# Mobile App (Expo/React Native)
+mobile/node_modules/
+mobile/android/
+mobile/ios/
+mobile/.expo/
+mobile/dist/
+
 # Misc
 *.log
 .env
+
+# Build output
+frontend/dist/
+
+# Export artifacts
+class_centroids.json
+label_map.json

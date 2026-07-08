@@ -9,7 +9,7 @@ from mediapipe.tasks.python import vision
 
 MODEL_PATH = "face_landmarker.task"
 if not os.path.exists(MODEL_PATH):
-    print("📥 Downloading Face Mesh model...")
+    print("[INFO] Downloading Face Mesh model...")
     url = "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task"
     urllib.request.urlretrieve(url, MODEL_PATH)
 
