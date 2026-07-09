@@ -1,6 +1,6 @@
 import gradio as gr
 from PIL import Image
-from inference import FaceRecognizer
+from .inference import FaceRecognizer
 
 # Initialize the inference recognizer (will load weights if available)
 recognizer = FaceRecognizer(model_path="best_face_model.pth", classes_path="class_names.txt")

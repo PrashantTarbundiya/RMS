@@ -5,7 +5,7 @@ from torchvision import datasets, transforms
 from torch.utils.data import DataLoader
 import os
 
-from model import CustomFaceCNN
+from .model import CustomFaceCNN
 
 def train_model(data_dir, num_epochs=20, batch_size=32, learning_rate=0.001):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")

@@ -4,6 +4,10 @@ import numpy as np
 from sklearn.datasets import fetch_lfw_people
 from face_detection import SideFaceDetector
 
+# Path constants
+BACKEND_DIR = os.path.dirname(os.path.abspath(__file__))
+PROJECT_ROOT = os.path.dirname(BACKEND_DIR)
+
 def create_directory(path):
     if not os.path.exists(path):
         os.makedirs(path)
@@ -16,7 +20,7 @@ def download_and_sort_lfw():
     print(f"✅ Downloaded {len(lfw_people.images)} images of {len(lfw_people.target_names)} people.")
     
     detector = SideFaceDetector(min_detection_confidence=0.4)
-    base_dir = "dataset"
+    base_dir = os.path.join(PROJECT_ROOT, "dataset")
     create_directory(base_dir)
     
     print("🔍 Analyzing faces for side profiles...")

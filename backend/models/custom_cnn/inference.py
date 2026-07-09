@@ -3,9 +3,9 @@ from torchvision import transforms
 from PIL import Image
 import os
 try:
-    from custom_cnn.model import CustomFaceCNN
+    from models.custom_cnn.model import CustomFaceCNN
 except ImportError:
-    from model import CustomFaceCNN
+    from .model import CustomFaceCNN
 
 class FaceRecognizer:
     def __init__(self, model_path="best_face_model.pth", classes_path="class_names.txt"):
@@ -92,10 +92,17 @@ class FaceRecognizer:
         gray = cv2.cvtColor(img_np, cv2.COLOR_BGR2GRAY)
         
         # Load OpenCV's built-in Haar Cascade for simple and fast face detection
-        cascade_path = cv2.data.haarcascades + 'haarcascade_frontalface_default.xml'
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        # go up 2 directories from backend/models/custom_cnn to backend/
+        cascade_path = os.path.join(base_dir, '..', '..', 'haarcascade_frontalface_default.xml')
         face_cascade = cv2.CascadeClassifier(cascade_path)
         
-        faces = face_cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=5, minSize=(30, 30))
+        faces = []
+        if face_cascade is not None and not face_cascade.empty():
+            try:
+                faces = face_cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=5, minSize=(30, 30))
+            except Exception as e:
+                print(f"[WARNING] OpenCV detectMultiScale failed in custom_cnn: {e}")
         
         results = []
         for (x, y, w, h) in faces:

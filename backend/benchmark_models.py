@@ -9,7 +9,7 @@ import os
 try:
     from face_detection import SideFaceDetector
     from deepface import DeepFace
-    from custom_cnn.inference import FaceRecognizer
+    from models.custom_cnn.inference import FaceRecognizer
 except ImportError as e:
     print(f"Error importing required modules. Ensure you run this from the RMS root folder. Details: {e}")
     exit(1)

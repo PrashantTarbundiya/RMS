@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import axios from 'axios'
+import { motion } from 'framer-motion'
 import { 
   Users, Image as ImageIcon, BarChart3, Clock, CheckCircle, 
   AlertTriangle, Trash2, Edit2, Check, X, RefreshCw, Eye
@@ -97,13 +98,13 @@ export default function DashboardPage() {
     )
   }
 
-  if (error) {
+  if (error || !stats) {
     return (
       <div className="animate-fade-in" style={{ padding: '2rem 0' }}>
         <div className="glass-panel" style={{ padding: '2rem', border: '1px solid rgba(239, 68, 68, 0.3)', background: 'var(--error-bg)', color: 'var(--error)', textAlign: 'center' }}>
           <AlertTriangle size={36} style={{ marginBottom: '1rem' }} />
           <h2 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '0.5rem' }}>Failed to Load Dashboard</h2>
-          <p style={{ fontSize: '0.9rem', marginBottom: '1.5rem' }}>{error}</p>
+          <p style={{ fontSize: '0.9rem', marginBottom: '1.5rem' }}>{error || 'Unable to connect to the backend server. Is it running?'}</p>
           <button className="btn btn-secondary" onClick={() => { setLoading(true); fetchDashboardData(); }}>
             Retry Connection
           </button>
@@ -126,23 +127,40 @@ export default function DashboardPage() {
     info:    { bg: 'var(--info-bg)',    border: 'rgba(59, 130, 246, 0.3)', color: 'var(--info)' },
   }
 
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: { opacity: 1, transition: { staggerChildren: 0.1 } }
+  }
+
+  const itemVariants = {
+    hidden: { y: 20, opacity: 0 },
+    visible: { y: 0, opacity: 1, transition: { type: 'spring', stiffness: 300, damping: 24 } }
+  }
+
   return (
-    <div className="animate-fade-in" style={{ paddingBottom: '4rem' }}>
+    <motion.div 
+      variants={containerVariants} 
+      initial="hidden" 
+      animate="visible"
+      style={{ paddingBottom: '4rem' }}
+    >
       
       {/* Page Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
+      <motion.div variants={itemVariants} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
           <h1 className="page-title" style={{ margin: 0 }}>Dashboard</h1>
           <p className="page-subtitle" style={{ margin: '4px 0 0 0' }}>Analytics, person management, and recognition logs.</p>
         </div>
-        <button 
+        <motion.button 
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
           className="btn btn-secondary" 
           onClick={() => { setLoading(true); fetchDashboardData(); }}
           style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '0.5rem 1rem', fontSize: '0.85rem' }}
         >
           <RefreshCw size={14} /> Refresh Data
-        </button>
-      </div>
+        </motion.button>
+      </motion.div>
 
       {/* Retraining Warning Banner */}
       {requires_retrain && (
@@ -557,7 +575,7 @@ export default function DashboardPage() {
         )}
       </section>
       
-    </div>
+    </motion.div>
   )
 }
 

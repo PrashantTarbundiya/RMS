@@ -450,38 +450,41 @@ export default function ManagePersonPage() {
                 
                 {/* Frontal Category */}
                 {frontalPhotos.length > 0 && (
-                  <div>
-                    <h4 style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--primary-light)', marginBottom: '0.5rem', letterSpacing: '0.05em' }}>FRONTAL ANGLE</h4>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(70px, 1fr))', gap: '8px' }}>
-                      {frontalPhotos.map(p => (
-                        <PhotoThumb key={p.filename} photo={p} name={originalName} onDelete={() => handleDeletePhoto(p.angle, p.filename)} disabled={isSubmitting} />
-                      ))}
-                    </div>
-                  </div>
+                  <DropZoneExisting
+                    title="FRONTAL ANGLE"
+                    photos={frontalPhotos}
+                    targetAngle="frontal"
+                    originalName={originalName}
+                    handleDeletePhoto={handleDeletePhoto}
+                    isSubmitting={isSubmitting}
+                    handleMoveExistingPhoto={handleMoveExistingPhoto}
+                  />
                 )}
 
                 {/* Left Profile Category */}
                 {leftPhotos.length > 0 && (
-                  <div>
-                    <h4 style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--primary-light)', marginBottom: '0.5rem', letterSpacing: '0.05em' }}>LEFT PROFILE</h4>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(70px, 1fr))', gap: '8px' }}>
-                      {leftPhotos.map(p => (
-                        <PhotoThumb key={p.filename} photo={p} name={originalName} onDelete={() => handleDeletePhoto(p.angle, p.filename)} disabled={isSubmitting} />
-                      ))}
-                    </div>
-                  </div>
+                  <DropZoneExisting
+                    title="LEFT PROFILE"
+                    photos={leftPhotos}
+                    targetAngle="left"
+                    originalName={originalName}
+                    handleDeletePhoto={handleDeletePhoto}
+                    isSubmitting={isSubmitting}
+                    handleMoveExistingPhoto={handleMoveExistingPhoto}
+                  />
                 )}
 
                 {/* Right Profile Category */}
                 {rightPhotos.length > 0 && (
-                  <div>
-                    <h4 style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--primary-light)', marginBottom: '0.5rem', letterSpacing: '0.05em' }}>RIGHT PROFILE</h4>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(70px, 1fr))', gap: '8px' }}>
-                      {rightPhotos.map(p => (
-                        <PhotoThumb key={p.filename} photo={p} name={originalName} onDelete={() => handleDeletePhoto(p.angle, p.filename)} disabled={isSubmitting} />
-                      ))}
-                    </div>
-                  </div>
+                  <DropZoneExisting
+                    title="RIGHT PROFILE"
+                    photos={rightPhotos}
+                    targetAngle="right"
+                    originalName={originalName}
+                    handleDeletePhoto={handleDeletePhoto}
+                    isSubmitting={isSubmitting}
+                    handleMoveExistingPhoto={handleMoveExistingPhoto}
+                  />
                 )}
 
                 {/* Extra Category */}
@@ -628,6 +631,53 @@ function DropBoxSmall({ field, files, isActive, onFocus, onFiles, onRemove, onDr
           <UploadCloud size={14} /> Click or Drop files here
         </span>
       )}
+    </div>
+  )
+}
+
+function DropZoneExisting({ title, photos, targetAngle, originalName, handleDeletePhoto, isSubmitting, handleMoveExistingPhoto }) {
+  const [isDragActive, setIsDragActive] = useState(false)
+
+  const handleDragOver = (e) => { e.preventDefault(); e.stopPropagation() }
+  const handleDragEnter = (e) => { e.preventDefault(); e.stopPropagation(); setIsDragActive(true) }
+  const handleDragLeave = (e) => { e.preventDefault(); e.stopPropagation(); setIsDragActive(false) }
+  
+  const handleDrop = (e) => {
+    e.preventDefault(); e.stopPropagation()
+    setIsDragActive(false)
+    const sourceType = e.dataTransfer.getData("sourceType")
+    if (sourceType === "existing") {
+      const sourceAngle = e.dataTransfer.getData("sourceAngle")
+      const filename = e.dataTransfer.getData("filename")
+      if (sourceAngle && filename && sourceAngle !== targetAngle) {
+        handleMoveExistingPhoto(sourceAngle, targetAngle, filename)
+      }
+    }
+  }
+
+  return (
+    <div 
+      onDragOver={handleDragOver}
+      onDragEnter={handleDragEnter}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+      style={{
+        padding: '1rem',
+        border: isDragActive ? '2px dashed var(--primary)' : '2px solid transparent',
+        borderRadius: 'var(--radius-md)',
+        backgroundColor: isDragActive ? 'var(--primary-glow)' : 'transparent',
+        transition: 'all 0.2s var(--ease)',
+        minHeight: '100px'
+      }}
+    >
+      <h4 style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--primary-light)', marginBottom: '0.5rem', letterSpacing: '0.05em' }}>
+        {title}
+      </h4>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(70px, 1fr))', gap: '8px' }}>
+        {photos.map(p => (
+          <PhotoThumb key={p.filename} photo={p} name={originalName} onDelete={() => handleDeletePhoto(p.angle, p.filename)} disabled={isSubmitting} />
+        ))}
+      </div>
     </div>
   )
 }

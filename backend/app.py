@@ -13,11 +13,11 @@ from scipy.spatial.distance import cosine
 from model import apply_clahe, get_embedding
 from inference import find_match_knn
 
-# --- Model 2: Custom CNN (from custom_cnn/inference.py) ---
-from custom_cnn.inference import FaceRecognizer as CustomFaceRecognizer
+# --- Model 2: Custom CNN (from models/custom_cnn/inference.py) ---
+from models.custom_cnn.inference import FaceRecognizer as CustomFaceRecognizer
 
-# --- Model 3: SOTA Finetune MobileNetV2 (from sota_finetune/finetune.py) ---
-from sota_finetune.finetune import build_mobile_model
+# --- Model 3: SOTA Finetune MobileNetV2 (from models/sota_finetune/finetune.py) ---
+from models.sota_finetune.finetune import build_mobile_model
 
 # --- Add Person Utility ---
 from add_person_utils import add_person_to_all_models
@@ -131,10 +131,16 @@ def process_group_image(input_image):
     img_np = cv2.cvtColor(np.array(pil_img), cv2.COLOR_RGB2BGR)
     gray = cv2.cvtColor(img_np, cv2.COLOR_BGR2GRAY)
     
-    cascade_path = cv2.data.haarcascades + 'haarcascade_frontalface_default.xml'
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    cascade_path = os.path.join(base_dir, 'haarcascade_frontalface_default.xml')
     face_cascade = cv2.CascadeClassifier(cascade_path)
     
-    faces = face_cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=5, minSize=(30, 30))
+    faces = []
+    if face_cascade is not None and not face_cascade.empty():
+        try:
+            faces = face_cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=5, minSize=(30, 30))
+        except Exception as e:
+            print(f"[WARNING] OpenCV detectMultiScale failed in app.py: {e}")
     
     results_gallery = []
     

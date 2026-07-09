@@ -9,13 +9,14 @@ from flask_cors import CORS
 from werkzeug.utils import secure_filename
 import shutil
 
-# Add parent directory to sys.path so we can import from the existing pipeline
-PARENT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
-sys.path.append(PARENT_DIR)
+# Path setup — backend/ is where this file lives
+BACKEND_DIR = os.path.dirname(os.path.abspath(__file__))
+PROJECT_ROOT = os.path.dirname(BACKEND_DIR)
+sys.path.insert(0, BACKEND_DIR)
 
 from add_person_utils import add_person_to_all_models
-from sota_finetune.finetune import build_mobile_model, export_to_onnx
-from custom_cnn.inference import FaceRecognizer as CustomFaceRecognizer
+from models.sota_finetune.finetune import build_mobile_model, export_to_onnx
+from models.custom_cnn.inference import FaceRecognizer as CustomFaceRecognizer
 from model import apply_clahe, get_embedding
 from inference import find_match_knn
 import torch
@@ -84,12 +85,12 @@ def ping():
     """Minimal ping endpoint for connection testing."""
     return jsonify({'pong': True})
 
-# Configuration
-DATASET_CLEANED_DIR = os.path.join(PARENT_DIR, 'dataset_cleaned')
-CUSTOM_CNN_MODEL_PATH = os.path.join(PARENT_DIR, 'custom_cnn', 'best_face_model.pth')
-SOTA_MODEL_PATH = os.path.join(PARENT_DIR, 'sota_finetune', 'best_mobile_sideface.pth')
-DEEPFACE_MODEL_PATH = os.path.join(PARENT_DIR, 'encodings.pickle')
-RECOGNITION_HISTORY_PATH = os.path.join(PARENT_DIR, 'recognition_history.json')
+# Configuration — paths relative to project structure
+DATASET_CLEANED_DIR = os.path.join(PROJECT_ROOT, 'dataset_cleaned')
+CUSTOM_CNN_MODEL_PATH = os.path.join(BACKEND_DIR, 'models', 'custom_cnn', 'best_face_model.pth')
+SOTA_MODEL_PATH = os.path.join(BACKEND_DIR, 'models', 'sota_finetune', 'best_mobile_sideface.pth')
+DEEPFACE_MODEL_PATH = os.path.join(BACKEND_DIR, 'data', 'encodings.pickle')
+RECOGNITION_HISTORY_PATH = os.path.join(BACKEND_DIR, 'data', 'recognition_history.json')
 
 def log_recognition(faces_results):
     if not faces_results:
@@ -150,8 +151,30 @@ training_status = {
 # --- GLOBAL MODEL INITIALIZATION (For Inference) ---
 print("[API] Initializing Face Detection and Recognition Models...")
 
-cascade_path = cv2.data.haarcascades + 'haarcascade_frontalface_default.xml'
-face_cascade = cv2.CascadeClassifier(cascade_path)
+face_cascade = None
+
+def get_face_cascade():
+    global face_cascade
+    if face_cascade is None or face_cascade.empty():
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        paths_to_try = [
+            os.path.join(base_dir, 'haarcascade_frontalface_default.xml'),
+            os.path.join(base_dir, '..', 'haarcascade_frontalface_default.xml'),
+            'haarcascade_frontalface_default.xml'
+        ]
+        for p in paths_to_try:
+            if os.path.exists(p):
+                clf = cv2.CascadeClassifier(p)
+                if not clf.empty():
+                    face_cascade = clf
+                    print(f"[API] Face cascade successfully loaded from: {p}")
+                    return face_cascade
+        print("[WARNING] Could not load face cascade from any path!")
+        return None
+    return face_cascade
+
+# Initial try
+get_face_cascade()
 
 def load_deepface():
     try:
@@ -166,7 +189,7 @@ deepface_encodings, deepface_names = load_deepface()
 try:
     custom_cnn_recognizer = CustomFaceRecognizer(
         model_path=CUSTOM_CNN_MODEL_PATH, 
-        classes_path=os.path.join(PARENT_DIR, 'custom_cnn', 'class_names.txt')
+        classes_path=os.path.join(BACKEND_DIR, 'models', 'custom_cnn', 'class_names.txt')
     )
 except Exception as e:
     print(f"[WARNING] Custom CNN model not loadable: {e}")
@@ -174,7 +197,7 @@ except Exception as e:
 
 def load_sota():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    classes_path = os.path.join(PARENT_DIR, 'sota_finetune', 'mobile_classes.txt')
+    classes_path = os.path.join(BACKEND_DIR, 'models', 'sota_finetune', 'mobile_classes.txt')
     classes = []
     if os.path.exists(classes_path):
         with open(classes_path, "r") as f:
@@ -219,7 +242,7 @@ def reload_models():
     try:
         custom_cnn_recognizer = CustomFaceRecognizer(
             model_path=CUSTOM_CNN_MODEL_PATH,
-            classes_path=os.path.join(PARENT_DIR, 'custom_cnn', 'class_names.txt')
+            classes_path=os.path.join(BACKEND_DIR, 'models', 'custom_cnn', 'class_names.txt')
         )
     except Exception as e:
         print(f"[WARNING] Custom CNN reload failed: {e}")
@@ -381,14 +404,14 @@ def export_onnx_model():
     if not os.path.exists(SOTA_MODEL_PATH):
         return jsonify({'error': 'SOTA Model (best_mobile_sideface.pth) not found. Train a model first.'}), 404
 
-    classes_path = os.path.join(PARENT_DIR, 'sota_finetune', 'mobile_classes.txt')
+    classes_path = os.path.join(BACKEND_DIR, 'models', 'sota_finetune', 'mobile_classes.txt')
     classes = []
     if os.path.exists(classes_path):
         with open(classes_path, "r") as f:
             classes = [line.strip() for line in f.readlines() if line.strip()]
             
     num_classes = len(classes) if classes else 2
-    output_onnx_path = os.path.join(PARENT_DIR, "sideface_mobile.onnx")
+    output_onnx_path = os.path.join(PROJECT_ROOT, "sideface_mobile.onnx")
 
     try:
         from sota_finetune.finetune import build_mobile_model, export_to_onnx
@@ -412,7 +435,7 @@ def export_onnx_model():
 @app.route('/api/download-model', methods=['GET'])
 def download_model():
     """Downloads the MobileNetV3 ONNX file."""
-    path = os.path.join(PARENT_DIR, "sideface_mobile.onnx")
+    path = os.path.join(PROJECT_ROOT, "sideface_mobile.onnx")
     if os.path.exists(path):
         return send_file(path, as_attachment=True)
     return jsonify({'error': 'Model not exported yet. Please export first.'}), 404
@@ -436,7 +459,7 @@ def download_file():
     filename = request.args.get('name', '')
     if filename not in _DOWNLOADABLE:
         return jsonify({'error': f"Unknown file '{filename}'. Allowed: {sorted(_DOWNLOADABLE)}"}), 400
-    path = os.path.join(PARENT_DIR, filename)
+    path = os.path.join(PROJECT_ROOT, filename)
     if not os.path.exists(path):
         return jsonify({'error': f"'{filename}' not found. Run training first."}), 404
     return send_file(path, as_attachment=True, download_name=filename)
@@ -449,12 +472,12 @@ def reset_models():
             CUSTOM_CNN_MODEL_PATH,
             SOTA_MODEL_PATH,
             DEEPFACE_MODEL_PATH,
-            os.path.join(PARENT_DIR, 'sota_finetune', 'mobile_classes.txt'),
-            os.path.join(PARENT_DIR, 'custom_cnn', 'class_names.txt'),
-            os.path.join(PARENT_DIR, 'sideface_mobile.onnx'),
-            os.path.join(PARENT_DIR, 'facenet512.onnx'),
-            os.path.join(PARENT_DIR, 'class_centroids.json'),
-            os.path.join(PARENT_DIR, 'label_map.json'),
+            os.path.join(BACKEND_DIR, 'models', 'sota_finetune', 'mobile_classes.txt'),
+            os.path.join(BACKEND_DIR, 'models', 'custom_cnn', 'class_names.txt'),
+            os.path.join(PROJECT_ROOT, 'sideface_mobile.onnx'),
+            os.path.join(PROJECT_ROOT, 'facenet512.onnx'),
+            os.path.join(BACKEND_DIR, 'data', 'class_centroids.json'),
+            os.path.join(BACKEND_DIR, 'data', 'label_map.json'),
         ]
         
         removed = []
@@ -464,7 +487,7 @@ def reset_models():
                 removed.append(os.path.basename(f))
                 
         # Clear specific folders without deleting the whole directory
-        raw_dataset_dir = os.path.join(PARENT_DIR, 'dataset')
+        raw_dataset_dir = os.path.join(PROJECT_ROOT, 'dataset')
         if os.path.exists(raw_dataset_dir):
             shutil.rmtree(raw_dataset_dir)
             
@@ -496,14 +519,21 @@ def predict():
         img_np = cv2.cvtColor(np.array(pil_img), cv2.COLOR_RGB2BGR)
         gray = cv2.cvtColor(img_np, cv2.COLOR_BGR2GRAY)
         
-        faces = face_cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=5, minSize=(30, 30))
-        
-        message = f'Detected {len(faces)} face(s)'
+        cascade = get_face_cascade()
+        faces = []
+        if cascade is not None and not cascade.empty():
+            try:
+                faces = cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=5, minSize=(30, 30))
+            except Exception as e:
+                print(f"[WARNING] OpenCV detectMultiScale failed: {e}")
+
         if len(faces) == 0:
             # Fallback: Treat the whole image as the bounding box and pass to models
             h, w = img_np.shape[:2]
             faces = [(0, 0, w, h)]
             message = "Cascade failed to find a face: Full image evaluated."
+        else:
+            message = f'Detected {len(faces)} face(s)'
 
         results = []
         for (x, y, w, h) in faces:
@@ -695,7 +725,7 @@ def delete_person(name):
         return jsonify({'error': 'Name is required'}), 400
         
     cleaned_path = os.path.join(DATASET_CLEANED_DIR, name)
-    raw_path = os.path.join(PARENT_DIR, 'dataset', name)
+    raw_path = os.path.join(PROJECT_ROOT, 'dataset', name)
     
     deleted_any = False
     
@@ -746,8 +776,8 @@ def delete_person(name):
                 except Exception as e:
                     print(f"[WARNING] Failed to update {file_path}: {e}")
                     
-        filter_class_file(os.path.join(PARENT_DIR, 'custom_cnn', 'class_names.txt'))
-        filter_class_file(os.path.join(PARENT_DIR, 'sota_finetune', 'mobile_classes.txt'))
+        filter_class_file(os.path.join(BACKEND_DIR, 'models', 'custom_cnn', 'class_names.txt'))
+        filter_class_file(os.path.join(BACKEND_DIR, 'models', 'sota_finetune', 'mobile_classes.txt'))
         
         # Hot-reload models
         reload_models()
@@ -778,8 +808,8 @@ def rename_person(old_name):
     old_cleaned_path = os.path.join(DATASET_CLEANED_DIR, old_name)
     new_cleaned_path = os.path.join(DATASET_CLEANED_DIR, new_name)
     
-    old_raw_path = os.path.join(PARENT_DIR, 'dataset', old_name)
-    new_raw_path = os.path.join(PARENT_DIR, 'dataset', new_name)
+    old_raw_path = os.path.join(PROJECT_ROOT, 'dataset', old_name)
+    new_raw_path = os.path.join(PROJECT_ROOT, 'dataset', new_name)
     
     if not os.path.exists(old_cleaned_path):
         return jsonify({'error': f"Person '{old_name}' not found"}), 404
@@ -820,8 +850,8 @@ def rename_person(old_name):
                 except Exception as e:
                     print(f"[WARNING] Failed to rename in {file_path}: {e}")
                     
-        rename_in_class_file(os.path.join(PARENT_DIR, 'custom_cnn', 'class_names.txt'))
-        rename_in_class_file(os.path.join(PARENT_DIR, 'sota_finetune', 'mobile_classes.txt'))
+        rename_in_class_file(os.path.join(BACKEND_DIR, 'models', 'custom_cnn', 'class_names.txt'))
+        rename_in_class_file(os.path.join(BACKEND_DIR, 'models', 'sota_finetune', 'mobile_classes.txt'))
         
         # Hot-reload models
         reload_models()
@@ -915,7 +945,7 @@ def delete_person_photo(name, angle, filename):
     """Deletes a photo from clean (and raw) dataset and updates DeepFace."""
     name = name.strip()
     cleaned_file_path = os.path.join(DATASET_CLEANED_DIR, name, angle, filename)
-    raw_file_path = os.path.join(PARENT_DIR, 'dataset', name, angle, filename)
+    raw_file_path = os.path.join(PROJECT_ROOT, 'dataset', name, angle, filename)
     
     deleted = False
     try:
@@ -950,10 +980,10 @@ def move_person_photo(name):
         return jsonify({'error': 'Missing parameters'}), 400
         
     cleaned_source = os.path.join(DATASET_CLEANED_DIR, name, source_angle, filename)
-    raw_source = os.path.join(PARENT_DIR, 'dataset', name, source_angle, filename)
+    raw_source = os.path.join(PROJECT_ROOT, 'dataset', name, source_angle, filename)
     
     cleaned_target_dir = os.path.join(DATASET_CLEANED_DIR, name, target_angle)
-    raw_target_dir = os.path.join(PARENT_DIR, 'dataset', name, target_angle)
+    raw_target_dir = os.path.join(PROJECT_ROOT, 'dataset', name, target_angle)
     
     os.makedirs(cleaned_target_dir, exist_ok=True)
     os.makedirs(raw_target_dir, exist_ok=True)

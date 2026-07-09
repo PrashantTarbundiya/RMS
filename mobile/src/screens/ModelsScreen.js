@@ -6,7 +6,7 @@ import {
 import { COLORS, SPACING, FONT_SIZES, BORDER_RADIUS } from '../theme';
 import { getPersons, exportOnnx, resetModels, downloadModelFile, pingServer } from '../services/api';
 
-export default function ModelsScreen() {
+export default function ModelsScreen({ navigation }) {
   const [persons, setPersons] = useState([]);
   const [loading, setLoading] = useState(false);
   const [exporting, setExporting] = useState(false);
@@ -16,7 +16,13 @@ export default function ModelsScreen() {
 
   useEffect(() => {
     refresh();
-  }, []);
+    
+    // Auto-refresh when screen comes into focus
+    const unsubscribe = navigation.addListener('focus', () => {
+      refresh();
+    });
+    return unsubscribe;
+  }, [navigation]);
 
   async function refresh() {
     setLoading(true);
@@ -118,10 +124,15 @@ export default function ModelsScreen() {
       ) : persons.length > 0 ? (
         <View style={styles.personsGrid}>
           {persons.map((name, i) => (
-            <View key={i} style={styles.personChip}>
+            <TouchableOpacity 
+              key={i} 
+              style={styles.personChip}
+              onPress={() => navigation.navigate('ManagePerson', { personName: name })}
+            >
               <Text style={styles.personAvatar}>👤</Text>
-              <Text style={styles.personName}>{name}</Text>
-            </View>
+              <Text style={styles.personName}>{name.replace(/_/g, ' ')}</Text>
+              <Text style={{ fontSize: 10, color: COLORS.primaryLight, marginLeft: 4 }}>✏️</Text>
+            </TouchableOpacity>
           ))}
         </View>
       ) : (

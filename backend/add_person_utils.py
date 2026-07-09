@@ -18,6 +18,10 @@ from torchvision import datasets, transforms
 from torch.utils.data import DataLoader, Subset
 from PIL import Image
 
+# Path constants
+BACKEND_DIR = os.path.dirname(os.path.abspath(__file__))
+PROJECT_ROOT = os.path.dirname(BACKEND_DIR)
+
 # Reuse existing pipeline functions
 from model import apply_clahe, get_embedding, generate_augments, NUM_AUGMENTS
 from face_detection import SideFaceDetector
@@ -67,7 +71,9 @@ def check_image_quality(img_bgr, min_size=60, blur_threshold=50.0):
 # 1. DEEPFACE — Incremental Embedding Append (No Retrain)
 # ============================================================================
 
-def update_deepface_model(person_name, image_paths, encodings_path='encodings.pickle'):
+def update_deepface_model(person_name, image_paths, encodings_path=None):
+    if encodings_path is None:
+        encodings_path = os.path.join(BACKEND_DIR, 'data', 'encodings.pickle')
     """
     Generate Facenet512 embeddings for uploaded images and append them to
     the existing encodings.pickle. No retraining needed.
@@ -178,10 +184,16 @@ def update_deepface_model(person_name, image_paths, encodings_path='encodings.pi
 # 2. CUSTOM CNN — Expand Head + Quick Fine-Tune
 # ============================================================================
 
-def update_custom_cnn(person_name, dataset_dir='dataset_cleaned',
-                      model_path='custom_cnn/best_face_model.pth',
-                      classes_path='custom_cnn/class_names.txt',
+def update_custom_cnn(person_name, dataset_dir=None,
+                      model_path=None,
+                      classes_path=None,
                       num_epochs=5, batch_size=16):
+    if dataset_dir is None:
+        dataset_dir = os.path.join(PROJECT_ROOT, 'dataset_cleaned')
+    if model_path is None:
+        model_path = os.path.join(BACKEND_DIR, 'models', 'custom_cnn', 'best_face_model.pth')
+    if classes_path is None:
+        classes_path = os.path.join(BACKEND_DIR, 'models', 'custom_cnn', 'class_names.txt')
     """
     Add a new person to the Custom CNN model:
     1. Read existing class names
@@ -190,7 +202,7 @@ def update_custom_cnn(person_name, dataset_dir='dataset_cleaned',
     4. Fine-tune on entire dataset for a few epochs
     5. Save updated model + class_names.txt
     """
-    from custom_cnn.model import CustomFaceCNN
+    from models.custom_cnn.model import CustomFaceCNN
 
     print(f"\n{'='*50}")
     print(f"🧠 Custom CNN: Fine-tuning for '{person_name}'")
@@ -296,10 +308,16 @@ def update_custom_cnn(person_name, dataset_dir='dataset_cleaned',
 # 3. SOTA MobileNetV2 — Expand Head + Quick Fine-Tune
 # ============================================================================
 
-def update_sota_model(person_name, dataset_dir='dataset_cleaned',
-                      model_path='sota_finetune/best_mobile_sideface.pth',
-                      classes_path='sota_finetune/mobile_classes.txt',
+def update_sota_model(person_name, dataset_dir=None,
+                      model_path=None,
+                      classes_path=None,
                       num_epochs=5, batch_size=16):
+    if dataset_dir is None:
+        dataset_dir = os.path.join(PROJECT_ROOT, 'dataset_cleaned')
+    if model_path is None:
+        model_path = os.path.join(BACKEND_DIR, 'models', 'sota_finetune', 'best_mobile_sideface.pth')
+    if classes_path is None:
+        classes_path = os.path.join(BACKEND_DIR, 'models', 'sota_finetune', 'mobile_classes.txt')
     """
     Add a new person to the SOTA MobileNetV2 model:
     1. Read existing class names
@@ -308,7 +326,7 @@ def update_sota_model(person_name, dataset_dir='dataset_cleaned',
     4. Fine-tune on entire dataset for a few epochs
     5. Save updated model + mobile_classes.txt
     """
-    from sota_finetune.finetune import build_mobile_model
+    from models.sota_finetune.finetune import build_mobile_model
 
     print(f"\n{'='*50}")
     print(f"📱 SOTA MobileNetV2: Fine-tuning for '{person_name}'")
@@ -345,7 +363,7 @@ def update_sota_model(person_name, dataset_dir='dataset_cleaned',
 
     # Load dataset
     try:
-        from sota_finetune.finetune import SafeImageFolder
+        from models.sota_finetune.finetune import SafeImageFolder
         train_dataset = SafeImageFolder(root=dataset_dir, transform=train_transform)
     except ImportError:
         train_dataset = datasets.ImageFolder(root=dataset_dir, transform=train_transform)
@@ -447,13 +465,18 @@ def clean_and_save_face(img_bgr, output_path, margin_ratio=0.20):
         # --- MediaPipe path ---
         faces = _detect_with_mediapipe(detector, img_bgr)
     else:
-        # --- Haar fallback ---
-        cascade_file = cv2.data.haarcascades + 'haarcascade_frontalface_default.xml'
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        cascade_file = os.path.join(base_dir, 'haarcascade_frontalface_default.xml')
         face_cascade = cv2.CascadeClassifier(cascade_file)
-        gray = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2GRAY)
-        faces = list(face_cascade.detectMultiScale(
-            gray, scaleFactor=1.1, minNeighbors=4, minSize=(20, 20)
-        ))
+        faces = []
+        if face_cascade is not None and not face_cascade.empty():
+            try:
+                gray = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2GRAY)
+                faces = list(face_cascade.detectMultiScale(
+                    gray, scaleFactor=1.1, minNeighbors=4, minSize=(20, 20)
+                ))
+            except Exception as e:
+                print(f"   [WARNING] Haar detectMultiScale failed: {e}")
 
     if len(faces) == 0:
         # No face detected — save original as fallback (side faces at steep angles)
@@ -482,7 +505,9 @@ def clean_and_save_face(img_bgr, output_path, margin_ratio=0.20):
 # MASTER FUNCTION: Save images + clean + update all 3 models
 # ============================================================================
 
-def add_person_to_all_models(person_name, image_data_list, dataset_dir='dataset_cleaned', num_epochs=5):
+def add_person_to_all_models(person_name, image_data_list, dataset_dir=None, num_epochs=5):
+    if dataset_dir is None:
+        dataset_dir = os.path.join(PROJECT_ROOT, 'dataset_cleaned')
     """
     Master function called from the Gradio UI and Flask API.
 

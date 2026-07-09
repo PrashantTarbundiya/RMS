@@ -3,12 +3,14 @@ import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { StatusBar } from 'expo-status-bar';
 import { View, Text, Platform } from 'react-native';
+import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS } from './src/theme';
 
 import DashboardScreen from './src/screens/DashboardScreen';
 import RecognizeScreen from './src/screens/RecognizeScreen';
 import AddPersonScreen from './src/screens/AddPersonScreen';
 import ModelsScreen from './src/screens/ModelsScreen';
+import ManagePersonScreen from './src/screens/ManagePersonScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
 import SupportScreen from './src/screens/SupportScreen';
 
@@ -36,35 +38,34 @@ function TabIcon({ icon, focused }) {
   );
 }
 
-export default function App() {
+function MainTabs() {
+  const insets = useSafeAreaInsets();
+  
   return (
-    <NavigationContainer theme={DarkTheme}>
-      <StatusBar style="light" backgroundColor={COLORS.bgPrimary} />
-      <Tab.Navigator
-        screenOptions={{
-          headerShown: true,
-          headerStyle: {
-            backgroundColor: COLORS.bgSecondary,
-            borderBottomColor: COLORS.border,
-            borderBottomWidth: 1,
-            elevation: 0,
-            shadowOpacity: 0,
-          },
-          headerTitleStyle: {
-            color: COLORS.textPrimary,
-            fontWeight: '700',
-            fontSize: 16,
-          },
-          tabBarStyle: {
-            backgroundColor: COLORS.bgSecondary,
-            borderTopColor: COLORS.border,
-            borderTopWidth: 1,
-            // Adjust height to completely avoid native indicator button overlays
-            height: Platform.OS === 'ios' ? 88 : 72,
-            paddingBottom: Platform.OS === 'ios' ? 28 : 12,
-            paddingTop: 8,
-            elevation: 0,
-          },
+    <Tab.Navigator
+      screenOptions={{
+        headerShown: true,
+        headerStyle: {
+          backgroundColor: COLORS.bgSecondary,
+          borderBottomColor: COLORS.border,
+          borderBottomWidth: 1,
+          elevation: 0,
+          shadowOpacity: 0,
+        },
+        headerTitleStyle: {
+          color: COLORS.textPrimary,
+          fontWeight: '700',
+          fontSize: 16,
+        },
+        tabBarStyle: {
+          backgroundColor: COLORS.bgSecondary,
+          borderTopColor: COLORS.border,
+          borderTopWidth: 1,
+          height: 60 + insets.bottom,
+          paddingBottom: insets.bottom + 5,
+          paddingTop: 8,
+          elevation: 0,
+        },
           tabBarActiveTintColor: COLORS.primary,
           tabBarInactiveTintColor: COLORS.textTertiary,
           tabBarLabelStyle: {
@@ -140,7 +141,24 @@ export default function App() {
             ),
           }}
         />
+        <Tab.Screen
+          name="ManagePerson"
+          component={ManagePersonScreen}
+          options={{
+            title: 'Manage Person',
+            headerTitle: 'Manage Profile',
+            tabBarButton: () => null,
+          }}
+        />
       </Tab.Navigator>
     </NavigationContainer>
+  );
+}
+
+export default function App() {
+  return (
+    <SafeAreaProvider>
+      <MainTabs />
+    </SafeAreaProvider>
   );
 }

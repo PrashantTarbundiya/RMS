@@ -26,11 +26,9 @@ env/
 # Datasets
 dataset/
 dataset_cleaned/
-frontend/dataset/
 
-# Node.js (frontend)
+# Node.js (frontend & mobile)
 node_modules/
-frontend/node_modules/
 
 # IDE / Editor
 .vscode/
@@ -44,7 +42,6 @@ Thumbs.db
 .DS_Store
 
 # Mobile App (Expo/React Native)
-mobile/node_modules/
 mobile/android/
 mobile/ios/
 mobile/.expo/
@@ -57,6 +54,7 @@ mobile/dist/
 # Build output
 frontend/dist/
 
-# Export artifacts
-class_centroids.json
-label_map.json
+# Runtime data artifacts
+backend/data/class_centroids.json
+backend/data/label_map.json
+backend/data/recognition_history.json

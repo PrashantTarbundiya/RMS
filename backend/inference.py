@@ -10,6 +10,9 @@ from scipy.spatial.distance import cosine
 from collections import Counter
 from face_detection import SideFaceDetector
 
+# Path constants
+BACKEND_DIR = os.path.dirname(os.path.abspath(__file__))
+
 # Suppress TF logs
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
@@ -34,7 +37,9 @@ result_queue = queue.Queue(maxsize=1)
 terminate_event = threading.Event()
 
 
-def load_encodings(encodings_path='encodings.pickle'):
+def load_encodings(encodings_path=None):
+    if encodings_path is None:
+        encodings_path = os.path.join(BACKEND_DIR, 'data', 'encodings.pickle')
     try:
         data = pickle.loads(open(encodings_path, "rb").read())
         version = data.get("version", "1.0")

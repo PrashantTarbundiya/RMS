@@ -7,7 +7,10 @@ import mediapipe as mp
 from mediapipe.tasks import python
 from mediapipe.tasks.python import vision
 
-MODEL_PATH = "face_landmarker.task"
+# Path constants
+BACKEND_DIR = os.path.dirname(os.path.abspath(__file__))
+
+MODEL_PATH = os.path.join(BACKEND_DIR, 'data', 'face_landmarker.task')
 if not os.path.exists(MODEL_PATH):
     print("[INFO] Downloading Face Mesh model...")
     url = "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task"

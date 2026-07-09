@@ -8,7 +8,7 @@ import { getDashboard, clearHistory, pingServer } from '../services/api';
 
 const { width } = Dimensions.get('window');
 
-export default function DashboardScreen() {
+export default function DashboardScreen({ navigation }) {
   const [data, setData] = useState(null);
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -39,7 +39,11 @@ export default function DashboardScreen() {
 
   useEffect(() => {
     loadData();
-  }, []);
+    const unsubscribe = navigation.addListener('focus', () => {
+      loadData();
+    });
+    return unsubscribe;
+  }, [navigation]);
 
   const onRefresh = () => {
     setRefreshing(true);
@@ -81,7 +85,7 @@ export default function DashboardScreen() {
     );
   }
 
-  const { total_people, total_photos, requires_retrain, models_loaded, history_stats } = data;
+  const { total_people, total_photos, photos_per_person, requires_retrain, models_loaded, history_stats } = data;
   const { total_predictions, success_count, error_count } = history_stats;
   const successRate = total_predictions > 0 ? Math.round((success_count / total_predictions) * 100) : 0;
 
@@ -117,6 +121,39 @@ export default function DashboardScreen() {
         <StatusRow label="Custom CNN (Classifier)" loaded={models_loaded.custom_cnn} />
         <StatusRow label="SOTA (MobileNetV2)" loaded={models_loaded.sota} />
       </View>
+
+      {/* Registered Profiles */}
+      <Text style={styles.sectionTitle}>Registered Profiles</Text>
+      {Object.keys(photos_per_person || {}).length === 0 ? (
+        <View style={styles.emptyCard}>
+          <Text style={styles.emptyText}>No profiles registered yet.</Text>
+        </View>
+      ) : (
+        <View style={styles.card}>
+          {Object.keys(photos_per_person || {}).map((name, idx, arr) => {
+            const count = photos_per_person[name] || 0;
+            return (
+              <TouchableOpacity
+                key={name}
+                style={[
+                  styles.profileRow,
+                  idx === arr.length - 1 && { borderBottomWidth: 0 }
+                ]}
+                onPress={() => navigation.navigate('ManagePerson', { personName: name })}
+              >
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <Text style={{ fontSize: 16 }}>👤</Text>
+                  <Text style={styles.profileName}>{name.replace(/_/g, ' ')}</Text>
+                </View>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <Text style={styles.profileCount}>{count} photos</Text>
+                  <Text style={{ fontSize: 12, color: COLORS.primaryLight }}>✏️</Text>
+                </View>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      )}
 
       {/* Recent History Table */}
       <View style={styles.sectionHeader}>
@@ -415,5 +452,23 @@ const styles = StyleSheet.create({
     color: COLORS.textTertiary,
     fontSize: FONT_SIZES.xs,
     marginTop: 2,
+  },
+  profileRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: SPACING.md,
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  profileName: {
+    color: COLORS.textPrimary,
+    fontSize: FONT_SIZES.sm,
+    fontWeight: '600',
+  },
+  profileCount: {
+    color: COLORS.textSecondary,
+    fontSize: FONT_SIZES.xs,
   },
 });

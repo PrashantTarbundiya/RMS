@@ -2,6 +2,10 @@ import os
 import cv2
 import numpy as np
 
+# Path constants
+BACKEND_DIR = os.path.dirname(os.path.abspath(__file__))
+PROJECT_ROOT = os.path.dirname(BACKEND_DIR)
+
 try:
     import mediapipe as mp
     from mediapipe.tasks import python
@@ -11,8 +15,10 @@ except ImportError:
     _MEDIAPIPE_OK = False
 
 
-def _build_mediapipe_detector(model_path="blaze_face_short_range.tflite", confidence=0.3):
+def _build_mediapipe_detector(model_path=None, confidence=0.3):
     """Build a MediaPipe FaceDetector (BlazeFace). Returns None if unavailable."""
+    if model_path is None:
+        model_path = os.path.join(BACKEND_DIR, 'data', 'blaze_face_short_range.tflite')
     if not _MEDIAPIPE_OK:
         return None
     if not os.path.exists(model_path):
@@ -58,10 +64,9 @@ def clean_dataset(input_dir="dataset", output_dir="dataset_cleaned", margin_rati
     If no face is detected, the full image is saved as a fallback (useful for 
     side/profile images that may not trigger frontal detectors).
     """
-    # Use absolute paths or relative paths based on where the script is run
-    base_dir = os.path.dirname(os.path.abspath(__file__))
-    input_path = os.path.join(base_dir, input_dir)
-    output_path = os.path.join(base_dir, output_dir)
+    # Use absolute paths based on project root
+    input_path = os.path.join(PROJECT_ROOT, input_dir) if not os.path.isabs(input_dir) else input_dir
+    output_path = os.path.join(PROJECT_ROOT, output_dir) if not os.path.isabs(output_dir) else output_dir
 
     if not os.path.exists(input_path):
         print(f"Error: Input directory '{input_path}' not found.")
@@ -69,8 +74,7 @@ def clean_dataset(input_dir="dataset", output_dir="dataset_cleaned", margin_rati
         return
 
     # Prefer MediaPipe BlazeFace (handles side/profile faces better than Haar)
-    base_dir = os.path.dirname(os.path.abspath(__file__))
-    model_path = os.path.join(base_dir, "blaze_face_short_range.tflite")
+    model_path = os.path.join(BACKEND_DIR, 'data', 'blaze_face_short_range.tflite')
     mp_detector = _build_mediapipe_detector(model_path, confidence=0.3)
     if mp_detector:
         print("🔍 Using MediaPipe BlazeFace for face detection.")

@@ -4,6 +4,10 @@ import time
 import sys
 from face_detection import SideFaceDetector
 
+# Path constants
+BACKEND_DIR = os.path.dirname(os.path.abspath(__file__))
+PROJECT_ROOT = os.path.dirname(BACKEND_DIR)
+
 def create_directory(path):
     if not os.path.exists(path):
         os.makedirs(path)
@@ -12,7 +16,7 @@ def capture_images(user_name):
     """
     Captures images for a specific user from 3 angles: Frontal, Left, Right.
     """
-    base_dir = "dataset"
+    base_dir = os.path.join(PROJECT_ROOT, "dataset")
     user_dir = os.path.join(base_dir, user_name)
     
     modes = [

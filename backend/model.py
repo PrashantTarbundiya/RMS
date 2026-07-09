@@ -1,3 +1,4 @@
+# pyrefly: ignore [missing-import]
 import cv2
 import os
 import pickle
@@ -6,6 +7,10 @@ from deepface import DeepFace
 from soft_biometrics import extract_soft_biometrics
 # Suppress TF logs
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
+
+# Path constants
+BACKEND_DIR = os.path.dirname(os.path.abspath(__file__))
+PROJECT_ROOT = os.path.dirname(BACKEND_DIR)
 
 # ======================== CONFIGURATION ========================
 # MODEL OPTIONS (lightest → heaviest / fastest → most accurate):
@@ -190,7 +195,11 @@ def _crop_face(image, detector):
     return crop, True
 
 
-def train_model(dataset_path='dataset_cleaned', model_save_path='encodings.pickle'):
+def train_model(dataset_path=None, model_save_path=None):
+    if dataset_path is None:
+        dataset_path = os.path.join(PROJECT_ROOT, 'dataset_cleaned')
+    if model_save_path is None:
+        model_save_path = os.path.join(BACKEND_DIR, 'data', 'encodings.pickle')
     """
     High-accuracy embedding generation pipeline (lightweight).
 

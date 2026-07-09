@@ -4,23 +4,14 @@ import {
   ScrollView, ActivityIndicator, Alert, Dimensions, Platform,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
+import { CameraView, useCameraPermissions } from 'expo-camera';
 import { COLORS, SPACING, FONT_SIZES, BORDER_RADIUS } from '../theme';
 import { predict, pingServer } from '../services/api';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
-// Lazy-load CameraView to prevent crash if expo-camera is broken
-let CameraViewComponent = null;
-if (Platform.OS !== 'web') {
-  try {
-    CameraViewComponent = require('expo-camera').CameraView;
-  } catch (e) {
-    console.warn('expo-camera not available:', e.message);
-  }
-}
-
 export default function RecognizeScreen() {
-  const [hasPermission, setHasPermission] = useState(null);
+  const [permission, requestPermission] = useCameraPermissions();
   const [cameraAvailable, setCameraAvailable] = useState(true);
   const [cameraError, setCameraError] = useState(null);
   const [imageUri, setImageUri] = useState(null);
@@ -38,7 +29,9 @@ export default function RecognizeScreen() {
     if (Platform.OS === 'web') {
       startWebCamera();
     } else {
-      requestCameraPermission();
+      if (!permission?.granted && permission?.canAskAgain) {
+        requestPermission();
+      }
     }
     checkServer();
     return () => {
@@ -46,7 +39,7 @@ export default function RecognizeScreen() {
         stopWebCamera();
       }
     };
-  }, []);
+  }, [permission?.granted]);
 
   async function startWebCamera() {
     try {
@@ -55,7 +48,6 @@ export default function RecognizeScreen() {
         video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } }
       });
       setWebStream(stream);
-      setHasPermission(true);
       setCameraAvailable(true);
       // Wait for ref binding
       setTimeout(() => {
@@ -66,7 +58,6 @@ export default function RecognizeScreen() {
     } catch (err) {
       console.warn('Web camera permission failed:', err);
       setCameraError('Camera access not allowed or not found. Use gallery instead.');
-      setHasPermission(false);
       setCameraAvailable(false);
     }
   }
@@ -75,28 +66,6 @@ export default function RecognizeScreen() {
     if (webStream) {
       webStream.getTracks().forEach(track => track.stop());
       setWebStream(null);
-    }
-  }
-
-  async function requestCameraPermission() {
-    if (!CameraViewComponent) {
-      setCameraAvailable(false);
-      setCameraError('Camera module not available on this device.');
-      setHasPermission(false);
-      return;
-    }
-
-    try {
-      const { status } = await CameraViewComponent.requestCameraPermissionsAsync();
-      setHasPermission(status === 'granted');
-      if (status !== 'granted') {
-        setCameraError('Camera permission was denied. You can still pick images from gallery.');
-      }
-    } catch (err) {
-      console.warn('Camera permission error:', err);
-      setCameraAvailable(false);
-      setCameraError('Camera is not available. You can pick images from gallery.');
-      setHasPermission(false);
     }
   }
 
@@ -198,7 +167,7 @@ export default function RecognizeScreen() {
   }
 
   // Initial loading state
-  if (hasPermission === null && cameraAvailable) {
+  if (Platform.OS !== 'web' && !permission && cameraAvailable) {
     return (
       <View style={styles.container}>
         <View style={styles.centerBox}>
@@ -209,7 +178,7 @@ export default function RecognizeScreen() {
     );
   }
 
-  const canUseCamera = cameraAvailable && hasPermission && (Platform.OS === 'web' || CameraViewComponent);
+  const canUseCamera = cameraAvailable && (Platform.OS === 'web' || permission?.granted);
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
@@ -250,12 +219,12 @@ export default function RecognizeScreen() {
               style={{ width: '100%', height: '100%', objectFit: 'cover' }}
             />
           ) : (
-            <CameraViewComponent ref={cameraRef} style={styles.camera} facing={facing}>
+            <CameraView ref={cameraRef} style={styles.camera} facing={facing}>
               <View style={styles.cameraOverlay}>
                 <View style={styles.faceGuide} />
                 <Text style={styles.guideText}>Position face in the frame</Text>
               </View>
-            </CameraViewComponent>
+            </CameraView>
           )
         ) : (
           <View style={styles.permissionBox}>

@@ -90,7 +90,7 @@ set LOCAL_IP=%LOCAL_IP: =%
 
 :: Start Flask API server in background
 echo  Starting Flask API server...
-start "RMS Flask API" cmd /k "%PYTHON% frontend/api/server.py"
+start "RMS Flask API" cmd /k "%PYTHON% backend/server.py"
 
 :: Wait for server startup
 echo  Waiting 8 seconds for model loading...

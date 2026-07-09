@@ -163,4 +163,84 @@ export async function clearHistory() {
   if (!res.ok) throw new Error('Failed to clear history');
   return res.json();
 }
+// Get list of photos for a person
+export async function getPersonPhotos(name) {
+  const res = await fetch(`${BASE_URL}/persons/${name}/photos`);
+  if (!res.ok) throw new Error('Failed to fetch person photos');
+  return res.json();
+}
 
+// Serves a specific cleaned photo file URL
+export function getPersonPhotoUrl(name, angle, filename) {
+  return `${BASE_URL}/persons/${name}/photos/${angle}/${filename}`;
+}
+
+// Delete a specific photo
+export async function deletePersonPhoto(name, angle, filename) {
+  const res = await fetch(`${BASE_URL}/persons/${name}/photos/${angle}/${filename}`, {
+    method: 'DELETE'
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: 'Delete photo failed' }));
+    throw new Error(err.error || 'Delete photo failed');
+  }
+  return res.json();
+}
+
+// Move a photo to a different angle
+export async function movePersonPhoto(name, sourceAngle, targetAngle, filename) {
+  const res = await fetch(`${BASE_URL}/persons/${name}/photos/move`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      source_angle: sourceAngle,
+      target_angle: targetAngle,
+      filename: filename
+    })
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: 'Move photo failed' }));
+    throw new Error(err.error || 'Move photo failed');
+  }
+  return res.json();
+}
+
+// Rename a person
+export async function renamePerson(oldName, newName) {
+  const res = await fetch(`${BASE_URL}/persons/${oldName}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ new_name: newName })
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: 'Rename person failed' }));
+    throw new Error(err.error || 'Rename person failed');
+  }
+  return res.json();
+}
+
+// Delete a person entirely
+export async function deletePerson(name) {
+  const res = await fetch(`${BASE_URL}/persons/${name}`, {
+    method: 'DELETE'
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: 'Delete person failed' }));
+    throw new Error(err.error || 'Delete person failed');
+  }
+  return res.json();
+}
+
+// Trigger retraining
+export async function triggerRetrain(name, epochs = 10) {
+  const res = await fetch(`${BASE_URL}/persons/${name}/retrain`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ epochs: parseInt(epochs) })
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: 'Retraining failed' }));
+    throw new Error(err.error || 'Retraining failed');
+  }
+  return res.json();
+}

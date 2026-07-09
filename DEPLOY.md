@@ -46,7 +46,7 @@ cd ..
 ### Step 3: Start the Backend
 
 ```bash
-python frontend/api/server.py
+python backend/server.py
 ```
 
 The server will:
@@ -89,26 +89,41 @@ Scan the QR code with Expo Go on your phone.
 
 ```
 RMS/
-├── frontend/
-│   ├── api/
-│   │   ├── server.py         # Flask API (main backend)
-│   │   └── ensemble.py       # Ensemble voting logic
+├── backend/                      # Python backend
+│   ├── server.py                 # Flask API (main backend)
+│   ├── ensemble.py               # Ensemble voting logic
+│   ├── model.py                  # DeepFace embedding & CLAHE
+│   ├── inference.py              # KNN matching
+│   ├── face_detection.py         # Side-face detection
+│   ├── add_person_utils.py       # Person registration pipeline
+│   ├── clean_dataset.py          # Dataset cleaning
+│   ├── soft_biometrics.py        # Age/gender analysis
+│   ├── models/
+│   │   ├── custom_cnn/           # Custom CNN model files
+│   │   └── sota_finetune/        # MobileNetV2 fine-tuning
+│   └── data/                     # Runtime ML artifacts
+│       ├── encodings.pickle
+│       ├── blaze_face_short_range.tflite
+│       └── face_landmarker.task
+├── frontend/                     # React web dashboard
 │   ├── src/
-│   │   ├── pages/            # React pages
-│   │   ├── components/       # Navbar, etc.
-│   │   └── index.css         # Design system v2.0
+│   │   ├── pages/                # React pages
+│   │   ├── components/           # Navbar, etc.
+│   │   └── index.css             # Design system v2.0
 │   └── package.json
-├── mobile/
+├── mobile/                       # React Native mobile app
 │   ├── src/
-│   │   ├── screens/          # React Native screens
-│   │   ├── services/api.js   # API client
-│   │   └── theme.js          # Mobile design system
+│   │   ├── screens/              # React Native screens
+│   │   ├── services/api.js       # API client
+│   │   └── theme.js              # Mobile design system
 │   └── package.json
-├── custom_cnn/               # Custom CNN model files
-├── sota_finetune/            # MobileNetV2 fine-tuning
-├── dataset_cleaned/          # Processed face dataset
-├── requirements.txt          # Python dependencies
-├── start.bat                 # One-click launcher (Windows)
+├── dataset/                      # Raw uploaded images
+├── dataset_cleaned/              # Processed face crops
+├── docs/                         # Documentation & research
+│   ├── PPT/                      # Presentations
+│   └── Paper/                    # Research papers
+├── requirements.txt              # Python dependencies
+├── start.bat                     # One-click launcher (Windows)
 └── README.md
 ```
 

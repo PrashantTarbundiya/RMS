@@ -4,21 +4,12 @@ import {
   ScrollView, Image, Alert, ActivityIndicator, Platform,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
+import { CameraView, useCameraPermissions } from 'expo-camera';
 import { COLORS, SPACING, FONT_SIZES, BORDER_RADIUS } from '../theme';
 import { uploadPerson, pingServer } from '../services/api';
 
-// Lazy-load CameraView to prevent crash if expo-camera is broken
-let CameraViewComponent = null;
-if (Platform.OS !== 'web') {
-  try {
-    CameraViewComponent = require('expo-camera').CameraView;
-  } catch (e) {
-    console.warn('expo-camera not available:', e.message);
-  }
-}
-
 export default function AddPersonScreen() {
-  const [hasPermission, setHasPermission] = useState(null);
+  const [permission, requestPermission] = useCameraPermissions();
   const [personName, setPersonName] = useState('');
   const [epochs, setEpochs] = useState('5');
   const [images, setImages] = useState([]);
@@ -62,7 +53,6 @@ export default function AddPersonScreen() {
           video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } }
         });
         setWebStream(stream);
-        setHasPermission(true);
         setShowCamera(true);
         setTimeout(() => {
           if (webVideoRef.current) {
@@ -75,18 +65,16 @@ export default function AddPersonScreen() {
       return;
     }
 
-    if (!CameraViewComponent) {
-      Alert.alert('Not Supported', 'Camera module not found on this device.');
-      return;
-    }
-
     try {
-      const { status } = await CameraViewComponent.requestCameraPermissionsAsync();
-      setHasPermission(status === 'granted');
-      if (status === 'granted') {
-        setShowCamera(true);
+      if (!permission?.granted) {
+        const res = await requestPermission();
+        if (res.granted) {
+          setShowCamera(true);
+        } else {
+          Alert.alert('Permission Required', 'Camera access is needed to take photos.');
+        }
       } else {
-        Alert.alert('Permission Required', 'Camera access is needed to take photos.');
+        setShowCamera(true);
       }
     } catch (err) {
       Alert.alert('Error', 'Failed to start camera: ' + err.message);
@@ -101,11 +89,13 @@ export default function AddPersonScreen() {
 
     if (!cameraRef.current) return;
     try {
-      const photo = await cameraRef.current.takePictureAsync({ quality: 0.8 });
+      const photo = await cameraRef.current.takePictureAsync({
+        quality: 0.8,
+      });
       setImages(prev => [...prev, photo.uri]);
       setShowCamera(false);
     } catch (err) {
-      Alert.alert('Error', 'Failed to capture: ' + err.message);
+      Alert.alert('Error', 'Failed to take picture: ' + err.message);
     }
   }
 
@@ -191,7 +181,7 @@ export default function AddPersonScreen() {
             </View>
           </View>
         ) : (
-          <CameraViewComponent ref={cameraRef} style={{ flex: 1 }} facing="front">
+          <CameraView ref={cameraRef} style={{ flex: 1 }} facing="front">
             <View style={styles.cameraBottomBar}>
               <TouchableOpacity style={styles.secondaryBtn} onPress={() => setShowCamera(false)}>
                 <Text style={styles.secondaryBtnText}>Cancel</Text>
@@ -201,7 +191,7 @@ export default function AddPersonScreen() {
               </TouchableOpacity>
               <View style={{ width: 80 }} />
             </View>
-          </CameraViewComponent>
+          </CameraView>
         )}
       </View>
     );

@@ -14,6 +14,9 @@ import time
 import os
 import urllib.request
 
+# Path constants
+BACKEND_DIR = os.path.dirname(os.path.abspath(__file__))
+
 import mediapipe as mp
 from mediapipe.tasks import python
 from mediapipe.tasks.python import vision
@@ -60,7 +63,7 @@ class SideFaceDetector:
     
     def _ensure_model(self):
         """Download the face detection model if not present."""
-        model_path = "blaze_face_short_range.tflite"
+        model_path = os.path.join(BACKEND_DIR, 'data', 'blaze_face_short_range.tflite')
         
         if not os.path.exists(model_path):
             print("📥 Downloading face detection model...")

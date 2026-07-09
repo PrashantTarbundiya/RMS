@@ -4,46 +4,46 @@
 // ═══════════════════════════════════════════════════════
 
 export const COLORS = {
-  // ── Core Palette (Emerald/Mint & Slate) ──
-  primary: '#10B981',        // Emerald Green
-  primaryLight: '#34D399',   // Light Mint
-  primaryDark: '#059669',    // Dark Emerald
-  secondary: '#1E293B',      // Slate Carbon
-  secondaryLight: '#334155', // Light Slate
+  // ── Core Palette (Graphite & Indigo) ──
+  primary: '#4F46E5',        // Indigo 600
+  primaryLight: '#818CF8',   // Indigo 400
+  primaryDark: '#3730A3',    // Indigo 800
+  secondary: '#1E293B',      // Slate 800
+  secondaryLight: '#334155', // Slate 700
 
   // ── Surfaces ──
-  bgPrimary: '#0B0F19',      // Deep Charcoal
-  bgSecondary: '#131926',    // Sleek Slate Carbon
-  bgCard: '#1E293B',         // Slate Gray
-  bgCardHover: '#263548',    // Active Slate Gray
-  bgElevated: '#334155',     // Elevated Slate
-  bgInput: '#080C14',        // Deepest Dark
+  bgPrimary: '#0F172A',      // Slate 900
+  bgSecondary: '#1E293B',    // Slate 800
+  bgCard: '#1E293B',         // Slate 800
+  bgCardHover: '#334155',    // Slate 700
+  bgElevated: '#334155',     // Slate 700
+  bgInput: '#0B1120',        // Slate 950
 
   // ── Legacy Aliases ──
-  accentCyan: '#10B981',     // Map legacy accentCyan to Mint Green
-  accentTeal: '#34D399',     // Map legacy accentTeal to Light Mint
+  accentCyan: '#4F46E5',
+  accentTeal: '#818CF8',
 
   // ── Text ──
-  textPrimary: '#F8FAFC',    // Off-White
-  textSecondary: '#94A3B8',  // Slate Gray Text
-  textTertiary: '#64748B',   // Dark Gray Text
-  textMuted: '#475569',      // Muted Slate Text
+  textPrimary: '#F8FAFC',    // Slate 50
+  textSecondary: '#94A3B8',  // Slate 400
+  textTertiary: '#64748B',   // Slate 500
+  textMuted: '#475569',      // Slate 600
 
   // ── Semantic ──
-  success: '#10B981',        // Green
-  error: '#EF4444',          // Coral Red
-  warning: '#F59E0B',        // Amber Yellow
-  info: '#06B6D4',           // Teal Blue
+  success: '#10B981',        
+  error: '#EF4444',          
+  warning: '#F59E0B',        
+  info: '#3B82F6',           
   danger: '#EF4444',
 
   // ── Borders ──
   border: 'rgba(148, 163, 184, 0.12)',
-  borderHover: 'rgba(10, 185, 129, 0.25)',
-  borderActive: 'rgba(16, 185, 129, 0.5)',
+  borderHover: 'rgba(79, 70, 229, 0.25)',
+  borderActive: 'rgba(79, 70, 229, 0.5)',
 
   // ── Gradients ──
-  gradientPrimary: ['#059669', '#10B981'],
-  gradientCyan: ['#10B981', '#34D399'],
+  gradientPrimary: ['#3730A3', '#4F46E5'],
+  gradientCyan: ['#4F46E5', '#818CF8'],
   gradientSuccess: ['#10B981', '#059669'],
   gradientDanger: ['#EF4444', '#DC2626'],
 };
