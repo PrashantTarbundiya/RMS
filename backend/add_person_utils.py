@@ -240,7 +240,11 @@ def update_custom_cnn(person_name, dataset_dir=None,
     if os.path.exists(os.path.join(dataset_dir, 'train')):
         train_path = os.path.join(dataset_dir, 'train')
 
+    # Load dataset
     try:
+        from models.sota_finetune.finetune import SafeImageFolder
+        train_dataset = SafeImageFolder(root=train_path, transform=transform)
+    except ImportError:
         train_dataset = datasets.ImageFolder(root=train_path, transform=transform)
     except Exception as e:
         print(f"   ❌ Failed to load dataset: {e}")
@@ -266,9 +270,14 @@ def update_custom_cnn(person_name, dataset_dir=None,
         except Exception as e:
             print(f"   ⚠️ Could not load old weights: {e}. Training from scratch.")
 
-    # Fine-tune
-    criterion = nn.CrossEntropyLoss()
-    optimizer = optim.Adam(model.parameters(), lr=0.0005)
+    # Fine-tune with improved training recipe
+    criterion = nn.CrossEntropyLoss(label_smoothing=0.1)
+    optimizer = optim.AdamW(model.parameters(), lr=0.0005, weight_decay=1e-4)
+    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=3)
+
+    best_acc = 0.0
+    patience_counter = 0
+    early_stop_patience = 7
 
     model.train()
     for epoch in range(num_epochs):
@@ -289,17 +298,34 @@ def update_custom_cnn(person_name, dataset_dir=None,
             total += labels.size(0)
             correct += (predicted == labels).sum().item()
 
+        epoch_loss = running_loss / len(train_dataset)
         acc = 100 * correct / total if total > 0 else 0
-        print(f"   Epoch [{epoch+1}/{num_epochs}] Loss: {running_loss/len(train_dataset):.4f}, Acc: {acc:.1f}%")
+        scheduler.step(epoch_loss)
+        
+        current_lr = optimizer.param_groups[0]['lr']
+        print(f"   Epoch [{epoch+1}/{num_epochs}] Loss: {epoch_loss:.4f}, Acc: {acc:.1f}%, LR: {current_lr:.6f}")
 
-    # Save model
-    torch.save(model.state_dict(), model_path)
-    print(f"   💾 Saved updated model: {model_path}")
+        # Early stopping check
+        if acc > best_acc:
+            best_acc = acc
+            patience_counter = 0
+            # Save best model
+            torch.save(model.state_dict(), model_path)
+        else:
+            patience_counter += 1
+            if patience_counter >= early_stop_patience and epoch >= 10:
+                print(f"   Early stopping at epoch {epoch+1} (best acc: {best_acc:.1f}%)")
+                break
+
+    # Save final model (if not already saved by early stopping)
+    if patience_counter < early_stop_patience:
+        torch.save(model.state_dict(), model_path)
+    print(f"   Saved updated model: {model_path} (best acc: {best_acc:.1f}%)")
 
     # Save class names
     with open(classes_path, "w") as f:
         f.write("\n".join(train_dataset.classes))
-    print(f"   💾 Updated class names: {classes_path}")
+    print(f"   Updated class names: {classes_path}")
 
     return True
 
@@ -388,12 +414,17 @@ def update_sota_model(person_name, dataset_dir=None,
         except Exception as e:
             print(f"   ⚠️ Could not load old weights: {e}. Training from scratch.")
 
-    # Fine-tune
+    # Fine-tune with improved training recipe
     criterion = nn.CrossEntropyLoss(label_smoothing=0.1)
     optimizer = optim.AdamW(
         filter(lambda p: p.requires_grad, model.parameters()),
         lr=0.0005, weight_decay=1e-4
     )
+    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=3)
+
+    best_acc = 0.0
+    patience_counter = 0
+    early_stop_patience = 7
 
     model.train()
     for epoch in range(num_epochs):
@@ -414,17 +445,33 @@ def update_sota_model(person_name, dataset_dir=None,
             total += labels.size(0)
             correct += (predicted == labels).sum().item()
 
+        epoch_loss = running_loss / len(train_dataset)
         acc = 100 * correct / total if total > 0 else 0
-        print(f"   Epoch [{epoch+1}/{num_epochs}] Loss: {running_loss/len(train_dataset):.4f}, Acc: {acc:.1f}%")
+        scheduler.step(epoch_loss)
+        
+        current_lr = optimizer.param_groups[0]['lr']
+        print(f"   Epoch [{epoch+1}/{num_epochs}] Loss: {epoch_loss:.4f}, Acc: {acc:.1f}%, LR: {current_lr:.6f}")
 
-    # Save model
-    torch.save(model.state_dict(), model_path)
-    print(f"   💾 Saved updated model: {model_path}")
+        # Early stopping check
+        if acc > best_acc:
+            best_acc = acc
+            patience_counter = 0
+            torch.save(model.state_dict(), model_path)
+        else:
+            patience_counter += 1
+            if patience_counter >= early_stop_patience and epoch >= 10:
+                print(f"   Early stopping at epoch {epoch+1} (best acc: {best_acc:.1f}%)")
+                break
+
+    # Save final model (if not already saved by early stopping)
+    if patience_counter < early_stop_patience:
+        torch.save(model.state_dict(), model_path)
+    print(f"   Saved updated model: {model_path} (best acc: {best_acc:.1f}%)")
 
     # Save class names
     with open(classes_path, "w") as f:
         f.write("\n".join(train_dataset.classes))
-    print(f"   💾 Updated class names: {classes_path}")
+    print(f"   Updated class names: {classes_path}")
 
     return True
 

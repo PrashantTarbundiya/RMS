@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { Terminal, CheckCircle, Download } from 'lucide-react'
 
-const API_BASE = 'http://127.0.0.1:5000/api'
+import { API_BASE } from '../config'
 
 export default function TrainingPage() {
   const [logs, setLogs] = useState([])

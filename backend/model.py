@@ -22,7 +22,7 @@ MODEL_NAME = "Facenet512"
 # Number of augmented variants per face crop.
 # 3 = good balance of diversity vs training speed.
 # Increase to 5 if you have many images and want max accuracy.
-NUM_AUGMENTS = 3
+NUM_AUGMENTS = 5
 
 # Crop margin as a percentage of face dimension
 CROP_MARGIN_RATIO = 0.22
@@ -119,6 +119,7 @@ def get_embedding(face_crop):
             img_path=face_crop,
             model_name=MODEL_NAME,
             enforce_detection=False,
+            detector_backend='skip',  # We already crop faces ourselves — skip DeepFace's Haar Cascade detection
             align=False  # Alignment ruins side profiles
         )
         if embedding_objs:

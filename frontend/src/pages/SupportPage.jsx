@@ -29,11 +29,11 @@ const FAQ_DATA = [
   },
   {
     q: 'What does "Unknown" mean in results?',
-    a: 'The Ensemble system returns "Unknown" when the confidence is below 35% or when the models disagree strongly. This prevents false identifications. Try uploading more/better photos of that person.'
+    a: 'The Ensemble system returns "Unknown" when the confidence is below 25% or when the models disagree strongly. The SOTA MobileNetV2 model is weighted highest in the ensemble. Try uploading more/better photos of that person to improve accuracy.'
   },
   {
     q: 'Can I delete a person after registration?',
-    a: 'Currently, you can reset all models from the Models page. Individual person deletion is coming in a future update. As a workaround, delete their folder from dataset_cleaned/ and retrain.'
+    a: 'Yes! Go to the Dashboard page, find the person in the list, and click the delete button. This removes their photos and retrains the models. You can also rename people from the Dashboard.'
   },
   {
     q: 'Is my data sent to any cloud?',

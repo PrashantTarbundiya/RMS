@@ -2,7 +2,7 @@ import React, { useState, useRef, useCallback, useEffect } from 'react'
 import axios from 'axios'
 import { Camera, Image as ImageIcon, Video, RefreshCw, Maximize, Play, X, AlertCircle } from 'lucide-react'
 
-const API_BASE = 'http://127.0.0.1:5000/api'
+import { API_BASE } from '../config'
 
 export default function TestPage() {
   const [mode, setMode] = useState('upload') // 'upload' or 'webcam'
@@ -14,6 +14,8 @@ export default function TestPage() {
   const [webcamError, setWebcamError] = useState('')
   const [webcamReady, setWebcamReady] = useState(false)
   const [isDragActive, setIsDragActive] = useState(false)
+  const [includeCnn, setIncludeCnn] = useState(false)
+  const [includeDeepFace, setIncludeDeepFace] = useState(false)
   
   const webcamRef = useRef(null)
   const imgRef = useRef(null)
@@ -424,11 +426,51 @@ export default function TestPage() {
         <div className="glass-panel" style={{ display: 'flex', flexDirection: 'column', padding: '1.5rem' }}>
           <h2 style={{ fontSize: '1.25rem', marginBottom: '1.5rem', fontWeight: '600' }}>Model Predictions</h2>
           
+          {/* Model Selection Checkboxes */}
+          <div style={{ 
+            display: 'flex', 
+            flexDirection: 'column',
+            gap: '8px', 
+            background: 'rgba(0,0,0,0.2)', 
+            padding: '1rem', 
+            borderRadius: '8px', 
+            border: '1px solid var(--border)',
+            marginBottom: '1.5rem'
+          }}>
+            <span style={{ fontSize: '0.8rem', fontWeight: '600', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+              Select Active Models:
+            </span>
+            <div style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap', marginTop: '4px' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.9rem', cursor: 'pointer', userSelect: 'none' }}>
+                <input type="checkbox" checked={true} disabled style={{ accentColor: 'var(--primary)' }} />
+                <span>SOTA MobileNetV2 (Default)</span>
+              </label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.9rem', cursor: 'pointer', userSelect: 'none' }}>
+                <input 
+                  type="checkbox" 
+                  checked={includeCnn} 
+                  onChange={(e) => setIncludeCnn(e.target.checked)} 
+                  style={{ accentColor: 'var(--primary)' }} 
+                />
+                <span>Custom CNN</span>
+              </label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.9rem', cursor: 'pointer', userSelect: 'none' }}>
+                <input 
+                  type="checkbox" 
+                  checked={includeDeepFace} 
+                  onChange={(e) => setIncludeDeepFace(e.target.checked)} 
+                  style={{ accentColor: 'var(--primary)' }} 
+                />
+                <span>DeepFace (Facenet512)</span>
+              </label>
+            </div>
+          </div>
+          
           <div style={{ flex: 1, overflowY: 'auto', paddingRight: '0.5rem' }}>
             {loading ? (
                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-secondary)' }}>
                   <RefreshCw className="spin" size={40} style={{ marginBottom: '1rem', color: 'var(--accent-1)' }} />
-                  <p>Analyzing faces using 3 internal models...</p>
+                  <p>Analyzing faces using active models...</p>
                </div>
             ) : results ? (
                results.faces.length > 0 ? (
@@ -436,59 +478,72 @@ export default function TestPage() {
                     <div style={{ color: 'var(--success)', marginBottom: '0.5rem', fontWeight: '500' }}>
                        {results.message}
                     </div>
-                    {results.faces.map((face, i) => (
-                      <div key={i} style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', padding: '1rem' }}>
-                         <h3 style={{ margin: '0 0 0.5rem 0', fontSize: '1.1rem', color: 'var(--accent-1)' }}>Face {i + 1}</h3>
-                         
-                         {/* Ensemble Result */}
-                         {face.ensemble && (
+                    {results.faces.map((face, i) => {
+                       const useEnsemble = includeCnn || includeDeepFace;
+                       
+                       const displayLabel = useEnsemble ? face.ensemble.label : face.predictions.sota.label;
+                       const displayConf = useEnsemble ? face.ensemble.confidence : face.predictions.sota.confidence;
+                       const displayMethod = useEnsemble ? face.ensemble.method : "SOTA Model Only";
+                       const displayAgreement = useEnsemble ? face.ensemble.agreement : "N/A";
+                       const resultTitle = useEnsemble ? "Ensemble Result" : "SOTA MobileNetV2 Result";
+
+                       return (
+                        <div key={i} style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', padding: '1rem' }}>
+                           <h3 style={{ margin: '0 0 0.5rem 0', fontSize: '1.1rem', color: 'var(--accent-1)' }}>Face {i + 1}</h3>
+                           
+                           {/* Main Result */}
                            <div style={{ 
-                             background: 'rgba(0, 240, 255, 0.08)', border: '1px solid rgba(0, 240, 255, 0.2)', 
+                             background: useEnsemble ? 'rgba(0, 240, 255, 0.08)' : 'rgba(16, 185, 129, 0.08)', 
+                             border: useEnsemble ? '1px solid rgba(0, 240, 255, 0.2)' : '1px solid rgba(16, 185, 129, 0.2)', 
                              borderRadius: '8px', padding: '0.8rem', marginBottom: '1rem' 
                            }}>
                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                <div>
                                  <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '1px' }}>
-                                   Ensemble Result
+                                   {resultTitle}
                                  </span>
-                                 <div style={{ fontSize: '1.25rem', fontWeight: '700', color: face.ensemble.label === 'Unknown' ? 'var(--warning)' : '#fff', marginTop: '4px' }}>
-                                   {face.ensemble.label}
+                                 <div style={{ fontSize: '1.25rem', fontWeight: '700', color: displayLabel === 'Unknown' ? 'var(--warning)' : '#fff', marginTop: '4px' }}>
+                                   {displayLabel}
                                  </div>
                                </div>
                                <div style={{ textAlign: 'right' }}>
-                                 <div style={{ fontSize: '1.5rem', fontWeight: '700', color: 'var(--accent-1)' }}>
-                                   {(face.ensemble.confidence * 100).toFixed(1)}%
+                                 <div style={{ fontSize: '1.5rem', fontWeight: '700', color: useEnsemble ? 'var(--accent-1)' : 'var(--success)' }}>
+                                   {(displayConf * 100).toFixed(1)}%
                                  </div>
                                  <span style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)' }}>
-                                   {face.ensemble.method} · {face.ensemble.agreement}
+                                   {displayMethod} · {displayAgreement}
                                  </span>
                                </div>
                              </div>
                            </div>
-                         )}
 
-                         <div style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)', marginBottom: '0.5rem', textTransform: 'uppercase', letterSpacing: '1px' }}>
-                           Individual Models
-                         </div>
-                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
-                            <PredictionRow 
-                              model="SOTA MobileNetV2" 
-                              label={face.predictions.sota.label} 
-                              conf={face.predictions.sota.confidence} 
-                            />
-                            <PredictionRow 
-                              model="Custom CNN" 
-                              label={face.predictions.cnn.label} 
-                              conf={face.predictions.cnn.confidence} 
-                            />
-                            <PredictionRow 
-                              model="DeepFace (Facenet512)" 
-                              label={face.predictions.deepface.label} 
-                              conf={face.predictions.deepface.confidence} 
-                            />
-                         </div>
-                      </div>
-                    ))}
+                           <div style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)', marginBottom: '0.5rem', textTransform: 'uppercase', letterSpacing: '1px' }}>
+                             Individual Models
+                           </div>
+                           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
+                              <PredictionRow 
+                                model="SOTA MobileNetV2" 
+                                label={face.predictions.sota.label} 
+                                conf={face.predictions.sota.confidence} 
+                              />
+                              {includeCnn && (
+                                <PredictionRow 
+                                  model="Custom CNN" 
+                                  label={face.predictions.cnn.label} 
+                                  conf={face.predictions.cnn.confidence} 
+                                />
+                              )}
+                              {includeDeepFace && (
+                                <PredictionRow 
+                                  model="DeepFace (Facenet512)" 
+                                  label={face.predictions.deepface.label} 
+                                  conf={face.predictions.deepface.confidence} 
+                                />
+                              )}
+                           </div>
+                        </div>
+                       );
+                    })}
                  </div>
                ) : (
                  <div style={{ textAlign: 'center', marginTop: '4rem', color: 'var(--text-secondary)' }}>

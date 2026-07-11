@@ -3,6 +3,11 @@ import os
 import time
 import socket
 import threading
+import logging
+import json
+import datetime
+import re
+import hashlib
 from io import StringIO
 from flask import Flask, request, jsonify, Response, send_file
 from flask_cors import CORS
@@ -27,22 +32,44 @@ from PIL import Image
 from torchvision import transforms
 from ensemble import ensemble_predict
 
+# ─── Logging Setup ─────────────────────────────────────────────────────
+logging.basicConfig(
+    level=logging.INFO,
+    format='[%(asctime)s] %(levelname)s - %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S'
+)
+logger = logging.getLogger('rms-api')
+
+# ─── App Setup ─────────────────────────────────────────────────────────
 app = Flask(__name__)
-CORS(app)  # Allow all origins for development
+
+# Environment-aware CORS: restrict origins in production
+allowed_origins = [
+    'http://localhost:5173',
+    'http://127.0.0.1:5173',
+    'http://localhost:3000',
+]
+frontend_url = os.environ.get('FRONTEND_URL')
+if frontend_url:
+    allowed_origins.append(frontend_url.rstrip('/'))
+
+# In development (no FRONTEND_URL set), allow all origins for convenience
+if frontend_url:
+    CORS(app, origins=allowed_origins, supports_credentials=True)
+else:
+    CORS(app)  # Wide open for local development
+
 app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024  # 50 MB max upload
 
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'webp', 'bmp'}
 MAX_FILES_PER_UPLOAD = 20
 MAX_NAME_LENGTH = 50
+MAX_IMAGE_DIMENSION = 1024  # Resize uploads larger than this
 
 def _allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
-import re
 _VALID_NAME_PATTERN = re.compile(r'^[A-Za-z0-9_-]+$')
-
-import json
-import datetime
 
 # ─── Health & Connectivity Endpoints ──────────────────────────────────
 @app.route('/api/health', methods=['GET'])
@@ -85,12 +112,20 @@ def ping():
     """Minimal ping endpoint for connection testing."""
     return jsonify({'pong': True})
 
-# Configuration — paths relative to project structure
-DATASET_CLEANED_DIR = os.path.join(PROJECT_ROOT, 'dataset_cleaned')
+# Configuration — paths relative to project structure (configurable via env vars)
+STORAGE_DIR = os.environ.get('STORAGE_DIR', PROJECT_ROOT)
+DATASET_CLEANED_DIR = os.path.join(STORAGE_DIR, 'dataset_cleaned')
+DATA_DIR = os.path.join(BACKEND_DIR, 'data')
 CUSTOM_CNN_MODEL_PATH = os.path.join(BACKEND_DIR, 'models', 'custom_cnn', 'best_face_model.pth')
 SOTA_MODEL_PATH = os.path.join(BACKEND_DIR, 'models', 'sota_finetune', 'best_mobile_sideface.pth')
-DEEPFACE_MODEL_PATH = os.path.join(BACKEND_DIR, 'data', 'encodings.pickle')
-RECOGNITION_HISTORY_PATH = os.path.join(BACKEND_DIR, 'data', 'recognition_history.json')
+DEEPFACE_MODEL_PATH = os.path.join(DATA_DIR, 'encodings.pickle')
+RECOGNITION_HISTORY_PATH = os.path.join(DATA_DIR, 'recognition_history.json')
+
+# Auto-create required directories on startup
+for _dir in [DATA_DIR, DATASET_CLEANED_DIR, os.path.join(STORAGE_DIR, 'dataset')]:
+    os.makedirs(_dir, exist_ok=True)
+logger.info(f"Storage directory: {STORAGE_DIR}")
+logger.info(f"Dataset directory: {DATASET_CLEANED_DIR}")
 
 def log_recognition(faces_results):
     if not faces_results:
@@ -138,7 +173,7 @@ def log_recognition(faces_results):
         with open(RECOGNITION_HISTORY_PATH, 'w') as f:
             json.dump(history, f, indent=2)
     except Exception as e:
-        print(f"[WARNING] Failed to log recognition history: {e}")
+        logger.warning(f"Failed to log recognition history: {e}")
 
 # Global state for training SSE
 training_status = {
@@ -148,52 +183,88 @@ training_status = {
     'current_epoch': '',
 }
 
-# --- GLOBAL MODEL INITIALIZATION (For Inference) ---
-print("[API] Initializing Face Detection and Recognition Models...")
+# ─── Image Optimization Helper ─────────────────────────────────────────
+def optimize_image(pil_img):
+    """Resize images larger than MAX_IMAGE_DIMENSION to save disk space and RAM."""
+    w, h = pil_img.size
+    if max(w, h) > MAX_IMAGE_DIMENSION:
+        ratio = MAX_IMAGE_DIMENSION / max(w, h)
+        new_w = int(w * ratio)
+        new_h = int(h * ratio)
+        pil_img = pil_img.resize((new_w, new_h), Image.LANCZOS)
+    return pil_img
 
+def compute_image_hash(img_bytes):
+    """Compute MD5 hash for deduplication."""
+    return hashlib.md5(img_bytes).hexdigest()
+
+# --- GLOBAL MODEL INITIALIZATION (For Inference) ---
+logger.info("Initializing Face Detection and Recognition Models...")
+
+# ─── Model State (lazy-loadable) ────────────────────────────────────────
+_models_loaded = False
 face_cascade = None
+deepface_encodings = None
+deepface_names = None
+custom_cnn_recognizer = None
+sota_model = None
+sota_classes = []
+sota_transform = None
+sota_device = None
+sota_loaded = False
 
 def get_face_cascade():
     global face_cascade
-    if face_cascade is None or face_cascade.empty():
-        base_dir = os.path.dirname(os.path.abspath(__file__))
-        paths_to_try = [
-            os.path.join(base_dir, 'haarcascade_frontalface_default.xml'),
-            os.path.join(base_dir, '..', 'haarcascade_frontalface_default.xml'),
-            'haarcascade_frontalface_default.xml'
-        ]
-        for p in paths_to_try:
-            if os.path.exists(p):
-                clf = cv2.CascadeClassifier(p)
+    if face_cascade is not None:
+        try:
+            if not face_cascade.empty():
+                return face_cascade
+        except Exception:
+            pass
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    paths_to_try = [
+        os.path.join(base_dir, 'haarcascade_frontalface_default.xml'),
+        os.path.join(base_dir, '..', 'haarcascade_frontalface_default.xml'),
+        'haarcascade_frontalface_default.xml'
+    ]
+    for p in paths_to_try:
+        abs_p = os.path.abspath(p)
+        if os.path.exists(abs_p):
+            try:
+                clf = cv2.CascadeClassifier(abs_p)
                 if not clf.empty():
                     face_cascade = clf
-                    print(f"[API] Face cascade successfully loaded from: {p}")
+                    logger.info(f"Face cascade loaded from: {abs_p}")
                     return face_cascade
-        print("[WARNING] Could not load face cascade from any path!")
-        return None
-    return face_cascade
-
-# Initial try
-get_face_cascade()
+            except Exception as e:
+                logger.warning(f"Failed to load cascade from {abs_p}: {e}")
+    logger.warning("Could not load face cascade from any path!")
+    return None
 
 def load_deepface():
     try:
-        data = pickle.loads(open(DEEPFACE_MODEL_PATH, "rb").read())
+        if not os.path.exists(DEEPFACE_MODEL_PATH):
+            logger.info("DeepFace encodings file not found (not yet trained)")
+            return None, None
+        with open(DEEPFACE_MODEL_PATH, "rb") as f:
+            data = pickle.load(f)
+        logger.info(f"DeepFace loaded: {len(data.get('encodings', []))} encodings")
         return data["encodings"], data["names"]
     except Exception as e:
-        print(f"[WARNING] DeepFace encodings not loadable: {e}")
+        logger.warning(f"DeepFace encodings not loadable: {e}")
         return None, None
-deepface_encodings, deepface_names = load_deepface()
 
-# Graceful custom CNN loading — won't crash if model file is missing
-try:
-    custom_cnn_recognizer = CustomFaceRecognizer(
-        model_path=CUSTOM_CNN_MODEL_PATH, 
-        classes_path=os.path.join(BACKEND_DIR, 'models', 'custom_cnn', 'class_names.txt')
-    )
-except Exception as e:
-    print(f"[WARNING] Custom CNN model not loadable: {e}")
-    custom_cnn_recognizer = None
+def load_custom_cnn():
+    try:
+        recognizer = CustomFaceRecognizer(
+            model_path=CUSTOM_CNN_MODEL_PATH,
+            classes_path=os.path.join(BACKEND_DIR, 'models', 'custom_cnn', 'class_names.txt')
+        )
+        logger.info(f"Custom CNN loaded: {len(recognizer.classes)} classes")
+        return recognizer
+    except Exception as e:
+        logger.warning(f"Custom CNN model not loadable: {e}")
+        return None
 
 def load_sota():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -204,21 +275,20 @@ def load_sota():
             classes = [line.strip() for line in f.readlines() if line.strip()]
     num_classes = len(classes) if classes else 2
     model = build_mobile_model(num_classes=num_classes)
-    
+
     is_loaded = False
     if os.path.exists(SOTA_MODEL_PATH):
         try:
             state_dict = torch.load(SOTA_MODEL_PATH, map_location=device)
-            # Use strict=False to handle architecture changes (e.g., classifier head upgrade)
             result = model.load_state_dict(state_dict, strict=False)
             if result.missing_keys:
-                print(f"[WARNING] SOTA model: missing keys (new architecture): {result.missing_keys}")
+                logger.warning(f"SOTA model: missing keys: {result.missing_keys}")
             if result.unexpected_keys:
-                print(f"[WARNING] SOTA model: unexpected keys (old architecture): {result.unexpected_keys}")
+                logger.warning(f"SOTA model: unexpected keys: {result.unexpected_keys}")
             is_loaded = True
-            print("[API] SOTA model loaded (with possible partial weight match)")
+            logger.info("SOTA model loaded successfully")
         except Exception as e:
-            print(f"[WARNING] SOTA model failed to load: {e}. Using untrained model.")
+            logger.warning(f"SOTA model failed to load: {e}. Using untrained model.")
     model.to(device)
     model.eval()
     val_transform = transforms.Compose([
@@ -228,42 +298,57 @@ def load_sota():
     ])
     return model, classes, val_transform, device, is_loaded
 
-sota_model, sota_classes, sota_transform, sota_device, sota_loaded = load_sota()
+def ensure_models_loaded():
+    """Lazy-load all models on first inference request."""
+    global _models_loaded, deepface_encodings, deepface_names
+    global custom_cnn_recognizer, sota_model, sota_classes, sota_transform, sota_device, sota_loaded
+    if _models_loaded:
+        return
+    logger.info("Lazy-loading models for first inference...")
+    get_face_cascade()
+    deepface_encodings, deepface_names = load_deepface()
+    custom_cnn_recognizer = load_custom_cnn()
+    sota_model, sota_classes, sota_transform, sota_device, sota_loaded = load_sota()
+    _models_loaded = True
+    logger.info("All models loaded.")
 
 def reload_models():
     """Reloads models into memory after training."""
-    global deepface_encodings, deepface_names, custom_cnn_recognizer
+    global _models_loaded, deepface_encodings, deepface_names, custom_cnn_recognizer
     global sota_model, sota_classes, sota_transform, sota_device, sota_loaded
-    print("[API] Hot-reloading models...")
+    logger.info("Hot-reloading models...")
     new_encs, new_names = load_deepface()
     if new_encs is not None:
         deepface_encodings = new_encs
         deepface_names = new_names
-    try:
-        custom_cnn_recognizer = CustomFaceRecognizer(
-            model_path=CUSTOM_CNN_MODEL_PATH,
-            classes_path=os.path.join(BACKEND_DIR, 'models', 'custom_cnn', 'class_names.txt')
-        )
-    except Exception as e:
-        print(f"[WARNING] Custom CNN reload failed: {e}")
-        custom_cnn_recognizer = None
+    custom_cnn_recognizer = load_custom_cnn()
     sota_model, sota_classes, sota_transform, sota_device, sota_loaded = load_sota()
-    print("[API] Models reloaded globally.")
-# ----------------------------------------------------
+    _models_loaded = True
+    logger.info("Models reloaded globally.")
+# ────────────────────────────────────────────────────────────────────────
+
+# Load models eagerly during local dev, lazy on production (Render)
+if not os.environ.get('LAZY_LOAD_MODELS'):
+    ensure_models_loaded()
+else:
+    logger.info("LAZY_LOAD_MODELS set — models will load on first inference request.")
 
 class ThreadSafeStringWriter(StringIO):
+    """Captures stdout from training threads without corrupting the global stdout."""
     def __init__(self, callback):
         super().__init__()
-        self.callback = callback
+        self._callback = callback
+        self._lock = threading.Lock()
 
     def write(self, text):
         if text.strip():
-            self.callback(text)
+            with self._lock:
+                self._callback(text)
         return super().write(text)
 
 def add_log(msg):
     training_status['logs'].append(msg)
-    print(f"[API Log]: {msg}")
+    logger.info(f"[Training]: {msg}")
 
 @app.route('/api/persons', methods=['GET'])
 def get_persons():
@@ -309,20 +394,34 @@ def upload_person():
     
     image_data_list = []
     rejected_count = 0
+    seen_hashes = set()
     
     def process_upload(file_storage, angle_label):
         nonlocal rejected_count
         if file_storage and file_storage.filename != '':
             if not _allowed_file(file_storage.filename):
                 rejected_count += 1
-                print(f"Rejected non-image file: {file_storage.filename}")
+                logger.warning(f"Rejected non-image file: {file_storage.filename}")
                 return
             try:
+                # Read stream bytes to check MD5 for deduplication
+                img_bytes = file_storage.read()
+                file_storage.stream.seek(0)
+                
+                img_hash = compute_image_hash(img_bytes)
+                if img_hash in seen_hashes:
+                    logger.info(f"Skipping duplicate upload in batch: {file_storage.filename}")
+                    return
+                seen_hashes.add(img_hash)
+
                 img = Image.open(file_storage.stream).convert('RGB')
+                # Resize if the image is too large to save space/RAM
+                img = optimize_image(img)
+                
                 image_data_list.append((np.array(img), angle_label))
             except Exception as e:
                 rejected_count += 1
-                print(f"Failed to read image {angle_label}: {e}")
+                logger.error(f"Failed to read image {angle_label}: {e}")
 
     for f in front_imgs:
         process_upload(f, 'frontal')
@@ -343,7 +442,10 @@ def upload_person():
     thread = threading.Thread(target=run_training_pipeline, args=(person_name, image_data_list, epochs))
     thread.start()
 
-    return jsonify({'message': f'Upload successful. Training started for {person_name}.'})
+    msg = f'Upload successful. Training started for {person_name}.'
+    if rejected_count > 0:
+        msg += f' ({rejected_count} file(s) rejected/failed)'
+    return jsonify({'message': msg})
 
 def run_training_pipeline(person_name, image_data_list, epochs=5):
     """Executes the master function and captures its standard output for SSE."""
@@ -414,7 +516,7 @@ def export_onnx_model():
     output_onnx_path = os.path.join(PROJECT_ROOT, "sideface_mobile.onnx")
 
     try:
-        from sota_finetune.finetune import build_mobile_model, export_to_onnx
+        from models.sota_finetune.finetune import build_mobile_model, export_to_onnx
         import torch
         
         device = torch.device("cpu")
@@ -512,6 +614,9 @@ def predict():
         return jsonify({'error': f'Unsupported file type. Allowed: {", ".join(ALLOWED_EXTENSIONS)}'}), 400
 
     try:
+        # Ensure models are loaded (lazy-loading for production)
+        ensure_models_loaded()
+        
         pil_img = Image.open(file.stream).convert('RGB')
         # Validate minimum image dimensions
         if pil_img.width < 20 or pil_img.height < 20:
@@ -521,11 +626,12 @@ def predict():
         
         cascade = get_face_cascade()
         faces = []
-        if cascade is not None and not cascade.empty():
+        if cascade is not None:
             try:
-                faces = cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=5, minSize=(30, 30))
+                if not cascade.empty():
+                    faces = cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=5, minSize=(30, 30))
             except Exception as e:
-                print(f"[WARNING] OpenCV detectMultiScale failed: {e}")
+                logger.warning(f"OpenCV detectMultiScale failed: {e}")
 
         if len(faces) == 0:
             # Fallback: Treat the whole image as the bounding box and pass to models
@@ -554,17 +660,26 @@ def predict():
                 try:
                     cnn_label, cnn_conf = custom_cnn_recognizer.predict(face_roi_pil)
                 except Exception as e:
+                    logger.warning(f"CNN prediction error: {e}")
                     cnn_label, cnn_conf = 'Error', 0.0
             
-            # Predict SOTA
-            input_tensor = sota_transform(face_roi_pil).unsqueeze(0).to(sota_device)
-            with torch.no_grad():
-                outputs = sota_model(input_tensor)
-                probs = torch.nn.functional.softmax(outputs, dim=1)
-                sota_conf, predicted_idx = torch.max(probs, 1)
-            idx = predicted_idx.item()
-            sota_label = sota_classes[idx] if sota_classes and idx < len(sota_classes) else f"Class {idx}"
-            if not sota_loaded: sota_label = "[UNTRAINED]"
+            # Predict SOTA (guarded — won't crash if model/classes are empty)
+            sota_label, sota_conf_val = '[UNTRAINED]', 0.0
+            if sota_model is not None and sota_transform is not None:
+                try:
+                    input_tensor = sota_transform(face_roi_pil).unsqueeze(0).to(sota_device)
+                    with torch.no_grad():
+                        outputs = sota_model(input_tensor)
+                        probs = torch.nn.functional.softmax(outputs, dim=1)
+                        conf_tensor, predicted_idx = torch.max(probs, 1)
+                    idx = predicted_idx.item()
+                    sota_conf_val = float(conf_tensor.item())
+                    sota_label = sota_classes[idx] if sota_classes and idx < len(sota_classes) else f"Class {idx}"
+                    if not sota_loaded:
+                        sota_label = "[UNTRAINED]"
+                except Exception as e:
+                    logger.warning(f"SOTA prediction error: {e}")
+                    sota_label, sota_conf_val = 'Error', 0.0
             
             # Predict DeepFace
             df_label, df_conf = "Not Trained", 0.0
@@ -575,13 +690,14 @@ def predict():
                     if emb is not None:
                         df_label, dist = find_match_knn(emb, deepface_encodings, deepface_names)
                         df_conf = max(0, (1 - dist))
-                except Exception:
+                except Exception as e:
+                    logger.warning(f"DeepFace prediction error: {e}")
                     df_label = "Error"
                     
             # --- Ensemble Vote ---
             individual_preds = {
                 'cnn': {'label': cnn_label, 'confidence': float(cnn_conf)},
-                'sota': {'label': sota_label, 'confidence': float(sota_conf.item())},
+                'sota': {'label': sota_label, 'confidence': float(sota_conf_val)},
                 'deepface': {'label': df_label, 'confidence': float(df_conf)}
             }
             ensemble_result = ensemble_predict(individual_preds)
@@ -602,8 +718,7 @@ def predict():
             
         return jsonify({'faces': results, 'message': message})
     except Exception as e:
-        import traceback
-        traceback.print_exc()
+        logger.error(f"Predict error: {e}", exc_info=True)
         return jsonify({'error': str(e)}), 500
 
 # ─── Recognition History Endpoints ────────────────────────────────────
@@ -1040,6 +1155,20 @@ def trigger_person_retrain(name):
     thread.start()
 
     return jsonify({'message': f"Retraining started for '{name}'."})
+
+# ─── Global Error Handler ──────────────────────────────────────────────
+@app.errorhandler(Exception)
+def handle_exception(e):
+    """Return JSON instead of HTML for HTTP and server errors."""
+    code = 500
+    if hasattr(e, 'code'):
+        code = e.code
+    
+    logger.error(f"Unhandled exception encountered: {e}", exc_info=True)
+    return jsonify({
+        'error': getattr(e, 'description', str(e)),
+        'status_code': code
+    }), code
 
 if __name__ == '__main__':
     # Detect local IP for mobile app connection

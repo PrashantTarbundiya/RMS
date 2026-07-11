@@ -7,7 +7,7 @@ import {
   AlertTriangle, Trash2, Edit2, Check, X, RefreshCw, Eye
 } from 'lucide-react'
 
-const API_BASE = 'http://127.0.0.1:5000/api'
+import { API_BASE } from '../config'
 
 export default function DashboardPage() {
   const [stats, setStats] = useState(null)

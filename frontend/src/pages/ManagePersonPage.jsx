@@ -3,7 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom'
 import axios from 'axios'
 import { ArrowLeft, Trash2, Camera, UploadCloud, Video, X, CheckCircle, AlertTriangle, Plus, RotateCw, Image as ImageIcon } from 'lucide-react'
 
-const API_BASE = 'http://127.0.0.1:5000/api'
+import { API_BASE } from '../config'
 
 export default function ManagePersonPage() {
   const { name } = useParams()

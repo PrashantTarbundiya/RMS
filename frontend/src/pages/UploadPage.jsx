@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
 import { Camera, Image as ImageIcon, X, UploadCloud, CheckCircle, Video, AlertCircle, Info, ChevronRight, Move } from 'lucide-react'
 
-const API_BASE = 'http://127.0.0.1:5000/api'
+import { API_BASE } from '../config'
 
 const FIELD_TO_ANGLE = {
   front_img: 'frontal',

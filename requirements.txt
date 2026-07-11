@@ -6,7 +6,7 @@
 # ===================================================
 
 # ── Core ML ──
-opencv-python>=4.8
+opencv-python>=4.8,<5.0
 mediapipe>=0.10
 deepface>=0.0.79
 tf-keras>=2.15
@@ -23,6 +23,7 @@ Pillow>=10.0
 # ── API Server ──
 flask>=3.0
 flask-cors>=4.0
+gunicorn>=21.0
 
 # ── Math / Matching ──
 scipy>=1.11

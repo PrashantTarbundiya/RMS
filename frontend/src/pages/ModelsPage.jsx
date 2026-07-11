@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import axios from 'axios'
 import { Download, Trash2, Box, Cpu, HardDrive, AlertTriangle } from 'lucide-react'
 
-const API_BASE = 'http://127.0.0.1:5000/api'
+import { API_BASE } from '../config'
 
 export default function ModelsPage() {
   const [status, setStatus] = useState({ type: '', message: '' })
