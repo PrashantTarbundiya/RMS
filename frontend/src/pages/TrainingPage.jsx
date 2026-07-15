@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { Terminal, CheckCircle, Download } from 'lucide-react'
 
-const API_BASE = 'http://127.0.0.1:5000/api'
+import { API_BASE } from '../config'
 
 export default function TrainingPage() {
   const [logs, setLogs] = useState([])
@@ -88,9 +88,9 @@ export default function TrainingPage() {
   const { dfPercent, cnnPercent, sotaPercent } = extractProgress()
 
   return (
-    <div className="fade-in">
-      <h2 className="page-title">Training Status</h2>
-      <p className="page-subtitle">Real-time inference training logs for the 3 face recognition models.</p>
+    <div className="animate-fade-in">
+      <h1 className="page-title">Training Status</h1>
+      <p className="page-subtitle">Real-time training logs for the 3 face recognition models.</p>
 
       <div className="card-grid">
         <ModelProgressCard 
@@ -116,10 +116,10 @@ export default function TrainingPage() {
       {(!isTraining && sotaPercent === 100) && (
         <div className="glass-panel" style={{ 
           marginTop: '2rem', padding: '1.5rem', 
-          border: '1px solid var(--success)', 
-          background: 'rgba(46, 213, 115, 0.1)',
+          border: '1px solid rgba(34, 197, 94, 0.3)', 
+          background: 'var(--success-bg)',
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          borderRadius: '12px'
+          borderRadius: 'var(--radius-lg)'
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '1.5rem' }}>
             <CheckCircle size={32} color="var(--success)" />
