@@ -176,7 +176,7 @@ export default function DashboardPage() {
             <div>
               <h4 style={{ color: 'var(--warning)', margin: 0, fontWeight: '600', fontSize: '0.95rem' }}>Model Out of Sync</h4>
               <p style={{ color: 'var(--text-secondary)', margin: '2px 0 0 0', fontSize: '0.85rem', lineHeight: '1.4' }}>
-                A class was deleted or models were initialized with structural changes. Retraining is required to update Custom CNN & MobileNetV2.
+                A class was deleted or models were initialized with structural changes. Retraining is required to update MobileNetV2.
               </p>
             </div>
           </div>
@@ -288,7 +288,7 @@ export default function DashboardPage() {
             <h3 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '1.25rem' }}>Model Load Status</h3>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
               <ModelStatusIndicator label="DeepFace (Facenet512)" loaded={models_loaded.deepface} />
-              <ModelStatusIndicator label="Custom CNN (Classifier)" loaded={models_loaded.custom_cnn} />
+
               <ModelStatusIndicator label="SOTA (MobileNetV2)" loaded={models_loaded.sota} />
             </div>
           </div>
@@ -563,8 +563,7 @@ export default function DashboardPage() {
                       <td style={{ padding: '1rem', color: 'var(--text-secondary)' }}>{entry.agreement}</td>
                       <td style={{ padding: '1rem', textAlign: 'right', fontSize: '0.8rem', color: 'var(--text-tertiary)' }}>
                         DeepFace: {entry.predictions?.deepface?.label || 'N/A'} ({Math.round((entry.predictions?.deepface?.confidence || 0) * 100)}%) | 
-                        CNN: {entry.predictions?.cnn?.label || 'N/A'} ({Math.round((entry.predictions?.cnn?.confidence || 0) * 100)}%) | 
-                        SOTA: {entry.predictions?.sota?.label || 'N/A'} ({Math.round((entry.predictions?.sota?.confidence || 0) * 100)}%)
+                        MobileNetV2: {entry.predictions?.sota?.label || 'N/A'} ({Math.round((entry.predictions?.sota?.confidence || 0) * 100)}%)
                       </td>
                     </tr>
                   )

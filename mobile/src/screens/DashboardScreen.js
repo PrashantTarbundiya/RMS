@@ -101,7 +101,7 @@ export default function DashboardScreen({ navigation }) {
           <Text style={styles.syncIcon}>⚠️</Text>
           <View style={styles.syncTextContainer}>
             <Text style={styles.syncTitle}>Models Out of Sync</Text>
-            <Text style={styles.syncDesc}>A person was deleted or added. Retraining is required to update CNN/SOTA classifiers.</Text>
+            <Text style={styles.syncDesc}>A person was deleted or added. Retraining is required to update SOTA classifiers.</Text>
           </View>
         </View>
       )}
@@ -118,7 +118,7 @@ export default function DashboardScreen({ navigation }) {
       <Text style={styles.sectionTitle}>Model Status</Text>
       <View style={styles.card}>
         <StatusRow label="DeepFace (Facenet512)" loaded={models_loaded.deepface} />
-        <StatusRow label="Custom CNN (Classifier)" loaded={models_loaded.custom_cnn} />
+
         <StatusRow label="SOTA (MobileNetV2)" loaded={models_loaded.sota} />
       </View>
 

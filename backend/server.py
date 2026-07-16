@@ -21,8 +21,7 @@ sys.path.insert(0, BACKEND_DIR)
 
 from add_person_utils import add_person_to_all_models
 from models.sota_finetune.finetune import build_mobile_model, export_to_onnx
-from models.custom_cnn.inference import FaceRecognizer as CustomFaceRecognizer
-from model import apply_clahe, get_embedding
+from model import apply_clahe, get_embedding, get_embedding_tta
 from inference import find_match_knn
 import torch
 import cv2
@@ -81,28 +80,19 @@ def health_check():
                                    if os.path.isdir(os.path.join(DATASET_CLEANED_DIR, name))])
     
     total_people = len(expected_classes)
-    
-    cnn_loaded_state = False
-    cnn_classes = []
-    if custom_cnn_recognizer is not None:
-        cnn_loaded_state = custom_cnn_recognizer.is_loaded
-        cnn_classes = custom_cnn_recognizer.classes
-        
     sota_loaded_state = sota_loaded
     sota_classes_state = sota_classes
     
     requires_retrain = False
     if total_people > 0:
-        cnn_mismatch = (not cnn_loaded_state) or (sorted(cnn_classes) != expected_classes)
         sota_mismatch = (not sota_loaded_state) or (sorted(sota_classes_state) != expected_classes)
-        requires_retrain = cnn_mismatch or sota_mismatch
+        requires_retrain = sota_mismatch
 
     return jsonify({
         'status': 'ok',
         'requires_retrain': requires_retrain,
         'models': {
             'deepface': deepface_encodings is not None,
-            'custom_cnn': cnn_loaded_state,
             'sota': sota_loaded_state,
         }
     })
@@ -116,7 +106,6 @@ def ping():
 STORAGE_DIR = os.environ.get('STORAGE_DIR', PROJECT_ROOT)
 DATASET_CLEANED_DIR = os.path.join(STORAGE_DIR, 'dataset_cleaned')
 DATA_DIR = os.path.join(BACKEND_DIR, 'data')
-CUSTOM_CNN_MODEL_PATH = os.path.join(BACKEND_DIR, 'models', 'custom_cnn', 'best_face_model.pth')
 SOTA_MODEL_PATH = os.path.join(BACKEND_DIR, 'models', 'sota_finetune', 'best_mobile_sideface.pth')
 DEEPFACE_MODEL_PATH = os.path.join(DATA_DIR, 'encodings.pickle')
 RECOGNITION_HISTORY_PATH = os.path.join(DATA_DIR, 'recognition_history.json')
@@ -147,10 +136,11 @@ def log_recognition(faces_results):
             # Determine status based on confidence and label
             label = ensemble.get('label', 'Unknown')
             confidence = ensemble.get('confidence', 0.0)
+            is_recognized = ensemble.get('is_recognized', False)
             
-            if label == 'Unknown':
+            if not is_recognized or label == 'Unknown':
                 status = 'error'
-            elif confidence < 0.60:
+            elif confidence < 1.0:
                 status = 'warning'
             else:
                 status = 'success'
@@ -206,7 +196,6 @@ _models_loaded = False
 face_cascade = None
 deepface_encodings = None
 deepface_names = None
-custom_cnn_recognizer = None
 sota_model = None
 sota_classes = []
 sota_transform = None
@@ -254,17 +243,6 @@ def load_deepface():
         logger.warning(f"DeepFace encodings not loadable: {e}")
         return None, None
 
-def load_custom_cnn():
-    try:
-        recognizer = CustomFaceRecognizer(
-            model_path=CUSTOM_CNN_MODEL_PATH,
-            classes_path=os.path.join(BACKEND_DIR, 'models', 'custom_cnn', 'class_names.txt')
-        )
-        logger.info(f"Custom CNN loaded: {len(recognizer.classes)} classes")
-        return recognizer
-    except Exception as e:
-        logger.warning(f"Custom CNN model not loadable: {e}")
-        return None
 
 def load_sota():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -301,27 +279,25 @@ def load_sota():
 def ensure_models_loaded():
     """Lazy-load all models on first inference request."""
     global _models_loaded, deepface_encodings, deepface_names
-    global custom_cnn_recognizer, sota_model, sota_classes, sota_transform, sota_device, sota_loaded
+    global sota_model, sota_classes, sota_transform, sota_device, sota_loaded
     if _models_loaded:
         return
     logger.info("Lazy-loading models for first inference...")
     get_face_cascade()
     deepface_encodings, deepface_names = load_deepface()
-    custom_cnn_recognizer = load_custom_cnn()
     sota_model, sota_classes, sota_transform, sota_device, sota_loaded = load_sota()
     _models_loaded = True
     logger.info("All models loaded.")
 
 def reload_models():
     """Reloads models into memory after training."""
-    global _models_loaded, deepface_encodings, deepface_names, custom_cnn_recognizer
+    global _models_loaded, deepface_encodings, deepface_names
     global sota_model, sota_classes, sota_transform, sota_device, sota_loaded
     logger.info("Hot-reloading models...")
     new_encs, new_names = load_deepface()
     if new_encs is not None:
         deepface_encodings = new_encs
         deepface_names = new_names
-    custom_cnn_recognizer = load_custom_cnn()
     sota_model, sota_classes, sota_transform, sota_device, sota_loaded = load_sota()
     _models_loaded = True
     logger.info("Models reloaded globally.")
@@ -571,11 +547,9 @@ def reset_models():
     """Deletes all trained models and optionally dataset."""
     try:
         files_to_remove = [
-            CUSTOM_CNN_MODEL_PATH,
             SOTA_MODEL_PATH,
             DEEPFACE_MODEL_PATH,
             os.path.join(BACKEND_DIR, 'models', 'sota_finetune', 'mobile_classes.txt'),
-            os.path.join(BACKEND_DIR, 'models', 'custom_cnn', 'class_names.txt'),
             os.path.join(PROJECT_ROOT, 'sideface_mobile.onnx'),
             os.path.join(PROJECT_ROOT, 'facenet512.onnx'),
             os.path.join(BACKEND_DIR, 'data', 'class_centroids.json'),
@@ -654,14 +628,6 @@ def predict():
             face_roi_pil = pil_img.crop((x1, y1, x2, y2))
             face_roi_cv = img_np[y1:y2, x1:x2]
             
-            # Predict Custom CNN
-            cnn_label, cnn_conf = 'Not Loaded', 0.0
-            if custom_cnn_recognizer is not None:
-                try:
-                    cnn_label, cnn_conf = custom_cnn_recognizer.predict(face_roi_pil)
-                except Exception as e:
-                    logger.warning(f"CNN prediction error: {e}")
-                    cnn_label, cnn_conf = 'Error', 0.0
             
             # Predict SOTA (guarded — won't crash if model/classes are empty)
             sota_label, sota_conf_val = '[UNTRAINED]', 0.0
@@ -681,12 +647,16 @@ def predict():
                     logger.warning(f"SOTA prediction error: {e}")
                     sota_label, sota_conf_val = 'Error', 0.0
             
-            # Predict DeepFace
+            # Predict DeepFace — use TTA (Test-Time Augmentation) for higher accuracy
             df_label, df_conf = "Not Trained", 0.0
             if deepface_encodings is not None:
                 try:
                     processed = apply_clahe(face_roi_cv)
-                    emb = get_embedding(processed)
+                    # TTA: average 5 embeddings from different augmentations
+                    emb = get_embedding_tta(processed)
+                    if emb is None:
+                        # Fallback to single embedding if TTA fails
+                        emb = get_embedding(processed)
                     if emb is not None:
                         df_label, dist = find_match_knn(emb, deepface_encodings, deepface_names)
                         df_conf = max(0, (1 - dist))
@@ -696,20 +666,33 @@ def predict():
                     
             # --- Ensemble Vote ---
             individual_preds = {
-                'cnn': {'label': cnn_label, 'confidence': float(cnn_conf)},
                 'sota': {'label': sota_label, 'confidence': float(sota_conf_val)},
                 'deepface': {'label': df_label, 'confidence': float(df_conf)}
             }
             ensemble_result = ensemble_predict(individual_preds)
 
+            # Build display string for the frontend
+            ens_label = ensemble_result['label']
+            ens_conf = ensemble_result['confidence']
+            is_recognized = ensemble_result.get('is_recognized', False)
+            
+            if is_recognized and ens_conf == 1.0:
+                display_text = f"{ens_label} (100%)"
+            elif is_recognized:
+                display_text = f"{ens_label}? ({int(ens_conf * 100)}%)"
+            else:
+                display_text = "Unknown"
+
             results.append({
                 'bbox': {'x': int(x), 'y': int(y), 'w': int(w), 'h': int(h)},
                 'predictions': individual_preds,
                 'ensemble': {
-                    'label': ensemble_result['label'],
-                    'confidence': ensemble_result['confidence'],
+                    'label': ens_label,
+                    'confidence': ens_conf,
                     'method': ensemble_result['method'],
                     'agreement': ensemble_result.get('agreement', 'N/A'),
+                    'is_recognized': is_recognized,
+                    'display': display_text,
                 }
             })
             
@@ -766,21 +749,13 @@ def get_dashboard_stats():
         photos_per_person[p] = count
         total_photos += count
         
-    # Check if models need retraining
-    cnn_loaded_state = False
-    cnn_classes = []
-    if custom_cnn_recognizer is not None:
-        cnn_loaded_state = custom_cnn_recognizer.is_loaded
-        cnn_classes = custom_cnn_recognizer.classes
-        
     sota_loaded_state = sota_loaded
     sota_classes_state = sota_classes
     
     requires_retrain = False
     if total_people > 0:
-        cnn_mismatch = (not cnn_loaded_state) or (sorted(cnn_classes) != expected_classes)
         sota_mismatch = (not sota_loaded_state) or (sorted(sota_classes_state) != expected_classes)
-        requires_retrain = cnn_mismatch or sota_mismatch
+        requires_retrain = sota_mismatch
 
     # Read history for stats
     history = []
@@ -797,19 +772,17 @@ def get_dashboard_stats():
     warning_count = sum(1 for entry in history if entry.get('status') == 'warning')
     error_count = sum(1 for entry in history if entry.get('status') == 'error')
     
-    agreement_counts = {'3/3': 0, '2/3': 0, '1/3': 0, '0/3': 0, 'N/A': 0}
+    agreement_counts = {'2/2': 0, '1/2': 0, '0/2': 0, 'N/A': 0}
     for entry in history:
         agr = entry.get('agreement', 'N/A')
         if agr in agreement_counts:
             agreement_counts[agr] += 1
-        elif '3' in str(agr):
-            agreement_counts['3/3'] += 1
         elif '2' in str(agr):
-            agreement_counts['2/3'] += 1
+            agreement_counts['2/2'] += 1
         elif '1' in str(agr):
-            agreement_counts['1/3'] += 1
+            agreement_counts['1/2'] += 1
         else:
-            agreement_counts['0/3'] += 1
+            agreement_counts['0/2'] += 1
             
     return jsonify({
         'total_people': total_people,
@@ -818,7 +791,6 @@ def get_dashboard_stats():
         'requires_retrain': requires_retrain,
         'models_loaded': {
             'deepface': deepface_encodings is not None,
-            'custom_cnn': cnn_loaded_state,
             'sota': sota_loaded_state
         },
         'history_stats': {
@@ -891,7 +863,6 @@ def delete_person(name):
                 except Exception as e:
                     print(f"[WARNING] Failed to update {file_path}: {e}")
                     
-        filter_class_file(os.path.join(BACKEND_DIR, 'models', 'custom_cnn', 'class_names.txt'))
         filter_class_file(os.path.join(BACKEND_DIR, 'models', 'sota_finetune', 'mobile_classes.txt'))
         
         # Hot-reload models
@@ -965,7 +936,6 @@ def rename_person(old_name):
                 except Exception as e:
                     print(f"[WARNING] Failed to rename in {file_path}: {e}")
                     
-        rename_in_class_file(os.path.join(BACKEND_DIR, 'models', 'custom_cnn', 'class_names.txt'))
         rename_in_class_file(os.path.join(BACKEND_DIR, 'models', 'sota_finetune', 'mobile_classes.txt'))
         
         # Hot-reload models
@@ -1135,7 +1105,7 @@ def move_person_photo(name):
 
 @app.route('/api/persons/<name>/retrain', methods=['POST'])
 def trigger_person_retrain(name):
-    """Triggers fine-tuning SOTA and CNN on current dataset for a person."""
+    """Triggers fine-tuning SOTA on current dataset for a person."""
     name = name.strip()
     if not os.path.exists(os.path.join(DATASET_CLEANED_DIR, name)):
         return jsonify({'error': 'Person not found'}), 404

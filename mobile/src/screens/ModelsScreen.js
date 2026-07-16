@@ -157,16 +157,6 @@ export default function ModelsScreen({ navigation }) {
 
       <View style={styles.card}>
         <View style={styles.cardRow}>
-          <Text style={styles.cardIcon}>⚡</Text>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.cardTitle}>Custom CNN</Text>
-            <Text style={styles.cardDesc}>PyTorch 4-layer CNN (best_face_model.pth)</Text>
-          </View>
-        </View>
-      </View>
-
-      <View style={styles.card}>
-        <View style={styles.cardRow}>
           <Text style={styles.cardIcon}>📱</Text>
           <View style={{ flex: 1 }}>
             <Text style={styles.cardTitle}>SOTA MobileNetV2</Text>

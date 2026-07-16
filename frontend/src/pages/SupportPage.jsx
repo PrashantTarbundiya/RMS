@@ -16,8 +16,8 @@ const FAQ_DATA = [
     a: 'Yes! The system is specifically designed for side-face recognition. It uses MediaPipe BlazeFace for detection which handles profile views well, and the training pipeline includes perspective augmentation for angle robustness.'
   },
   {
-    q: 'What are the 3 models and which is best?',
-    a: 'The system uses: (1) DeepFace with Facenet512 embeddings — best for few-shot recognition with 1-3 photos. (2) Custom CNN — lightweight model trained from scratch on your data. (3) SOTA MobileNetV2 — pretrained backbone fine-tuned on your faces, good balance of speed and accuracy. The Ensemble mode combines all 3 for the most reliable result.'
+    q: 'What are the 2 models and which is best?',
+    a: 'The system uses: (1) DeepFace with Facenet512 embeddings — best for few-shot recognition with 1-3 photos. (2) SOTA MobileNetV2 — pretrained backbone fine-tuned on your faces, good balance of speed and accuracy. The Ensemble mode combines both for the most reliable result.'
   },
   {
     q: 'Do I need a GPU?',

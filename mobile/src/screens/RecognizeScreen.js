@@ -329,7 +329,7 @@ export default function RecognizeScreen() {
 
               <Text style={styles.modelsHeader}>Individual Models</Text>
               <PredictionRow model="SOTA MobileNetV2" label={face.predictions.sota.label} confidence={face.predictions.sota.confidence} />
-              <PredictionRow model="Custom CNN" label={face.predictions.cnn.label} confidence={face.predictions.cnn.confidence} />
+
               <PredictionRow model="DeepFace (Facenet512)" label={face.predictions.deepface.label} confidence={face.predictions.deepface.confidence} />
             </View>
           ))}

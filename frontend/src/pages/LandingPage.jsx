@@ -135,7 +135,7 @@ export default function LandingPage() {
             number="02"
             icon={<Brain size={28} />}
             title="Train Models"
-            description="Three models train simultaneously: DeepFace embeddings, Custom CNN, and SOTA MobileNetV2 — optimized for side-face profiles."
+            description="Two models train simultaneously: DeepFace embeddings and SOTA MobileNetV2 — optimized for side-face profiles."
             delay={0.2}
           />
           <StepCard
@@ -162,7 +162,7 @@ export default function LandingPage() {
           display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
           gap: '1.5rem',
         }}>
-          <FeatureCard icon={<Brain size={22} />} title="3-Model Ensemble" desc="Combines DeepFace, CNN, and MobileNetV2 predictions for higher accuracy with weighted voting." delay={0.1} />
+          <FeatureCard icon={<Brain size={22} />} title="2-Model Ensemble" desc="Combines DeepFace and MobileNetV2 predictions for higher accuracy with weighted voting." delay={0.1} />
           <FeatureCard icon={<Camera size={22} />} title="Side-Face Support" desc="Specialized for profile/side-face detection using MediaPipe BlazeFace and custom data augmentation." delay={0.2} />
           <FeatureCard icon={<Smartphone size={22} />} title="Mobile App" desc="React Native mobile app with live camera recognition. Connect directly to your local server over WiFi." delay={0.3} />
           <FeatureCard icon={<Users size={22} />} title="Multi-Person" desc="Register unlimited people. Each person can have multiple face angles for highly robust accuracy." delay={0.4} />

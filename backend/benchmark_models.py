@@ -9,9 +9,8 @@ import os
 try:
     from face_detection import SideFaceDetector
     from deepface import DeepFace
-    from models.custom_cnn.inference import FaceRecognizer
+    from models.sota_finetune.finetune import build_mobile_model
 except ImportError as e:
-    print(f"Error importing required modules. Ensure you run this from the RMS root folder. Details: {e}")
     exit(1)
 
 def generate_graphs():
@@ -54,15 +53,16 @@ def generate_graphs():
     # ==========================================
     try:
         print("Benchmarking MobileNetV2...")
-        # Check if actual weights exist, otherwise it uses random fallback for benchmarking
-        model_path = "custom_cnn/best_face_model.pth"
-        recognizer = FaceRecognizer(model_path=model_path)
-        _ = recognizer.predict(dummy_pil) # Warm up
+        device = torch.device("cpu")
+        model = build_mobile_model(num_classes=2)
+        model.eval()
+        dummy_tensor = torch.randn(1, 3, 224, 224)
+        _ = model(dummy_tensor) # Warm up
         
         start = time.time()
         with torch.no_grad():
             for _ in range(20):
-                _ = recognizer.predict(dummy_pil)
+                _ = model(dummy_tensor)
         mobile_time = ((time.time() - start) / 20) * 1000 # ms
     except Exception as e:
         print(f"MobileNet error: {e}")

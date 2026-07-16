@@ -49,22 +49,16 @@ export default function TrainingPage() {
   // Parse log to extract epoch dynamically
   const extractProgress = () => {
     let sotaPercent = 0
-    let cnnPercent = 0
     let dfPercent = isTraining ? 50 : (logs.length > 5 ? 100 : 0)
 
     let currentBlock = null
 
     for (let i = 0; i < logs.length; i++) {
         const line = logs[i]
-        if (line.includes('Custom CNN: Fine-tuning')) {
-            currentBlock = 'cnn'
-            cnnPercent = 5
-        } else if (line.includes('SOTA MobileNetV2: Fine-tuning')) {
+        if (line.includes('SOTA MobileNetV2: Fine-tuning')) {
             currentBlock = 'sota'
-            cnnPercent = 100 
             sotaPercent = 5
         } else if (line.includes('Pipeline Completed') || line.includes('Saved updated model: sota_finetune')) {
-            cnnPercent = 100
             dfPercent = 100
             sotaPercent = 100
             break
@@ -76,16 +70,15 @@ export default function TrainingPage() {
                 const currentE = parseInt(match[1], 10)
                 const totalE = parseInt(match[2], 10)
                 const p = Math.floor((currentE / totalE) * 100)
-                if (currentBlock === 'cnn') cnnPercent = p === 100 ? 99 : p 
                 if (currentBlock === 'sota') sotaPercent = p === 100 ? 99 : p 
             }
         }
     }
 
-    return { dfPercent, cnnPercent, sotaPercent }
+    return { dfPercent, sotaPercent }
   }
 
-  const { dfPercent, cnnPercent, sotaPercent } = extractProgress()
+  const { dfPercent, sotaPercent } = extractProgress()
 
   return (
     <div className="animate-fade-in">
@@ -98,12 +91,6 @@ export default function TrainingPage() {
           subtitle="Incremental Embeddings" 
           percent={dfPercent} 
           isTraining={isTraining && dfPercent < 100}
-        />
-        <ModelProgressCard 
-          title="Custom CNN" 
-          subtitle="PyTorch Fine-Tuning" 
-          percent={cnnPercent} 
-          isTraining={isTraining && cnnPercent > 0 && cnnPercent < 100}
         />
         <ModelProgressCard 
           title="SOTA MobileNetV2" 

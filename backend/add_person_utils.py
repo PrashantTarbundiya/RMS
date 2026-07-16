@@ -2,8 +2,7 @@
 add_person_utils.py — Backend utilities for adding a new person to all three models.
 
 1. DeepFace (Facenet512): Append new embeddings to encodings.pickle (no retrain)
-2. Custom CNN: Expand classifier head + quick fine-tune
-3. SOTA MobileNetV2: Expand classifier head + quick fine-tune
+2. SOTA MobileNetV2: Expand classifier head + quick fine-tune
 """
 
 import os
@@ -99,7 +98,7 @@ def update_deepface_model(person_name, image_paths, encodings_path=None):
         print("   No existing encodings found. Creating new file.")
 
     # Initialize face detector
-    detector = SideFaceDetector(min_detection_confidence=0.35)  # 0.35 = better side-face recall
+    detector = SideFaceDetector(min_detection_confidence=0.30)  # 0.30 = improved side-face recall (multi-pass cascade)
     
     new_count = 0
 
@@ -181,157 +180,9 @@ def update_deepface_model(person_name, image_paths, encodings_path=None):
 
 
 # ============================================================================
-# 2. CUSTOM CNN — Expand Head + Quick Fine-Tune
-# ============================================================================
-
-def update_custom_cnn(person_name, dataset_dir=None,
-                      model_path=None,
-                      classes_path=None,
-                      num_epochs=5, batch_size=16):
-    if dataset_dir is None:
-        dataset_dir = os.path.join(PROJECT_ROOT, 'dataset_cleaned')
-    if model_path is None:
-        model_path = os.path.join(BACKEND_DIR, 'models', 'custom_cnn', 'best_face_model.pth')
-    if classes_path is None:
-        classes_path = os.path.join(BACKEND_DIR, 'models', 'custom_cnn', 'class_names.txt')
-    """
-    Add a new person to the Custom CNN model:
-    1. Read existing class names
-    2. Rebuild model with num_classes + 1
-    3. Copy old weights, initialize new class randomly
-    4. Fine-tune on entire dataset for a few epochs
-    5. Save updated model + class_names.txt
-    """
-    from models.custom_cnn.model import CustomFaceCNN
-
-    print(f"\n{'='*50}")
-    print(f"🧠 Custom CNN: Fine-tuning for '{person_name}'")
-    print(f"{'='*50}")
-
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-    # Load existing classes
-    old_classes = []
-    if os.path.exists(classes_path):
-        with open(classes_path, "r") as f:
-            old_classes = [line.strip() for line in f.readlines() if line.strip()]
-
-    # Check if person already exists
-    if person_name in old_classes:
-        print(f"   ℹ️ '{person_name}' already exists in Custom CNN classes. Re-training...")
-    else:
-        old_classes.append(person_name)
-
-    num_classes = len(old_classes)
-    print(f"   Classes: {num_classes} (including '{person_name}')")
-
-    # Data transforms (must match custom_cnn/train.py)
-    transform = transforms.Compose([
-        transforms.Resize((128, 128)),
-        transforms.RandomHorizontalFlip(),
-        transforms.RandomRotation(15),
-        transforms.ColorJitter(brightness=0.2, contrast=0.2),
-        transforms.ToTensor(),
-        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
-    ])
-
-    # Load dataset (ImageFolder reads from dataset_cleaned/)
-    train_path = dataset_dir
-    if os.path.exists(os.path.join(dataset_dir, 'train')):
-        train_path = os.path.join(dataset_dir, 'train')
-
-    # Load dataset
-    try:
-        from models.sota_finetune.finetune import SafeImageFolder
-        train_dataset = SafeImageFolder(root=train_path, transform=transform)
-    except ImportError:
-        train_dataset = datasets.ImageFolder(root=train_path, transform=transform)
-    except Exception as e:
-        print(f"   ❌ Failed to load dataset: {e}")
-        return False
-
-    actual_num_classes = len(train_dataset.classes)
-    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
-
-    # Build new model with correct number of classes
-    model = CustomFaceCNN(num_classes=actual_num_classes).to(device)
-
-    # Try to load old weights into the new model
-    if os.path.exists(model_path):
-        try:
-            old_state = torch.load(model_path, map_location=device)
-            # Load compatible layers (skip fc2 if size changed)
-            new_state = model.state_dict()
-            for key in old_state:
-                if key in new_state and old_state[key].shape == new_state[key].shape:
-                    new_state[key] = old_state[key]
-            model.load_state_dict(new_state)
-            print("   ✅ Loaded compatible weights from previous model.")
-        except Exception as e:
-            print(f"   ⚠️ Could not load old weights: {e}. Training from scratch.")
-
-    # Fine-tune with improved training recipe
-    criterion = nn.CrossEntropyLoss(label_smoothing=0.1)
-    optimizer = optim.AdamW(model.parameters(), lr=0.0005, weight_decay=1e-4)
-    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=3)
-
-    best_acc = 0.0
-    patience_counter = 0
-    early_stop_patience = 7
-
-    model.train()
-    for epoch in range(num_epochs):
-        running_loss = 0.0
-        correct = 0
-        total = 0
-
-        for images, labels in train_loader:
-            images, labels = images.to(device), labels.to(device)
-            optimizer.zero_grad()
-            outputs = model(images)
-            loss = criterion(outputs, labels)
-            loss.backward()
-            optimizer.step()
-
-            running_loss += loss.item() * images.size(0)
-            _, predicted = torch.max(outputs, 1)
-            total += labels.size(0)
-            correct += (predicted == labels).sum().item()
-
-        epoch_loss = running_loss / len(train_dataset)
-        acc = 100 * correct / total if total > 0 else 0
-        scheduler.step(epoch_loss)
-        
-        current_lr = optimizer.param_groups[0]['lr']
-        print(f"   Epoch [{epoch+1}/{num_epochs}] Loss: {epoch_loss:.4f}, Acc: {acc:.1f}%, LR: {current_lr:.6f}")
-
-        # Early stopping check
-        if acc > best_acc:
-            best_acc = acc
-            patience_counter = 0
-            # Save best model
-            torch.save(model.state_dict(), model_path)
-        else:
-            patience_counter += 1
-            if patience_counter >= early_stop_patience and epoch >= 10:
-                print(f"   Early stopping at epoch {epoch+1} (best acc: {best_acc:.1f}%)")
-                break
-
-    # Save final model (if not already saved by early stopping)
-    if patience_counter < early_stop_patience:
-        torch.save(model.state_dict(), model_path)
-    print(f"   Saved updated model: {model_path} (best acc: {best_acc:.1f}%)")
-
-    # Save class names
-    with open(classes_path, "w") as f:
-        f.write("\n".join(train_dataset.classes))
-    print(f"   Updated class names: {classes_path}")
-
-    return True
-
 
 # ============================================================================
-# 3. SOTA MobileNetV2 — Expand Head + Quick Fine-Tune
+# 2. SOTA MobileNetV2 — Expand Head + Quick Fine-Tune
 # ============================================================================
 
 def update_sota_model(person_name, dataset_dir=None,
@@ -644,17 +495,7 @@ def add_person_to_all_models(person_name, image_data_list, dataset_dir=None, num
         except Exception as e:
             status_parts.append(f"⚠️ **DeepFace**: Error — {e}")
 
-    # 4. Update Custom CNN (quick fine-tune)
-    try:
-        success = update_custom_cnn(person_name, dataset_dir=dataset_dir, num_epochs=num_epochs)
-        if success:
-            status_parts.append(f"✅ **Custom CNN**: Fine-tuned successfully")
-        else:
-            status_parts.append(f"⚠️ **Custom CNN**: Fine-tuning failed")
-    except Exception as e:
-        status_parts.append(f"⚠️ **Custom CNN**: Error — {e}")
-
-    # 5. Update SOTA MobileNetV2 (quick fine-tune)
+    # 4. Update SOTA MobileNetV2 (quick fine-tune)
     try:
         success = update_sota_model(person_name, dataset_dir=dataset_dir, num_epochs=num_epochs)
         if success:

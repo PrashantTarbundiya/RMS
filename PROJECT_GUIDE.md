@@ -16,7 +16,6 @@
 | Model | What it does | How it works | Strengths |
 |-------|-------------|-------------|-----------|
 | **DeepFace (Facenet512)** | Creates a "fingerprint" of each face | Converts each face photo into a 512-number vector (embedding). To recognize someone, it compares the test photo's vector to all stored vectors using cosine distance | Best with few images. No training needed — just add more photos |
-| **Custom CNN** | Learns face patterns from scratch | 4-layer convolutional neural network that learns to classify faces by looking at pixel patterns | Gets better with more training data |
 | **SOTA MobileNetV2** | Uses Google's pre-trained vision model | Starts with a model pre-trained on 1M+ images (ImageNet), then fine-tunes on your faces. Only the last layers are retrained | Best generalization — the ImageNet backbone already "understands" what faces look like |
 
 ### Ensemble Voting
@@ -24,8 +23,7 @@
 When you test a photo, all 3 models make their prediction independently. Then the **ensemble voter** combines them:
 
 ```
-Custom CNN:     "Vatsal" (100% confident)    weight: 0.25
-SOTA MobileNet: "Vatsal" (86% confident)     weight: 0.35
+SOTA MobileNet: "Vatsal" (86% confident)     weight: 0.60
 DeepFace:       "Vatsal" (72% confident)     weight: 0.40
 
 → Weighted vote: "Vatsal" with ~85% confidence ✅
@@ -58,10 +56,7 @@ RMS/
 │   │   ├── class_centroids.json      # Average embeddings per person
 │   │   └── label_map.json            # Person name ↔ index mapping
 │   ├── models/
-│   │   ├── custom_cnn/
-│   │   │   ├── model.py              # CNN architecture (4 conv layers)
-│   │   │   ├── best_face_model.pth   # Trained CNN weights
-│   │   │   └── class_names.txt       # List of known people for CNN
+
 │   │   └── sota_finetune/
 │   │       ├── finetune.py           # MobileNetV2 architecture + training
 │   │       ├── best_mobile_sideface.pth  # Trained SOTA weights
@@ -114,7 +109,7 @@ RMS/
 2. Upload a photo or use your webcam
 3. The system shows:
    - Face bounding box
-   - Individual model predictions (CNN, SOTA, DeepFace)
+   - Individual model predictions (SOTA, DeepFace)
    - Final ensemble result with confidence %
 
 ### Retraining for Better Accuracy

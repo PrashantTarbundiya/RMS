@@ -23,7 +23,15 @@ from mediapipe.tasks.python import vision
 
 
 class SideFaceDetector:
-    """Enhanced MediaPipe Face Detection for side/profile faces."""
+    """Enhanced MediaPipe Face Detection for side/profile faces.
+    
+    Uses multi-pass detection cascade for maximum recall:
+      Pass 1: BlazeFace at normal confidence (fast, catches most faces)
+      Pass 2: BlazeFace at low confidence (catches side faces)
+      Pass 3: Haar profile cascade (catches extreme profiles BlazeFace misses)
+    
+    Includes Non-Maximum Suppression (NMS) to deduplicate overlapping detections.
+    """
     
     # Detection thresholds
     PROFILE_THRESHOLD = 0.20      # Lower = more sensitive to profiles
@@ -37,7 +45,7 @@ class SideFaceDetector:
         'unknown': (128, 128, 128)        # Gray
     }
     
-    def __init__(self, min_detection_confidence=0.35):
+    def __init__(self, min_detection_confidence=0.30):
         """
         Initialize the Enhanced Side Face Detector.
         
@@ -49,31 +57,66 @@ class SideFaceDetector:
         self.frame_count = 0
         self.start_time = time.time()
         
-        # Download and load model
+        # Download and load primary model
         model_path = self._ensure_model()
         
+        # Primary detector (normal confidence)
         base_options = python.BaseOptions(model_asset_path=model_path)
         options = vision.FaceDetectorOptions(
             base_options=base_options,
             min_detection_confidence=min_detection_confidence
         )
-        
         self.detector = vision.FaceDetector.create_from_options(options)
-        print("✅ Face detector initialized successfully!")
+        
+        # Low-confidence fallback detector for side faces
+        self._low_conf_detector = None
+        low_conf = min(min_detection_confidence, 0.20)
+        if low_conf < min_detection_confidence:
+            try:
+                base_options_low = python.BaseOptions(model_asset_path=model_path)
+                options_low = vision.FaceDetectorOptions(
+                    base_options=base_options_low,
+                    min_detection_confidence=low_conf
+                )
+                self._low_conf_detector = vision.FaceDetector.create_from_options(options_low)
+            except Exception:
+                pass  # Fallback not available — fine, primary is good enough
+        
+        # Haar profile cascade for extreme side faces
+        self._haar_profile = None
+        try:
+            haar_profile_path = os.path.join(
+                cv2.data.haarcascades, 'haarcascade_profileface.xml'
+            )
+            if os.path.exists(haar_profile_path):
+                cascade = cv2.CascadeClassifier(haar_profile_path)
+                if not cascade.empty():
+                    self._haar_profile = cascade
+        except Exception:
+            pass
+        
+        print("✅ Face detector initialized (multi-pass cascade)!")
     
     def _ensure_model(self):
         """Download the face detection model if not present."""
         model_path = os.path.join(BACKEND_DIR, 'data', 'blaze_face_short_range.tflite')
         
         if not os.path.exists(model_path):
-            print("📥 Downloading face detection model...")
-            url = "https://storage.googleapis.com/mediapipe-models/face_detector/blaze_face_short_range/float16/1/blaze_face_short_range.tflite"
-            try:
-                urllib.request.urlretrieve(url, model_path)
-                print("✅ Model downloaded!")
-            except Exception as e:
-                print(f"❌ Download failed: {e}")
-                raise
+            os.makedirs(os.path.dirname(model_path), exist_ok=True)
+            root_path = os.path.join(os.path.dirname(BACKEND_DIR), 'blaze_face_short_range.tflite')
+            if os.path.exists(root_path):
+                import shutil
+                print("[INFO] Copying face detection model from root...")
+                shutil.copy(root_path, model_path)
+            else:
+                print("📥 Downloading face detection model...")
+                url = "https://storage.googleapis.com/mediapipe-models/face_detector/blaze_face_short_range/float16/1/blaze_face_short_range.tflite"
+                try:
+                    urllib.request.urlretrieve(url, model_path)
+                    print("✅ Model downloaded!")
+                except Exception as e:
+                    print(f"❌ Download failed: {e}")
+                    raise
         
         return model_path
     
@@ -280,32 +323,58 @@ class SideFaceDetector:
         
         return angle, direction, confidence, soft_biometrics
     
-    def detect_faces(self, image, profile_only=True):
-        """
-        Detect faces and classify their orientation.
+    @staticmethod
+    def _compute_iou(box1, box2):
+        """Compute IoU between two bounding boxes (x, y, w, h)."""
+        x1 = max(box1['x'], box2['x'])
+        y1 = max(box1['y'], box2['y'])
+        x2 = min(box1['x'] + box1['w'], box2['x'] + box2['w'])
+        y2 = min(box1['y'] + box1['h'], box2['y'] + box2['h'])
         
-        Args:
-            image: BGR image from OpenCV
-            profile_only: If True, only return side-facing faces
-            
-        Returns:
-            List of face dictionaries with detection info
-        """
+        inter = max(0, x2 - x1) * max(0, y2 - y1)
+        area1 = box1['w'] * box1['h']
+        area2 = box2['w'] * box2['h']
+        union = area1 + area2 - inter
+        
+        return inter / (union + 1e-6)
+    
+    def _nms_faces(self, faces, iou_threshold=0.4):
+        """Non-Maximum Suppression to remove duplicate face detections."""
+        if len(faces) <= 1:
+            return faces
+        
+        # Sort by confidence (descending)
+        faces_sorted = sorted(faces, key=lambda f: f['confidence'], reverse=True)
+        kept = []
+        
+        for face in faces_sorted:
+            is_duplicate = False
+            for kept_face in kept:
+                iou = self._compute_iou(face['bbox'], kept_face['bbox'])
+                if iou > iou_threshold:
+                    is_duplicate = True
+                    break
+            if not is_duplicate:
+                kept.append(face)
+        
+        return kept
+    
+    def _run_blazeface(self, image, detector_obj=None):
+        """Run a BlazeFace detector on the image, return list of face dicts."""
+        if detector_obj is None:
+            detector_obj = self.detector
+        
         h, w = image.shape[:2]
-        
-        # Convert to RGB for MediaPipe
         rgb_image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb_image)
         
-        # Run detection
-        result = self.detector.detect(mp_image)
-        
+        result = detector_obj.detect(mp_image)
         faces = []
+        
         for detection in result.detections:
             bbox = detection.bounding_box
             score = detection.categories[0].score
             
-            # Calculate profile direction
             angle, direction, profile_conf, soft_metrics = self._calculate_profile_direction(
                 detection.keypoints, w, h
             )
@@ -327,15 +396,97 @@ class SideFaceDetector:
                 ],
                 'soft_biometrics': soft_metrics
             }
-            
-            # Filter
-            if profile_only:
-                if direction in ['left_profile', 'right_profile']:
-                    faces.append(face)
-            else:
-                faces.append(face)
+            faces.append(face)
         
         return faces
+    
+    def _run_haar_profile(self, image):
+        """Run Haar profile cascade as fallback for extreme side faces."""
+        if self._haar_profile is None:
+            return []
+        
+        try:
+            gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+            h, w = image.shape[:2]
+            
+            faces = []
+            # Detect left-looking profiles
+            left_detections = self._haar_profile.detectMultiScale(
+                gray, scaleFactor=1.1, minNeighbors=3, minSize=(30, 30)
+            )
+            for (x, y, bw, bh) in (left_detections if len(left_detections) > 0 else []):
+                faces.append({
+                    'bbox': {'x': int(x), 'y': int(y), 'w': int(bw), 'h': int(bh)},
+                    'confidence': 0.5,
+                    'direction': 'left_profile',
+                    'angle': 60.0,
+                    'profile_confidence': 70.0,
+                    'keypoints': [],
+                    'soft_biometrics': {}
+                })
+            
+            # Detect right-looking profiles (flip image)
+            flipped = cv2.flip(gray, 1)
+            right_detections = self._haar_profile.detectMultiScale(
+                flipped, scaleFactor=1.1, minNeighbors=3, minSize=(30, 30)
+            )
+            for (x, y, bw, bh) in (right_detections if len(right_detections) > 0 else []):
+                # Mirror the x coordinate back
+                faces.append({
+                    'bbox': {'x': int(w - x - bw), 'y': int(y), 'w': int(bw), 'h': int(bh)},
+                    'confidence': 0.5,
+                    'direction': 'right_profile',
+                    'angle': 60.0,
+                    'profile_confidence': 70.0,
+                    'keypoints': [],
+                    'soft_biometrics': {}
+                })
+            
+            return faces
+        except Exception:
+            return []
+    
+    def detect_faces(self, image, profile_only=True):
+        """
+        Multi-pass face detection for maximum recall.
+        
+        Pass 1: BlazeFace at normal confidence (fast, catches most faces)
+        Pass 2: BlazeFace at low confidence (catches side faces missed by Pass 1)
+        Pass 3: Haar profile cascade (catches extreme profiles BlazeFace misses)
+        
+        All passes are deduplicated via Non-Maximum Suppression (NMS).
+        
+        Args:
+            image: BGR image from OpenCV
+            profile_only: If True, only return side-facing faces
+            
+        Returns:
+            List of face dictionaries with detection info
+        """
+        all_faces = []
+        
+        # Pass 1: Primary BlazeFace detector
+        faces_1 = self._run_blazeface(image, self.detector)
+        all_faces.extend(faces_1)
+        
+        # Pass 2: Low-confidence BlazeFace (only if Pass 1 found few faces)
+        if len(faces_1) < 1 and self._low_conf_detector is not None:
+            faces_2 = self._run_blazeface(image, self._low_conf_detector)
+            all_faces.extend(faces_2)
+        
+        # Pass 3: Haar profile cascade (only if still no faces found)
+        if len(all_faces) < 1:
+            faces_3 = self._run_haar_profile(image)
+            all_faces.extend(faces_3)
+        
+        # Deduplicate with NMS
+        all_faces = self._nms_faces(all_faces, iou_threshold=0.4)
+        
+        # Filter by direction if profile_only
+        if profile_only:
+            all_faces = [f for f in all_faces if f['direction'] in ['left_profile', 'right_profile']]
+        
+        return all_faces
     
     def draw_results(self, image, faces, show_keypoints=True, show_stats=True):
         """

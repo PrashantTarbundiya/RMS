@@ -14,7 +14,6 @@ export default function TestPage() {
   const [webcamError, setWebcamError] = useState('')
   const [webcamReady, setWebcamReady] = useState(false)
   const [isDragActive, setIsDragActive] = useState(false)
-  const [includeCnn, setIncludeCnn] = useState(false)
   const [includeDeepFace, setIncludeDeepFace] = useState(false)
   
   const webcamRef = useRef(null)
@@ -448,15 +447,6 @@ export default function TestPage() {
               <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.9rem', cursor: 'pointer', userSelect: 'none' }}>
                 <input 
                   type="checkbox" 
-                  checked={includeCnn} 
-                  onChange={(e) => setIncludeCnn(e.target.checked)} 
-                  style={{ accentColor: 'var(--primary)' }} 
-                />
-                <span>Custom CNN</span>
-              </label>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.9rem', cursor: 'pointer', userSelect: 'none' }}>
-                <input 
-                  type="checkbox" 
                   checked={includeDeepFace} 
                   onChange={(e) => setIncludeDeepFace(e.target.checked)} 
                   style={{ accentColor: 'var(--primary)' }} 
@@ -479,7 +469,7 @@ export default function TestPage() {
                        {results.message}
                     </div>
                     {results.faces.map((face, i) => {
-                       const useEnsemble = includeCnn || includeDeepFace;
+                       const useEnsemble = includeDeepFace;
                        
                        const displayLabel = useEnsemble ? face.ensemble.label : face.predictions.sota.label;
                        const displayConf = useEnsemble ? face.ensemble.confidence : face.predictions.sota.confidence;
@@ -526,13 +516,6 @@ export default function TestPage() {
                                 label={face.predictions.sota.label} 
                                 conf={face.predictions.sota.confidence} 
                               />
-                              {includeCnn && (
-                                <PredictionRow 
-                                  model="Custom CNN" 
-                                  label={face.predictions.cnn.label} 
-                                  conf={face.predictions.cnn.confidence} 
-                                />
-                              )}
                               {includeDeepFace && (
                                 <PredictionRow 
                                   model="DeepFace (Facenet512)" 

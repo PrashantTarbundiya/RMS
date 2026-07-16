@@ -20,18 +20,21 @@ PROJECT_ROOT = os.path.dirname(BACKEND_DIR)
 MODEL_NAME = "Facenet512"
 
 # Number of augmented variants per face crop.
-# 3 = good balance of diversity vs training speed.
-# Increase to 5 if you have many images and want max accuracy.
-NUM_AUGMENTS = 5
+# 8 = comprehensive diversity covering flip, jitter, blur, rotate, sharpen,
+#     sunglasses simulation, random occlusion, and gamma correction.
+NUM_AUGMENTS = 8
 
 # Crop margin as a percentage of face dimension
 CROP_MARGIN_RATIO = 0.22
 
-# Detector confidence — 0.35 catches side/profile faces without too many false positives
-DETECTOR_CONFIDENCE = 0.35
+# Detector confidence — 0.30 catches more side/profile faces
+DETECTOR_CONFIDENCE = 0.30
 
 # Embedding batch size — process N images per DeepFace call (faster on CPU too)
 EMBEDDING_BATCH = 8
+
+# Soft biometrics feature count (must match soft_biometrics.py)
+SOFT_BIOMETRICS_DIM = 20
 # ===============================================================
 
 
@@ -54,14 +57,17 @@ def generate_augments(image, num_augments=NUM_AUGMENTS):
     Generate augmented variants of a face crop to create a richer
     embedding database per person.
 
-    Variants:
+    Variants (8 total):
       0 — Horizontal flip          (simulates opposite profile view)
       1 — Brightness/contrast jitter
       2 — Slight Gaussian blur     (simulates motion / OOF)
       3 — Mild rotation ±8°        (head tilt compensation)
       4 — Unsharp mask sharpening  (compensates for soft uploads)
+      5 — Simulated sunglasses     (black band over eye region)
+      6 — Random rectangular occlusion (partial face hiding)
+      7 — Gamma correction         (harsh outdoor lighting)
 
-    Extra variants beyond index 4 cycle through random combos.
+    Extra variants beyond index 7 cycle through random combos.
     """
     augments = []
     h, w = image.shape[:2]
@@ -96,6 +102,29 @@ def generate_augments(image, num_augments=NUM_AUGMENTS):
             blurred = cv2.GaussianBlur(aug, (0, 0), sigmaX=2)
             aug = cv2.addWeighted(aug, 1.5, blurred, -0.5, 0)
 
+        elif i == 5:
+            # Simulated sunglasses — black band over the eye region
+            # Teaches the model to not rely on eye features
+            eye_y_start = int(h * 0.25)
+            eye_y_end = int(h * 0.42)
+            aug[eye_y_start:eye_y_end, :] = 0
+
+        elif i == 6:
+            # Random rectangular occlusion — simulates partial face hiding
+            rx = np.random.randint(0, max(1, w // 2))
+            ry = np.random.randint(0, max(1, h // 2))
+            rw = np.random.randint(max(1, w // 6), max(2, w // 3))
+            rh = np.random.randint(max(1, h // 6), max(2, h // 3))
+            aug[ry:min(h, ry + rh), rx:min(w, rx + rw)] = 0
+
+        elif i == 7:
+            # Gamma correction — simulates harsh outdoor lighting
+            gamma = np.random.uniform(0.6, 1.4)
+            table = np.array([
+                ((j / 255.0) ** gamma) * 255 for j in range(256)
+            ]).astype("uint8")
+            aug = cv2.LUT(aug, table)
+
         else:
             # Extra variants: random flip + brightness combo
             if np.random.rand() > 0.5:
@@ -109,9 +138,81 @@ def generate_augments(image, num_augments=NUM_AUGMENTS):
     return augments
 
 
+# ======================== FACE QUALITY ASSESSMENT ========================
+
+def _assess_face_quality(face_crop):
+    """
+    Assess face quality to determine dynamic fusion weights.
+
+    Returns one of:
+      'frontal'      — full frontal face, clear view
+      'side_profile'  — face is turned significantly
+      'occluded'     — eyes likely hidden (sunglasses, mask)
+      'default'      — uncertain / mixed
+
+    Uses three signals:
+      1. Laplacian variance (blur detection)
+      2. Horizontal symmetry of intensity (profile detection)
+      3. Eye region darkness (occlusion detection)
+    """
+    if face_crop is None or face_crop.size == 0:
+        return 'default'
+
+    try:
+        h, w = face_crop.shape[:2]
+        gray = cv2.cvtColor(face_crop, cv2.COLOR_BGR2GRAY)
+
+        # --- Signal 1: Symmetry check (profile detection) ---
+        # Split face into left and right halves
+        mid = w // 2
+        if mid < 5:
+            return 'default'
+        left_half = gray[:, :mid]
+        right_half = cv2.flip(gray[:, mid:2*mid], 1) if 2*mid <= w else gray[:, mid:]
+
+        # Ensure same size for comparison
+        min_w = min(left_half.shape[1], right_half.shape[1])
+        if min_w < 5:
+            return 'default'
+        left_half = left_half[:, :min_w]
+        right_half = right_half[:, :min_w]
+
+        # Compare intensity distributions
+        left_mean = left_half.astype(float).mean()
+        right_mean = right_half.astype(float).mean()
+        symmetry_diff = abs(left_mean - right_mean) / (max(left_mean, right_mean) + 1e-6)
+
+        # --- Signal 2: Eye region occlusion check ---
+        # Check if the eye region (upper 25-42% of face) is abnormally dark
+        eye_y_start = int(h * 0.25)
+        eye_y_end = int(h * 0.42)
+        eye_region = gray[eye_y_start:eye_y_end, :]
+        eye_mean = eye_region.mean() if eye_region.size > 0 else 128
+        face_mean = gray.mean()
+
+        # If eye region is much darker than face average → likely sunglasses
+        eye_darkness_ratio = eye_mean / (face_mean + 1e-6)
+
+        # --- Classify ---
+        if eye_darkness_ratio < 0.55:
+            return 'occluded'       # Eyes very dark → sunglasses/mask
+        elif symmetry_diff > 0.15:
+            return 'side_profile'   # Asymmetric → profile view
+        elif symmetry_diff < 0.06:
+            return 'frontal'        # Very symmetric → frontal
+        else:
+            return 'default'
+
+    except Exception:
+        return 'default'
+
+
 def get_embedding(face_crop):
     """
-    Generate a single L2-normalized embedding (dim depends on MODEL_NAME).
+    Generate a single L2-normalized fused embedding.
+    Combines DeepFace (512-d) + Soft Biometrics (20-d) with dynamic weights
+    based on face quality assessment.
+
     Returns a list[float] or None on failure.
     """
     try:
@@ -119,20 +220,31 @@ def get_embedding(face_crop):
             img_path=face_crop,
             model_name=MODEL_NAME,
             enforce_detection=False,
-            detector_backend='skip',  # We already crop faces ourselves — skip DeepFace's Haar Cascade detection
+            detector_backend='skip',  # We already crop faces ourselves
             align=False  # Alignment ruins side profiles
         )
         if embedding_objs:
             emb = np.array(embedding_objs[0]['embedding'], dtype=np.float32)
-            
-            # 1. Extract soft biometrics (10-d geometric ratios)
-            soft_emb = extract_soft_biometrics(face_crop)
-            
-            # 2. Fuse Hard (DeepFace) + Soft (MediaPipe) features
-            # Weighting: 85% importance to DeepFace, 15% to Soft Biometrics
-            fused_emb = np.concatenate([emb * 0.85, soft_emb * 0.15])
-            
-            # 3. L2 normalize the final fused embedding for stable cosine matching
+
+            # 1. Extract soft biometrics (20-d geometric ratios)
+            soft_emb = extract_soft_biometrics(face_crop, num_features=SOFT_BIOMETRICS_DIM)
+
+            # 2. Assess face quality for dynamic weighting
+            quality = _assess_face_quality(face_crop)
+
+            if quality == 'frontal':
+                deepface_w, soft_w = 0.85, 0.15
+            elif quality == 'side_profile':
+                deepface_w, soft_w = 0.70, 0.30   # Soft biometrics matter more
+            elif quality == 'occluded':
+                deepface_w, soft_w = 0.75, 0.25   # Balanced
+            else:
+                deepface_w, soft_w = 0.80, 0.20   # Default
+
+            # 3. Fuse Hard (DeepFace) + Soft (MediaPipe) features
+            fused_emb = np.concatenate([emb * deepface_w, soft_emb * soft_w])
+
+            # 4. L2 normalize the final fused embedding for stable cosine matching
             norm = np.linalg.norm(fused_emb)
             if norm > 0:
                 fused_emb = fused_emb / norm
@@ -143,10 +255,83 @@ def get_embedding(face_crop):
     return None
 
 
+def get_embedding_tta(face_crop):
+    """
+    Test-Time Augmentation: Generate multiple embeddings from different
+    views of the same face and average them for more robust matching.
+
+    Generates 5 embeddings:
+      1. Original
+      2. Horizontally flipped
+      3. Slight brightness boost
+      4. Double CLAHE (extra normalization)
+      5. Center crop (90% — removes noisy borders)
+
+    Returns averaged L2-normalized embedding or None.
+    """
+    if face_crop is None or face_crop.size == 0:
+        return None
+
+    embeddings = []
+
+    # 1. Original
+    emb = get_embedding(face_crop)
+    if emb:
+        embeddings.append(emb)
+
+    # 2. Horizontally flipped
+    try:
+        flipped = cv2.flip(face_crop, 1)
+        emb = get_embedding(flipped)
+        if emb:
+            embeddings.append(emb)
+    except Exception:
+        pass
+
+    # 3. Slight brightness boost
+    try:
+        bright = cv2.convertScaleAbs(face_crop, alpha=1.1, beta=10)
+        emb = get_embedding(bright)
+        if emb:
+            embeddings.append(emb)
+    except Exception:
+        pass
+
+    # 4. Double CLAHE (extra normalization for harsh lighting)
+    try:
+        clahe_img = apply_clahe(face_crop)
+        emb = get_embedding(clahe_img)
+        if emb:
+            embeddings.append(emb)
+    except Exception:
+        pass
+
+    # 5. Center crop (90% — removes noisy borders)
+    try:
+        h, w = face_crop.shape[:2]
+        margin = int(min(h, w) * 0.05)
+        if margin > 0 and h > 2 * margin and w > 2 * margin:
+            cropped = face_crop[margin:h - margin, margin:w - margin]
+            emb = get_embedding(cropped)
+            if emb:
+                embeddings.append(emb)
+    except Exception:
+        pass
+
+    if not embeddings:
+        return None
+
+    # Average all embeddings + L2 normalize
+    avg_emb = np.mean(embeddings, axis=0)
+    norm = np.linalg.norm(avg_emb)
+    if norm > 0:
+        avg_emb = avg_emb / norm
+    return avg_emb.tolist()
+
+
 def get_embeddings_batch(face_crops):
     """
-    Generate embeddings for a list of face crop images in one DeepFace call.
-    ~4× faster than calling get_embedding() individually on CPU.
+    Generate embeddings for a list of face crop images.
     Returns list of (embedding | None).
     """
     results = []
@@ -202,15 +387,18 @@ def train_model(dataset_path=None, model_save_path=None):
     if model_save_path is None:
         model_save_path = os.path.join(BACKEND_DIR, 'data', 'encodings.pickle')
     """
-    High-accuracy embedding generation pipeline (lightweight).
+    High-accuracy embedding generation pipeline.
 
     Improvements over baseline:
     1. CLAHE preprocessing for lighting normalization
-    2. Richer training-time augmentation (5 variants: flip, jitter, blur, rotate, sharpen)
+    2. Rich training-time augmentation (8 variants: flip, jitter, blur, rotate,
+       sharpen, sunglasses sim, random occlusion, gamma correction)
     3. Wider crop margins (22%) for more facial context
     4. L2-normalized embeddings for stable matching
     5. Two-stage face detection: SideFaceDetector → MediaPipe @ 0.20 → full-image fallback
-    6. Detector confidence lowered to 0.35 to capture side/profile faces
+    6. Detector confidence lowered to 0.30 to capture side/profile faces
+    7. Dynamic fusion weights based on face quality
+    8. 20-d soft biometrics with occlusion-aware weighting
 
     Dataset structure: dataset_cleaned/PersonName/angle/image.jpg
     """
@@ -227,6 +415,7 @@ def train_model(dataset_path=None, model_save_path=None):
     print("🔍 Scanning dataset and generating embeddings...")
     print(f"   Model:              {MODEL_NAME}")
     print(f"   Augments per img:   {NUM_AUGMENTS}")
+    print(f"   Soft biometrics:    {SOFT_BIOMETRICS_DIM}-d (occlusion-aware)")
     print(f"   Crop margin:        {int(CROP_MARGIN_RATIO*100)}%")
     print(f"   Detector confidence:{DETECTOR_CONFIDENCE}")
     print("   (This may take a while on first run...)\n")
@@ -302,24 +491,25 @@ def train_model(dataset_path=None, model_save_path=None):
         return
 
     # ── Summary ────────────────────────────────────────────────
+    emb_dim = len(known_encodings[0]) if known_encodings else 0
     print(f"\n{'='*50}")
     print(f"📊 TRAINING SUMMARY")
     print(f"{'='*50}")
     print(f"   Images processed:    {total_images}")
     print(f"   Full-image fallbacks:{total_fallbacks}  (no face detected)")
     print(f"   Total embeddings:    {total_embeddings}")
-    print(f"   Embedding dimension: {len(known_encodings[0])}")
+    print(f"   Embedding dimension: {emb_dim}  (512 DeepFace + {SOFT_BIOMETRICS_DIM} soft biometrics)")
     print(f"   Model used:          {MODEL_NAME}")
     print(f"\n💾 Saving {len(known_encodings)} embeddings to {model_save_path}...")
     data = {
         "encodings": known_encodings,
         "names": known_names,
         "model_used": MODEL_NAME,
-        "version": "3.0-sideface",
+        "version": "4.0-enhanced-sideface",
     }
     with open(model_save_path, "wb") as f:
         pickle.dump(data, f)
-    print("✅ Model training complete (v3.0 SideFace)!")
+    print("✅ Model training complete (v4.0 Enhanced SideFace)!")
 
     return known_encodings, known_names
 

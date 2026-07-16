@@ -22,11 +22,18 @@ def _build_mediapipe_detector(model_path=None, confidence=0.3):
     if not _MEDIAPIPE_OK:
         return None
     if not os.path.exists(model_path):
-        import urllib.request
-        url = ("https://storage.googleapis.com/mediapipe-models/face_detector/"
-               "blaze_face_short_range/float16/1/blaze_face_short_range.tflite")
-        print(f"📥 Downloading BlazeFace model...")
-        urllib.request.urlretrieve(url, model_path)
+        os.makedirs(os.path.dirname(model_path), exist_ok=True)
+        root_path = os.path.join(os.path.dirname(BACKEND_DIR), 'blaze_face_short_range.tflite')
+        if os.path.exists(root_path):
+            import shutil
+            print("[INFO] Copying BlazeFace model from root...")
+            shutil.copy(root_path, model_path)
+        else:
+            import urllib.request
+            url = ("https://storage.googleapis.com/mediapipe-models/face_detector/"
+                   "blaze_face_short_range/float16/1/blaze_face_short_range.tflite")
+            print(f"📥 Downloading BlazeFace model...")
+            urllib.request.urlretrieve(url, model_path)
     base_options = python.BaseOptions(model_asset_path=model_path)
     options = vision.FaceDetectorOptions(
         base_options=base_options,

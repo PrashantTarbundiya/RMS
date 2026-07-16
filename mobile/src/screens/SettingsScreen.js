@@ -131,7 +131,7 @@ export default function SettingsScreen() {
         <View style={styles.divider} />
         <View style={styles.aboutRow}>
           <Text style={styles.aboutLabel}>Models</Text>
-          <Text style={styles.aboutValue}>DeepFace, Custom CNN, MobileNetV2</Text>
+          <Text style={styles.aboutValue}>DeepFace, MobileNetV2</Text>
         </View>
         <View style={styles.divider} />
         <View style={styles.aboutRow}>

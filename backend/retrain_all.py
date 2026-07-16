@@ -8,9 +8,8 @@ Usage:
 
 This script:
   1. Regenerates all DeepFace (Facenet512) embeddings with 5 augments per image
-  2. Retrains Custom CNN for 30 epochs with LR scheduler + early stopping
-  3. Retrains SOTA MobileNetV2 for 25 epochs with LR scheduler + early stopping
-  4. Reports final accuracy for all 3 models
+  2. Retrains SOTA MobileNetV2 for 25 epochs with LR scheduler + early stopping
+  3. Reports final accuracy for all 2 models
 """
 
 import os
@@ -33,14 +32,13 @@ PROJECT_ROOT = os.path.dirname(BACKEND_DIR)
 sys.path.insert(0, BACKEND_DIR)
 
 from model import apply_clahe, get_embedding, generate_augments, NUM_AUGMENTS
-from add_person_utils import update_custom_cnn, update_sota_model
+from add_person_utils import update_sota_model
 from face_detection import SideFaceDetector
 
 # Configuration
 DATASET_CLEANED_DIR = os.path.join(PROJECT_ROOT, 'dataset_cleaned')
 DATA_DIR = os.path.join(BACKEND_DIR, 'data')
 ENCODINGS_PATH = os.path.join(DATA_DIR, 'encodings.pickle')
-CNN_EPOCHS = 30
 SOTA_EPOCHS = 25
 
 
@@ -66,7 +64,7 @@ def regenerate_deepface_embeddings():
     all_encodings = []
     all_names = []
     
-    detector = SideFaceDetector(min_detection_confidence=0.35)
+    detector = SideFaceDetector(min_detection_confidence=0.30)
     
     for person_name in sorted(persons):
         person_dir = os.path.join(DATASET_CLEANED_DIR, person_name)
@@ -155,32 +153,10 @@ def regenerate_deepface_embeddings():
     return True
 
 
-def retrain_custom_cnn():
-    """Retrain Custom CNN on dataset_cleaned with more epochs."""
-    print("\n" + "=" * 60)
-    print(f"  STEP 2: Retraining Custom CNN ({CNN_EPOCHS} epochs)")
-    print("=" * 60)
-    
-    persons = [d for d in os.listdir(DATASET_CLEANED_DIR)
-               if os.path.isdir(os.path.join(DATASET_CLEANED_DIR, d))]
-    
-    if not persons:
-        print("  ERROR: No persons found!")
-        return False
-    
-    # Use first person name as dummy — update_custom_cnn retrains on ALL classes
-    success = update_custom_cnn(
-        persons[0],
-        dataset_dir=DATASET_CLEANED_DIR,
-        num_epochs=CNN_EPOCHS
-    )
-    return success
-
-
 def retrain_sota_model():
     """Retrain SOTA MobileNetV2 on dataset_cleaned with more epochs."""
     print("\n" + "=" * 60)
-    print(f"  STEP 3: Retraining SOTA MobileNetV2 ({SOTA_EPOCHS} epochs)")
+    print(f"  STEP 2: Retraining SOTA MobileNetV2 ({SOTA_EPOCHS} epochs)")
     print("=" * 60)
     
     persons = [d for d in os.listdir(DATASET_CLEANED_DIR)
@@ -203,7 +179,6 @@ def main():
     print("  RMS Face AI — Full Model Retrain Script")
     print("=" * 60)
     print(f"  Dataset: {DATASET_CLEANED_DIR}")
-    print(f"  CNN Epochs: {CNN_EPOCHS}")
     print(f"  SOTA Epochs: {SOTA_EPOCHS}")
     print(f"  Augments per image: {NUM_AUGMENTS}")
     print("=" * 60)
@@ -213,10 +188,7 @@ def main():
     # Step 1: DeepFace embeddings
     df_ok = regenerate_deepface_embeddings()
     
-    # Step 2: Custom CNN
-    cnn_ok = retrain_custom_cnn()
-    
-    # Step 3: SOTA MobileNetV2
+    # Step 2: SOTA MobileNetV2
     sota_ok = retrain_sota_model()
     
     elapsed = time.time() - start_time
@@ -225,7 +197,6 @@ def main():
     print("  RETRAIN SUMMARY")
     print("=" * 60)
     print(f"  DeepFace Embeddings: {'OK' if df_ok else 'FAILED'}")
-    print(f"  Custom CNN:          {'OK' if cnn_ok else 'FAILED'}")
     print(f"  SOTA MobileNetV2:    {'OK' if sota_ok else 'FAILED'}")
     print(f"  Total time:          {elapsed:.1f}s ({elapsed/60:.1f} min)")
     print("=" * 60)

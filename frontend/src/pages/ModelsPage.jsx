@@ -89,18 +89,6 @@ export default function ModelsPage() {
           </p>
         </div>
 
-        <div className="glass-panel model-card">
-          <div className="flex-row">
-            <HardDrive size={24} color="var(--secondary-light)" />
-            <div>
-              <div className="model-title">Custom CNN</div>
-              <div className="model-subtitle">best_face_model.pth</div>
-            </div>
-          </div>
-          <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-            Custom PyTorch convolutional neural network for rapid matching.
-          </p>
-        </div>
 
         <div className="glass-panel model-card">
           <div className="flex-row">
