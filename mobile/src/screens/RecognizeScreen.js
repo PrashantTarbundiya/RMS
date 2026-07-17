@@ -1,11 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react';
 import {
-  View, Text, StyleSheet, TouchableOpacity, Image,
-  ScrollView, ActivityIndicator, Alert, Dimensions, Platform,
+  View, StyleSheet, ScrollView, Image, Dimensions, Platform, TouchableOpacity,
 } from 'react-native';
+import { Text, ActivityIndicator, IconButton } from 'react-native-paper';
 import * as ImagePicker from 'expo-image-picker';
 import { CameraView, useCameraPermissions } from 'expo-camera';
-import { COLORS, SPACING, FONT_SIZES, BORDER_RADIUS } from '../theme';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { COLORS, SPACING, FONT_SIZES, BORDER_RADIUS, APPLE_GLASS_STYLE } from '../theme';
 import { predict, pingServer } from '../services/api';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -19,8 +20,7 @@ export default function RecognizeScreen() {
   const [loading, setLoading] = useState(false);
   const [serverOnline, setServerOnline] = useState(null);
   const [facing, setFacing] = useState('front');
-  
-  // Web specific state
+
   const [webStream, setWebStream] = useState(null);
   const webVideoRef = useRef(null);
   const cameraRef = useRef(null);
@@ -35,9 +35,7 @@ export default function RecognizeScreen() {
     }
     checkServer();
     return () => {
-      if (Platform.OS === 'web') {
-        stopWebCamera();
-      }
+      if (Platform.OS === 'web') stopWebCamera();
     };
   }, [permission?.granted]);
 
@@ -49,50 +47,32 @@ export default function RecognizeScreen() {
       });
       setWebStream(stream);
       setCameraAvailable(true);
-      // Wait for ref binding
       setTimeout(() => {
-        if (webVideoRef.current) {
-          webVideoRef.current.srcObject = stream;
-        }
+        if (webVideoRef.current) webVideoRef.current.srcObject = stream;
       }, 300);
     } catch (err) {
-      console.warn('Web camera permission failed:', err);
-      setCameraError('Camera access not allowed or not found. Use gallery instead.');
+      setCameraError('Camera not available. Use gallery instead.');
       setCameraAvailable(false);
     }
   }
 
   function stopWebCamera() {
-    if (webStream) {
-      webStream.getTracks().forEach(track => track.stop());
-      setWebStream(null);
-    }
+    if (webStream) { webStream.getTracks().forEach(t => t.stop()); setWebStream(null); }
   }
 
   async function checkServer() {
-    try {
-      const online = await pingServer();
-      setServerOnline(online);
-    } catch {
-      setServerOnline(false);
-    }
+    try { setServerOnline(await pingServer()); } catch { setServerOnline(false); }
   }
 
   async function takePicture() {
-    if (Platform.OS === 'web') {
-      captureWebPicture();
-      return;
-    }
-
+    if (Platform.OS === 'web') { captureWebPicture(); return; }
     if (!cameraRef.current) return;
     try {
-      const photo = await cameraRef.current.takePictureAsync({
-        quality: 0.8,
-      });
+      const photo = await cameraRef.current.takePictureAsync({ quality: 0.8 });
       setImageUri(photo.uri);
       setResults(null);
     } catch (err) {
-      Alert.alert('Camera Error', 'Failed to take picture. Try picking from gallery instead.\n\n' + err.message);
+      alert('Camera Error: ' + err.message);
     }
   }
 
@@ -102,253 +82,265 @@ export default function RecognizeScreen() {
       const canvas = document.createElement('canvas');
       canvas.width = webVideoRef.current.videoWidth || 640;
       canvas.height = webVideoRef.current.videoHeight || 480;
-      const ctx = canvas.getContext('2d');
-      ctx.drawImage(webVideoRef.current, 0, 0);
-      const dataUrl = canvas.toDataURL('image/jpeg');
-      setImageUri(dataUrl);
+      canvas.getContext('2d').drawImage(webVideoRef.current, 0, 0);
+      setImageUri(canvas.toDataURL('image/jpeg'));
       setResults(null);
       stopWebCamera();
-    } catch (err) {
-      console.warn('Web capture error:', err);
-    }
+    } catch (err) { console.warn('Web capture error:', err); }
   }
 
   async function pickImage() {
     try {
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        aspect: [1, 1],
-        quality: 0.8,
+        allowsEditing: true, aspect: [1, 1], quality: 0.8,
       });
-
       if (!result.canceled && result.assets[0]) {
         setImageUri(result.assets[0].uri);
         setResults(null);
-        if (Platform.OS === 'web') {
-          stopWebCamera();
-        }
+        if (Platform.OS === 'web') stopWebCamera();
       }
-    } catch (err) {
-      Alert.alert('Error', 'Failed to open gallery: ' + err.message);
-    }
+    } catch (err) { alert('Gallery Error: ' + err.message); }
   }
 
   async function runRecognition() {
-    if (!imageUri) {
-      Alert.alert('No Image', 'Please capture or select an image first.');
-      return;
-    }
+    if (!imageUri) return;
     setLoading(true);
     setResults(null);
     try {
-      // For web, if it's base64, we convert it to Blob to upload
       let predictUri = imageUri;
       if (Platform.OS === 'web' && imageUri.startsWith('data:image')) {
         const response = await fetch(imageUri);
-        const blob = await response.blob();
-        predictUri = URL.createObjectURL(blob);
+        predictUri = URL.createObjectURL(await response.blob());
       }
-      const data = await predict(predictUri);
-      setResults(data);
-    } catch (err) {
-      Alert.alert('Recognition Failed', err.message);
-    } finally {
-      setLoading(false);
-    }
+      setResults(await predict(predictUri));
+    } catch (err) { alert('Recognition Failed: ' + err.message); }
+    finally { setLoading(false); }
   }
 
   function clearImage() {
     setImageUri(null);
     setResults(null);
-    if (Platform.OS === 'web') {
-      startWebCamera();
-    }
+    if (Platform.OS === 'web') startWebCamera();
   }
 
-  // Initial loading state
   if (Platform.OS !== 'web' && !permission && cameraAvailable) {
     return (
-      <View style={styles.container}>
-        <View style={styles.centerBox}>
-          <ActivityIndicator color={COLORS.primary} size="large" />
-          <Text style={styles.loadingText}>Initializing camera...</Text>
-        </View>
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator color={COLORS.appleBlue} size="large" animating />
+        <Text style={styles.loadingText}>Initializing Camera...</Text>
       </View>
     );
   }
 
   const canUseCamera = cameraAvailable && (Platform.OS === 'web' || permission?.granted);
 
+  // Determine ensemble result for prominent display
+  const topResult = results?.faces?.[0]?.ensemble;
+  const isKnown = topResult && topResult.label !== 'Unknown';
+
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
-      {/* Server Status */}
-      <View style={styles.statusBar}>
-        <View style={[styles.statusDot, { backgroundColor: serverOnline ? COLORS.success : COLORS.error }]} />
-        <Text style={styles.statusText}>
-          {serverOnline === null ? 'Checking server...' : serverOnline ? 'Server Online' : 'Server Offline'}
-        </Text>
-        <TouchableOpacity onPress={checkServer} style={styles.refreshBtn}>
-          <Text style={styles.refreshText}>↻</Text>
-        </TouchableOpacity>
-      </View>
+    <View style={{ flex: 1, backgroundColor: COLORS.bgPrimary }}>
+      <View style={styles.appleWallpaperOrbPurple} />
 
-      {/* Camera Error Banner */}
-      {cameraError && !imageUri && (
-        <View style={styles.warningBanner}>
-          <Text style={styles.warningText}>⚠️ {cameraError}</Text>
-        </View>
-      )}
-
-      {/* Camera / Preview Section */}
-      <View style={styles.cameraContainer}>
-        {imageUri ? (
-          <View style={styles.previewContainer}>
-            <Image source={{ uri: imageUri }} style={styles.previewImage} resizeMode="contain" />
-            <TouchableOpacity style={styles.clearBtn} onPress={clearImage}>
-              <Text style={styles.clearBtnText}>✕</Text>
-            </TouchableOpacity>
+      <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
+        {/* Server Status */}
+        <View style={styles.statusBarGlass}>
+          <View style={styles.statusLeft}>
+            <View style={[styles.statusDot, { backgroundColor: serverOnline ? COLORS.appleGreen : COLORS.appleRed }]} />
+            <Text style={styles.statusText}>
+              {serverOnline === null ? 'Checking...' : serverOnline ? 'Engine Online' : 'Server Offline'}
+            </Text>
           </View>
-        ) : canUseCamera ? (
-          Platform.OS === 'web' ? (
-            <video
-              ref={webVideoRef}
-              autoPlay
-              playsInline
-              muted
-              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-            />
-          ) : (
-            <CameraView ref={cameraRef} style={styles.camera} facing={facing}>
-              <View style={styles.cameraOverlay}>
-                <View style={styles.faceGuide} />
-                <Text style={styles.guideText}>Position face in the frame</Text>
-              </View>
-            </CameraView>
-          )
-        ) : (
-          <View style={styles.permissionBox}>
-            <Text style={styles.permissionEmoji}>📷</Text>
-            <Text style={styles.permissionTitle}>
-              {!cameraAvailable ? 'Camera Not Available' : 'Camera Access Required'}
-            </Text>
-            <Text style={styles.permissionDesc}>
-              {!cameraAvailable
-                ? 'Your device does not support camera. Use the Gallery button below to pick images.'
-                : 'Grant camera access to capture face photos, or use the Gallery button below.'}
-            </Text>
-            {cameraAvailable && (
-              <TouchableOpacity style={styles.primaryBtn} onPress={Platform.OS === 'web' ? startWebCamera : requestCameraPermission}>
-                <Text style={styles.primaryBtnText}>Grant Permission</Text>
-              </TouchableOpacity>
-            )}
+          <IconButton icon="refresh" iconColor={COLORS.appleBlue} size={16} onPress={checkServer} style={{ margin: 0 }} />
+        </View>
+
+        {cameraError && !imageUri && (
+          <View style={styles.warningBanner}>
+            <MaterialCommunityIcons name="alert-outline" size={16} color={COLORS.appleOrange} />
+            <Text style={{ color: COLORS.appleOrange, fontSize: 12, flex: 1, marginLeft: 8 }}>{cameraError}</Text>
           </View>
         )}
-      </View>
 
-      {/* Camera Controls */}
-      {!imageUri && (
-        <View style={styles.controlsRow}>
-          <TouchableOpacity style={styles.controlBtn} onPress={pickImage}>
-            <Text style={styles.controlIcon}>🖼</Text>
-            <Text style={styles.controlLabel}>Gallery</Text>
-          </TouchableOpacity>
-
-          {canUseCamera && (
-            <>
-              <TouchableOpacity style={styles.captureBtn} onPress={takePicture}>
-                <View style={styles.captureInner} />
+        {/* Camera Viewfinder */}
+        <View style={styles.cameraContainerGlass}>
+          {imageUri ? (
+            <View style={styles.previewContainer}>
+              <Image source={{ uri: imageUri }} style={styles.previewImage} resizeMode="contain" />
+              <TouchableOpacity style={styles.clearBtn} onPress={clearImage}>
+                <MaterialCommunityIcons name="close" size={18} color="#FFF" />
               </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.controlBtn}
-                onPress={() => {
-                  if (Platform.OS === 'web') {
-                    // Web camera facing toggle (just a mock for now, browser has default front camera)
-                    alert('Webcam uses front facing camera');
-                  } else {
-                    setFacing(f => f === 'back' ? 'front' : 'back');
-                  }
-                }}
-              >
-                <Text style={styles.controlIcon}>🔄</Text>
-                <Text style={styles.controlLabel}>Flip</Text>
-              </TouchableOpacity>
-            </>
-          )}
-        </View>
-      )}
-
-      {/* Action Buttons */}
-      {imageUri && (
-        <View style={styles.actionRow}>
-          <TouchableOpacity
-            style={[styles.primaryBtn, styles.fullWidth, (loading || !serverOnline) && styles.disabledBtn]}
-            onPress={runRecognition}
-            disabled={loading || !serverOnline}
-          >
-            {loading ? (
-              <ActivityIndicator color="#fff" size="small" />
-            ) : (
-              <Text style={styles.primaryBtnText}>🔍  Run Recognition</Text>
-            )}
-          </TouchableOpacity>
-          {!serverOnline && (
-            <Text style={styles.offlineHint}>⚠️ Server is offline. Connect to your computer's network.</Text>
-          )}
-        </View>
-      )}
-
-      {/* Results Section */}
-      {results && results.faces && (
-        <View style={styles.resultsContainer}>
-          <Text style={styles.resultsTitle}>
-            {results.message || `Detected ${results.faces.length} face(s)`}
-          </Text>
-          {results.faces.map((face, i) => (
-            <View key={i} style={styles.faceCard}>
-              <Text style={styles.faceLabel}>Face {i + 1}</Text>
-              
-              {/* Ensemble Result */}
-              {face.ensemble && (
-                <View style={styles.ensembleCard}>
-                  <Text style={styles.ensembleHeader}>ENSEMBLE RESULT</Text>
-                  <View style={styles.ensembleRow}>
-                    <Text style={[styles.ensembleName, face.ensemble.label === 'Unknown' && { color: COLORS.warning }]}>
-                      {face.ensemble.label}
-                    </Text>
-                    <Text style={styles.ensembleConf}>
-                      {(face.ensemble.confidence * 100).toFixed(1)}%
-                    </Text>
-                  </View>
-                  <Text style={styles.ensembleMeta}>
-                    {face.ensemble.method} · agreement: {face.ensemble.agreement}
+              {/* Overlay result badge on image */}
+              {topResult && (
+                <View style={[styles.resultOverlayBadge, { backgroundColor: isKnown ? 'rgba(48, 209, 88, 0.85)' : 'rgba(255, 159, 10, 0.85)' }]}>
+                  <MaterialCommunityIcons name={isKnown ? 'check-circle' : 'help-circle'} size={16} color="#FFF" />
+                  <Text style={styles.resultOverlayText}>
+                    {topResult.label.replace(/_/g, ' ')} · {(topResult.confidence * 100).toFixed(0)}%
                   </Text>
                 </View>
               )}
-
-              <Text style={styles.modelsHeader}>Individual Models</Text>
-              <PredictionRow model="SOTA MobileNetV2" label={face.predictions.sota.label} confidence={face.predictions.sota.confidence} />
-
-              <PredictionRow model="DeepFace (Facenet512)" label={face.predictions.deepface.label} confidence={face.predictions.deepface.confidence} />
             </View>
-          ))}
+          ) : canUseCamera ? (
+            Platform.OS === 'web' ? (
+              <video
+                ref={webVideoRef}
+                autoPlay playsInline muted
+                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+              />
+            ) : (
+              <CameraView ref={cameraRef} style={styles.camera} facing={facing}>
+                <View style={styles.cameraOverlay}>
+                  <View style={styles.faceGuideFrame}>
+                    <View style={[styles.cornerBracket, styles.cornerTL]} />
+                    <View style={[styles.cornerBracket, styles.cornerTR]} />
+                    <View style={[styles.cornerBracket, styles.cornerBL]} />
+                    <View style={[styles.cornerBracket, styles.cornerBR]} />
+                  </View>
+                  <Text style={styles.guideText}>Align face within frame</Text>
+                </View>
+              </CameraView>
+            )
+          ) : (
+            <View style={styles.permissionBox}>
+              <MaterialCommunityIcons name="camera-off-outline" size={48} color={COLORS.textTertiary} />
+              <Text style={styles.permissionTitle}>Camera Access Needed</Text>
+              <Text style={styles.permissionDesc}>
+                {!cameraAvailable ? 'No camera detected. Use gallery below.' : 'Allow camera to scan faces.'}
+              </Text>
+              {cameraAvailable && (
+                <TouchableOpacity onPress={Platform.OS === 'web' ? startWebCamera : requestPermission} style={styles.grantBtn}>
+                  <Text style={{ color: '#FFF', fontWeight: '700', fontSize: 13 }}>Allow Camera</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          )}
         </View>
-      )}
-    </ScrollView>
+
+        {/* Controls */}
+        {!imageUri && (
+          <View style={styles.controlsRow}>
+            <TouchableOpacity style={styles.controlBtn} onPress={pickImage}>
+              <MaterialCommunityIcons name="image-outline" size={22} color={COLORS.textPrimary} />
+              <Text style={styles.controlLabel}>Gallery</Text>
+            </TouchableOpacity>
+
+            {canUseCamera && (
+              <>
+                <TouchableOpacity style={styles.captureOuterRing} onPress={takePicture}>
+                  <View style={styles.captureInnerCircle}>
+                    <MaterialCommunityIcons name="camera" size={28} color="#FFF" />
+                  </View>
+                </TouchableOpacity>
+
+                <TouchableOpacity style={styles.controlBtn} onPress={() => {
+                  if (Platform.OS === 'web') alert('Webcam uses front camera');
+                  else setFacing(f => f === 'back' ? 'front' : 'back');
+                }}>
+                  <MaterialCommunityIcons name="camera-flip-outline" size={22} color={COLORS.textPrimary} />
+                  <Text style={styles.controlLabel}>Flip</Text>
+                </TouchableOpacity>
+              </>
+            )}
+          </View>
+        )}
+
+        {/* Scan Action Button */}
+        {imageUri && !results && (
+          <TouchableOpacity
+            onPress={runRecognition}
+            disabled={loading || !serverOnline}
+            style={[styles.scanButton, (loading || !serverOnline) && { opacity: 0.5 }]}
+          >
+            {loading ? (
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                <ActivityIndicator color="#FFF" size="small" />
+                <Text style={styles.scanBtnText}>Analyzing Face...</Text>
+              </View>
+            ) : (
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <MaterialCommunityIcons name="radar" size={20} color="#FFF" />
+                <Text style={styles.scanBtnText}>Run Recognition</Text>
+              </View>
+            )}
+          </TouchableOpacity>
+        )}
+        {imageUri && !serverOnline && (
+          <Text style={styles.offlineHint}>⚠️ Server offline — check Settings</Text>
+        )}
+
+        {/* Scan Again Button */}
+        {results && (
+          <TouchableOpacity onPress={clearImage} style={styles.scanAgainBtn}>
+            <MaterialCommunityIcons name="camera-retake-outline" size={18} color={COLORS.appleBlue} />
+            <Text style={{ color: COLORS.appleBlue, fontWeight: '700', fontSize: 13 }}>Scan Another Face</Text>
+          </TouchableOpacity>
+        )}
+
+        {/* Detailed Results */}
+        {results && results.faces && results.faces.map((face, i) => (
+          <View key={i} style={styles.resultCard}>
+            {/* Ensemble Hero */}
+            {face.ensemble && (
+              <View style={[styles.ensembleBox, {
+                backgroundColor: face.ensemble.label === 'Unknown' ? 'rgba(255, 159, 10, 0.12)' : 'rgba(48, 209, 88, 0.12)',
+                borderColor: face.ensemble.label === 'Unknown' ? 'rgba(255, 159, 10, 0.30)' : 'rgba(48, 209, 88, 0.30)',
+              }]}>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <View>
+                    <Text style={styles.ensembleLabel}>ENSEMBLE PREDICTION</Text>
+                    <Text style={[styles.ensembleName, face.ensemble.label === 'Unknown' && { color: COLORS.appleOrange }]}>
+                      {face.ensemble.label.replace(/_/g, ' ')}
+                    </Text>
+                  </View>
+                  <View style={styles.confCircle}>
+                    <Text style={styles.confCircleValue}>{(face.ensemble.confidence * 100).toFixed(0)}</Text>
+                    <Text style={styles.confCircleUnit}>%</Text>
+                  </View>
+                </View>
+                <Text style={styles.ensembleMeta}>
+                  {face.ensemble.method} · Agreement: {face.ensemble.agreement}
+                </Text>
+              </View>
+            )}
+
+            {/* Model Breakdown */}
+            <Text style={styles.breakdownTitle}>MODEL BREAKDOWN</Text>
+            <PredictionRow
+              model="SOTA MobileNetV2"
+              icon="cellphone-cog"
+              label={face.predictions.sota.label}
+              confidence={face.predictions.sota.confidence}
+            />
+            <PredictionRow
+              model="DeepFace (Facenet512)"
+              icon="brain"
+              label={face.predictions.deepface.label}
+              confidence={face.predictions.deepface.confidence}
+            />
+          </View>
+        ))}
+
+        <View style={{ height: 100 }} />
+      </ScrollView>
+    </View>
   );
 }
 
-function PredictionRow({ model, label, confidence }) {
+function PredictionRow({ model, icon, label, confidence }) {
   const confPercent = (confidence * 100).toFixed(1);
   const isUntrained = label.includes('UNTRAINED') || label.includes('Not Trained') || label === 'Error';
-  const barColor = isUntrained ? COLORS.textTertiary : confPercent > 80 ? COLORS.success : confPercent > 50 ? COLORS.primary : COLORS.error;
+  const barColor = isUntrained ? COLORS.textTertiary : confPercent > 80 ? COLORS.appleGreen : confPercent > 50 ? COLORS.appleBlue : COLORS.appleRed;
 
   return (
     <View style={styles.predictionRow}>
       <View style={styles.predHeader}>
-        <Text style={styles.predModel}>{model}</Text>
-        <Text style={[styles.predLabel, isUntrained && { color: COLORS.textTertiary }]}>{label}</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+          <MaterialCommunityIcons name={icon} size={14} color={COLORS.textSecondary} />
+          <Text style={styles.predModel}>{model}</Text>
+        </View>
+        <Text style={[styles.predLabel, isUntrained && { color: COLORS.textTertiary }]}>
+          {label.replace(/_/g, ' ')}
+        </Text>
       </View>
       <View style={styles.barBg}>
         <View style={[styles.barFill, { width: `${Math.min(100, Math.max(0, confPercent))}%`, backgroundColor: barColor }]} />
@@ -360,57 +352,112 @@ function PredictionRow({ model, label, confidence }) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.bgPrimary },
-  scrollContent: { padding: SPACING.md, paddingBottom: SPACING.xxl },
-  centerBox: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: SPACING.md },
-  loadingText: { color: COLORS.textSecondary, fontSize: FONT_SIZES.md, marginTop: SPACING.sm },
-  statusBar: { flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.bgSecondary, padding: SPACING.sm, paddingHorizontal: SPACING.md, borderRadius: BORDER_RADIUS.md, marginBottom: SPACING.md, borderWidth: 1, borderColor: COLORS.border },
-  statusDot: { width: 8, height: 8, borderRadius: 4, marginRight: SPACING.sm },
-  statusText: { color: COLORS.textSecondary, fontSize: FONT_SIZES.sm, flex: 1 },
-  refreshBtn: { padding: SPACING.xs },
-  refreshText: { fontSize: 18, color: COLORS.primary },
-  warningBanner: { backgroundColor: 'rgba(245, 158, 11, 0.08)', borderWidth: 1, borderColor: 'rgba(245, 158, 11, 0.3)', borderRadius: BORDER_RADIUS.md, padding: SPACING.md, marginBottom: SPACING.md },
-  warningText: { color: COLORS.warning, fontSize: FONT_SIZES.sm },
-  cameraContainer: { height: SCREEN_WIDTH * 0.85, borderRadius: BORDER_RADIUS.lg, overflow: 'hidden', backgroundColor: COLORS.bgSecondary, borderWidth: 1, borderColor: COLORS.border, marginBottom: SPACING.md },
+  scrollContent: { padding: SPACING.md },
+  appleWallpaperOrbPurple: {
+    position: 'absolute', top: -80, left: -80,
+    width: 280, height: 280, borderRadius: 140,
+    backgroundColor: 'rgba(94, 44, 165, 0.22)',
+  },
+  loadingText: { color: COLORS.textSecondary, fontWeight: '600', fontSize: 13, marginTop: 12 },
+  statusBarGlass: {
+    ...APPLE_GLASS_STYLE,
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    paddingHorizontal: SPACING.md, paddingVertical: 6, marginBottom: SPACING.md,
+  },
+  statusLeft: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  statusDot: { width: 7, height: 7, borderRadius: 3.5 },
+  statusText: { color: COLORS.textSecondary, fontSize: 12, fontWeight: '600' },
+  warningBanner: {
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: COLORS.warningContainer, borderWidth: 1, borderColor: 'rgba(255, 159, 10, 0.35)',
+    borderRadius: BORDER_RADIUS.md, padding: SPACING.md, marginBottom: SPACING.md,
+  },
+  cameraContainerGlass: {
+    height: SCREEN_WIDTH * 0.85, borderRadius: BORDER_RADIUS.lg,
+    overflow: 'hidden', ...APPLE_GLASS_STYLE, marginBottom: SPACING.md,
+  },
   camera: { flex: 1 },
   cameraOverlay: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  faceGuide: { width: 180, height: 220, borderWidth: 2, borderColor: 'rgba(16, 185, 129, 0.4)', borderRadius: BORDER_RADIUS.xl, borderStyle: 'dashed' },
-  guideText: { color: 'rgba(255, 255, 255, 0.6)', fontSize: FONT_SIZES.sm, marginTop: SPACING.sm },
+  faceGuideFrame: { width: 180, height: 210, position: 'relative' },
+  cornerBracket: { position: 'absolute', width: 28, height: 28, borderColor: COLORS.appleBlue },
+  cornerTL: { top: 0, left: 0, borderTopWidth: 3, borderLeftWidth: 3, borderTopLeftRadius: 8 },
+  cornerTR: { top: 0, right: 0, borderTopWidth: 3, borderRightWidth: 3, borderTopRightRadius: 8 },
+  cornerBL: { bottom: 0, left: 0, borderBottomWidth: 3, borderLeftWidth: 3, borderBottomLeftRadius: 8 },
+  cornerBR: { bottom: 0, right: 0, borderBottomWidth: 3, borderRightWidth: 3, borderBottomRightRadius: 8 },
+  guideText: { color: COLORS.appleBlue, fontSize: 12, fontWeight: '600', marginTop: 14 },
   previewContainer: { flex: 1, position: 'relative' },
   previewImage: { flex: 1, width: '100%' },
-  clearBtn: { position: 'absolute', top: SPACING.sm, right: SPACING.sm, backgroundColor: 'rgba(0, 0, 0, 0.6)', width: 36, height: 36, borderRadius: 18, justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.2)' },
-  clearBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
-  permissionBox: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: SPACING.xl },
-  permissionEmoji: { fontSize: 48, marginBottom: SPACING.md },
-  permissionTitle: { color: COLORS.textPrimary, fontSize: FONT_SIZES.lg, fontWeight: '700', marginBottom: SPACING.sm, textAlign: 'center' },
-  permissionDesc: { color: COLORS.textSecondary, fontSize: FONT_SIZES.md, textAlign: 'center', marginBottom: SPACING.lg, lineHeight: 22 },
-  controlsRow: { flexDirection: 'row', justifyContent: 'space-around', alignItems: 'center', paddingVertical: SPACING.md, marginBottom: SPACING.sm },
-  controlBtn: { alignItems: 'center', gap: 4 },
-  controlIcon: { fontSize: 24 },
-  controlLabel: { color: COLORS.textSecondary, fontSize: FONT_SIZES.xs },
-  captureBtn: { width: 72, height: 72, borderRadius: 36, borderWidth: 4, borderColor: COLORS.primary, justifyContent: 'center', alignItems: 'center' },
-  captureInner: { width: 56, height: 56, borderRadius: 28, backgroundColor: COLORS.primary },
-  actionRow: { marginBottom: SPACING.md },
-  primaryBtn: { backgroundColor: COLORS.primary, paddingVertical: SPACING.md, paddingHorizontal: SPACING.xl, borderRadius: BORDER_RADIUS.md, alignItems: 'center', justifyContent: 'center' },
-  primaryBtnText: { color: COLORS.textPrimary, fontSize: FONT_SIZES.md, fontWeight: '700' },
-  fullWidth: { width: '100%' },
-  disabledBtn: { opacity: 0.5 },
-  offlineHint: { color: COLORS.warning, fontSize: FONT_SIZES.sm, textAlign: 'center', marginTop: SPACING.sm },
-  resultsContainer: { marginTop: SPACING.sm },
-  resultsTitle: { color: COLORS.success, fontSize: FONT_SIZES.md, fontWeight: '600', marginBottom: SPACING.md },
-  faceCard: { backgroundColor: COLORS.bgSecondary, borderRadius: BORDER_RADIUS.lg, padding: SPACING.md, marginBottom: SPACING.md, borderWidth: 1, borderColor: COLORS.border },
-  faceLabel: { color: COLORS.primary, fontSize: FONT_SIZES.lg, fontWeight: '700', marginBottom: SPACING.sm },
-  ensembleCard: { backgroundColor: 'rgba(16, 185, 129, 0.06)', borderWidth: 1, borderColor: 'rgba(16, 185, 129, 0.2)', borderRadius: BORDER_RADIUS.md, padding: SPACING.md, marginBottom: SPACING.md },
-  ensembleHeader: { fontSize: FONT_SIZES.xs, color: COLORS.textSecondary, letterSpacing: 1.5, marginBottom: SPACING.xs },
-  ensembleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  ensembleName: { fontSize: FONT_SIZES.xl, fontWeight: '700', color: COLORS.textPrimary },
-  ensembleConf: { fontSize: FONT_SIZES.xxl, fontWeight: '700', color: COLORS.primary },
-  ensembleMeta: { fontSize: FONT_SIZES.xs, color: COLORS.textTertiary, marginTop: SPACING.xs },
-  modelsHeader: { fontSize: FONT_SIZES.xs, color: COLORS.textTertiary, letterSpacing: 1.5, marginBottom: SPACING.sm, textTransform: 'uppercase' },
+  clearBtn: {
+    position: 'absolute', top: 10, right: 10,
+    backgroundColor: 'rgba(0, 0, 0, 0.55)', borderRadius: 16,
+    width: 32, height: 32, justifyContent: 'center', alignItems: 'center',
+  },
+  resultOverlayBadge: {
+    position: 'absolute', bottom: 12, left: 12, right: 12,
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    paddingVertical: 10, paddingHorizontal: 14, borderRadius: 14,
+  },
+  resultOverlayText: { color: '#FFF', fontWeight: '700', fontSize: 14 },
+  permissionBox: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: SPACING.xl, gap: 10 },
+  permissionTitle: { color: COLORS.textPrimary, fontSize: 16, fontWeight: '700' },
+  permissionDesc: { color: COLORS.textSecondary, textAlign: 'center', fontSize: 13 },
+  grantBtn: {
+    backgroundColor: COLORS.appleBlue, borderRadius: BORDER_RADIUS.full,
+    paddingVertical: 10, paddingHorizontal: 20, marginTop: 4,
+  },
+  controlsRow: {
+    flexDirection: 'row', justifyContent: 'space-around', alignItems: 'center',
+    paddingVertical: SPACING.sm, marginBottom: SPACING.sm,
+  },
+  controlBtn: {
+    alignItems: 'center', gap: 4,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.18)',
+    borderRadius: 16, paddingVertical: 10, paddingHorizontal: 18,
+  },
+  controlLabel: { color: COLORS.textSecondary, fontSize: 10, fontWeight: '600' },
+  captureOuterRing: {
+    width: 68, height: 68, borderRadius: 34,
+    borderWidth: 3, borderColor: COLORS.appleBlue,
+    justifyContent: 'center', alignItems: 'center',
+  },
+  captureInnerCircle: {
+    width: 54, height: 54, borderRadius: 27, backgroundColor: COLORS.appleBlue,
+    justifyContent: 'center', alignItems: 'center',
+  },
+  scanButton: {
+    backgroundColor: COLORS.appleBlue, paddingVertical: 14, borderRadius: BORDER_RADIUS.full,
+    justifyContent: 'center', alignItems: 'center', marginBottom: SPACING.sm,
+  },
+  scanBtnText: { color: '#FFF', fontWeight: '700', fontSize: 14 },
+  offlineHint: { color: COLORS.appleOrange, fontSize: 11, textAlign: 'center', marginBottom: SPACING.md, fontWeight: '600' },
+  scanAgainBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
+    paddingVertical: 12, marginBottom: SPACING.md,
+    borderRadius: BORDER_RADIUS.full,
+    backgroundColor: 'rgba(10, 132, 255, 0.12)', borderWidth: 1, borderColor: 'rgba(10, 132, 255, 0.30)',
+  },
+  resultCard: { ...APPLE_GLASS_STYLE, padding: SPACING.md, marginBottom: SPACING.md },
+  ensembleBox: {
+    borderRadius: 16, padding: SPACING.md, marginBottom: SPACING.md, borderWidth: 1,
+  },
+  ensembleLabel: { fontSize: 10, color: COLORS.textSecondary, letterSpacing: 1, fontWeight: '700' },
+  ensembleName: { fontSize: 22, fontWeight: '800', color: COLORS.textPrimary, marginTop: 2 },
+  confCircle: {
+    width: 56, height: 56, borderRadius: 28,
+    backgroundColor: 'rgba(255, 255, 255, 0.10)',
+    borderWidth: 2, borderColor: COLORS.appleBlue,
+    justifyContent: 'center', alignItems: 'center',
+  },
+  confCircleValue: { color: COLORS.appleBlue, fontSize: 18, fontWeight: '800', lineHeight: 20 },
+  confCircleUnit: { color: COLORS.appleBlue, fontSize: 10, fontWeight: '700' },
+  ensembleMeta: { fontSize: 11, color: COLORS.textTertiary, marginTop: 8 },
+  breakdownTitle: { fontSize: 10, color: COLORS.textTertiary, letterSpacing: 1, fontWeight: '700', marginBottom: SPACING.sm },
   predictionRow: { marginBottom: SPACING.md },
   predHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 },
-  predModel: { color: COLORS.textSecondary, fontSize: FONT_SIZES.sm },
-  predLabel: { color: COLORS.textPrimary, fontSize: FONT_SIZES.sm, fontWeight: '600' },
-  barBg: { height: 6, backgroundColor: 'rgba(255, 255, 255, 0.1)', borderRadius: 3, overflow: 'hidden', marginBottom: 2 },
+  predModel: { color: COLORS.textSecondary, fontSize: 12 },
+  predLabel: { color: COLORS.textPrimary, fontSize: 12, fontWeight: '700' },
+  barBg: { height: 6, backgroundColor: 'rgba(255, 255, 255, 0.08)', borderRadius: 3, overflow: 'hidden', marginBottom: 2 },
   barFill: { height: '100%', borderRadius: 3 },
-  predConf: { fontSize: FONT_SIZES.xs, textAlign: 'right' },
+  predConf: { fontSize: 10, textAlign: 'right', fontWeight: '700' },
 });

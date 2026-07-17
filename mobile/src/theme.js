@@ -1,51 +1,64 @@
-// ═══════════════════════════════════════════════════════
-// RMS FACE AI — MOBILE DESIGN SYSTEM v2.0
-// Matches the premium Mint Green & Charcoal Slate design
-// ═══════════════════════════════════════════════════════
+// ═════════════════════════════════════════════════════════════════════════
+// RMS FACE AI — 100% AUTHENTIC APPLE VISIONOS / IOS LIQUID GLASS SYSTEM (HIG SPEC)
+// ═════════════════════════════════════════════════════════════════════════
+
+import { MD3DarkTheme } from 'react-native-paper';
 
 export const COLORS = {
-  // ── Core Palette (Graphite & Indigo) ──
-  primary: '#4F46E5',        // Indigo 600
-  primaryLight: '#818CF8',   // Indigo 400
-  primaryDark: '#3730A3',    // Indigo 800
-  secondary: '#1E293B',      // Slate 800
-  secondaryLight: '#334155', // Slate 700
+  // ── Apple Void Base & Space Materials ──
+  bgPrimary: '#000000',               // True Apple Void Black
+  bgSecondary: '#0B0E17',             // Apple Deep Navy Base
+  bgCard: 'rgba(30, 32, 50, 0.55)',   // Authentic Apple Frosted Glass
+  bgCardHover: 'rgba(42, 45, 68, 0.65)',
+  bgElevated: 'rgba(24, 26, 42, 0.75)',
+  bgInput: 'rgba(15, 17, 28, 0.70)',
 
-  // ── Surfaces ──
-  bgPrimary: '#0F172A',      // Slate 900
-  bgSecondary: '#1E293B',    // Slate 800
-  bgCard: '#1E293B',         // Slate 800
-  bgCardHover: '#334155',    // Slate 700
-  bgElevated: '#334155',     // Slate 700
-  bgInput: '#0B1120',        // Slate 950
+  // ── Authentic Apple System Colors (iOS / visionOS HIG Spec) ──
+  appleBlue: '#0A84FF',               // System Blue
+  appleGreen: '#30D158',              // System Green
+  appleRed: '#FF453A',                // System Red
+  applePurple: '#BF5AF2',             // System Purple
+  appleOrange: '#FF9F0A',             // System Orange
+  appleCyan: '#64D2FF',               // System Cyan
+  appleIndigo: '#5E5CE6',             // System Indigo
 
-  // ── Legacy Aliases ──
-  accentCyan: '#4F46E5',
-  accentTeal: '#818CF8',
+  // Core System Aliases
+  primary: '#0A84FF',
+  primaryLight: '#64D2FF',
+  primaryDark: '#0066CC',
+  primaryContainer: 'rgba(10, 132, 255, 0.18)',
+  onPrimaryContainer: '#D0E4FF',
 
-  // ── Text ──
-  textPrimary: '#F8FAFC',    // Slate 50
-  textSecondary: '#94A3B8',  // Slate 400
-  textTertiary: '#64748B',   // Slate 500
-  textMuted: '#475569',      // Slate 600
+  // ── Apple Vibrancy Typography ──
+  textPrimary: '#FFFFFF',                               // 100% Crisp White
+  textSecondary: 'rgba(235, 235, 245, 0.60)',          // Apple Standard Secondary
+  textTertiary: 'rgba(235, 235, 245, 0.38)',           // Apple Standard Tertiary
+  textMuted: 'rgba(235, 235, 245, 0.22)',              // Apple Standard Quaternary
 
-  // ── Semantic ──
-  success: '#10B981',        
-  error: '#EF4444',          
-  warning: '#F59E0B',        
-  info: '#3B82F6',           
-  danger: '#EF4444',
+  // ── Status Mapping ──
+  success: '#30D158',
+  successContainer: 'rgba(48, 209, 88, 0.18)',
+  error: '#FF453A',
+  errorContainer: 'rgba(255, 69, 58, 0.18)',
+  warning: '#FF9F0A',
+  warningContainer: 'rgba(255, 159, 10, 0.18)',
+  info: '#64D2FF',
+  infoContainer: 'rgba(100, 210, 255, 0.18)',
 
-  // ── Borders ──
-  border: 'rgba(148, 163, 184, 0.12)',
-  borderHover: 'rgba(79, 70, 229, 0.25)',
-  borderActive: 'rgba(79, 70, 229, 0.5)',
+  // ── Apple Dual Specular Rim Spec ──
+  border: 'rgba(255, 255, 255, 0.12)',
+  borderSpecularTop: 'rgba(255, 255, 255, 0.42)',
+  borderSpecularLeft: 'rgba(255, 255, 255, 0.22)',
+  borderSpecularRight: 'rgba(255, 255, 255, 0.10)',
+  borderSpecularBottom: 'rgba(255, 255, 255, 0.06)',
 
-  // ── Gradients ──
-  gradientPrimary: ['#3730A3', '#4F46E5'],
-  gradientCyan: ['#4F46E5', '#818CF8'],
-  gradientSuccess: ['#10B981', '#059669'],
-  gradientDanger: ['#EF4444', '#DC2626'],
+  // ── Apple Gradient Accents ──
+  gradientPrimary: ['#0A84FF', '#5E5CE6'],
+  gradientAppleBlue: ['#0A84FF', '#64D2FF'],
+  gradientAppleGreen: ['#30D158', '#34C759'],
+  gradientApplePurple: ['#BF5AF2', '#5E5CE6'],
+  gradientAppleOrange: ['#FF9F0A', '#FF3B30'],
+  gradientHero: ['rgba(94, 92, 230, 0.22)', 'rgba(10, 132, 255, 0.12)', 'rgba(0, 0, 0, 0.5)'],
 };
 
 export const SPACING = {
@@ -61,21 +74,68 @@ export const FONT_SIZES = {
   xs: 11,
   sm: 13,
   md: 15,
-  lg: 18,
+  lg: 17,
   xl: 22,
   xxl: 28,
   hero: 34,
 };
 
 export const BORDER_RADIUS = {
-  sm: 6,
-  md: 10,
-  lg: 14,
-  xl: 20,
+  sm: 14,
+  md: 20,
+  lg: 26,
+  xl: 38,
   full: 999,
 };
 
-// Default server configuration
+//  Authentic Apple Specular Glass Style Preset
+export const APPLE_GLASS_STYLE = {
+  backgroundColor: 'rgba(30, 32, 50, 0.55)',
+  borderRadius: BORDER_RADIUS.lg,
+  borderWidth: 1,
+  borderColor: 'rgba(255, 255, 255, 0.12)',
+  borderTopColor: 'rgba(255, 255, 255, 0.42)',
+  borderLeftColor: 'rgba(255, 255, 255, 0.22)',
+  shadowColor: '#000000',
+  shadowOffset: { width: 0, height: 8 },
+  shadowOpacity: 0.35,
+  shadowRadius: 24,
+  elevation: 8,
+};
+
+export const paperTheme = {
+  ...MD3DarkTheme,
+  dark: true,
+  roundness: 20,
+  colors: {
+    ...MD3DarkTheme.colors,
+    primary: COLORS.appleBlue,
+    primaryContainer: COLORS.primaryContainer,
+    onPrimaryContainer: COLORS.onPrimaryContainer,
+    secondary: COLORS.applePurple,
+    surface: COLORS.bgSecondary,
+    surfaceVariant: 'rgba(255, 255, 255, 0.08)',
+    background: COLORS.bgPrimary,
+    error: COLORS.appleRed,
+    errorContainer: COLORS.errorContainer,
+    outline: COLORS.border,
+    onSurface: COLORS.textPrimary,
+    onSurfaceVariant: COLORS.textSecondary,
+  },
+};
+
+export const navigationTheme = {
+  dark: true,
+  colors: {
+    primary: COLORS.appleBlue,
+    background: COLORS.bgPrimary,
+    card: 'rgba(24, 26, 42, 0.75)',
+    text: COLORS.textPrimary,
+    border: 'rgba(255, 255, 255, 0.12)',
+    notification: COLORS.appleBlue,
+  },
+};
+
 export const API_CONFIG = {
   BASE_URL: 'http://10.21.26.170:5000/api',
 };
