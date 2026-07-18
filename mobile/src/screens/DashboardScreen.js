@@ -334,17 +334,17 @@ const styles = StyleSheet.create({
   orbEmerald: {
     position: 'absolute', top: -120, right: -100,
     width: 320, height: 320, borderRadius: 160,
-    backgroundColor: 'rgba(0, 230, 118, 0.12)',
+    backgroundColor: 'rgba(52, 199, 89, 0.15)',
   },
   orbCyan: {
     position: 'absolute', top: 250, left: -120,
     width: 280, height: 280, borderRadius: 140,
-    backgroundColor: 'rgba(0, 242, 255, 0.10)',
+    backgroundColor: 'rgba(50, 173, 230, 0.15)',
   },
   orbWhite: {
     position: 'absolute', bottom: -60, right: -80,
     width: 260, height: 260, borderRadius: 130,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    backgroundColor: 'rgba(0, 122, 255, 0.10)',
   },
   centerContent: { flexGrow: 1, justifyContent: 'center', alignItems: 'center', padding: SPACING.lg },
   appleGlassCard: { ...APPLE_GLASS_STYLE, marginBottom: SPACING.md },
@@ -383,12 +383,12 @@ const styles = StyleSheet.create({
   heroStatsRow: {
     flexDirection: 'row', justifyContent: 'space-around', alignItems: 'center',
     marginTop: SPACING.lg, paddingTop: SPACING.md,
-    borderTopWidth: 1, borderTopColor: 'rgba(255, 255, 255, 0.08)',
+    borderTopWidth: 1, borderTopColor: 'rgba(0, 0, 0, 0.08)',
   },
   heroStatItem: { alignItems: 'center', gap: 3 },
   heroStatValue: { color: COLORS.textPrimary, fontSize: 18, fontWeight: '800' },
   heroStatLabel: { color: COLORS.textTertiary, fontSize: 10, fontWeight: '600' },
-  heroStatDivider: { width: 1, height: 32, backgroundColor: 'rgba(255, 255, 255, 0.08)' },
+  heroStatDivider: { width: 1, height: 32, backgroundColor: 'rgba(0, 0, 0, 0.08)' },
   // Quick Actions
   quickActionsContainer: { flexDirection: 'row', gap: SPACING.sm, marginBottom: SPACING.md },
   quickActionCard: {
@@ -409,8 +409,8 @@ const styles = StyleSheet.create({
   modelCardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
   modelIconBox: {
     width: 34, height: 34, borderRadius: 10,
-    backgroundColor: 'rgba(255,255,255,0.06)',
-    borderWidth: 1, justifyContent: 'center', alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.03)',
+    borderWidth: 1, borderColor: 'rgba(0,0,0,0.05)', justifyContent: 'center', alignItems: 'center',
   },
   modelStatusDot: { width: 8, height: 8, borderRadius: 4 },
   modelName: { color: COLORS.textPrimary, fontWeight: '700', fontSize: 14 },
@@ -443,7 +443,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8, paddingVertical: 2, marginRight: 6,
   },
   photoCountText: { color: COLORS.appleBlue, fontSize: 12, fontWeight: '700' },
-  divider: { height: 1, backgroundColor: 'rgba(255, 255, 255, 0.06)', marginHorizontal: SPACING.md },
+  divider: { height: 1, backgroundColor: 'rgba(0, 0, 0, 0.06)', marginHorizontal: SPACING.md },
   // Logs
   logGlassCard: {
     ...APPLE_GLASS_STYLE,

@@ -54,8 +54,8 @@ function MainTabs() {
       screenOptions={({ route }) => ({
         headerShown: true,
         headerStyle: {
-          backgroundColor: 'rgba(0, 0, 0, 0.75)',
-          borderBottomColor: 'rgba(255, 255, 255, 0.10)',
+          backgroundColor: 'rgba(255, 255, 255, 0.95)',
+          borderBottomColor: '#E5E5EA',
           borderBottomWidth: 1,
           elevation: 0,
           shadowOpacity: 0,
@@ -71,20 +71,20 @@ function MainTabs() {
           bottom: Math.max(insets.bottom, 12),
           left: 20,
           right: 20,
-          backgroundColor: 'rgba(24, 26, 42, 0.75)',
+          backgroundColor: 'rgba(255, 255, 255, 0.95)',
           borderRadius: BORDER_RADIUS.xl,
           borderWidth: 1,
-          borderColor: 'rgba(255, 255, 255, 0.18)',
-          borderTopColor: 'rgba(255, 255, 255, 0.42)',
-          borderLeftColor: 'rgba(255, 255, 255, 0.22)',
+          borderColor: '#E5E5EA',
+          borderTopColor: '#FFFFFF',
+          borderLeftColor: '#FFFFFF',
           height: 64,
           paddingBottom: 6,
           paddingTop: 6,
-          elevation: 16,
+          elevation: 10,
           shadowColor: '#000000',
-          shadowOffset: { width: 0, height: 8 },
-          shadowOpacity: 0.35,
-          shadowRadius: 24,
+          shadowOffset: { width: 0, height: 4 },
+          shadowOpacity: 0.1,
+          shadowRadius: 16,
         },
         tabBarActiveTintColor: COLORS.appleBlue,
         tabBarInactiveTintColor: COLORS.textTertiary,
@@ -166,7 +166,7 @@ export default function App() {
     <SafeAreaProvider>
       <PaperProvider theme={paperTheme}>
         <NavigationContainer theme={navigationTheme}>
-          <StatusBar style="light" />
+          <StatusBar style="dark" />
           <MainTabs />
         </NavigationContainer>
       </PaperProvider>
@@ -186,8 +186,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 28,
     borderRadius: 14,
-    backgroundColor: 'rgba(255, 255, 255, 0.18)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.25)',
+    backgroundColor: COLORS.appleBlue,
+    borderWidth: 0,
   },
 });
