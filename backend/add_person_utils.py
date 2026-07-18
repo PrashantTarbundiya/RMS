@@ -22,7 +22,7 @@ BACKEND_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = os.path.dirname(BACKEND_DIR)
 
 # Reuse existing pipeline functions
-from model import apply_clahe, get_embedding, generate_augments, NUM_AUGMENTS
+from model import apply_clahe, get_embedding, generate_augments, NUM_AUGMENTS_QUICK
 from face_detection import SideFaceDetector
 from clean_dataset import _build_mediapipe_detector, _detect_with_mediapipe, EXTRA_PAD
 
@@ -148,8 +148,8 @@ def update_deepface_model(person_name, image_paths, encodings_path=None):
                 existing_names.append(person_name)
                 new_count += 1
 
-            # Generate embeddings for AUGMENTED variants
-            augments = generate_augments(face_crop)
+            # Generate embeddings for AUGMENTED variants (quick mode = 4 augments)
+            augments = generate_augments(face_crop, num_augments=NUM_AUGMENTS_QUICK)
             for aug_img in augments:
                 aug_embedding = get_embedding(aug_img)
                 if aug_embedding:

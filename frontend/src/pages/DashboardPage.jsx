@@ -523,7 +523,7 @@ export default function DashboardPage() {
                 <tr style={{ borderBottom: '1px solid var(--border)', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
                   <th style={{ padding: '0.75rem 1rem' }}>Time</th>
                   <th style={{ padding: '0.75rem 1rem' }}>Ensemble Result</th>
-                  <th style={{ padding: '0.75rem 1rem' }}>Confidence</th>
+                  <th style={{ padding: '0.75rem 1rem' }}>Status</th>
                   <th style={{ padding: '0.75rem 1rem' }}>Agreement</th>
                   <th style={{ padding: '0.75rem 1rem', textAlign: 'right' }}>Model Breakdown</th>
                 </tr>
@@ -559,7 +559,9 @@ export default function DashboardPage() {
                           {nameStr}
                         </span>
                       </td>
-                      <td style={{ padding: '1rem', fontWeight: 600 }}>{confVal}%</td>
+                      <td style={{ padding: '1rem', fontWeight: 600, color: entry.status === 'error' ? '#FF453A' : '#30D158' }}>
+                        {entry.status === 'error' ? 'NOT FOUND' : 'CONFIRMED'}
+                      </td>
                       <td style={{ padding: '1rem', color: 'var(--text-secondary)' }}>{entry.agreement}</td>
                       <td style={{ padding: '1rem', textAlign: 'right', fontSize: '0.8rem', color: 'var(--text-tertiary)' }}>
                         DeepFace: {entry.predictions?.deepface?.label || 'N/A'} ({Math.round((entry.predictions?.deepface?.confidence || 0) * 100)}%) | 

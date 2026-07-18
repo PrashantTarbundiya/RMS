@@ -474,17 +474,17 @@ export default function TestPage() {
                        const displayLabel = useEnsemble ? face.ensemble.label : face.predictions.sota.label;
                        const displayConf = useEnsemble ? face.ensemble.confidence : face.predictions.sota.confidence;
                        const displayMethod = useEnsemble ? face.ensemble.method : "SOTA Model Only";
-                       const displayAgreement = useEnsemble ? face.ensemble.agreement : "N/A";
-                       const resultTitle = useEnsemble ? "Ensemble Result" : "SOTA MobileNetV2 Result";
+                       const isConfirmed = useEnsemble ? face.ensemble.is_confirmed === true : (displayConf > 0.8 && displayLabel !== 'Unknown');
+                       const resultTitle = isConfirmed ? "✅ IDENTITY CONFIRMED" : "❌ NOT FOUND";
 
                        return (
                         <div key={i} style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', padding: '1rem' }}>
                            <h3 style={{ margin: '0 0 0.5rem 0', fontSize: '1.1rem', color: 'var(--accent-1)' }}>Face {i + 1}</h3>
                            
-                           {/* Main Result */}
+                           {/* Main Result — Binary Classification */}
                            <div style={{ 
-                             background: useEnsemble ? 'rgba(0, 240, 255, 0.08)' : 'rgba(16, 185, 129, 0.08)', 
-                             border: useEnsemble ? '1px solid rgba(0, 240, 255, 0.2)' : '1px solid rgba(16, 185, 129, 0.2)', 
+                             background: isConfirmed ? 'rgba(48, 209, 88, 0.10)' : 'rgba(255, 69, 58, 0.10)', 
+                             border: isConfirmed ? '1px solid rgba(48, 209, 88, 0.3)' : '1px solid rgba(255, 69, 58, 0.3)', 
                              borderRadius: '8px', padding: '0.8rem', marginBottom: '1rem' 
                            }}>
                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -492,18 +492,21 @@ export default function TestPage() {
                                  <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '1px' }}>
                                    {resultTitle}
                                  </span>
-                                 <div style={{ fontSize: '1.25rem', fontWeight: '700', color: displayLabel === 'Unknown' ? 'var(--warning)' : '#fff', marginTop: '4px' }}>
-                                   {displayLabel}
+                                 <div style={{ fontSize: '1.25rem', fontWeight: '700', color: isConfirmed ? '#30D158' : '#FF453A', marginTop: '4px' }}>
+                                   {isConfirmed ? displayLabel.replace(/_/g, ' ') : 'Unknown Person'}
                                  </div>
                                </div>
-                               <div style={{ textAlign: 'right' }}>
-                                 <div style={{ fontSize: '1.5rem', fontWeight: '700', color: useEnsemble ? 'var(--accent-1)' : 'var(--success)' }}>
-                                   {(displayConf * 100).toFixed(1)}%
-                                 </div>
-                                 <span style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)' }}>
-                                   {displayMethod} · {displayAgreement}
-                                 </span>
+                               <div style={{ 
+                                 width: '48px', height: '48px', borderRadius: '24px',
+                                 border: `2px solid ${isConfirmed ? '#30D158' : '#FF453A'}`,
+                                 display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                 fontSize: '1.5rem'
+                               }}>
+                                 {isConfirmed ? '✓' : '✗'}
                                </div>
+                             </div>
+                             <div style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)', marginTop: '6px' }}>
+                               {displayMethod} · Status: {(face.ensemble?.confidence_level || 'N/A').toUpperCase()}
                              </div>
                            </div>
 

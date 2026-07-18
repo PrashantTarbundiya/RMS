@@ -30,6 +30,10 @@ import numpy as np
 from PIL import Image
 from torchvision import transforms
 from ensemble import ensemble_predict
+from feedback_learner import (
+    generate_prediction_id, store_prediction_for_feedback,
+    process_feedback, get_feedback_stats
+)
 
 # ─── Logging Setup ─────────────────────────────────────────────────────
 logging.basicConfig(
@@ -713,6 +717,7 @@ def predict():
             
             # Predict DeepFace — use TTA (Test-Time Augmentation) for higher accuracy
             df_label, df_conf = "Not Trained", 0.0
+            df_confidence_level = "rejected"
             if deepface_encodings is not None:
                 try:
                     processed = apply_clahe(face_roi_cv)
@@ -722,7 +727,7 @@ def predict():
                         # Fallback to single embedding if TTA fails
                         emb = get_embedding(processed)
                     if emb is not None:
-                        df_label, dist = find_match_knn(emb, deepface_encodings, deepface_names)
+                        df_label, dist, df_confidence_level = find_match_knn(emb, deepface_encodings, deepface_names)
                         df_conf = max(0, (1 - dist))
                 except Exception as e:
                     logger.warning(f"DeepFace prediction error: {e}")
@@ -731,35 +736,57 @@ def predict():
             # --- Ensemble Vote ---
             individual_preds = {
                 'sota': {'label': sota_label, 'confidence': float(sota_conf_val)},
-                'deepface': {'label': df_label, 'confidence': float(df_conf)}
+                'deepface': {'label': df_label, 'confidence': float(df_conf), 'confidence_level': df_confidence_level}
             }
             ensemble_result = ensemble_predict(individual_preds)
 
-            # Build display string for the frontend
+            # Binary classification: CONFIRMED or NOT FOUND
             ens_label = ensemble_result['label']
             ens_conf = ensemble_result['confidence']
-            is_recognized = ensemble_result.get('is_recognized', False)
             
-            if is_recognized and ens_conf == 1.0:
-                display_text = f"{ens_label} (100%)"
-            elif is_recognized:
-                display_text = f"{ens_label}? ({int(ens_conf * 100)}%)"
+            # A person is CONFIRMED only if DeepFace says 'confirmed' 
+            # (passed all 4 gates including binary threshold)
+            is_confirmed = (df_confidence_level == "confirmed" and ens_label != "Unknown")
+            
+            if is_confirmed:
+                display_text = f"CONFIRMED: {ens_label}"
             else:
-                display_text = "Unknown"
+                display_text = "NOT FOUND"
+                ens_label = "Unknown"
 
             results.append({
                 'bbox': {'x': int(x), 'y': int(y), 'w': int(w), 'h': int(h)},
                 'predictions': individual_preds,
                 'ensemble': {
                     'label': ens_label,
-                    'confidence': ens_conf,
+                    'confidence': ens_conf if is_confirmed else 0.0,
                     'method': ensemble_result['method'],
                     'agreement': ensemble_result.get('agreement', 'N/A'),
-                    'is_recognized': is_recognized,
+                    'is_recognized': is_confirmed,
+                    'is_confirmed': is_confirmed,
+                    'confidence_level': 'confirmed' if is_confirmed else 'rejected',
                     'display': display_text,
                 }
             })
             
+        # Store embeddings for feedback tracking
+        for i, result in enumerate(results):
+            pred_id = generate_prediction_id()
+            result['prediction_id'] = pred_id
+            # Store the embedding if we have one (for feedback learning)
+            if i < len(faces):
+                x, y, w, h = faces[i] if isinstance(faces[i], tuple) else (faces[i][0], faces[i][1], faces[i][2], faces[i][3])
+                face_roi_cv = img_np[max(0, y - int(h*0.15)):min(img_np.shape[0], y + h + int(h*0.15)),
+                                     max(0, x - int(w*0.15)):min(img_np.shape[1], x + w + int(w*0.15))]
+                processed = apply_clahe(face_roi_cv)
+                emb = get_embedding(processed)
+                if emb:
+                    store_prediction_for_feedback(
+                        pred_id, emb,
+                        result['ensemble']['label'],
+                        result['ensemble']['confidence']
+                    )
+
         # Log to recognition history
         log_recognition(results)
             
@@ -790,6 +817,54 @@ def clear_history():
         return jsonify({'message': 'History cleared successfully'})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+# ─── Feedback Learning Endpoint ───────────────────────────────────────
+@app.route('/api/predict/feedback', methods=['POST'])
+def submit_feedback():
+    """
+    Accept operator feedback on a prediction for online learning.
+    
+    Body JSON:
+    {
+        "prediction_id": "abc123def456",
+        "is_correct": true/false,
+        "correct_name": "Jane_Doe"  // only if is_correct=false
+    }
+    """
+    data = request.get_json()
+    if not data:
+        return jsonify({'error': 'JSON body required'}), 400
+    
+    prediction_id = data.get('prediction_id')
+    is_correct = data.get('is_correct')
+    correct_name = data.get('correct_name', '').strip()
+    
+    if not prediction_id:
+        return jsonify({'error': 'prediction_id is required'}), 400
+    if is_correct is None:
+        return jsonify({'error': 'is_correct (true/false) is required'}), 400
+    
+    # Validate correct_name if provided
+    if correct_name and not _VALID_NAME_PATTERN.match(correct_name):
+        return jsonify({'error': 'correct_name can only contain letters, numbers, underscores, and hyphens'}), 400
+    
+    result = process_feedback(prediction_id, bool(is_correct), correct_name if correct_name else None)
+    
+    if result['success']:
+        # Reload encodings in memory after feedback update
+        try:
+            reload_models()
+        except Exception:
+            pass
+        return jsonify(result)
+    else:
+        return jsonify(result), 404
+
+
+@app.route('/api/feedback/stats', methods=['GET'])
+def feedback_stats():
+    """Get feedback learning statistics."""
+    return jsonify(get_feedback_stats())
 
 # ─── Dashboard Stats Endpoint ─────────────────────────────────────────
 @app.route('/api/dashboard', methods=['GET'])

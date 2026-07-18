@@ -26,10 +26,15 @@ KNN_K = 5
 
 # Ratio test threshold (Lowe's inspired): accept only if
 # best_distance < RATIO_TEST * second_best_distance
-RATIO_TEST = 0.80  # Relaxed from 0.75 for better side face matching
+RATIO_TEST = 0.80
 
-# Absolute distance cutoff (reject above this regardless)
-MAX_DISTANCE = 0.60  # Relaxed from 0.55 for side face profile tolerance
+# ── Binary Classification Thresholds ──
+# For gate camera: either CONFIRMED or NOT FOUND. No ambiguity.
+# CONFIRM_THRESHOLD: below this = definite match (high confidence)
+# MAX_DISTANCE:      above this = definite rejection
+# Between them = uncertain, treated as NOT FOUND (safety first)
+CONFIRM_THRESHOLD = 0.35   # Only distances below this are confirmed
+MAX_DISTANCE = 0.50        # Anything above is rejected outright
 # ===============================================================
 
 # Global variables for threading
@@ -203,17 +208,19 @@ from model import get_embedding
 
 def find_match_knn(embedding, known_encodings, known_names, k=KNN_K, max_dist=MAX_DISTANCE, ratio=RATIO_TEST):
     """
-    KNN Majority Voting + Ratio Test matching.
+    KNN Majority Voting + Ratio Test + Binary Classification.
     
-    Instead of single nearest-neighbor, we:
-    1. Find the K closest embeddings by cosine distance
-    2. Apply ratio test: best must be significantly better than runner-up
-    3. Apply majority vote among the K-nearest for final label
+    Returns:
+        tuple: (name, distance, confidence_level)
+        confidence_level is one of:
+          - 'confirmed'  : distance < CONFIRM_THRESHOLD, passed all gates
+          - 'rejected'   : failed one or more gates
     
-    This dramatically reduces false positives and improves robustness.
+    For gate camera: only 'confirmed' results should be displayed.
+    'rejected' = Unknown, no exceptions.
     """
     if not known_encodings:
-        return "Unknown", 1.0
+        return "Unknown", 1.0, "rejected"
 
     # Compute all distances
     distances = []
@@ -229,10 +236,9 @@ def find_match_knn(embedding, known_encodings, known_names, k=KNN_K, max_dist=MA
 
     # --- Gate 1: Absolute distance cutoff ---
     if best_dist > max_dist:
-        return "Unknown", best_dist
+        return "Unknown", best_dist, "rejected"
 
     # --- Gate 2: Ratio test (Lowe's inspired) ---
-    # Find the nearest match from a DIFFERENT person
     second_best_dist = None
     for dist, name in distances:
         if name != best_name:
@@ -241,36 +247,39 @@ def find_match_knn(embedding, known_encodings, known_names, k=KNN_K, max_dist=MA
 
     if second_best_dist is not None:
         if best_dist > ratio * second_best_dist:
-            # Best match is not significantly better than the next different person
-            return "Unknown", best_dist
+            return "Unknown", best_dist, "rejected"
 
     # --- Gate 3: KNN Majority Vote ---
-    # Take top-K neighbors and vote
     top_k = distances[:min(k, len(distances))]
-    # Filter to only include matches within the max_dist threshold
     valid_votes = [name for dist, name in top_k if dist <= max_dist]
 
     if not valid_votes:
-        return "Unknown", best_dist
+        return "Unknown", best_dist, "rejected"
 
     # Weighted vote: closer neighbors get higher weight
     name_weights = {}
     for dist, name in top_k:
         if dist <= max_dist:
-            weight = 1.0 / (dist + 1e-6)  # inverse distance weighting
+            weight = 1.0 / (dist + 1e-6)
             name_weights[name] = name_weights.get(name, 0) + weight
 
-    # Winner is the name with highest cumulative weight
     winner = max(name_weights, key=name_weights.get)
     winner_dist = min(dist for dist, name in distances if name == winner)
 
-    return winner, winner_dist
+    # --- Gate 4: Binary classification ---
+    # Only distances below CONFIRM_THRESHOLD are truly confirmed
+    if winner_dist <= CONFIRM_THRESHOLD:
+        return winner, winner_dist, "confirmed"
+    else:
+        # Between CONFIRM_THRESHOLD and MAX_DISTANCE = uncertain = reject
+        return "Unknown", winner_dist, "rejected"
 
 
 # Legacy single-match function (kept for backward compatibility)
 def find_match(embedding, known_encodings, known_names, threshold=0.4):
     """Legacy single nearest-neighbor matching (use find_match_knn instead)."""
-    return find_match_knn(embedding, known_encodings, known_names)
+    name, dist, level = find_match_knn(embedding, known_encodings, known_names)
+    return name, dist
 
 
 def recognition_worker(known_encodings, known_names):
@@ -302,7 +311,7 @@ def recognition_worker(known_encodings, known_names):
                         )
 
                         if embedding is not None:
-                            name, dist = find_match_knn(embedding, known_encodings, known_names)
+                            name, dist, confidence_level = find_match_knn(embedding, known_encodings, known_names)
                     except Exception:
                         pass
 

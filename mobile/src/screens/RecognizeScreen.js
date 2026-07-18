@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import {
   View, StyleSheet, ScrollView, Image, Dimensions, Platform, TouchableOpacity,
 } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import { Text, ActivityIndicator, IconButton } from 'react-native-paper';
 import * as ImagePicker from 'expo-image-picker';
 import { CameraView, useCameraPermissions } from 'expo-camera';
@@ -12,6 +13,7 @@ import { predict, pingServer } from '../services/api';
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 export default function RecognizeScreen() {
+  const navigation = useNavigation();
   const [permission, requestPermission] = useCameraPermissions();
   const [cameraAvailable, setCameraAvailable] = useState(true);
   const [cameraError, setCameraError] = useState(null);
@@ -36,8 +38,24 @@ export default function RecognizeScreen() {
     checkServer();
     return () => {
       if (Platform.OS === 'web') stopWebCamera();
+      // Restore tab bar when leaving
+      navigation.getParent()?.setOptions({ tabBarStyle: undefined });
     };
   }, [permission?.granted]);
+
+  // Hide tab bar when camera is active (no image captured), show it otherwise
+  useEffect(() => {
+    const cameraActive = !imageUri && cameraAvailable && (Platform.OS === 'web' || permission?.granted);
+    if (cameraActive) {
+      // Hide tab bar when camera viewfinder is active
+      navigation.getParent()?.setOptions({
+        tabBarStyle: { display: 'none' }
+      });
+    } else {
+      // Restore tab bar when viewing image or results
+      navigation.getParent()?.setOptions({ tabBarStyle: undefined });
+    }
+  }, [imageUri, cameraAvailable, permission?.granted]);
 
   async function startWebCamera() {
     try {
@@ -137,7 +155,7 @@ export default function RecognizeScreen() {
 
   // Determine ensemble result for prominent display
   const topResult = results?.faces?.[0]?.ensemble;
-  const isKnown = topResult && topResult.label !== 'Unknown';
+  const isConfirmed = topResult && topResult.is_confirmed === true;
 
   return (
     <View style={{ flex: 1, backgroundColor: COLORS.bgPrimary }}>
@@ -172,10 +190,10 @@ export default function RecognizeScreen() {
               </TouchableOpacity>
               {/* Overlay result badge on image */}
               {topResult && (
-                <View style={[styles.resultOverlayBadge, { backgroundColor: isKnown ? 'rgba(48, 209, 88, 0.85)' : 'rgba(255, 159, 10, 0.85)' }]}>
-                  <MaterialCommunityIcons name={isKnown ? 'check-circle' : 'help-circle'} size={16} color="#FFF" />
+                <View style={[styles.resultOverlayBadge, { backgroundColor: isConfirmed ? 'rgba(48, 209, 88, 0.90)' : 'rgba(255, 69, 58, 0.85)' }]}>
+                  <MaterialCommunityIcons name={isConfirmed ? 'check-circle' : 'close-circle'} size={18} color="#FFF" />
                   <Text style={styles.resultOverlayText}>
-                    {topResult.label.replace(/_/g, ' ')} · {(topResult.confidence * 100).toFixed(0)}%
+                    {isConfirmed ? `CONFIRMED: ${topResult.label.replace(/_/g, ' ')}` : 'NOT FOUND'}
                   </Text>
                 </View>
               )}
@@ -279,29 +297,35 @@ export default function RecognizeScreen() {
         {/* Detailed Results */}
         {results && results.faces && results.faces.map((face, i) => (
           <View key={i} style={styles.resultCard}>
-            {/* Ensemble Hero */}
-            {face.ensemble && (
+            {/* Ensemble Hero — Binary Result */}
+            {face.ensemble && (() => {
+              const confirmed = face.ensemble.is_confirmed === true;
+              return (
               <View style={[styles.ensembleBox, {
-                backgroundColor: face.ensemble.label === 'Unknown' ? 'rgba(255, 159, 10, 0.12)' : 'rgba(48, 209, 88, 0.12)',
-                borderColor: face.ensemble.label === 'Unknown' ? 'rgba(255, 159, 10, 0.30)' : 'rgba(48, 209, 88, 0.30)',
+                backgroundColor: confirmed ? 'rgba(48, 209, 88, 0.12)' : 'rgba(255, 69, 58, 0.12)',
+                borderColor: confirmed ? 'rgba(48, 209, 88, 0.30)' : 'rgba(255, 69, 58, 0.30)',
               }]}>
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <View>
-                    <Text style={styles.ensembleLabel}>ENSEMBLE PREDICTION</Text>
-                    <Text style={[styles.ensembleName, face.ensemble.label === 'Unknown' && { color: COLORS.appleOrange }]}>
-                      {face.ensemble.label.replace(/_/g, ' ')}
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.ensembleLabel}>{confirmed ? 'IDENTITY CONFIRMED' : 'NOT FOUND'}</Text>
+                    <Text style={[styles.ensembleName, !confirmed && { color: COLORS.appleRed }]}>
+                      {confirmed ? face.ensemble.label.replace(/_/g, ' ') : 'Unknown Person'}
                     </Text>
                   </View>
-                  <View style={styles.confCircle}>
-                    <Text style={styles.confCircleValue}>{(face.ensemble.confidence * 100).toFixed(0)}</Text>
-                    <Text style={styles.confCircleUnit}>%</Text>
+                  <View style={[styles.confCircle, { borderColor: confirmed ? COLORS.appleGreen : COLORS.appleRed }]}>
+                    <MaterialCommunityIcons
+                      name={confirmed ? 'check-bold' : 'close-thick'}
+                      size={24}
+                      color={confirmed ? COLORS.appleGreen : COLORS.appleRed}
+                    />
                   </View>
                 </View>
                 <Text style={styles.ensembleMeta}>
-                  {face.ensemble.method} · Agreement: {face.ensemble.agreement}
+                  {face.ensemble.method} · Status: {face.ensemble.confidence_level?.toUpperCase() || 'N/A'}
                 </Text>
               </View>
-            )}
+              );
+            })()}
 
             {/* Model Breakdown */}
             <Text style={styles.breakdownTitle}>MODEL BREAKDOWN</Text>
@@ -320,7 +344,7 @@ export default function RecognizeScreen() {
           </View>
         ))}
 
-        <View style={{ height: 100 }} />
+        <View style={{ height: 40 }} />
       </ScrollView>
     </View>
   );
@@ -352,7 +376,7 @@ function PredictionRow({ model, icon, label, confidence }) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.bgPrimary },
-  scrollContent: { padding: SPACING.md },
+  scrollContent: { padding: SPACING.md, paddingBottom: 120 },
   appleWallpaperOrbPurple: {
     position: 'absolute', top: -80, left: -80,
     width: 280, height: 280, borderRadius: 140,
