@@ -105,33 +105,49 @@ export default function TrainingPage() {
           marginTop: '2rem', padding: '1.5rem', 
           border: '1px solid rgba(34, 197, 94, 0.3)', 
           background: 'var(--success-bg)',
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          display: 'flex', flexDirection: 'column',
           borderRadius: 'var(--radius-lg)'
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '1.5rem' }}>
             <CheckCircle size={32} color="var(--success)" />
             <div>
               <h3 style={{ color: 'var(--success)', margin: 0, fontSize: '1.2rem' }}>Training Complete</h3>
-              <p style={{ color: 'var(--text-secondary)', margin: '4px 0 0 0' }}>All models have been successfully updated. Your mobile edge models are ready for export.</p>
+              <p style={{ color: 'var(--text-secondary)', margin: '4px 0 0 0' }}>All models have been successfully updated. Download your trained models below.</p>
             </div>
           </div>
           
           {/* Download Resources Grid */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
-              <a href={`${API_BASE}/download-file?name=sideface_mobile.onnx`} className="btn btn-primary" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Download size={16} /> SOTA: sideface_mobile.onnx
-              </a>
-              <Link to="/models" className="btn btn-secondary" style={{ textDecoration: 'none' }}>
-                Go to Models Page
-              </Link>
-            </div>
-
+            {/* Core Trained Models */}
             <div style={{ padding: '1rem', background: 'var(--bg-card)', borderRadius: '8px', border: '1px solid var(--border)' }}>
               <h4 style={{ margin: '0 0 0.8rem 0', fontWeight: '500', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Terminal size={14}/> DeepFace Mobile Exports (Facenet512)
+                <Terminal size={14}/> Trained Model Files
               </h4>
               <div style={{ display: 'flex', gap: '0.8rem', flexWrap: 'wrap' }}>
+                <a href={`${API_BASE}/download-file?name=encodings.pickle`} className="btn btn-primary" style={{ padding: '0.5rem 1rem', fontSize: '0.9rem', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <Download size={14} /> encodings.pickle
+                </a>
+                <a href={`${API_BASE}/download-file?name=best_mobile_sideface.pth`} className="btn btn-primary" style={{ padding: '0.5rem 1rem', fontSize: '0.9rem', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <Download size={14} /> best_mobile_sideface.pth
+                </a>
+                <a href={`${API_BASE}/download-file?name=mobile_classes.txt`} className="btn btn-secondary" style={{ padding: '0.5rem 1rem', fontSize: '0.9rem', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <Download size={14} /> mobile_classes.txt
+                </a>
+              </div>
+              <p style={{ margin: '0.8rem 0 0 0', fontSize: '0.85rem', color: 'var(--text-tertiary)' }}>
+                These are the core trained model files used by the recognition system.
+              </p>
+            </div>
+
+            {/* ONNX Mobile Exports */}
+            <div style={{ padding: '1rem', background: 'var(--bg-card)', borderRadius: '8px', border: '1px solid var(--border)' }}>
+              <h4 style={{ margin: '0 0 0.8rem 0', fontWeight: '500', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Terminal size={14}/> Mobile Edge Exports (ONNX)
+              </h4>
+              <div style={{ display: 'flex', gap: '0.8rem', flexWrap: 'wrap' }}>
+                <a href={`${API_BASE}/download-file?name=sideface_mobile.onnx`} className="btn btn-secondary" style={{ padding: '0.4rem 0.8rem', fontSize: '0.9rem', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <Download size={14} /> sideface_mobile.onnx
+                </a>
                 <a href={`${API_BASE}/download-file?name=facenet512.onnx`} className="btn btn-secondary" style={{ padding: '0.4rem 0.8rem', fontSize: '0.9rem', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <Download size={14} /> facenet512.onnx
                 </a>
@@ -143,7 +159,7 @@ export default function TrainingPage() {
                 </a>
               </div>
               <p style={{ margin: '0.8rem 0 0 0', fontSize: '0.85rem', color: 'var(--text-tertiary)' }}>
-                Download these three files to use Facenet512 locally in React Native via <code>onnxruntime-react-native</code>.
+                ONNX exports for mobile deployment. Export via the <Link to="/models" style={{ color: 'var(--accent-teal)' }}>Models Page</Link> first.
               </p>
             </div>
           </div>

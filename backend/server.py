@@ -512,35 +512,99 @@ def export_onnx_model():
 
 @app.route('/api/download-model', methods=['GET'])
 def download_model():
-    """Downloads the MobileNetV3 ONNX file."""
+    """Downloads the MobileNetV2 ONNX file (legacy endpoint)."""
     path = os.path.join(PROJECT_ROOT, "sideface_mobile.onnx")
     if os.path.exists(path):
         return send_file(path, as_attachment=True)
-    return jsonify({'error': 'Model not exported yet. Please export first.'}), 404
+    return jsonify({'error': 'Model not exported yet. Use the Models page to export first.'}), 404
 
-# Allowed artefact basenames that can be downloaded via this endpoint
-_DOWNLOADABLE = {
-    'sideface_mobile.onnx',
-    'facenet512.onnx',
-    'class_centroids.json',
-    'label_map.json',
+
+# ── Secure Download System ──────────────────────────────────────────────────
+# Maps user-facing filenames → actual disk paths.
+# Only files in this dict can be downloaded — prevents path traversal attacks.
+_DOWNLOADABLE_FILES = {
+    # Core trained models
+    'encodings.pickle':          os.path.join(DATA_DIR, 'encodings.pickle'),
+    'best_mobile_sideface.pth':  SOTA_MODEL_PATH,
+    'mobile_classes.txt':        os.path.join(BACKEND_DIR, 'models', 'sota_finetune', 'mobile_classes.txt'),
+    # ONNX exports (generated via Models page → Export)
+    'sideface_mobile.onnx':      os.path.join(PROJECT_ROOT, 'sideface_mobile.onnx'),
+    'facenet512.onnx':           os.path.join(PROJECT_ROOT, 'facenet512.onnx'),
+    # Mobile deployment artefacts
+    'class_centroids.json':      os.path.join(DATA_DIR, 'class_centroids.json'),
+    'label_map.json':            os.path.join(DATA_DIR, 'label_map.json'),
 }
+
+# MIME types for secure Content-Type headers
+_MIME_MAP = {
+    '.pickle': 'application/octet-stream',
+    '.pth':    'application/octet-stream',
+    '.onnx':   'application/octet-stream',
+    '.json':   'application/json',
+    '.txt':    'text/plain',
+}
+
 
 @app.route('/api/download-file', methods=['GET'])
 def download_file():
     """
-    Generic download endpoint for any of the generated artefacts.
-    Usage: GET /api/download-file?name=facenet512.onnx
-    Allowed names: sideface_mobile.onnx, facenet512.onnx,
-                   class_centroids.json, label_map.json
+    Secure download endpoint for trained model artefacts.
+    Usage: GET /api/download-file?name=encodings.pickle
+
+    Security:
+      - Only whitelisted filenames are allowed (no path traversal).
+      - Returns proper Content-Type and Content-Disposition headers.
     """
-    filename = request.args.get('name', '')
-    if filename not in _DOWNLOADABLE:
-        return jsonify({'error': f"Unknown file '{filename}'. Allowed: {sorted(_DOWNLOADABLE)}"}), 400
-    path = os.path.join(PROJECT_ROOT, filename)
-    if not os.path.exists(path):
-        return jsonify({'error': f"'{filename}' not found. Run training first."}), 404
-    return send_file(path, as_attachment=True, download_name=filename)
+    filename = request.args.get('name', '').strip()
+
+    # Reject empty or unknown filenames
+    if not filename or filename not in _DOWNLOADABLE_FILES:
+        allowed = sorted(_DOWNLOADABLE_FILES.keys())
+        return jsonify({
+            'error': f"Unknown file '{filename}'.",
+            'allowed': allowed,
+            'hint': 'Use GET /api/download-list to see available files.'
+        }), 400
+
+    disk_path = _DOWNLOADABLE_FILES[filename]
+
+    if not os.path.exists(disk_path):
+        return jsonify({
+            'error': f"'{filename}' has not been generated yet.",
+            'hint': 'Train models first, then try downloading.'
+        }), 404
+
+    # Determine MIME type from extension
+    ext = os.path.splitext(filename)[1].lower()
+    mimetype = _MIME_MAP.get(ext, 'application/octet-stream')
+
+    return send_file(
+        disk_path,
+        as_attachment=True,
+        download_name=filename,
+        mimetype=mimetype
+    )
+
+
+@app.route('/api/download-list', methods=['GET'])
+def download_list():
+    """
+    Returns a list of all downloadable artefacts with their availability
+    and file sizes. The frontend can use this to show/hide download
+    buttons and display file sizes.
+    """
+    files = []
+    for name, disk_path in sorted(_DOWNLOADABLE_FILES.items()):
+        exists = os.path.exists(disk_path)
+        size_bytes = os.path.getsize(disk_path) if exists else 0
+        size_mb = round(size_bytes / (1024 * 1024), 2) if exists else 0
+        files.append({
+            'name': name,
+            'available': exists,
+            'size_bytes': size_bytes,
+            'size_mb': size_mb,
+        })
+    return jsonify({'files': files})
 
 @app.route('/api/models/reset', methods=['POST'])
 def reset_models():

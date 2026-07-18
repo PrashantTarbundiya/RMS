@@ -10,7 +10,6 @@ Bill_Clinton
 Carlos_Menem
 Colin_Powell
 David_Beckham
-Dhruvik_parmar
 Donald_Rumsfeld
 George_Robertson
 George_W_Bush
@@ -58,12 +57,7 @@ Tiger_Woods
 Tom_Daschle
 Tom_Ridge
 Tony_Blair
-Vatsal_vadgama
 Vicente_Fox
 Vladimir_Putin
 Winona_Ryder
-dwij_rana
-manan_solanki
-prashant_tarbundiya
-rakshit_ganjotar
-shivam_petkar
+vatsal_vadgama

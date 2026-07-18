@@ -8,9 +8,9 @@ echo  ================================================
 echo.
 
 :: Check if we're in the right directory
-if not exist "app.py" (
+if not exist "backend\server.py" (
     echo  [ERROR] Please run this script from the RMS project root directory.
-    echo          Expected files like app.py, model.py etc.
+    echo          Expected backend\server.py to exist.
     echo.
     pause
     exit /b 1
@@ -19,7 +19,10 @@ if not exist "app.py" (
 :: ── Python Detection ──
 echo  [1/5] Checking Python installation...
 set PYTHON=python
-if exist "C:\Python313\python.exe" (
+if exist "backend\venv\Scripts\python.exe" (
+    set PYTHON=backend\venv\Scripts\python.exe
+    echo        Using virtual environment Python at backend\venv
+) else if exist "C:\Python313\python.exe" (
     set PYTHON=C:\Python313\python.exe
     echo        Found Python 3.13 at C:\Python313
 ) else (
