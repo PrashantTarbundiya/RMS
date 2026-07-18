@@ -95,9 +95,6 @@ export async function uploadPerson(personName, imageUris, epochs = 5) {
   const res = await fetch(`${BASE_URL}/upload`, {
     method: 'POST',
     body: formData,
-    headers: {
-      'Content-Type': 'multipart/form-data',
-    },
   });
 
   if (!res.ok) {
@@ -124,9 +121,6 @@ export async function predict(imageUri) {
   const res = await fetch(`${BASE_URL}/predict`, {
     method: 'POST',
     body: formData,
-    headers: {
-      'Content-Type': 'multipart/form-data',
-    },
   });
 
   if (!res.ok) {

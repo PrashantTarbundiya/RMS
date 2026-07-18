@@ -9,6 +9,8 @@ import TrainingPage from './pages/TrainingPage'
 import ModelsPage from './pages/ModelsPage'
 import TestPage from './pages/TestPage'
 import SupportPage from './pages/SupportPage'
+import AttendancePage from './pages/AttendancePage'
+import LiveAttendancePage from './pages/LiveAttendancePage'
 import { AnimatePresence, motion } from 'framer-motion'
 
 // Create an inner component to use useLocation
@@ -20,6 +22,8 @@ function AnimatedRoutes() {
       <Routes location={location} key={location.pathname}>
         <Route path="/" element={<PageWrapper><LandingPage /></PageWrapper>} />
         <Route path="/dashboard" element={<PageWrapper><DashboardPage /></PageWrapper>} />
+        <Route path="/attendance" element={<PageWrapper><AttendancePage /></PageWrapper>} />
+        <Route path="/attendance/live" element={<PageWrapper><LiveAttendancePage /></PageWrapper>} />
         <Route path="/persons/edit/:name" element={<PageWrapper><ManagePersonPage /></PageWrapper>} />
         <Route path="/upload" element={<PageWrapper><UploadPage /></PageWrapper>} />
         <Route path="/test" element={<PageWrapper><TestPage /></PageWrapper>} />

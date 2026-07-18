@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { NavLink, Link } from 'react-router-dom'
-import { Camera, Activity, Box, Video, Menu, X, Home, HelpCircle, Upload } from 'lucide-react'
+import { Camera, Activity, Box, Video, Menu, X, Home, HelpCircle, Upload, ClipboardList, Radio } from 'lucide-react'
 
 export function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false)
@@ -32,6 +32,12 @@ export function Navbar() {
           </NavLink>
           <NavLink to="/dashboard" className={linkClass} onClick={closeMobile}>
             <Activity size={16} style={{ transform: 'rotate(90deg)' }} /> Dashboard
+          </NavLink>
+          <NavLink to="/attendance" className={linkClass} end onClick={closeMobile}>
+            <ClipboardList size={16} /> Attendance
+          </NavLink>
+          <NavLink to="/attendance/live" className={linkClass} onClick={closeMobile}>
+            <Radio size={16} /> Live Site
           </NavLink>
           <NavLink to="/upload" className={linkClass} onClick={closeMobile}>
             <Upload size={16} /> Upload

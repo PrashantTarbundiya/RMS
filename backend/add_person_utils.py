@@ -500,14 +500,8 @@ def add_person_to_all_models(person_name, image_data_list, dataset_dir=None, num
             status_parts.append(f"⚠️ **DeepFace**: Error — {e}")
 
     # 4. Update SOTA MobileNetV2 (quick fine-tune)
-    try:
-        success = update_sota_model(person_name, dataset_dir=dataset_dir, num_epochs=num_epochs)
-        if success:
-            status_parts.append(f"✅ **SOTA MobileNetV2**: Fine-tuned successfully")
-        else:
-            status_parts.append(f"⚠️ **SOTA MobileNetV2**: Fine-tuning failed")
-    except Exception as e:
-        status_parts.append(f"⚠️ **SOTA MobileNetV2**: Error — {e}")
+    # [EDGE DEVICE OPTIMIZATION] - Disabled PyTorch fine-tuning which takes ~1hr on CPU.
+    # New persons will be instantly classified via the DeepFace KNN fallback.
+    status_parts.append(f"⚡ **SOTA MobileNetV2**: Skipped PyTorch fine-tune for Edge performance")
 
     return "\n\n".join(status_parts)
-

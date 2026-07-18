@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import {
   View, StyleSheet, ScrollView, Image, Platform, TouchableOpacity,
 } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import {
   Text, TextInput, Snackbar, ActivityIndicator,
 } from 'react-native-paper';
@@ -25,13 +26,24 @@ export default function AddPersonScreen() {
   const webVideoRef = useRef(null);
   const cameraRef = useRef(null);
 
+  const navigation = useNavigation();
+
   useEffect(() => {
     return () => {
       if (Platform.OS === 'web' && webStream) {
         webStream.getTracks().forEach(track => track.stop());
       }
+      navigation.setOptions({ tabBarStyle: undefined });
     };
-  }, [webStream]);
+  }, [webStream, navigation]);
+
+  useEffect(() => {
+    if (showCamera) {
+      navigation.setOptions({ tabBarStyle: { display: 'none' } });
+    } else {
+      navigation.setOptions({ tabBarStyle: undefined });
+    }
+  }, [showCamera, navigation]);
 
   async function pickImages() {
     try {

@@ -39,7 +39,7 @@ export default function RecognizeScreen() {
     return () => {
       if (Platform.OS === 'web') stopWebCamera();
       // Restore tab bar when leaving
-      navigation.getParent()?.setOptions({ tabBarStyle: undefined });
+      navigation.setOptions({ tabBarStyle: undefined });
     };
   }, [permission?.granted]);
 
@@ -48,14 +48,14 @@ export default function RecognizeScreen() {
     const cameraActive = !imageUri && cameraAvailable && (Platform.OS === 'web' || permission?.granted);
     if (cameraActive) {
       // Hide tab bar when camera viewfinder is active
-      navigation.getParent()?.setOptions({
+      navigation.setOptions({
         tabBarStyle: { display: 'none' }
       });
     } else {
       // Restore tab bar when viewing image or results
-      navigation.getParent()?.setOptions({ tabBarStyle: undefined });
+      navigation.setOptions({ tabBarStyle: undefined });
     }
-  }, [imageUri, cameraAvailable, permission?.granted]);
+  }, [imageUri, cameraAvailable, permission?.granted, navigation]);
 
   async function startWebCamera() {
     try {
