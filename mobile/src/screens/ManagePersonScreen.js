@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-  View, Text, StyleSheet, TouchableOpacity, ScrollView,
-  TextInput, ActivityIndicator, Image, Alert, FlatList,
-  Modal
+  View, StyleSheet, ScrollView, Image, Alert, FlatList, TouchableOpacity,
 } from 'react-native';
-import { COLORS, SPACING, FONT_SIZES, BORDER_RADIUS } from '../theme';
+import {
+  Text, TextInput, Portal, Dialog, RadioButton, ActivityIndicator, Snackbar, IconButton
+} from 'react-native-paper';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { COLORS, SPACING, FONT_SIZES, BORDER_RADIUS, APPLE_GLASS_STYLE } from '../theme';
 import {
   getPersonPhotos,
   getPersonPhotoUrl,
@@ -25,9 +27,21 @@ export default function ManagePersonScreen({ route, navigation }) {
   const [isActionLoading, setIsActionLoading] = useState(false);
   const [epochs, setEpochs] = useState('10');
 
-  // Modal states for moving photo
+  // Dialog states for moving photo
   const [selectedPhoto, setSelectedPhoto] = useState(null);
-  const [showMoveModal, setShowMoveModal] = useState(false);
+  const [showMoveDialog, setShowMoveDialog] = useState(false);
+  const [moveTarget, setMoveTarget] = useState('');
+
+  // Snackbar
+  const [snackVisible, setSnackVisible] = useState(false);
+  const [snackMessage, setSnackMessage] = useState('');
+  const [snackType, setSnackType] = useState('success');
+
+  function showSnack(type, message) {
+    setSnackType(type);
+    setSnackMessage(message);
+    setSnackVisible(true);
+  }
 
   const fetchPhotos = useCallback(async () => {
     setIsLoading(true);
@@ -36,7 +50,7 @@ export default function ManagePersonScreen({ route, navigation }) {
       setPhotos(data);
     } catch (err) {
       console.warn(err);
-      Alert.alert('Error', 'Failed to fetch person photos.');
+      showSnack('error', 'Failed to fetch subject photos.');
     } finally {
       setIsLoading(false);
     }
@@ -49,7 +63,7 @@ export default function ManagePersonScreen({ route, navigation }) {
   const handleRename = async () => {
     const trimmed = personName.trim().replace(/\s+/g, '_');
     if (!trimmed) {
-      Alert.alert('Validation', 'Name cannot be empty.');
+      showSnack('error', 'Subject name cannot be empty.');
       return;
     }
     if (trimmed === originalName) return;
@@ -59,10 +73,10 @@ export default function ManagePersonScreen({ route, navigation }) {
       await renamePerson(originalName, trimmed);
       setOriginalName(trimmed);
       setPersonName(trimmed);
-      Alert.alert('Success', `Renamed successfully to ${trimmed.replace(/_/g, ' ')}`);
+      showSnack('success', `Renamed record to ${trimmed.replace(/_/g, ' ')}`);
     } catch (err) {
       console.warn(err);
-      Alert.alert('Error', err.message || 'Failed to rename person.');
+      showSnack('error', err.message || 'Failed to rename.');
     } finally {
       setIsActionLoading(false);
     }
@@ -81,11 +95,11 @@ export default function ManagePersonScreen({ route, navigation }) {
             setIsActionLoading(true);
             try {
               await deletePerson(originalName);
-              Alert.alert('Deleted', 'Profile deleted successfully.');
+              showSnack('success', 'Profile deleted successfully.');
               navigation.goBack();
             } catch (err) {
               console.warn(err);
-              Alert.alert('Error', err.message || 'Failed to delete profile.');
+              showSnack('error', err.message || 'Failed to delete profile.');
             } finally {
               setIsActionLoading(false);
             }
@@ -98,19 +112,19 @@ export default function ManagePersonScreen({ route, navigation }) {
   const handleRetrain = async () => {
     const numEpochs = parseInt(epochs);
     if (isNaN(numEpochs) || numEpochs < 1 || numEpochs > 100) {
-      Alert.alert('Validation', 'Epochs must be a number between 1 and 100.');
+      showSnack('error', 'Epochs must be between 1 and 100.');
       return;
     }
 
     setIsActionLoading(true);
     try {
       const res = await triggerRetrain(originalName, numEpochs);
-      Alert.alert('Fine-Tuning Started', res.message || 'Models are now training.', [
+      Alert.alert('Fine-Tuning Started', res.message || 'Models are training in background.', [
         { text: 'OK', onPress: () => navigation.navigate('Models') }
       ]);
     } catch (err) {
       console.warn(err);
-      Alert.alert('Error', err.message || 'Failed to trigger training.');
+      showSnack('error', err.message || 'Failed to trigger training.');
     } finally {
       setIsActionLoading(false);
     }
@@ -119,7 +133,7 @@ export default function ManagePersonScreen({ route, navigation }) {
   const handleDeletePhoto = (photo) => {
     Alert.alert(
       'Delete Photo',
-      'Are you sure you want to delete this cropped photo?',
+      'Are you sure you want to delete this cropped dataset photo?',
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -130,9 +144,10 @@ export default function ManagePersonScreen({ route, navigation }) {
             try {
               await deletePersonPhoto(originalName, photo.angle, photo.filename);
               fetchPhotos();
+              showSnack('success', 'Photo deleted.');
             } catch (err) {
               console.warn(err);
-              Alert.alert('Error', err.message || 'Failed to delete photo.');
+              showSnack('error', err.message || 'Failed to delete photo.');
             } finally {
               setIsActionLoading(false);
             }
@@ -142,26 +157,28 @@ export default function ManagePersonScreen({ route, navigation }) {
     );
   };
 
-  const handleOpenMoveModal = (photo) => {
+  const handleOpenMoveDialog = (photo) => {
     setSelectedPhoto(photo);
-    setShowMoveModal(true);
+    setMoveTarget(photo.angle);
+    setShowMoveDialog(true);
   };
 
-  const handleMovePhoto = async (targetAngle) => {
+  const handleMovePhoto = async () => {
     if (!selectedPhoto) return;
-    if (selectedPhoto.angle === targetAngle) {
-      setShowMoveModal(false);
+    if (selectedPhoto.angle === moveTarget) {
+      setShowMoveDialog(false);
       return;
     }
 
     setIsActionLoading(true);
-    setShowMoveModal(false);
+    setShowMoveDialog(false);
     try {
-      await movePersonPhoto(originalName, selectedPhoto.angle, targetAngle, selectedPhoto.filename);
+      await movePersonPhoto(originalName, selectedPhoto.angle, moveTarget, selectedPhoto.filename);
       fetchPhotos();
+      showSnack('success', `Moved photo to ${moveTarget} profile.`);
     } catch (err) {
       console.warn(err);
-      Alert.alert('Error', err.message || 'Failed to move photo.');
+      showSnack('error', err.message || 'Failed to move photo.');
     } finally {
       setIsActionLoading(false);
       setSelectedPhoto(null);
@@ -172,442 +189,295 @@ export default function ManagePersonScreen({ route, navigation }) {
     const photoUrl = getPersonPhotoUrl(originalName, item.angle, item.filename);
 
     return (
-      <View style={styles.photoCard}>
+      <View style={styles.photoGlassCard}>
         <Image source={{ uri: photoUrl }} style={styles.photo} />
-        <View style={styles.photoActions}>
-          <TouchableOpacity
-            style={styles.photoActionBtn}
-            onPress={() => handleOpenMoveModal(item)}
+        <View style={styles.photoActionsRow}>
+          <IconButton
+            icon="swap-horizontal"
+            iconColor={COLORS.appleBlue}
+            size={16}
+            style={styles.photoActionGlassBtn}
+            onPress={() => handleOpenMoveDialog(item)}
             disabled={isActionLoading}
-          >
-            <Text style={styles.photoActionText}>🔄 Move</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.photoActionBtn, styles.photoDeleteBtn]}
+          />
+          <IconButton
+            icon="delete-outline"
+            iconColor={COLORS.appleRed}
+            size={16}
+            style={[styles.photoActionGlassBtn, { backgroundColor: 'rgba(255, 69, 58, 0.15)' }]}
             onPress={() => handleDeletePhoto(item)}
             disabled={isActionLoading}
-          >
-            <Text style={[styles.photoActionText, { color: COLORS.error }]}>🗑️ Delete</Text>
-          </TouchableOpacity>
+          />
         </View>
       </View>
     );
   };
 
-  // Group photos by angle
   const frontalPhotos = photos.filter(p => p.angle === 'frontal');
   const leftPhotos = photos.filter(p => p.angle === 'left');
   const rightPhotos = photos.filter(p => p.angle === 'right');
   const extraPhotos = photos.filter(p => p.angle === 'extra');
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
-      {/* Header Info */}
-      <View style={styles.header}>
-        <Text style={styles.title}>{originalName.replace(/_/g, ' ')}</Text>
-        <Text style={styles.subtitle}>Database Profile Management</Text>
-      </View>
+    <View style={{ flex: 1, backgroundColor: COLORS.bgPrimary }}>
+      <View style={styles.appleWallpaperOrbPurple} />
 
-      {/* Settings Card */}
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>Profile Settings</Text>
-
-        <Text style={styles.inputLabel}>RENAME PERSON</Text>
-        <View style={styles.inputRow}>
-          <TextInput
-            style={styles.textInput}
-            value={personName}
-            onChangeText={setPersonName}
-            placeholder="e.g. John_Doe"
-            placeholderTextColor={COLORS.textTertiary}
-            editable={!isActionLoading}
-          />
-          <TouchableOpacity
-            style={[styles.saveBtn, isActionLoading && styles.disabledBtn]}
-            onPress={handleRename}
-            disabled={isActionLoading}
-          >
-            <Text style={styles.saveBtnText}>Rename</Text>
-          </TouchableOpacity>
+      <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
+        {/* Header Profile Glass Widget */}
+        <View style={styles.profileHeaderGlass}>
+          <View style={styles.avatarGlassCircle}>
+            <MaterialCommunityIcons name="account" size={32} color={COLORS.appleBlue} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.profileTitle}>{originalName.replace(/_/g, ' ')}</Text>
+            <Text style={styles.profileSubtitle}>Database Subject Profile</Text>
+          </View>
         </View>
 
-        <Text style={[styles.inputLabel, { marginTop: SPACING.md }]}>FINE-TUNING EPOCHS</Text>
-        <View style={styles.inputRow}>
-          <TextInput
-            style={styles.textInput}
-            value={epochs}
-            onChangeText={setEpochs}
-            keyboardType="number-pad"
-            placeholder="e.g. 10"
-            placeholderTextColor={COLORS.textTertiary}
-            editable={!isActionLoading}
-          />
-          <TouchableOpacity
-            style={[styles.retrainBtn, isActionLoading && styles.disabledBtn]}
-            onPress={handleRetrain}
-            disabled={isActionLoading}
-          >
-            <Text style={styles.retrainBtnText}>Retrain</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
+        {/* Profile Controls Card */}
+        <View style={styles.appleGlassCard}>
+          <Text style={styles.cardHeaderTitle}>PROFILE SETTINGS</Text>
+          <View style={styles.divider} />
 
-      {/* Cleaned Photos Section */}
-      <Text style={styles.sectionTitle}>Trained Photo Database</Text>
+          <Text style={styles.inputHeaderLabel}>RENAME SUBJECT</Text>
+          <View style={styles.inputRow}>
+            <TextInput
+              mode="outlined"
+              value={personName}
+              onChangeText={setPersonName}
+              placeholder="e.g. John_Doe"
+              dense
+              left={<TextInput.Icon icon="account-edit-outline" color={COLORS.appleBlue} />}
+              outlineColor="rgba(255, 255, 255, 0.15)"
+              activeOutlineColor={COLORS.appleBlue}
+              textColor={COLORS.textPrimary}
+              placeholderTextColor={COLORS.textTertiary}
+              style={styles.glassInput}
+              editable={!isActionLoading}
+              theme={{ colors: { onSurfaceVariant: COLORS.textSecondary } }}
+            />
+            <TouchableOpacity
+              onPress={handleRename}
+              disabled={isActionLoading}
+              style={styles.saveGlassBtn}
+            >
+              <Text style={{ color: COLORS.textPrimary, fontSize: 13, fontWeight: '700' }}>Rename</Text>
+            </TouchableOpacity>
+          </View>
 
-      {isLoading ? (
-        <ActivityIndicator color={COLORS.primary} style={{ marginVertical: SPACING.lg }} />
-      ) : photos.length === 0 ? (
-        <View style={styles.emptyCard}>
-          <Text style={styles.emptyText}>No photos found for this person.</Text>
-        </View>
-      ) : (
-        <View style={{ gap: SPACING.lg }}>
-          {/* Frontal Angle */}
-          {frontalPhotos.length > 0 && (
-            <View>
-              <Text style={styles.angleTitle}>FRONTAL PROFILE ({frontalPhotos.length})</Text>
-              <FlatList
-                data={frontalPhotos}
-                renderItem={renderPhotoItem}
-                keyExtractor={item => item.filename}
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.photoList}
-              />
-            </View>
-          )}
-
-          {/* Left Profile */}
-          {leftPhotos.length > 0 && (
-            <View>
-              <Text style={styles.angleTitle}>LEFT PROFILE ({leftPhotos.length})</Text>
-              <FlatList
-                data={leftPhotos}
-                renderItem={renderPhotoItem}
-                keyExtractor={item => item.filename}
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.photoList}
-              />
-            </View>
-          )}
-
-          {/* Right Profile */}
-          {rightPhotos.length > 0 && (
-            <View>
-              <Text style={styles.angleTitle}>RIGHT PROFILE ({rightPhotos.length})</Text>
-              <FlatList
-                data={rightPhotos}
-                renderItem={renderPhotoItem}
-                keyExtractor={item => item.filename}
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.photoList}
-              />
-            </View>
-          )}
-
-          {/* Extra Angle */}
-          {extraPhotos.length > 0 && (
-            <View>
-              <Text style={styles.angleTitle}>EXTRA PROFILE ({extraPhotos.length})</Text>
-              <FlatList
-                data={extraPhotos}
-                renderItem={renderPhotoItem}
-                keyExtractor={item => item.filename}
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.photoList}
-              />
-            </View>
-          )}
-        </View>
-      )}
-
-      {/* Danger Zone */}
-      <Text style={[styles.sectionTitle, { color: COLORS.danger, marginTop: SPACING.xl }]}>⚠️ Danger Zone</Text>
-      <View style={[styles.card, { borderColor: 'rgba(239, 68, 68, 0.3)' }]}>
-        <Text style={styles.cardDesc}>
-          Delete this person entirely from the dataset and remove all trained classifications.
-        </Text>
-        <TouchableOpacity
-          style={[styles.dangerBtn, isActionLoading && styles.disabledBtn]}
-          onPress={handleDeletePerson}
-          disabled={isActionLoading}
-        >
-          <Text style={styles.dangerBtnText}>Delete Entire Profile</Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Move Angle Modal */}
-      <Modal
-        visible={showMoveModal}
-        transparent={true}
-        animationType="slide"
-        onRequestClose={() => setShowMoveModal(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Change Face Angle Category</Text>
-            <Text style={styles.modalDesc}>Select the correct face angle for this cropped photo:</Text>
-
-            {['frontal', 'left', 'right', 'extra'].map(angle => (
-              <TouchableOpacity
-                key={angle}
-                style={[
-                  styles.modalOption,
-                  selectedPhoto?.angle === angle && styles.selectedOption
-                ]}
-                onPress={() => handleMovePhoto(angle)}
-              >
-                <Text style={[
-                  styles.modalOptionText,
-                  selectedPhoto?.angle === angle && styles.selectedOptionText
-                ]}>
-                  {angle.toUpperCase()} PROFILE
-                </Text>
-              </TouchableOpacity>
-            ))}
-
-            <TouchableOpacity style={styles.modalCancel} onPress={() => setShowMoveModal(false)}>
-              <Text style={styles.modalCancelText}>Cancel</Text>
+          <Text style={[styles.inputHeaderLabel, { marginTop: SPACING.md }]}>FINE-TUNING EPOCHS</Text>
+          <View style={styles.inputRow}>
+            <TextInput
+              mode="outlined"
+              value={epochs}
+              onChangeText={setEpochs}
+              keyboardType="number-pad"
+              placeholder="e.g. 10"
+              dense
+              left={<TextInput.Icon icon="sync" color={COLORS.appleBlue} />}
+              outlineColor="rgba(255, 255, 255, 0.15)"
+              activeOutlineColor={COLORS.appleBlue}
+              textColor={COLORS.textPrimary}
+              placeholderTextColor={COLORS.textTertiary}
+              style={styles.glassInput}
+              editable={!isActionLoading}
+              theme={{ colors: { onSurfaceVariant: COLORS.textSecondary } }}
+            />
+            <TouchableOpacity
+              onPress={handleRetrain}
+              disabled={isActionLoading}
+              style={styles.retrainAppleBtn}
+            >
+              <Text style={{ color: '#FFF', fontSize: 13, fontWeight: '700' }}>Retrain</Text>
             </TouchableOpacity>
           </View>
         </View>
-      </Modal>
-    </ScrollView>
+
+        {/* Photo Database Section */}
+        <Text style={styles.sectionHeaderTitle}>TRAINED PHOTO DATABASE</Text>
+
+        {isLoading ? (
+          <ActivityIndicator color={COLORS.appleBlue} style={{ marginVertical: SPACING.lg }} animating />
+        ) : photos.length === 0 ? (
+          <View style={styles.appleGlassCard}>
+            <Text style={styles.emptyText}>No dataset photos found for this subject.</Text>
+          </View>
+        ) : (
+          <View style={{ gap: SPACING.lg }}>
+            {frontalPhotos.length > 0 && (
+              <AngleSection title="FRONTAL" count={frontalPhotos.length} data={frontalPhotos} renderItem={renderPhotoItem} />
+            )}
+            {leftPhotos.length > 0 && (
+              <AngleSection title="LEFT" count={leftPhotos.length} data={leftPhotos} renderItem={renderPhotoItem} />
+            )}
+            {rightPhotos.length > 0 && (
+              <AngleSection title="RIGHT" count={rightPhotos.length} data={rightPhotos} renderItem={renderPhotoItem} />
+            )}
+            {extraPhotos.length > 0 && (
+              <AngleSection title="EXTRA" count={extraPhotos.length} data={extraPhotos} renderItem={renderPhotoItem} />
+            )}
+          </View>
+        )}
+
+        {/* Danger Zone */}
+        <Text style={[styles.sectionHeaderTitle, { color: COLORS.appleRed, marginTop: SPACING.xl }]}>⚠️ DANGER ZONE</Text>
+        <View style={[styles.appleGlassCard, { borderColor: 'rgba(255, 69, 58, 0.35)' }]}>
+          <Text style={styles.cardDescText}>
+            Delete this subject profile entirely from dataset and remove all trained classifications.
+          </Text>
+          <TouchableOpacity style={styles.appleDangerBtn} onPress={handleDeletePerson} disabled={isActionLoading}>
+            <MaterialCommunityIcons name="delete-forever-outline" size={20} color={COLORS.appleRed} />
+            <Text style={styles.dangerBtnText}>Delete Entire Profile</Text>
+          </TouchableOpacity>
+        </View>
+
+        <View style={{ height: 90 }} />
+      </ScrollView>
+
+      {/* Move Angle Dialog */}
+      <Portal>
+        <Dialog
+          visible={showMoveDialog}
+          onDismiss={() => setShowMoveDialog(false)}
+          style={styles.appleGlassDialog}
+        >
+          <Dialog.Title style={{ color: COLORS.textPrimary, fontSize: 16, fontWeight: '700' }}>
+            Change Face Angle
+          </Dialog.Title>
+          <Dialog.Content>
+            <Text style={{ color: COLORS.textSecondary, fontSize: 13, marginBottom: SPACING.md }}>
+              Select correct face angle classification:
+            </Text>
+            <RadioButton.Group onValueChange={setMoveTarget} value={moveTarget}>
+              {['frontal', 'left', 'right', 'extra'].map(angle => (
+                <RadioButton.Item
+                  key={angle}
+                  label={`${angle.toUpperCase()} PROFILE`}
+                  value={angle}
+                  color={COLORS.appleBlue}
+                  uncheckedColor={COLORS.textTertiary}
+                  labelStyle={{ color: COLORS.textPrimary, fontSize: 13, fontWeight: '600' }}
+                  style={styles.radioItem}
+                />
+              ))}
+            </RadioButton.Group>
+          </Dialog.Content>
+          <Dialog.Actions>
+            <TouchableOpacity onPress={() => setShowMoveDialog(false)} style={{ paddingHorizontal: 12, paddingVertical: 6 }}>
+              <Text style={{ color: COLORS.textTertiary, fontWeight: '600', fontSize: 13 }}>Cancel</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={handleMovePhoto} style={{ paddingHorizontal: 12, paddingVertical: 6 }}>
+              <Text style={{ color: COLORS.appleBlue, fontWeight: '700', fontSize: 13 }}>Move</Text>
+            </TouchableOpacity>
+          </Dialog.Actions>
+        </Dialog>
+      </Portal>
+
+      <Snackbar
+        visible={snackVisible}
+        onDismiss={() => setSnackVisible(false)}
+        duration={3000}
+        style={{
+          backgroundColor: snackType === 'error' ? COLORS.errorContainer : COLORS.successContainer,
+          borderWidth: 1,
+          borderColor: snackType === 'error' ? COLORS.error + '40' : COLORS.success + '40',
+        }}
+      >
+        <Text style={{ color: snackType === 'error' ? COLORS.appleRed : COLORS.appleGreen, fontSize: 12, fontWeight: '700' }}>
+          {snackMessage}
+        </Text>
+      </Snackbar>
+    </View>
+  );
+}
+
+function AngleSection({ title, count, data, renderItem }) {
+  return (
+    <View>
+      <View style={styles.angleTitleRow}>
+        <MaterialCommunityIcons
+          name={title === 'FRONTAL' ? 'face-man' : title === 'LEFT' ? 'arrow-left-bold' : title === 'RIGHT' ? 'arrow-right-bold' : 'dots-horizontal'}
+          size={16}
+          color={COLORS.appleBlue}
+        />
+        <Text style={styles.angleTitleText}>
+          {title} PROFILE ({count})
+        </Text>
+      </View>
+      <FlatList
+        data={data}
+        renderItem={renderItem}
+        keyExtractor={item => item.filename}
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.photoList}
+      />
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.bgPrimary,
+  container: { flex: 1 },
+  scrollContent: { padding: SPACING.md },
+  appleWallpaperOrbPurple: {
+    position: 'absolute', top: -50, right: -50,
+    width: 250, height: 250, borderRadius: 125,
+    backgroundColor: 'rgba(94, 44, 165, 0.25)',
   },
-  scrollContent: {
-    padding: SPACING.md,
-    paddingBottom: SPACING.xxl,
-  },
-  header: {
-    marginBottom: SPACING.lg,
-  },
-  title: {
-    fontSize: FONT_SIZES.xl,
-    fontWeight: '700',
-    color: COLORS.textPrimary,
-  },
-  subtitle: {
-    fontSize: FONT_SIZES.sm,
-    color: COLORS.textSecondary,
-    marginTop: 2,
-  },
-  card: {
-    backgroundColor: COLORS.bgCard,
-    borderRadius: BORDER_RADIUS.md,
-    padding: SPACING.md,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    marginBottom: SPACING.lg,
-  },
-  cardTitle: {
-    fontSize: FONT_SIZES.md,
-    fontWeight: '600',
-    color: COLORS.textPrimary,
-    marginBottom: SPACING.md,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
-    paddingBottom: SPACING.xs,
-  },
-  cardDesc: {
-    color: COLORS.textSecondary,
-    fontSize: FONT_SIZES.sm,
-    lineHeight: 18,
+  profileHeaderGlass: {
+    ...APPLE_GLASS_STYLE,
+    padding: SPACING.md, flexDirection: 'row', alignItems: 'center', gap: 12,
     marginBottom: SPACING.md,
   },
-  inputLabel: {
-    fontSize: FONT_SIZES.xs,
-    color: COLORS.textSecondary,
-    fontWeight: '600',
-    letterSpacing: 1,
-    marginBottom: SPACING.xs,
+  avatarGlassCircle: {
+    width: 50, height: 50, borderRadius: 25,
+    backgroundColor: 'rgba(10, 132, 255, 0.15)', borderWidth: 1, borderColor: 'rgba(10, 132, 255, 0.35)',
+    justifyContent: 'center', alignItems: 'center',
   },
-  inputRow: {
-    flexDirection: 'row',
-    gap: SPACING.sm,
-    marginBottom: SPACING.sm,
+  profileTitle: { color: COLORS.textPrimary, fontSize: 18, fontWeight: '700' },
+  profileSubtitle: { color: COLORS.textSecondary, fontSize: 12 },
+  appleGlassCard: {
+    ...APPLE_GLASS_STYLE, padding: SPACING.md, marginBottom: SPACING.md,
   },
-  textInput: {
-    flex: 1,
-    backgroundColor: COLORS.bgInput,
-    borderRadius: BORDER_RADIUS.sm,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    color: COLORS.textPrimary,
-    paddingHorizontal: SPACING.md,
-    height: 40,
-    fontSize: FONT_SIZES.sm,
+  cardHeaderTitle: { color: COLORS.textPrimary, fontWeight: '700', fontSize: 13, letterSpacing: 0.5, marginBottom: 4 },
+  divider: { height: 1, backgroundColor: 'rgba(255, 255, 255, 0.08)', marginBottom: SPACING.md },
+  inputHeaderLabel: { color: COLORS.textSecondary, fontSize: 11, fontWeight: '700', letterSpacing: 0.5, marginBottom: 6 },
+  inputRow: { flexDirection: 'row', gap: 8, alignItems: 'center' },
+  glassInput: { flex: 1, backgroundColor: 'rgba(255, 255, 255, 0.04)' },
+  saveGlassBtn: {
+    paddingVertical: 10, paddingHorizontal: 16, borderRadius: BORDER_RADIUS.sm,
+    backgroundColor: 'rgba(255, 255, 255, 0.12)', borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.22)',
   },
-  saveBtn: {
-    backgroundColor: COLORS.bgCardHover,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    borderRadius: BORDER_RADIUS.sm,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: SPACING.md,
+  retrainAppleBtn: {
+    paddingVertical: 10, paddingHorizontal: 16, borderRadius: BORDER_RADIUS.sm,
+    backgroundColor: COLORS.appleBlue,
   },
-  saveBtnText: {
-    color: COLORS.textPrimary,
-    fontWeight: '600',
-    fontSize: FONT_SIZES.sm,
+  sectionHeaderTitle: {
+    color: COLORS.textSecondary, fontSize: 11, fontWeight: '700', letterSpacing: 1,
+    marginTop: SPACING.xs, marginBottom: SPACING.sm,
   },
-  retrainBtn: {
-    backgroundColor: COLORS.primary,
-    borderRadius: BORDER_RADIUS.sm,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: SPACING.md,
+  emptyText: { color: COLORS.textTertiary, fontSize: 13, textAlign: 'center' },
+  angleTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 6 },
+  angleTitleText: { color: COLORS.appleBlue, fontSize: 12, fontWeight: '700', letterSpacing: 0.5 },
+  photoList: { gap: 10 },
+  photoGlassCard: {
+    ...APPLE_GLASS_STYLE,
+    width: 105, overflow: 'hidden',
   },
-  retrainBtnText: {
-    color: COLORS.textPrimary,
-    fontWeight: '700',
-    fontSize: FONT_SIZES.sm,
+  photo: { width: 105, height: 105, resizeMode: 'cover' },
+  photoActionsRow: { flexDirection: 'row', justifyContent: 'center', padding: 2, gap: 2 },
+  photoActionGlassBtn: { backgroundColor: 'rgba(255, 255, 255, 0.12)', margin: 0, width: 32, height: 32 },
+  cardDescText: { color: COLORS.textSecondary, fontSize: 13, lineHeight: 18, marginBottom: SPACING.md },
+  appleDangerBtn: {
+    flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 8,
+    paddingVertical: 12, borderRadius: BORDER_RADIUS.full,
+    backgroundColor: 'rgba(255, 69, 58, 0.15)', borderWidth: 1, borderColor: 'rgba(255, 69, 58, 0.35)',
   },
-  disabledBtn: {
-    opacity: 0.5,
+  dangerBtnText: { color: COLORS.appleRed, fontSize: 13, fontWeight: '700' },
+  appleGlassDialog: {
+    backgroundColor: 'rgba(24, 26, 42, 0.90)', borderRadius: BORDER_RADIUS.lg,
+    borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.20)',
+    borderTopColor: 'rgba(255, 255, 255, 0.42)',
   },
-  sectionTitle: {
-    fontSize: FONT_SIZES.lg,
-    fontWeight: '700',
-    color: COLORS.textPrimary,
-    marginBottom: SPACING.md,
-  },
-  angleTitle: {
-    fontSize: FONT_SIZES.xs,
-    fontWeight: '700',
-    color: COLORS.primaryLight,
-    letterSpacing: 1,
-    marginBottom: SPACING.xs,
-  },
-  photoList: {
-    paddingVertical: SPACING.xs,
-    gap: SPACING.sm,
-  },
-  photoCard: {
-    backgroundColor: COLORS.bgInput,
-    borderRadius: BORDER_RADIUS.sm,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    overflow: 'hidden',
-    width: 100,
-  },
-  photo: {
-    width: 100,
-    height: 100,
-    resizeMode: 'cover',
-  },
-  photoActions: {
-    padding: 4,
-    gap: 4,
-  },
-  photoActionBtn: {
-    paddingVertical: 4,
-    alignItems: 'center',
-    borderRadius: BORDER_RADIUS.sm,
-    backgroundColor: COLORS.bgCard,
-  },
-  photoActionText: {
-    fontSize: 10,
-    fontWeight: '600',
-    color: COLORS.textSecondary,
-  },
-  photoDeleteBtn: {
-    backgroundColor: 'rgba(239, 68, 68, 0.05)',
-  },
-  emptyCard: {
-    backgroundColor: COLORS.bgCard,
-    borderRadius: BORDER_RADIUS.md,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    padding: SPACING.lg,
-    alignItems: 'center',
-  },
-  emptyText: {
-    color: COLORS.textTertiary,
-    fontSize: FONT_SIZES.sm,
-  },
-  dangerBtn: {
-    backgroundColor: 'rgba(239, 68, 68, 0.08)',
-    borderWidth: 1,
-    borderColor: 'rgba(239, 68, 68, 0.3)',
-    borderRadius: BORDER_RADIUS.md,
-    paddingVertical: 12,
-    alignItems: 'center',
-  },
-  dangerBtnText: {
-    color: COLORS.error,
-    fontWeight: '700',
-    fontSize: FONT_SIZES.md,
-  },
-  // Modal styles
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.6)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: SPACING.lg,
-  },
-  modalContent: {
-    backgroundColor: COLORS.bgCard,
-    borderRadius: BORDER_RADIUS.lg,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    padding: SPACING.lg,
-    width: '100%',
-    maxWidth: 320,
-  },
-  modalTitle: {
-    fontSize: FONT_SIZES.md,
-    fontWeight: '700',
-    color: COLORS.textPrimary,
-    marginBottom: SPACING.xs,
-  },
-  modalDesc: {
-    fontSize: FONT_SIZES.sm,
-    color: COLORS.textSecondary,
-    marginBottom: SPACING.md,
-    lineHeight: 18,
-  },
-  modalOption: {
-    backgroundColor: COLORS.bgInput,
-    borderRadius: BORDER_RADIUS.sm,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    paddingVertical: 12,
-    alignItems: 'center',
-    marginBottom: SPACING.sm,
-  },
-  selectedOption: {
-    borderColor: COLORS.primary,
-    backgroundColor: 'rgba(79, 70, 229, 0.08)',
-  },
-  modalOptionText: {
-    color: COLORS.textSecondary,
-    fontSize: FONT_SIZES.sm,
-    fontWeight: '600',
-  },
-  selectedOptionText: {
-    color: COLORS.primaryLight,
-  },
-  modalCancel: {
-    paddingVertical: 12,
-    alignItems: 'center',
-    marginTop: SPACING.xs,
-  },
-  modalCancelText: {
-    color: COLORS.textTertiary,
-    fontSize: FONT_SIZES.sm,
-    fontWeight: '600',
-  },
+  radioItem: { paddingVertical: 2 },
 });
