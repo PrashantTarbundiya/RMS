@@ -1,6 +1,6 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react'
 import axios from 'axios'
-import { Camera, Image as ImageIcon, Video, RefreshCw, Maximize, Play, X, AlertCircle } from 'lucide-react'
+import { Camera, Image as ImageIcon, Video, RefreshCw, Maximize, Play, X, AlertCircle, ThumbsUp, ThumbsDown, Check } from 'lucide-react'
 
 import { API_BASE } from '../config'
 
@@ -15,6 +15,7 @@ export default function TestPage() {
   const [webcamReady, setWebcamReady] = useState(false)
   const [isDragActive, setIsDragActive] = useState(false)
   const [includeDeepFace, setIncludeDeepFace] = useState(false)
+  const [feedbackState, setFeedbackState] = useState({}) // track feedback status per prediction_id
   
   const webcamRef = useRef(null)
   const imgRef = useRef(null)
@@ -202,6 +203,26 @@ export default function TestPage() {
       }
     } finally {
       setLoading(false)
+    }
+  }
+
+  const submitFeedback = async (predictionId, isCorrect, predictedName) => {
+    let correctName = ''
+    if (!isCorrect) {
+      correctName = prompt(`Incorrect prediction. Who is this actually?\n(Leave blank if unknown)`)
+      if (correctName === null) return // cancelled
+    }
+    
+    try {
+      await axios.post(`${API_BASE}/predict/feedback`, {
+        prediction_id: predictionId,
+        is_correct: isCorrect,
+        correct_name: correctName
+      })
+      setFeedbackState(prev => ({ ...prev, [predictionId]: 'success' }))
+    } catch (err) {
+      console.error(err)
+      alert("Failed to submit feedback")
     }
   }
 
@@ -505,8 +526,38 @@ export default function TestPage() {
                                  {isConfirmed ? '✓' : '✗'}
                                </div>
                              </div>
-                             <div style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)', marginTop: '6px' }}>
-                               {displayMethod} · Status: {(face.ensemble?.confidence_level || 'N/A').toUpperCase()}
+
+                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+                               <div style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)' }}>
+                                 {displayMethod} · Status: {(face.ensemble?.confidence_level || 'N/A').toUpperCase()}
+                               </div>
+                               
+                               {face.prediction_id && (
+                                 <div style={{ display: 'flex', gap: '8px' }}>
+                                    {feedbackState[face.prediction_id] === 'success' ? (
+                                      <span style={{ color: 'var(--success)', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                        <Check size={14} /> Feedback saved
+                                      </span>
+                                    ) : (
+                                      <>
+                                        <button 
+                                          onClick={() => submitFeedback(face.prediction_id, true, displayLabel)}
+                                          style={{ background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '4px', padding: '4px 8px', cursor: 'pointer', color: 'var(--success)' }}
+                                          title="Correct"
+                                        >
+                                          <ThumbsUp size={16} />
+                                        </button>
+                                        <button 
+                                          onClick={() => submitFeedback(face.prediction_id, false, displayLabel)}
+                                          style={{ background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '4px', padding: '4px 8px', cursor: 'pointer', color: 'var(--error)' }}
+                                          title="Incorrect"
+                                        >
+                                          <ThumbsDown size={16} />
+                                        </button>
+                                      </>
+                                    )}
+                                 </div>
+                               )}
                              </div>
                            </div>
 
@@ -550,34 +601,16 @@ export default function TestPage() {
   )
 }
 
-function PredictionRow({ model, label, conf }) {
-  const confPercent = (conf * 100).toFixed(1)
-  
-  // Decide color based on confidence and training status
-  let barColor = 'var(--accent-2)' // red-ish
-  if (label.includes('UNTRAINED') || label.includes('Not Trained') || label.includes('Error')) {
-     barColor = 'var(--text-secondary)'
-  } else if (confPercent > 80) {
-     barColor = 'var(--success)'
-  } else if (confPercent > 50) {
-     barColor = 'var(--accent-1)' // cyan
-  }
+function PredictionRow({ model, label }) {
+  let isTrained = !label.includes('UNTRAINED') && !label.includes('Not Trained') && !label.includes('Error')
 
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', marginBottom: '4px' }}>
          <span style={{ color: 'var(--text-secondary)' }}>{model}</span>
-         <span style={{ fontWeight: '500', color: label.includes('UNTRAINED') ? 'var(--text-secondary)' : '#fff' }}>
+         <span style={{ fontWeight: '500', color: !isTrained ? 'var(--text-secondary)' : '#fff' }}>
            {label}
          </span>
-      </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-        <div style={{ flex: 1, height: '6px', background: 'rgba(255,255,255,0.1)', borderRadius: '3px', overflow: 'hidden' }}>
-           <div style={{ height: '100%', width: `${Math.min(100, Math.max(0, confPercent))}%`, background: barColor, transition: 'width 0.5s ease' }} />
-        </div>
-        <span style={{ fontSize: '0.8rem', color: barColor, width: '40px', textAlign: 'right' }}>
-           {confPercent}%
-        </span>
       </div>
     </div>
   )

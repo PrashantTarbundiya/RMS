@@ -249,7 +249,7 @@ export default function UploadPage() {
         setStatus({ type: 'success', message: res.data.message })
         setPersonName('')
         setImages({ front_img: [], left_img: [], right_img: [], extra_files: [] })
-        setTimeout(() => navigate('/training'), 800)
+        setTimeout(() => navigate('/training'), 3000)
       } catch (err) {
         console.error(err)
         setStatus({ 
@@ -267,7 +267,7 @@ export default function UploadPage() {
         })
         setStatus({ type: 'success', message: res.data.message })
         setPersonName('')
-        setTimeout(() => navigate('/training'), 800)
+        setTimeout(() => navigate('/training'), 3000)
       } catch (err) {
         console.error(err)
         setStatus({

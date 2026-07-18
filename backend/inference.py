@@ -10,6 +10,7 @@ from deepface import DeepFace
 from scipy.spatial.distance import cosine
 from collections import Counter, OrderedDict
 from face_detection import SideFaceDetector
+from config_utils import get_confirm_threshold
 
 # Path constants
 BACKEND_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -29,12 +30,8 @@ KNN_K = 5
 RATIO_TEST = 0.80
 
 # ── Binary Classification Thresholds ──
-# For gate camera: either CONFIRMED or NOT FOUND. No ambiguity.
-# CONFIRM_THRESHOLD: below this = definite match (high confidence)
-# MAX_DISTANCE:      above this = definite rejection
-# Between them = uncertain, treated as NOT FOUND (safety first)
-CONFIRM_THRESHOLD = 0.35   # Only distances below this are confirmed
-MAX_DISTANCE = 0.50        # Anything above is rejected outright
+# CONFIRM_THRESHOLD is now dynamically loaded from config
+MAX_DISTANCE = 0.65        # Increased to 0.65 to allow lenient sideface thresholds
 # ===============================================================
 
 # Global variables for threading
@@ -213,7 +210,7 @@ def find_match_knn(embedding, known_encodings, known_names, k=KNN_K, max_dist=MA
     Returns:
         tuple: (name, distance, confidence_level)
         confidence_level is one of:
-          - 'confirmed'  : distance < CONFIRM_THRESHOLD, passed all gates
+        - 'confirmed'  : distance < get_confirm_threshold(), passed all gates
           - 'rejected'   : failed one or more gates
     
     For gate camera: only 'confirmed' results should be displayed.
@@ -267,11 +264,12 @@ def find_match_knn(embedding, known_encodings, known_names, k=KNN_K, max_dist=MA
     winner_dist = min(dist for dist, name in distances if name == winner)
 
     # --- Gate 4: Binary classification ---
-    # Only distances below CONFIRM_THRESHOLD are truly confirmed
-    if winner_dist <= CONFIRM_THRESHOLD:
+    # Only distances below the configured threshold are truly confirmed
+    confirm_threshold = get_confirm_threshold()
+    if winner_dist <= confirm_threshold:
         return winner, winner_dist, "confirmed"
     else:
-        # Between CONFIRM_THRESHOLD and MAX_DISTANCE = uncertain = reject
+        # Between confirm_threshold and MAX_DISTANCE = uncertain = reject
         return "Unknown", winner_dist, "rejected"
 
 

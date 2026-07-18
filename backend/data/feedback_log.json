@@ -1,0 +1,112 @@
+[
+  {
+    "prediction_id": "b3f6392a-5e5",
+    "timestamp": "2026-07-19T00:31:59.057792",
+    "predicted_name": "vatsal_vadgama",
+    "is_correct": true,
+    "correct_name": null,
+    "distance": 1.0,
+    "action_taken": "verified_boost",
+    "message": "Boosted embedding for vatsal_vadgama (+2 copies)"
+  },
+  {
+    "prediction_id": "9649f368-677",
+    "timestamp": "2026-07-19T00:32:08.197484",
+    "predicted_name": "Unknown",
+    "is_correct": false,
+    "correct_name": null,
+    "distance": null,
+    "action_taken": "acknowledged",
+    "message": "Feedback recorded"
+  },
+  {
+    "prediction_id": "c1f5c9b4-e61",
+    "timestamp": "2026-07-19T00:32:11.077670",
+    "predicted_name": "Unknown",
+    "is_correct": false,
+    "correct_name": null,
+    "distance": null,
+    "action_taken": "acknowledged",
+    "message": "Feedback recorded"
+  },
+  {
+    "prediction_id": "d6a88155-003",
+    "timestamp": "2026-07-19T00:32:17.418017",
+    "predicted_name": "Unknown",
+    "is_correct": false,
+    "correct_name": null,
+    "distance": null,
+    "action_taken": "acknowledged",
+    "message": "Feedback recorded"
+  },
+  {
+    "prediction_id": "8e04aed2-933",
+    "timestamp": "2026-07-19T00:32:39.911809",
+    "predicted_name": "vatsal_vadgama",
+    "is_correct": true,
+    "correct_name": null,
+    "distance": 1.0,
+    "action_taken": "verified_boost",
+    "message": "Boosted embedding for vatsal_vadgama (+2 copies)"
+  },
+  {
+    "prediction_id": "60311cb0-6fd",
+    "timestamp": "2026-07-19T00:33:01.017396",
+    "predicted_name": "vatsal_vadgama",
+    "is_correct": true,
+    "correct_name": null,
+    "distance": 1.0,
+    "action_taken": "verified_boost",
+    "message": "Boosted embedding for vatsal_vadgama (+2 copies)"
+  },
+  {
+    "prediction_id": "c53d4499-1e2",
+    "timestamp": "2026-07-19T00:34:37.469666",
+    "predicted_name": "Unknown",
+    "is_correct": true,
+    "correct_name": null,
+    "distance": null,
+    "action_taken": "acknowledged",
+    "message": "Unknown prediction confirmed as correct (no person nearby)"
+  },
+  {
+    "prediction_id": "0bf74bf3-c78",
+    "timestamp": "2026-07-19T00:35:00.836510",
+    "predicted_name": "Unknown",
+    "is_correct": true,
+    "correct_name": null,
+    "distance": null,
+    "action_taken": "acknowledged",
+    "message": "Unknown prediction confirmed as correct (no person nearby)"
+  },
+  {
+    "prediction_id": "e527acb1-4a3",
+    "timestamp": "2026-07-19T00:35:19.681623",
+    "predicted_name": "vatsal_vadgama",
+    "is_correct": true,
+    "correct_name": null,
+    "distance": 1.0,
+    "action_taken": "verified_boost",
+    "message": "Boosted embedding for vatsal_vadgama (+2 copies)"
+  },
+  {
+    "prediction_id": "59e06121-581",
+    "timestamp": "2026-07-19T00:36:23.618970",
+    "predicted_name": "vatsal_vadgama",
+    "is_correct": true,
+    "correct_name": null,
+    "distance": 1.0,
+    "action_taken": "verified_boost",
+    "message": "Boosted embedding for vatsal_vadgama (+2 copies)"
+  },
+  {
+    "prediction_id": "20068e0b-6f9",
+    "timestamp": "2026-07-19T00:36:32.486748",
+    "predicted_name": "Unknown",
+    "is_correct": false,
+    "correct_name": null,
+    "distance": null,
+    "action_taken": "acknowledged",
+    "message": "Feedback recorded"
+  }
+]

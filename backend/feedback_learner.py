@@ -18,8 +18,10 @@ import time
 import pickle
 import uuid
 import numpy as np
+import cv2
 from datetime import datetime
 from scipy.spatial.distance import cosine
+from add_person_utils import check_image_quality, recompute_person_embeddings
 
 BACKEND_DIR = os.path.dirname(os.path.abspath(__file__))
 ENCODINGS_PATH = os.path.join(BACKEND_DIR, 'data', 'encodings.pickle')
@@ -70,13 +72,14 @@ def generate_prediction_id():
     return str(uuid.uuid4())[:12]
 
 
-def store_prediction_for_feedback(prediction_id, embedding, predicted_name, distance):
+def store_prediction_for_feedback(prediction_id, embedding, predicted_name, distance, face_img=None):
     """
-    Temporarily store the embedding from a prediction so feedback can reference it.
+    Temporarily store the embedding and face image from a prediction so feedback can reference it.
     Uses an in-memory cache with TTL (predictions expire after 10 minutes).
     """
     _prediction_cache[prediction_id] = {
         'embedding': embedding,
+        'face_img': face_img,
         'predicted_name': predicted_name,
         'distance': distance,
         'timestamp': time.time()
@@ -131,15 +134,39 @@ def process_feedback(prediction_id, is_correct, correct_name=None):
     action_taken = 'none'
     message = ''
     
+    target_name = correct_name if not is_correct else predicted_name
+    added_to_dataset = False
+    
+    # Check if we should add the image to the dataset for retraining
+    if is_correct and face_img is not None and target_name != "Unknown":
+        # Only add high quality images
+        is_valid, issues = check_image_quality(face_img)
+        if is_valid:
+            try:
+                # Save image to dataset
+                person_dir = os.path.join(BACKEND_DIR, 'dataset', target_name)
+                os.makedirs(person_dir, exist_ok=True)
+                img_path = os.path.join(person_dir, f'feedback_{prediction_id}.jpg')
+                cv2.imwrite(img_path, face_img)
+                
+                # Update embeddings only for this person
+                recompute_person_embeddings(target_name)
+                added_to_dataset = True
+                print(f"✅ Feedback Learner: Added high quality feedback image for {target_name}.")
+            except Exception as e:
+                print(f"❌ Feedback Learner: Error saving feedback image for {target_name}: {e}")
+        else:
+            print(f"⚠️ Feedback Learner: Feedback image for {target_name} ignored due to quality: {issues}")
+
     if is_correct:
         # ═══ POSITIVE FEEDBACK: Boost this embedding ═══
-        # Add extra copies of this embedding to increase its KNN weight
         if predicted_name and predicted_name != "Unknown":
-            for _ in range(VERIFIED_BOOST_COPIES):
+            boost_copies = VERIFIED_BOOST_COPIES if not added_to_dataset else 1
+            for _ in range(boost_copies):
                 encodings.append(embedding)
                 names.append(predicted_name)
             action_taken = 'verified_boost'
-            message = f'Boosted embedding for {predicted_name} (+{VERIFIED_BOOST_COPIES} copies)'
+            message = f'Boosted embedding for {predicted_name} (+{boost_copies} copies)'
         else:
             action_taken = 'acknowledged'
             message = 'Unknown prediction confirmed as correct (no person nearby)'

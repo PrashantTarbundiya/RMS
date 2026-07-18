@@ -1,6 +1,7 @@
 import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { StatusBar } from 'expo-status-bar';
 import { View, StyleSheet } from 'react-native';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -16,8 +17,10 @@ import ModelsScreen from './src/screens/ModelsScreen';
 import ManagePersonScreen from './src/screens/ManagePersonScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
 import SupportScreen from './src/screens/SupportScreen';
+import CameraCaptureScreen from './src/screens/CameraCaptureScreen';
 
 const Tab = createBottomTabNavigator();
+const Stack = createNativeStackNavigator();
 
 const TAB_ICONS = {
   Dashboard: { focused: 'view-dashboard', unfocused: 'view-dashboard-outline' },
@@ -167,7 +170,14 @@ export default function App() {
       <PaperProvider theme={paperTheme}>
         <NavigationContainer theme={navigationTheme}>
           <StatusBar style="dark" />
-          <MainTabs />
+          <Stack.Navigator screenOptions={{ headerShown: false }}>
+            <Stack.Screen name="Root" component={MainTabs} />
+            <Stack.Screen 
+              name="CameraCapture" 
+              component={CameraCaptureScreen} 
+              options={{ presentation: 'fullScreenModal' }}
+            />
+          </Stack.Navigator>
         </NavigationContainer>
       </PaperProvider>
     </SafeAreaProvider>

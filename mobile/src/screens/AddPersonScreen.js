@@ -7,43 +7,30 @@ import {
   Text, TextInput, Snackbar, ActivityIndicator,
 } from 'react-native-paper';
 import * as ImagePicker from 'expo-image-picker';
-import { CameraView, useCameraPermissions } from 'expo-camera';
+
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { COLORS, SPACING, FONT_SIZES, BORDER_RADIUS, APPLE_GLASS_STYLE } from '../theme';
 import { uploadPerson, pingServer } from '../services/api';
 
 export default function AddPersonScreen() {
-  const [permission, requestPermission] = useCameraPermissions();
+  const route = useNavigation().getState().routes.find(r => r.name === 'AddPerson');
   const [personName, setPersonName] = useState('');
   const [epochs, setEpochs] = useState('5');
   const [images, setImages] = useState([]);
-  const [showCamera, setShowCamera] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [status, setStatus] = useState(null);
   const [snackVisible, setSnackVisible] = useState(false);
 
-  const [webStream, setWebStream] = useState(null);
-  const webVideoRef = useRef(null);
-  const cameraRef = useRef(null);
-
   const navigation = useNavigation();
 
+  // Handle return from CameraCaptureScreen
   useEffect(() => {
-    return () => {
-      if (Platform.OS === 'web' && webStream) {
-        webStream.getTracks().forEach(track => track.stop());
-      }
-      navigation.setOptions({ tabBarStyle: undefined });
-    };
-  }, [webStream, navigation]);
-
-  useEffect(() => {
-    if (showCamera) {
-      navigation.setOptions({ tabBarStyle: { display: 'none' } });
-    } else {
-      navigation.setOptions({ tabBarStyle: undefined });
+    if (route?.params?.capturedImage) {
+      setImages(prev => [...prev, route.params.capturedImage]);
+      // Clear the param
+      navigation.setParams({ capturedImage: undefined });
     }
-  }, [showCamera, navigation]);
+  }, [route?.params?.capturedImage]);
 
   async function pickImages() {
     try {
@@ -57,48 +44,8 @@ export default function AddPersonScreen() {
     } catch (err) { showStatus('error', 'Gallery failed: ' + err.message); }
   }
 
-  async function openCamera() {
-    if (Platform.OS === 'web') {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } }
-        });
-        setWebStream(stream);
-        setShowCamera(true);
-        setTimeout(() => { if (webVideoRef.current) webVideoRef.current.srcObject = stream; }, 300);
-      } catch { showStatus('error', 'Camera not available.'); }
-      return;
-    }
-    try {
-      if (!permission?.granted) {
-        const res = await requestPermission();
-        if (res.granted) setShowCamera(true);
-        else showStatus('error', 'Camera permission required.');
-      } else { setShowCamera(true); }
-    } catch (err) { showStatus('error', 'Camera error: ' + err.message); }
-  }
-
-  async function takePicture() {
-    if (Platform.OS === 'web') {
-      if (!webVideoRef.current || !webStream) return;
-      try {
-        const canvas = document.createElement('canvas');
-        canvas.width = webVideoRef.current.videoWidth || 640;
-        canvas.height = webVideoRef.current.videoHeight || 480;
-        canvas.getContext('2d').drawImage(webVideoRef.current, 0, 0);
-        setImages(prev => [...prev, canvas.toDataURL('image/jpeg')]);
-        setShowCamera(false);
-        webStream.getTracks().forEach(t => t.stop());
-        setWebStream(null);
-      } catch (err) { console.warn(err); }
-      return;
-    }
-    if (!cameraRef.current) return;
-    try {
-      const photo = await cameraRef.current.takePictureAsync({ quality: 0.8 });
-      setImages(prev => [...prev, photo.uri]);
-      setShowCamera(false);
-    } catch (err) { showStatus('error', 'Capture failed: ' + err.message); }
+  function openCamera() {
+    navigation.navigate('CameraCapture', { returnScreen: 'AddPerson' });
   }
 
   function removeImage(index) { setImages(prev => prev.filter((_, i) => i !== index)); }
@@ -131,34 +78,7 @@ export default function AddPersonScreen() {
     finally { setUploading(false); }
   }
 
-  // Camera fullscreen view
-  if (showCamera) {
-    return (
-      <View style={{ flex: 1, backgroundColor: '#000' }}>
-        {Platform.OS === 'web' ? (
-          <View style={{ flex: 1 }}>
-            <video ref={webVideoRef} autoPlay playsInline muted style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-          </View>
-        ) : (
-          <CameraView ref={cameraRef} style={{ flex: 1 }} facing="front" />
-        )}
-        <View style={styles.cameraBottomBar}>
-          <TouchableOpacity style={styles.cameraCancelBtn} onPress={() => {
-            setShowCamera(false);
-            if (webStream) { webStream.getTracks().forEach(t => t.stop()); setWebStream(null); }
-          }}>
-            <Text style={{ color: '#FFF', fontWeight: '600', fontSize: 14 }}>Cancel</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.cameraCaptureBtn} onPress={takePicture}>
-            <View style={styles.cameraCaptureInner}>
-              <MaterialCommunityIcons name="camera" size={28} color="#FFF" />
-            </View>
-          </TouchableOpacity>
-          <View style={{ width: 70 }} />
-        </View>
-      </View>
-    );
-  }
+
 
   const nameValid = personName.trim().length > 0;
   const readyToSubmit = nameValid && images.length > 0 && !uploading;

@@ -1,6 +1,6 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import axios from 'axios'
-import { Download, Trash2, Box, Cpu, HardDrive, AlertTriangle } from 'lucide-react'
+import { Download, Trash2, Box, Cpu, AlertTriangle, Settings, Save } from 'lucide-react'
 
 import { API_BASE } from '../config'
 
@@ -9,6 +9,36 @@ export default function ModelsPage() {
   const [isExporting, setIsExporting] = useState(false)
   const [isResetting, setIsResetting] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
+  
+  // Config state
+  const [config, setConfig] = useState(null)
+  const [threshold, setThreshold] = useState(0.35)
+  const [isSavingConfig, setIsSavingConfig] = useState(false)
+
+  useEffect(() => {
+    // Load config on mount
+    axios.get(`${API_BASE}/config`).then(res => {
+      setConfig(res.data)
+      setThreshold(res.data.CONFIRM_THRESHOLD || 0.35)
+    }).catch(err => console.error("Failed to load config", err))
+  }, [])
+
+  const handleSaveConfig = async () => {
+    setIsSavingConfig(true)
+    try {
+      const res = await axios.post(`${API_BASE}/config`, {
+        ...config,
+        CONFIRM_THRESHOLD: threshold
+      })
+      setConfig(res.data)
+      setStatus({ type: 'success', message: 'Configuration saved successfully.' })
+    } catch (err) {
+      console.error(err)
+      setStatus({ type: 'error', message: 'Failed to save configuration.' })
+    } finally {
+      setIsSavingConfig(false)
+    }
+  }
 
   const handleExport = async () => {
     setIsExporting(true)
@@ -104,8 +134,53 @@ export default function ModelsPage() {
         </div>
       </div>
 
+
+
       <div className="card-grid" style={{ marginTop: '2rem' }}>
         
+        {/* System Settings Section */}
+        <div className="glass-panel" style={{ padding: '2rem', gridColumn: '1 / -1' }}>
+          <h3 style={{ marginBottom: '1rem', color: 'var(--accent-cyan)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Settings size={20} /> System Settings
+          </h3>
+          <p style={{ color: 'var(--text-secondary)', marginBottom: '1.5rem', fontSize: '0.9rem', lineHeight: 1.5 }}>
+            Adjust global recognition parameters. The confirmation threshold determines how strict the AI is when verifying identity.
+          </p>
+          
+          <div style={{ background: 'rgba(0,0,0,0.2)', padding: '1.5rem', borderRadius: '8px', border: '1px solid var(--border)' }}>
+             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+               <label style={{ fontWeight: '600' }}>DeepFace Confirmation Threshold</label>
+               <span style={{ color: 'var(--accent-1)', fontWeight: 'bold' }}>{threshold.toFixed(2)}</span>
+             </div>
+             <p style={{ fontSize: '0.8rem', color: 'var(--text-tertiary)', marginBottom: '1rem' }}>
+               Lower values = Stricter matching (fewer false positives). Higher values = Looser matching (fewer false negatives). Default is 0.35.
+             </p>
+             <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+               <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>0.10 (Strict)</span>
+               <input 
+                 type="range" 
+                 min="0.10" 
+                 max="0.50" 
+                 step="0.01" 
+                 value={threshold} 
+                 onChange={(e) => setThreshold(parseFloat(e.target.value))}
+                 style={{ flex: 1, accentColor: 'var(--accent-cyan)' }}
+               />
+               <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>0.50 (Loose)</span>
+             </div>
+             <div style={{ marginTop: '1.5rem', display: 'flex', justifyContent: 'flex-end' }}>
+               <button 
+                 className="btn btn-primary" 
+                 onClick={handleSaveConfig}
+                 disabled={isSavingConfig || (config && threshold === config.CONFIRM_THRESHOLD)}
+               >
+                 <Save size={16} style={{ marginRight: '6px' }} />
+                 {isSavingConfig ? 'Saving...' : 'Save Configuration'}
+               </button>
+             </div>
+          </div>
+        </div>
+
         {/* Export Section */}
         <div className="glass-panel" style={{ padding: '2rem' }}>
           <h3 style={{ marginBottom: '1rem', color: 'var(--accent-teal)' }}>Export & Download</h3>

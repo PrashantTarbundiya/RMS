@@ -178,8 +178,112 @@ def update_deepface_model(person_name, image_paths, encodings_path=None):
 
     return existing_encodings, existing_names, new_count
 
+def recompute_person_embeddings(person_name):
+    """
+    Given a person's name, scan their dataset folder and recompute embeddings.
+    Useful for feedback loops where a single image is added to the folder.
+    It removes their old embeddings and recalculates them.
+    """
+    print(f"🔄 Recomputing embeddings for '{person_name}'...")
+    
+    person_dir = os.path.join(BACKEND_DIR, 'dataset', person_name)
+    if not os.path.exists(person_dir):
+        print(f"❌ Cannot recompute: folder for {person_name} does not exist.")
+        return
+        
+    image_paths = [
+        os.path.join(person_dir, f) for f in os.listdir(person_dir)
+        if f.lower().endswith(('.jpg', '.jpeg', '.png'))
+    ]
+    
+    if not image_paths:
+        print(f"⚠️ No images found for {person_name}.")
+        return
 
-# ============================================================================
+    # Load existing
+    encodings_path = os.path.join(BACKEND_DIR, 'data', 'encodings.pickle')
+    existing_encodings = []
+    existing_names = []
+    if os.path.exists(encodings_path):
+        with open(encodings_path, "rb") as f:
+            data = pickle.load(f)
+            existing_encodings = data.get("encodings", [])
+            existing_names = data.get("names", [])
+
+    # Filter out old embeddings for this person
+    filtered_encodings = []
+    filtered_names = []
+    for enc, name in zip(existing_encodings, existing_names):
+        if name != person_name:
+            filtered_encodings.append(enc)
+            filtered_names.append(name)
+            
+    existing_encodings = filtered_encodings
+    existing_names = filtered_names
+    
+    # Detector setup
+    detector = SideFaceDetector()
+    new_count = 0
+    
+    for img_path in image_paths:
+        try:
+            image = cv2.imread(img_path)
+            if image is None: continue
+            
+            is_valid, _ = check_image_quality(image)
+            if not is_valid: continue
+            
+            faces = detector.detect(image)
+            if not faces:
+                h, w = image.shape[:2]
+                faces = [(0, 0, w, h)]
+                
+            x, y, w, h = faces[0]
+            margin_x, margin_y = int(w * 0.15), int(h * 0.15)
+            x1, y1 = max(0, x - margin_x), max(0, y - margin_y)
+            x2, y2 = min(image.shape[1], x + w + margin_x), min(image.shape[0], y + h + margin_y)
+            face_crop = image[y1:y2, x1:x2]
+            
+            face_crop = apply_clahe(face_crop)
+            embedding = get_embedding(face_crop)
+            
+            if embedding:
+                existing_encodings.append(embedding)
+                existing_names.append(person_name)
+                new_count += 1
+                
+                # Few augments
+                augments = generate_augments(face_crop, num_augments=2)
+                for aug_img in augments:
+                    aug_embedding = get_embedding(aug_img)
+                    if aug_embedding:
+                        existing_encodings.append(aug_embedding)
+                        existing_names.append(person_name)
+                        new_count += 1
+        except Exception as e:
+            print(f"   ❌ Error recomputing {img_path}: {e}")
+            
+    detector.close()
+    
+    # Save
+    data = {
+        "encodings": existing_encodings,
+        "names": existing_names,
+        "model_used": "Facenet512",
+        "version": "2.0-lightweight"
+    }
+    with open(encodings_path, "wb") as f:
+        pickle.dump(data, f)
+        
+    # Trigger live reload in server
+    from inference import global_encodings, global_names
+    global_encodings.clear()
+    global_names.clear()
+    global_encodings.extend(existing_encodings)
+    global_names.extend(existing_names)
+    
+    print(f"✅ Recomputed {new_count} embeddings for {person_name}. Live reload complete.")
+
 
 # ============================================================================
 # 2. SOTA MobileNetV2 — Expand Head + Quick Fine-Tune
@@ -404,10 +508,10 @@ def clean_and_save_face(img_bgr, output_path, margin_ratio=0.20):
 
 
 # ============================================================================
-# MASTER FUNCTION: Save images + clean + update all 3 models
+# MASTER FUNCTION: Save images + clean + update DeepFace (Synchronous/Fast)
 # ============================================================================
 
-def add_person_to_all_models(person_name, image_data_list, dataset_dir=None, num_epochs=5):
+def add_person_fast(person_name, image_data_list, dataset_dir=None):
     if dataset_dir is None:
         dataset_dir = os.path.join(PROJECT_ROOT, 'dataset_cleaned')
     """
@@ -498,10 +602,5 @@ def add_person_to_all_models(person_name, image_data_list, dataset_dir=None, num
             status_parts.append(f"✅ **DeepFace**: Added {num_added} embeddings (total: {len(new_encs)})")
         except Exception as e:
             status_parts.append(f"⚠️ **DeepFace**: Error — {e}")
-
-    # 4. Update SOTA MobileNetV2 (quick fine-tune)
-    # [EDGE DEVICE OPTIMIZATION] - Disabled PyTorch fine-tuning which takes ~1hr on CPU.
-    # New persons will be instantly classified via the DeepFace KNN fallback.
-    status_parts.append(f"⚡ **SOTA MobileNetV2**: Skipped PyTorch fine-tune for Edge performance")
 
     return "\n\n".join(status_parts)

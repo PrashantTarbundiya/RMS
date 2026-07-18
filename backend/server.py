@@ -69,7 +69,15 @@ MAX_FILES_PER_UPLOAD = 20
 MAX_NAME_LENGTH = 50
 MAX_IMAGE_DIMENSION = 1024  # Resize uploads larger than this
 
-def _allowed_file(filename):
+def _allowed_file(file_obj):
+    # React Native often sends files with valid mimetypes but no extension (e.g. filename='image')
+    if hasattr(file_obj, 'mimetype') and file_obj.mimetype and file_obj.mimetype.startswith('image/'):
+        return True
+    
+    filename = getattr(file_obj, 'filename', '')
+    if isinstance(file_obj, str):
+        filename = file_obj
+        
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 _VALID_NAME_PATTERN = re.compile(r'^[A-Za-z0-9_-]+$')
@@ -378,8 +386,8 @@ def upload_person():
     
     def process_upload(file_storage, angle_label):
         nonlocal rejected_count
-        if file_storage and file_storage.filename != '':
-            if not _allowed_file(file_storage.filename):
+        if file_storage:
+            if not _allowed_file(file_storage):
                 rejected_count += 1
                 logger.warning(f"Rejected non-image file: {file_storage.filename}")
                 return
@@ -416,19 +424,33 @@ def upload_person():
         return jsonify({'error': 'No valid images provided'}), 400
 
     if training_status['is_training']:
-        return jsonify({'error': 'Training is currently running. Please wait.'}), 409
+        return jsonify({'error': 'A model refinement is currently running in the background. Please wait for it to finish.'}), 409
 
-    # Start training in background thread
-    thread = threading.Thread(target=run_training_pipeline, args=(person_name, image_data_list, epochs))
+    # Execute fast enrollment synchronously
+    try:
+        from add_person_utils import add_person_fast
+        print(f"--- Starting fast enrollment for {person_name} ---")
+        result_msg = add_person_fast(person_name, image_data_list, dataset_dir=DATASET_CLEANED_DIR)
+        print("\n--- Fast Enrollment Completed ---")
+        print(result_msg)
+        
+        # Hot reload DeepFace immediately for instant usability
+        reload_models()
+    except Exception as e:
+        logger.error(f"Fast enrollment error: {e}")
+        return jsonify({'error': f"Failed during fast enrollment: {str(e)}"}), 500
+
+    # Start MobileNetV2 fine-tuning in background thread
+    thread = threading.Thread(target=run_sota_finetune_pipeline, args=(person_name, epochs))
     thread.start()
 
-    msg = f'Upload successful. Training started for {person_name}.'
+    msg = f'Person enrolled and searchable now. Model refinement running in background.'
     if rejected_count > 0:
         msg += f' ({rejected_count} file(s) rejected/failed)'
     return jsonify({'message': msg})
 
-def run_training_pipeline(person_name, image_data_list, epochs=5):
-    """Executes the master function and captures its standard output for SSE."""
+def run_sota_finetune_pipeline(person_name, epochs=5):
+    """Executes the SOTA MobileNetV2 fine-tuning in the background and captures stdout for SSE."""
     training_status['is_training'] = True
     training_status['logs'] = []
     training_status['progress'] = 0
@@ -442,13 +464,13 @@ def run_training_pipeline(person_name, image_data_list, epochs=5):
     sys.stdout = ThreadSafeStringWriter(output_callback)
     
     try:
-        print(f"--- Starting pipeline for {person_name} (Epochs: {epochs}) ---")
-        result_msg = add_person_to_all_models(person_name, image_data_list, dataset_dir=DATASET_CLEANED_DIR, num_epochs=epochs)
+        from add_person_utils import update_sota_model
+        print(f"--- Starting background model refinement for {person_name} (Epochs: {epochs}) ---")
+        update_sota_model(person_name, dataset_dir=DATASET_CLEANED_DIR, num_epochs=epochs)
         print("\n--- Pipeline Completed ---")
-        print(result_msg)
         training_status['progress'] = 100
         
-        # Trigger hot-reload of models for inference now that training is done
+        # Trigger hot-reload of models for inference now that background training is done
         reload_models()
     except Exception as e:
         print(f"\n--- Pipeline Error ---")
@@ -649,10 +671,9 @@ def predict():
         return jsonify({'error': 'No image provided'}), 400
         
     file = request.files['image']
-    if file.filename == '':
-        return jsonify({'error': 'Empty filename'}), 400
+
     
-    if not _allowed_file(file.filename):
+    if not _allowed_file(file):
         return jsonify({'error': f'Unsupported file type. Allowed: {", ".join(ALLOWED_EXTENSIONS)}'}), 400
 
     try:
@@ -784,7 +805,8 @@ def predict():
                     store_prediction_for_feedback(
                         pred_id, emb,
                         result['ensemble']['label'],
-                        result['ensemble']['confidence']
+                        result['ensemble']['confidence'],
+                        face_img=face_roi_cv
                     )
 
         # Log to recognition history
@@ -854,11 +876,33 @@ def submit_feedback():
         # Reload encodings in memory after feedback update
         try:
             reload_models()
-        except Exception:
-            pass
-        return jsonify(result)
-    else:
-        return jsonify(result), 404
+        except Exception as e:
+            logger.warning(f"Failed to reload models after feedback: {e}")
+            
+    return jsonify(result)
+
+# ─── Config Endpoints ───────────────────────────────────────
+@app.route('/api/config', methods=['GET'])
+def get_config_endpoint():
+    try:
+        from config_utils import load_config
+        return jsonify(load_config())
+    except Exception as e:
+        logger.error(f"Error reading config: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/config', methods=['POST'])
+def save_config_endpoint():
+    try:
+        from config_utils import save_config
+        data = request.get_json()
+        if not data:
+            return jsonify({'error': 'JSON body required'}), 400
+        new_config = save_config(data)
+        return jsonify(new_config)
+    except Exception as e:
+        logger.error(f"Error saving config: {e}")
+        return jsonify({'error': str(e)}), 500
 
 
 @app.route('/api/feedback/stats', methods=['GET'])
@@ -1257,10 +1301,10 @@ def trigger_person_retrain(name):
         epochs = 5
 
     if training_status['is_training']:
-        return jsonify({'error': 'Training is currently running. Please wait.'}), 409
+        return jsonify({'error': 'A model refinement is currently running in the background. Please wait for it to finish.'}), 409
 
     # Start training in background thread
-    thread = threading.Thread(target=run_training_pipeline, args=(name, [], epochs))
+    thread = threading.Thread(target=run_sota_finetune_pipeline, args=(name, epochs))
     thread.start()
 
     return jsonify({'message': f"Retraining started for '{name}'."})

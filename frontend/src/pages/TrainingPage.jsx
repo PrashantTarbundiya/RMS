@@ -49,17 +49,16 @@ export default function TrainingPage() {
   // Parse log to extract epoch dynamically
   const extractProgress = () => {
     let sotaPercent = 0
-    let dfPercent = isTraining ? 50 : (logs.length > 5 ? 100 : 0)
+    let dfPercent = 100 // DeepFace is always 100% since it completes synchronously on upload
 
     let currentBlock = null
 
     for (let i = 0; i < logs.length; i++) {
         const line = logs[i]
-        if (line.includes('SOTA MobileNetV2: Fine-tuning')) {
+        if (line.includes('SOTA MobileNetV2: Fine-tuning') || line.includes('Starting background model refinement')) {
             currentBlock = 'sota'
             sotaPercent = 5
-        } else if (line.includes('Pipeline Completed') || line.includes('Saved updated model: sota_finetune')) {
-            dfPercent = 100
+        } else if (line.includes('Pipeline Completed') || line.includes('Saved updated model: sota_finetune') || line.includes('Saved updated model: best_mobile_sideface')) {
             sotaPercent = 100
             break
         }
@@ -75,6 +74,11 @@ export default function TrainingPage() {
         }
     }
 
+    // If training stream hasn't output anything yet but isTraining is true, sota is pending/starting
+    if (isTraining && sotaPercent === 0) {
+      sotaPercent = 1;
+    }
+
     return { dfPercent, sotaPercent }
   }
 
@@ -82,21 +86,21 @@ export default function TrainingPage() {
 
   return (
     <div className="animate-fade-in">
-      <h1 className="page-title">Training Status</h1>
-      <p className="page-subtitle">Real-time training logs for the 3 face recognition models.</p>
+      <h1 className="page-title">Model Refinement (Background Job)</h1>
+      <p className="page-subtitle">DeepFace embeddings are processed instantly. SOTA MobileNetV2 fine-tuning runs asynchronously in the background to prevent blocking.</p>
 
       <div className="card-grid">
         <ModelProgressCard 
           title="DeepFace (Facenet512)" 
-          subtitle="Incremental Embeddings" 
+          subtitle="Instant Embeddings" 
           percent={dfPercent} 
-          isTraining={isTraining && dfPercent < 100}
+          isTraining={false}
         />
         <ModelProgressCard 
           title="SOTA MobileNetV2" 
           subtitle="Edge Optimized" 
           percent={sotaPercent} 
-          isTraining={isTraining && sotaPercent > 0 && sotaPercent < 100}
+          isTraining={isTraining && sotaPercent < 100}
         />
       </div>
 

@@ -14,97 +14,28 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 export default function RecognizeScreen() {
   const navigation = useNavigation();
-  const [permission, requestPermission] = useCameraPermissions();
-  const [cameraAvailable, setCameraAvailable] = useState(true);
-  const [cameraError, setCameraError] = useState(null);
-  const [imageUri, setImageUri] = useState(null);
-  const [results, setResults] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [serverOnline, setServerOnline] = useState(null);
-  const [facing, setFacing] = useState('front');
-
-  const [webStream, setWebStream] = useState(null);
-  const webVideoRef = useRef(null);
-  const cameraRef = useRef(null);
+  const route = useNavigation().getState().routes.find(r => r.name === 'Recognize');
 
   useEffect(() => {
-    if (Platform.OS === 'web') {
-      startWebCamera();
-    } else {
-      if (!permission?.granted && permission?.canAskAgain) {
-        requestPermission();
-      }
-    }
     checkServer();
-    return () => {
-      if (Platform.OS === 'web') stopWebCamera();
-      // Restore tab bar when leaving
-      navigation.setOptions({ tabBarStyle: undefined });
-    };
-  }, [permission?.granted]);
+  }, []);
 
-  // Hide tab bar when camera is active (no image captured), show it otherwise
+  // Handle return from CameraCaptureScreen
   useEffect(() => {
-    const cameraActive = !imageUri && cameraAvailable && (Platform.OS === 'web' || permission?.granted);
-    if (cameraActive) {
-      // Hide tab bar when camera viewfinder is active
-      navigation.setOptions({
-        tabBarStyle: { display: 'none' }
-      });
-    } else {
-      // Restore tab bar when viewing image or results
-      navigation.setOptions({ tabBarStyle: undefined });
+    if (route?.params?.capturedImage) {
+      setImageUri(route.params.capturedImage);
+      setResults(null);
+      // Clear the param
+      navigation.setParams({ capturedImage: undefined });
     }
-  }, [imageUri, cameraAvailable, permission?.granted, navigation]);
-
-  async function startWebCamera() {
-    try {
-      setCameraError(null);
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } }
-      });
-      setWebStream(stream);
-      setCameraAvailable(true);
-      setTimeout(() => {
-        if (webVideoRef.current) webVideoRef.current.srcObject = stream;
-      }, 300);
-    } catch (err) {
-      setCameraError('Camera not available. Use gallery instead.');
-      setCameraAvailable(false);
-    }
-  }
-
-  function stopWebCamera() {
-    if (webStream) { webStream.getTracks().forEach(t => t.stop()); setWebStream(null); }
-  }
+  }, [route?.params?.capturedImage]);
 
   async function checkServer() {
     try { setServerOnline(await pingServer()); } catch { setServerOnline(false); }
   }
 
-  async function takePicture() {
-    if (Platform.OS === 'web') { captureWebPicture(); return; }
-    if (!cameraRef.current) return;
-    try {
-      const photo = await cameraRef.current.takePictureAsync({ quality: 0.8 });
-      setImageUri(photo.uri);
-      setResults(null);
-    } catch (err) {
-      alert('Camera Error: ' + err.message);
-    }
-  }
-
-  function captureWebPicture() {
-    if (!webVideoRef.current) return;
-    try {
-      const canvas = document.createElement('canvas');
-      canvas.width = webVideoRef.current.videoWidth || 640;
-      canvas.height = webVideoRef.current.videoHeight || 480;
-      canvas.getContext('2d').drawImage(webVideoRef.current, 0, 0);
-      setImageUri(canvas.toDataURL('image/jpeg'));
-      setResults(null);
-      stopWebCamera();
-    } catch (err) { console.warn('Web capture error:', err); }
+  function openCamera() {
+    navigation.navigate('CameraCapture', { returnScreen: 'Recognize' });
   }
 
   async function pickImage() {
@@ -139,19 +70,9 @@ export default function RecognizeScreen() {
   function clearImage() {
     setImageUri(null);
     setResults(null);
-    if (Platform.OS === 'web') startWebCamera();
   }
 
-  if (Platform.OS !== 'web' && !permission && cameraAvailable) {
-    return (
-      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
-        <ActivityIndicator color={COLORS.appleBlue} size="large" animating />
-        <Text style={styles.loadingText}>Initializing Camera...</Text>
-      </View>
-    );
-  }
-
-  const canUseCamera = cameraAvailable && (Platform.OS === 'web' || permission?.granted);
+  // Removed inline camera access checking since it's now in CameraCaptureScreen
 
   // Determine ensemble result for prominent display
   const topResult = results?.faces?.[0]?.ensemble;
@@ -173,15 +94,10 @@ export default function RecognizeScreen() {
           <IconButton icon="refresh" iconColor={COLORS.appleBlue} size={16} onPress={checkServer} style={{ margin: 0 }} />
         </View>
 
-        {cameraError && !imageUri && (
-          <View style={styles.warningBanner}>
-            <MaterialCommunityIcons name="alert-outline" size={16} color={COLORS.appleOrange} />
-            <Text style={{ color: COLORS.appleOrange, fontSize: 12, flex: 1, marginLeft: 8 }}>{cameraError}</Text>
-          </View>
-        )}
 
-        {/* Camera Viewfinder */}
-        <View style={styles.cameraContainerGlass}>
+
+        {/* Image Preview Container */}
+        <View style={[styles.cameraContainerGlass, !imageUri && { height: 160, justifyContent: 'center', alignItems: 'center' }]}>
           {imageUri ? (
             <View style={styles.previewContainer}>
               <Image source={{ uri: imageUri }} style={styles.previewImage} resizeMode="contain" />
@@ -198,38 +114,10 @@ export default function RecognizeScreen() {
                 </View>
               )}
             </View>
-          ) : canUseCamera ? (
-            Platform.OS === 'web' ? (
-              <video
-                ref={webVideoRef}
-                autoPlay playsInline muted
-                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-              />
-            ) : (
-              <CameraView ref={cameraRef} style={styles.camera} facing={facing}>
-                <View style={styles.cameraOverlay}>
-                  <View style={styles.faceGuideFrame}>
-                    <View style={[styles.cornerBracket, styles.cornerTL]} />
-                    <View style={[styles.cornerBracket, styles.cornerTR]} />
-                    <View style={[styles.cornerBracket, styles.cornerBL]} />
-                    <View style={[styles.cornerBracket, styles.cornerBR]} />
-                  </View>
-                  <Text style={styles.guideText}>Align face within frame</Text>
-                </View>
-              </CameraView>
-            )
           ) : (
-            <View style={styles.permissionBox}>
-              <MaterialCommunityIcons name="camera-off-outline" size={48} color={COLORS.textTertiary} />
-              <Text style={styles.permissionTitle}>Camera Access Needed</Text>
-              <Text style={styles.permissionDesc}>
-                {!cameraAvailable ? 'No camera detected. Use gallery below.' : 'Allow camera to scan faces.'}
-              </Text>
-              {cameraAvailable && (
-                <TouchableOpacity onPress={Platform.OS === 'web' ? startWebCamera : requestPermission} style={styles.grantBtn}>
-                  <Text style={{ color: '#FFF', fontWeight: '700', fontSize: 13 }}>Allow Camera</Text>
-                </TouchableOpacity>
-              )}
+            <View style={{ alignItems: 'center' }}>
+              <MaterialCommunityIcons name="line-scan" size={48} color={COLORS.appleBlue} />
+              <Text style={{ color: COLORS.textSecondary, marginTop: 10, fontWeight: '600' }}>Select an image or take a photo to begin</Text>
             </View>
           )}
         </View>
@@ -242,23 +130,13 @@ export default function RecognizeScreen() {
               <Text style={styles.controlLabel}>Gallery</Text>
             </TouchableOpacity>
 
-            {canUseCamera && (
-              <>
-                <TouchableOpacity style={styles.captureOuterRing} onPress={takePicture}>
-                  <View style={styles.captureInnerCircle}>
-                    <MaterialCommunityIcons name="camera" size={28} color="#FFF" />
-                  </View>
-                </TouchableOpacity>
+            <TouchableOpacity style={styles.captureOuterRing} onPress={openCamera}>
+              <View style={styles.captureInnerCircle}>
+                <MaterialCommunityIcons name="camera" size={28} color="#FFF" />
+              </View>
+            </TouchableOpacity>
 
-                <TouchableOpacity style={styles.controlBtn} onPress={() => {
-                  if (Platform.OS === 'web') alert('Webcam uses front camera');
-                  else setFacing(f => f === 'back' ? 'front' : 'back');
-                }}>
-                  <MaterialCommunityIcons name="camera-flip-outline" size={22} color={COLORS.textPrimary} />
-                  <Text style={styles.controlLabel}>Flip</Text>
-                </TouchableOpacity>
-              </>
-            )}
+            <View style={[styles.controlBtn, { opacity: 0 }]} />
           </View>
         )}
 
