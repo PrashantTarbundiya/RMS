@@ -39,7 +39,7 @@ from face_detection import SideFaceDetector
 DATASET_CLEANED_DIR = os.path.join(PROJECT_ROOT, 'dataset_cleaned')
 DATA_DIR = os.path.join(BACKEND_DIR, 'data')
 ENCODINGS_PATH = os.path.join(DATA_DIR, 'encodings.pickle')
-SOTA_EPOCHS = 25
+SOTA_EPOCHS = 15
 
 
 def regenerate_deepface_embeddings():
@@ -116,8 +116,8 @@ def regenerate_deepface_embeddings():
                     all_names.append(person_name)
                     person_count += 1
                 
-                # Generate embeddings for augmented variants
-                augments = generate_augments(face_crop)
+                # Generate embeddings for augmented variants (optimized: 2 augments)
+                augments = generate_augments(face_crop, num_augments=2)
                 for aug_img in augments:
                     aug_emb = get_embedding(aug_img)
                     if aug_emb:
@@ -128,7 +128,7 @@ def regenerate_deepface_embeddings():
             except Exception as e:
                 print(f"  WARNING: Error processing {img_path}: {e}")
         
-        print(f"  {person_name}: {person_count} embeddings ({len(image_paths)} images x {NUM_AUGMENTS+1} variants)")
+        print(f"  {person_name}: {person_count} embeddings ({len(image_paths)} images x 3 variants)")
     
     detector.close()
     
@@ -180,7 +180,7 @@ def main():
     print("=" * 60)
     print(f"  Dataset: {DATASET_CLEANED_DIR}")
     print(f"  SOTA Epochs: {SOTA_EPOCHS}")
-    print(f"  Augments per image: {NUM_AUGMENTS}")
+    print(f"  Augments per image: 2")
     print("=" * 60)
     
     start_time = time.time()

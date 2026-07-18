@@ -1,6 +1,43 @@
 // API service layer for communicating with the Flask backend
 import { API_CONFIG } from '../theme';
 import * as FileSystem from 'expo-file-system';
+import { Platform } from 'react-native';
+
+// Helper to convert an image URI to the appropriate format for FormData
+async function getFileObject(uri, defaultName = 'photo.jpg') {
+  const filename = uri.split('/').pop() || defaultName;
+  const match = /\.(\w+)$/.exec(filename);
+  const type = match ? `image/${match[1]}` : 'image/jpeg';
+
+  if (Platform.OS === 'web') {
+    try {
+      if (uri.startsWith('data:image')) {
+        // Fast direct conversion of base64 to Blob
+        const arr = uri.split(',');
+        const mime = arr[0].match(/:(.*?);/)[1];
+        const bstr = atob(arr[1]);
+        let n = bstr.length;
+        const u8arr = new Uint8Array(n);
+        while (n--) {
+          u8arr[n] = bstr.charCodeAt(n);
+        }
+        return new Blob([u8arr], { type: mime });
+      } else {
+        const response = await fetch(uri);
+        const blob = await response.blob();
+        return blob;
+      }
+    } catch (e) {
+      console.warn("[API] Failed to convert URI to Blob on Web, falling back:", e);
+    }
+  }
+
+  return {
+    uri,
+    name: filename,
+    type,
+  };
+}
 
 let BASE_URL = API_CONFIG.BASE_URL;
 
@@ -42,16 +79,17 @@ export async function uploadPerson(personName, imageUris, epochs = 5) {
   formData.append('person_name', personName);
   formData.append('epochs', String(epochs));
 
-  imageUris.forEach((uri, index) => {
-    const filename = uri.split('/').pop() || `photo_${index}.jpg`;
-    const match = /\.(\w+)$/.exec(filename);
-    const type = match ? `image/${match[1]}` : 'image/jpeg';
+  const files = await Promise.all(
+    imageUris.map((uri, index) => getFileObject(uri, `photo_${index}.jpg`))
+  );
 
-    formData.append('extra_files', {
-      uri,
-      name: filename,
-      type,
-    });
+  files.forEach((file, index) => {
+    const filename = imageUris[index].split('/').pop() || `photo_${index}.jpg`;
+    if (Platform.OS === 'web') {
+      formData.append('extra_files', file, filename);
+    } else {
+      formData.append('extra_files', file);
+    }
   });
 
   const res = await fetch(`${BASE_URL}/upload`, {
@@ -74,14 +112,14 @@ export async function uploadPerson(personName, imageUris, epochs = 5) {
 export async function predict(imageUri) {
   const formData = new FormData();
   const filename = imageUri.split('/').pop() || 'photo.jpg';
-  const match = /\.(\w+)$/.exec(filename);
-  const type = match ? `image/${match[1]}` : 'image/jpeg';
+  
+  const file = await getFileObject(imageUri, filename);
 
-  formData.append('image', {
-    uri: imageUri,
-    name: filename,
-    type,
-  });
+  if (Platform.OS === 'web') {
+    formData.append('image', file, filename);
+  } else {
+    formData.append('image', file);
+  }
 
   const res = await fetch(`${BASE_URL}/predict`, {
     method: 'POST',

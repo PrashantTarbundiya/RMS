@@ -241,6 +241,11 @@ def finetune_mobile_model(data_dir="../dataset_cleaned", num_epochs=25, batch_si
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"[INFO] Initializing Enhanced Mobile Fine-Tuning on device: {device}")
     
+    if device.type == "cpu":
+        num_threads = min(8, os.cpu_count() or 4)
+        torch.set_num_threads(num_threads)
+        print(f"[INFO] CPU training optimized: using {num_threads} threads.")
+        
     if not os.path.exists(data_dir):
         print(f"[ERROR] Dataset directory '{data_dir}' not found.")
         return

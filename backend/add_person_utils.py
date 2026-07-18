@@ -210,6 +210,10 @@ def update_sota_model(person_name, dataset_dir=None,
     print(f"{'='*50}")
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    if device.type == "cpu":
+        num_threads = min(8, os.cpu_count() or 4)
+        torch.set_num_threads(num_threads)
+        print(f"   [INFO] PyTorch CPU training optimized: using {num_threads} threads.")
 
     # Load existing classes
     old_classes = []
