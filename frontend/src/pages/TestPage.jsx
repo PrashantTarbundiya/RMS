@@ -16,6 +16,9 @@ export default function TestPage() {
   const [isDragActive, setIsDragActive] = useState(false)
   const [includeDeepFace, setIncludeDeepFace] = useState(false)
   const [feedbackState, setFeedbackState] = useState({}) // track feedback status per prediction_id
+  const [personsList, setPersonsList] = useState([])
+  const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false)
+  const [feedbackContext, setFeedbackContext] = useState(null)
   
   const webcamRef = useRef(null)
   const imgRef = useRef(null)
@@ -43,6 +46,21 @@ export default function TestPage() {
     window.addEventListener('paste', handleGlobalPaste)
     return () => window.removeEventListener('paste', handleGlobalPaste)
   }, [mode])
+
+  // Fetch persons for the feedback dropdown
+  useEffect(() => {
+    const fetchPersons = async () => {
+      try {
+        const res = await axios.get(`${API_BASE}/persons`)
+        if (res.data && res.data.persons) {
+          setPersonsList(res.data.persons)
+        }
+      } catch (err) {
+        console.error('Failed to fetch persons list', err)
+      }
+    }
+    fetchPersons()
+  }, [])
 
   const handleFileChange = (e) => {
     if (e.target.files && e.target.files[0]) {
@@ -207,17 +225,17 @@ export default function TestPage() {
   }
 
   const submitFeedback = async (predictionId, isCorrect, predictedName) => {
-    let correctName = ''
     if (!isCorrect) {
-      correctName = prompt(`Incorrect prediction. Who is this actually?\n(Leave blank if unknown)`)
-      if (correctName === null) return // cancelled
+      setFeedbackContext({ predictionId, isCorrect, predictedName })
+      setIsFeedbackModalOpen(true)
+      return
     }
     
     try {
       await axios.post(`${API_BASE}/predict/feedback`, {
         prediction_id: predictionId,
         is_correct: isCorrect,
-        correct_name: correctName
+        correct_name: ''
       })
       setFeedbackState(prev => ({ ...prev, [predictionId]: 'success' }))
     } catch (err) {
@@ -226,8 +244,82 @@ export default function TestPage() {
     }
   }
 
+  const confirmFeedback = async (correctName) => {
+    if (!feedbackContext) return
+    setIsFeedbackModalOpen(false)
+    
+    try {
+      await axios.post(`${API_BASE}/predict/feedback`, {
+        prediction_id: feedbackContext.predictionId,
+        is_correct: feedbackContext.isCorrect,
+        correct_name: correctName
+      })
+      setFeedbackState(prev => ({ ...prev, [feedbackContext.predictionId]: 'success' }))
+    } catch (err) {
+      console.error(err)
+      alert("Failed to submit feedback")
+    }
+    setFeedbackContext(null)
+  }
+
+  // Modal Component for selecting a person
+  const FeedbackModal = () => {
+    const [selectedName, setSelectedName] = useState('')
+    
+    if (!isFeedbackModalOpen) return null
+
+    return (
+      <div style={{
+        position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
+        backgroundColor: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000
+      }}>
+        <div className="glass-panel" style={{ width: '90%', maxWidth: '400px', padding: '2rem' }}>
+          <h2 style={{ fontSize: '1.25rem', marginTop: 0, marginBottom: '1rem' }}>Correct the Prediction</h2>
+          <p style={{ color: 'var(--text-secondary)', marginBottom: '1.5rem', fontSize: '0.95rem' }}>
+            Who is this actually? Select from existing persons or mark as a false detection.
+          </p>
+          
+          <select 
+            value={selectedName}
+            onChange={(e) => setSelectedName(e.target.value)}
+            style={{ 
+              width: '100%', padding: '0.75rem', borderRadius: '8px', 
+              background: 'rgba(255,255,255,0.05)', color: 'white', 
+              border: '1px solid rgba(255,255,255,0.1)', marginBottom: '1.5rem',
+              outline: 'none', fontSize: '1rem'
+            }}
+          >
+            <option value="" disabled>Select a person...</option>
+            <option value="FALSE_DETECTION" style={{ color: 'var(--error)' }}>Not a Person (False Detection)</option>
+            {personsList.map(p => (
+              <option key={p} value={p} style={{ color: 'black' }}>{p}</option>
+            ))}
+          </select>
+
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem' }}>
+            <button 
+              onClick={() => { setIsFeedbackModalOpen(false); setFeedbackContext(null); }}
+              style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer' }}
+            >
+              Cancel
+            </button>
+            <button 
+              onClick={() => confirmFeedback(selectedName)}
+              disabled={!selectedName}
+              className="btn btn-primary"
+            >
+              Submit Feedback
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="page-container animate-fade-in">
+      <FeedbackModal />
       <div className="page-header">
         <h1 className="page-title">Live Inference Test</h1>
         <p className="page-subtitle">Test out the 3 trained models simultaneously using an uploaded photo or your webcam.</p>

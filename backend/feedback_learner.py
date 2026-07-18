@@ -137,6 +137,13 @@ def process_feedback(prediction_id, is_correct, correct_name=None):
     target_name = correct_name if not is_correct else predicted_name
     added_to_dataset = False
     
+    if target_name == "FALSE_DETECTION":
+        return {
+            'success': True,
+            'message': 'False detection ignored. Will not train on this false positive.',
+            'action_taken': 'ignored_false_positive'
+        }
+    
     # Check if we should add the image to the dataset for retraining
     if is_correct and face_img is not None and target_name != "Unknown":
         # Only add high quality images

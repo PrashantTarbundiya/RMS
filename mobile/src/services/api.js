@@ -5,9 +5,13 @@ import { Platform } from 'react-native';
 
 // Helper to convert an image URI to the appropriate format for FormData
 async function getFileObject(uri, defaultName = 'photo.jpg') {
-  const filename = uri.split('/').pop() || defaultName;
-  const match = /\.(\w+)$/.exec(filename);
-  const type = match ? `image/${match[1]}` : 'image/jpeg';
+  let filename = uri.split('/').pop() || defaultName;
+  // Ensure the filename has a valid image extension, which is required by the backend
+  if (!/\.(jpg|jpeg|png|webp|bmp)$/i.test(filename)) {
+    filename += '.jpg';
+  }
+  const match = /\.([^.]+)$/.exec(filename);
+  const type = match ? `image/${match[1] === 'jpg' ? 'jpeg' : match[1]}` : 'image/jpeg';
 
   if (Platform.OS === 'web') {
     try {
@@ -108,7 +112,8 @@ export async function uploadPerson(personName, imageUris, epochs = 5) {
 // Run face recognition prediction on an image
 export async function predict(imageUri) {
   const formData = new FormData();
-  const filename = imageUri.split('/').pop() || 'photo.jpg';
+  let filename = imageUri.split('/').pop() || 'photo.jpg';
+  if (!/\.(jpg|jpeg|png|webp|bmp)$/i.test(filename)) filename += '.jpg';
   
   const file = await getFileObject(imageUri, filename);
 

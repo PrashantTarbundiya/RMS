@@ -692,7 +692,7 @@ def predict():
         if cascade is not None:
             try:
                 if not cascade.empty():
-                    faces = cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=5, minSize=(30, 30))
+                    faces = cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=8, minSize=(60, 60))
             except Exception as e:
                 logger.warning(f"OpenCV detectMultiScale failed: {e}")
 

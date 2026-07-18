@@ -108,5 +108,15 @@
     "distance": null,
     "action_taken": "acknowledged",
     "message": "Feedback recorded"
+  },
+  {
+    "prediction_id": "b2e48f94-98e",
+    "timestamp": "2026-07-19T00:39:50.539307",
+    "predicted_name": "vatsal_vadgama",
+    "is_correct": true,
+    "correct_name": null,
+    "distance": 1.0,
+    "action_taken": "verified_boost",
+    "message": "Boosted embedding for vatsal_vadgama (+2 copies)"
   }
 ]

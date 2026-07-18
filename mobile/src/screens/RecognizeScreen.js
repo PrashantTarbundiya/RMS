@@ -13,6 +13,11 @@ import { predict, pingServer } from '../services/api';
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 export default function RecognizeScreen() {
+  const [imageUri, setImageUri] = useState(null);
+  const [results, setResults] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [serverOnline, setServerOnline] = useState(null);
+
   const navigation = useNavigation();
   const route = useNavigation().getState().routes.find(r => r.name === 'Recognize');
 
