@@ -23,8 +23,25 @@ export default function TestPage() {
   const [webcamError, setWebcamError] = useState('');
   const [webcamReady, setWebcamReady] = useState(false);
   const [isDragActive, setIsDragActive] = useState(false);
-  const [includeDeepFace, setIncludeDeepFace] = useState(true);
+  const [isDeepFaceEnabled, setIsDeepFaceEnabled] = useState(() => {
+    return localStorage.getItem('enableDeepFace') !== 'false';
+  });
+  const [includeDeepFace, setIncludeDeepFace] = useState(() => {
+    return localStorage.getItem('enableDeepFace') !== 'false';
+  });
   const [feedbackState, setFeedbackState] = useState({}); // track feedback status per prediction_id
+
+  useEffect(() => {
+    const handleStorageChange = () => {
+      const enabled = localStorage.getItem('enableDeepFace') !== 'false';
+      setIsDeepFaceEnabled(enabled);
+      if (!enabled) {
+        setIncludeDeepFace(false);
+      }
+    };
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
   const [personsList, setPersonsList] = useState([]);
   const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
   const [feedbackContext, setFeedbackContext] = useState(null);
@@ -143,7 +160,72 @@ export default function TestPage() {
     return () => stopWebcam();
   }, [stopWebcam]);
 
+  const [livePredicting, setLivePredicting] = useState(false);
+  const liveLoopRef = useRef(null);
+
+  const runLivePrediction = useCallback(async () => {
+    if (mode !== 'webcam' || !videoRef.current || !webcamReady || livePredicting) return;
+    setLivePredicting(true);
+    try {
+      const canvas = document.createElement('canvas');
+      canvas.width = videoRef.current.videoWidth || 640;
+      canvas.height = videoRef.current.videoHeight || 480;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(videoRef.current, 0, 0);
+      
+      const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.80));
+      if (!blob) {
+        setLivePredicting(false);
+        return;
+      }
+      
+      const formData = new FormData();
+      formData.append('image', new File([blob], 'live_frame.jpg', { type: 'image/jpeg' }));
+      
+      const res = await apiClient.post(`${API_BASE}/predict`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+        timeout: 5000,
+      });
+      
+      if (mode === 'webcam') {
+        setResults(res.data);
+        setPreviewSize({
+          width: videoRef.current.clientWidth,
+          height: videoRef.current.clientHeight,
+          naturalWidth: videoRef.current.videoWidth || 640,
+          naturalHeight: videoRef.current.videoHeight || 480
+        });
+      }
+    } catch (err) {
+      console.error("Live prediction loop error:", err);
+    } finally {
+      setLivePredicting(false);
+    }
+  }, [mode, webcamReady, livePredicting, apiClient]);
+
+  useEffect(() => {
+    if (mode === 'webcam' && webcamReady && !isFeedbackModalOpen) {
+      // Run once immediately
+      runLivePrediction();
+      liveLoopRef.current = setInterval(() => {
+        runLivePrediction();
+      }, 1500);
+    } else {
+      if (liveLoopRef.current) {
+        clearInterval(liveLoopRef.current);
+        liveLoopRef.current = null;
+      }
+    }
+    return () => {
+      if (liveLoopRef.current) {
+        clearInterval(liveLoopRef.current);
+        liveLoopRef.current = null;
+      }
+    };
+  }, [mode, webcamReady, isFeedbackModalOpen, runLivePrediction]);
+
   const captureWebcam = useCallback(() => {
+    // Legacy snapshot capture falls back to running a single manual prediction
     if (!videoRef.current || !webcamReady) return;
     try {
       const canvas = document.createElement('canvas');
@@ -195,10 +277,10 @@ export default function TestPage() {
       setResults(res.data);
       if (imgRef.current) {
         setPreviewSize({
-           width: imgRef.current.clientWidth,
-           height: imgRef.current.clientHeight,
-           naturalWidth: imgRef.current.naturalWidth,
-           naturalHeight: imgRef.current.naturalHeight
+          width: imgRef.current.clientWidth,
+          height: imgRef.current.clientHeight,
+          naturalWidth: imgRef.current.naturalWidth,
+          naturalHeight: imgRef.current.naturalHeight
         });
       }
     } catch (err) {
@@ -225,8 +307,17 @@ export default function TestPage() {
   const confirmFeedback = async (correctName) => {
     if (!feedbackContext) return;
     setIsFeedbackModalOpen(false);
+    
+    // If the correction matches the prediction, treat it as correct
+    const isCorrectVal = correctName === feedbackContext.predictedName;
+    const finalCorrectName = isCorrectVal ? '' : correctName;
+
     try {
-      await apiClient.post(`${API_BASE}/predict/feedback`, { prediction_id: feedbackContext.predictionId, is_correct: feedbackContext.isCorrect, correct_name: correctName });
+      await apiClient.post(`${API_BASE}/predict/feedback`, { 
+        prediction_id: feedbackContext.predictionId, 
+        is_correct: isCorrectVal, 
+        correct_name: finalCorrectName 
+      });
       setFeedbackState(prev => ({ ...prev, [feedbackContext.predictionId]: 'success' }));
     } catch (err) {
       setFeedbackState(prev => ({ ...prev, [feedbackContext.predictionId]: 'error' }));
@@ -235,24 +326,153 @@ export default function TestPage() {
   };
 
   const FeedbackModalContent = () => {
+    const [isPerson, setIsPerson] = useState(null); // null, 'yes', 'no'
+    const [isNameCorrect, setIsNameCorrect] = useState(null); // null, 'yes', 'no'
+    const [identityType, setIdentityType] = useState('existing'); // 'existing' or 'new'
     const [selectedName, setSelectedName] = useState('');
+    const [customName, setCustomName] = useState('');
+
+    const handleSubmit = () => {
+      if (isPerson === 'no') {
+        confirmFeedback('FALSE_DETECTION');
+      } else if (isPerson === 'yes') {
+        if (isNameCorrect === 'yes') {
+          confirmFeedback(feedbackContext.predictedName);
+        } else if (isNameCorrect === 'no') {
+          const finalName = identityType === 'existing' ? selectedName : customName.trim().replace(/\s+/g, '_');
+          if (finalName) {
+            confirmFeedback(finalName);
+          }
+        }
+      }
+    };
+
+    const isSubmitDisabled = () => {
+      if (isPerson === null) return true;
+      if (isPerson === 'no') return false;
+      if (isNameCorrect === null) return true;
+      if (isNameCorrect === 'yes') return false;
+      if (isNameCorrect === 'no') {
+        if (identityType === 'existing') return !selectedName;
+        if (identityType === 'new') return !customName.trim();
+      }
+      return true;
+    };
+
     return (
-      <div className="flex flex-col gap-4 bg-zinc-950 p-4">
-        <p className="text-zinc-400 text-sm">Who is this actually? Select from existing persons or mark as a false detection.</p>
-        <select 
-          value={selectedName}
-          onChange={(e) => setSelectedName(e.target.value)}
-          className="w-full p-2.5 rounded-md bg-zinc-900 border border-zinc-800 text-zinc-100 outline-none focus:border-zinc-600"
-        >
-          <option value="" disabled>Select a person...</option>
-          <option value="FALSE_DETECTION" className="text-red-400 font-medium">Not a Person (False Detection)</option>
-          {personsList.map(p => (
-            <option key={p} value={p}>{p}</option>
-          ))}
-        </select>
-        <div className="flex justify-end gap-2 mt-2">
-          <Button variant="ghost" onClick={() => { setIsFeedbackModalOpen(false); setFeedbackContext(null); }}>Cancel</Button>
-          <Button variant="default" onClick={() => confirmFeedback(selectedName)} disabled={!selectedName} className="bg-zinc-100 text-zinc-900 hover:bg-zinc-200">Submit Feedback</Button>
+      <div className="flex flex-col gap-5 bg-zinc-950 p-5 rounded-lg text-sm text-zinc-300">
+        
+        {/* Step 1: Is this a person? */}
+        <div className="space-y-2">
+          <Label className="text-zinc-200 font-medium">1. Is this actually a person?</Label>
+          <div className="flex gap-3">
+            <Button 
+              variant={isPerson === 'yes' ? 'default' : 'outline'} 
+              size="sm" 
+              onClick={() => { setIsPerson('yes'); setIsNameCorrect(null); }}
+              className={`flex-1 h-9 ${isPerson === 'yes' ? 'bg-zinc-100 text-zinc-900' : 'border-zinc-800 text-zinc-400'}`}
+            >
+              Yes, it is a person
+            </Button>
+            <Button 
+              variant={isPerson === 'no' ? 'destructive' : 'outline'} 
+              size="sm" 
+              onClick={() => { setIsPerson('no'); setIsNameCorrect(null); }}
+              className={`flex-1 h-9 ${isPerson === 'no' ? 'bg-red-500 text-white border-red-600' : 'border-zinc-800 text-zinc-400 hover:bg-red-500/10 hover:text-red-400'}`}
+            >
+              No, false detection
+            </Button>
+          </div>
+        </div>
+
+        {/* Step 2: Is the predicted name correct? */}
+        {isPerson === 'yes' && (
+          <div className="space-y-2 fade-in">
+            <Label className="text-zinc-200 font-medium">
+              2. Is the predicted name "{feedbackContext?.predictedName?.replace(/_/g, ' ') || 'Unknown'}" correct?
+            </Label>
+            <div className="flex gap-3">
+              <Button 
+                variant={isNameCorrect === 'yes' ? 'default' : 'outline'} 
+                size="sm" 
+                onClick={() => setIsNameCorrect('yes')}
+                className={`flex-1 h-9 ${isNameCorrect === 'yes' ? 'bg-zinc-100 text-zinc-900' : 'border-zinc-800 text-zinc-400'}`}
+              >
+                Yes, correct
+              </Button>
+              <Button 
+                variant={isNameCorrect === 'no' ? 'default' : 'outline'} 
+                size="sm" 
+                onClick={() => setIsNameCorrect('no')}
+                className={`flex-1 h-9 ${isNameCorrect === 'no' ? 'bg-zinc-100 text-zinc-900' : 'border-zinc-800 text-zinc-400'}`}
+              >
+                No, incorrect name
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* Step 3: Select or Enter Name */}
+        {isPerson === 'yes' && isNameCorrect === 'no' && (
+          <div className="space-y-3 fade-in p-4 bg-zinc-900/50 border border-zinc-800 rounded-xl">
+            <Label className="text-zinc-200 font-medium">3. Who is this person?</Label>
+            
+            <div className="flex gap-4 text-xs font-mono mb-2">
+              <label className="flex items-center gap-2 cursor-pointer text-zinc-300">
+                <input 
+                  type="radio" name="identityType" value="existing" 
+                  checked={identityType === 'existing'} 
+                  onChange={() => setIdentityType('existing')}
+                  className="accent-zinc-100"
+                />
+                <span>Existing Person</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer text-zinc-300">
+                <input 
+                  type="radio" name="identityType" value="new" 
+                  checked={identityType === 'new'} 
+                  onChange={() => setIdentityType('new')}
+                  className="accent-zinc-100"
+                />
+                <span>New Person</span>
+              </label>
+            </div>
+
+            {identityType === 'existing' ? (
+              <select 
+                value={selectedName}
+                onChange={(e) => setSelectedName(e.target.value)}
+                className="w-full p-2.5 rounded-md bg-zinc-950 border border-zinc-800 text-zinc-100 outline-none focus:border-zinc-700 text-sm"
+              >
+                <option value="" disabled>Select a person...</option>
+                {personsList.map(p => (
+                  <option key={p} value={p}>{p.replace(/_/g, ' ')}</option>
+                ))}
+              </select>
+            ) : (
+              <input 
+                type="text"
+                placeholder="Enter new person's name (e.g. John_Doe)"
+                value={customName}
+                onChange={(e) => setCustomName(e.target.value.replace(/\s+/g, '_'))}
+                className="w-full p-2.5 rounded-md bg-zinc-950 border border-zinc-800 text-zinc-100 outline-none focus:border-zinc-700 text-sm"
+              />
+            )}
+          </div>
+        )}
+
+        <div className="flex justify-end gap-2 mt-4 pt-4 border-t border-zinc-900">
+          <Button variant="ghost" onClick={() => { setIsFeedbackModalOpen(false); setFeedbackContext(null); }}>
+            Cancel
+          </Button>
+          <Button 
+            variant="default" 
+            onClick={handleSubmit} 
+            disabled={isSubmitDisabled()} 
+            className="bg-zinc-100 text-zinc-900 hover:bg-zinc-200"
+          >
+            Submit Feedback
+          </Button>
         </div>
       </div>
     );
@@ -326,8 +546,8 @@ export default function TestPage() {
               }}
               className={`flex-1 flex flex-col justify-center items-center bg-zinc-950/50 rounded-xl overflow-hidden relative min-h-[350px] transition-colors border-2 ${isDragActive ? 'border-dashed border-violet-500 bg-violet-500/5' : 'border-solid border-zinc-800'}`}
             >
-               {mode === 'webcam' ? (
-                  <div className="w-full h-full flex flex-col items-center justify-center bg-black">
+                {mode === 'webcam' ? (
+                  <div className="w-full h-full flex flex-col items-center justify-center bg-black min-h-[350px] relative">
                     {webcamError ? (
                       <div className="p-8 text-center">
                         <AlertCircle className="w-8 h-8 text-red-500 mx-auto mb-4" />
@@ -336,14 +556,62 @@ export default function TestPage() {
                       </div>
                     ) : (
                       <>
-                        <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover" />
-                        {webcamReady ? (
-                          <div className="absolute bottom-4 left-0 right-0 flex justify-center">
-                            <Button className="rounded-full bg-zinc-100 text-zinc-900 hover:bg-zinc-200 hover:scale-105 transition-transform shadow-xl" onClick={captureWebcam}>
-                              <Camera className="w-4 h-4 mr-2" /> Capture
-                            </Button>
-                          </div>
-                        ) : (
+                        <div className="relative w-full flex-1 flex items-center justify-center overflow-hidden rounded-lg bg-zinc-900/50 border border-zinc-800/50 h-full min-h-[350px]">
+                          <video 
+                            ref={videoRef} autoPlay playsInline muted 
+                            className="max-w-full max-h-full object-contain pointer-events-none"
+                            onPlay={() => {
+                              setTimeout(() => {
+                                if (videoRef.current) {
+                                  setPreviewSize({
+                                    width: videoRef.current.clientWidth,
+                                    height: videoRef.current.clientHeight,
+                                    naturalWidth: videoRef.current.videoWidth || 640,
+                                    naturalHeight: videoRef.current.videoHeight || 480
+                                  });
+                                }
+                              }, 500);
+                            }}
+                          />
+                          {/* Live Feed Status Badge */}
+                          {webcamReady && (
+                            <Badge className="absolute top-3 left-3 bg-red-500/20 text-red-400 border border-red-500/30 font-mono text-[9px] tracking-widest uppercase animate-pulse">
+                              Live Stream Active
+                            </Badge>
+                          )}
+                          
+                          {/* Bounding Boxes for Live Webcam */}
+                          {results && results.faces && previewSize.naturalWidth > 0 && results.faces.map((face, idx) => {
+                             const targetElement = videoRef.current;
+                             if (!targetElement) return null;
+                             const scaleX = previewSize.width / previewSize.naturalWidth;
+                             const scaleY = previewSize.height / previewSize.naturalHeight;
+                             const imgRenderProps = targetElement.getBoundingClientRect();
+                             const containerProps = targetElement.parentElement.getBoundingClientRect();
+                             const offsetX = (containerProps.width - imgRenderProps.width) / 2;
+                             const offsetY = (containerProps.height - imgRenderProps.height) / 2;
+                             
+                             const useEnsemble = includeDeepFace;
+                             const displayConf = useEnsemble ? (face.ensemble?.confidence || 0) : (face.predictions?.sota?.confidence || 0);
+                             const displayLabel = useEnsemble ? (face.ensemble?.label || 'Unknown') : (face.predictions?.sota?.label || 'Unknown');
+                             const isConfirmed = useEnsemble ? face.ensemble?.is_confirmed === true : (displayConf > 0.8 && displayLabel !== 'Unknown');
+                             const spoofed = face.prediction === 'SPOOF DETECTED' || displayLabel === 'SPOOF DETECTED';
+                             const boxColor = spoofed ? '#f59e0b' : (isConfirmed ? '#10b981' : '#ef4444'); // amber-500, emerald-500, or red-500
+
+                             return (
+                                <div key={idx} className="absolute pointer-events-none" style={{
+                                   border: `2px solid ${boxColor}`,
+                                   left: offsetX + (face.bbox.x * scaleX), top: offsetY + (face.bbox.y * scaleY),
+                                   width: face.bbox.w * scaleX, height: face.bbox.h * scaleY
+                                 }}>
+                                   <div className="absolute -top-6 -left-0.5 px-1.5 py-0.5 text-[10px] font-bold font-mono tracking-widest" style={{ background: boxColor, color: '#000' }}>
+                                     {spoofed ? 'SPOOF' : (isConfirmed ? displayLabel.replace(/_/g, ' ') : 'UNKNOWN')}
+                                   </div>
+                                </div>
+                             );
+                          })}
+                        </div>
+                        {!webcamReady && (
                           <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-zinc-950/80">
                             <Loader2 className="w-6 h-6 animate-spin text-zinc-500" />
                             <span className="text-zinc-400 text-sm font-mono tracking-tight">Initializing Camera...</span>
@@ -390,7 +658,7 @@ export default function TestPage() {
                                    width: face.bbox.w * scaleX, height: face.bbox.h * scaleY
                                  }}>
                                    <div className="absolute -top-6 -left-0.5 px-1.5 py-0.5 text-[10px] font-bold font-mono tracking-widest" style={{ background: boxColor, color: '#000' }}>
-                                     FACE {idx + 1}
+                                     {spoofed ? 'SPOOF' : (isConfirmed ? displayLabel.replace(/_/g, ' ') : 'UNKNOWN')}
                                    </div>
                                 </div>
                              );
@@ -430,16 +698,18 @@ export default function TestPage() {
           </CardHeader>
           <CardContent className="p-6 flex-1 flex flex-col">
             
-            <div className="flex gap-4 p-3 bg-zinc-950/50 rounded-lg border border-zinc-800 mb-6">
-              <div className="flex items-center space-x-2">
-                <Switch id="sota" checked={true} disabled />
-                <Label htmlFor="sota" className="text-xs font-mono text-zinc-400">MobileNetV2</Label>
+            {isDeepFaceEnabled && (
+              <div className="flex gap-4 p-3 bg-zinc-950/50 rounded-lg border border-zinc-800 mb-6">
+                <div className="flex items-center space-x-2">
+                  <Switch id="sota" checked={true} disabled />
+                  <Label htmlFor="sota" className="text-xs font-mono text-zinc-400">MobileNetV2</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Switch id="df" checked={includeDeepFace} onCheckedChange={setIncludeDeepFace} />
+                  <Label htmlFor="df" className="text-xs font-mono text-zinc-100 cursor-pointer">DeepFace / Ensemble</Label>
+                </div>
               </div>
-              <div className="flex items-center space-x-2">
-                <Switch id="df" checked={includeDeepFace} onCheckedChange={setIncludeDeepFace} />
-                <Label htmlFor="df" className="text-xs font-mono text-zinc-100 cursor-pointer">DeepFace / Ensemble</Label>
-              </div>
-            </div>
+            )}
             
             <div className="flex-1 overflow-y-auto">
               {loading ? (

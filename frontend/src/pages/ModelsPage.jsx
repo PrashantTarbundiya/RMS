@@ -7,6 +7,8 @@ import { API_BASE } from '../config';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 
 export default function ModelsPage() {
   const { apiClient } = useAuth();
@@ -18,6 +20,17 @@ export default function ModelsPage() {
   const [config, setConfig] = useState(null);
   const [threshold, setThreshold] = useState(0.35);
   const [isSavingConfig, setIsSavingConfig] = useState(false);
+
+  const [enableDeepFace, setEnableDeepFace] = useState(() => {
+    return localStorage.getItem('enableDeepFace') !== 'false';
+  });
+
+  const handleToggleDeepFace = (checked) => {
+    setEnableDeepFace(checked);
+    localStorage.setItem('enableDeepFace', checked ? 'true' : 'false');
+    // dispatch a custom event to notify other pages immediately if needed
+    window.dispatchEvent(new Event('storage'));
+  };
 
   useEffect(() => {
     apiClient.get(`${API_BASE}/config`).then(res => {
@@ -94,24 +107,26 @@ export default function ModelsPage() {
       </AnimatePresence>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Card className="bg-zinc-900/40 border-zinc-800">
-          <CardContent className="p-6">
-            <div className="flex items-center gap-4 mb-4">
-              <div className="w-12 h-12 rounded-xl bg-violet-500/10 flex items-center justify-center text-violet-500 border border-violet-500/20">
-                <Cpu className="w-6 h-6" />
+        {enableDeepFace && (
+          <Card className="bg-zinc-900/40 border-zinc-800">
+            <CardContent className="p-6">
+              <div className="flex items-center gap-4 mb-4">
+                <div className="w-12 h-12 rounded-xl bg-violet-500/10 flex items-center justify-center text-violet-500 border border-violet-500/20">
+                  <Cpu className="w-6 h-6" />
+                </div>
+                <div>
+                  <div className="text-lg font-medium text-zinc-100">DeepFace 512</div>
+                  <div className="text-sm text-zinc-500 font-mono">encodings.pickle</div>
+                </div>
               </div>
-              <div>
-                <div className="text-lg font-medium text-zinc-100">DeepFace 512</div>
-                <div className="text-sm text-zinc-500 font-mono">encodings.pickle</div>
-              </div>
-            </div>
-            <p className="text-sm text-zinc-400 m-0">
-              Stores raw L2-normalized embeddings using Facenet512.
-            </p>
-          </CardContent>
-        </Card>
+              <p className="text-sm text-zinc-400 m-0">
+                Stores raw L2-normalized embeddings using Facenet512.
+              </p>
+            </CardContent>
+          </Card>
+        )}
 
-        <Card className="bg-zinc-900/40 border-zinc-800">
+        <Card className={`bg-zinc-900/40 border-zinc-800 ${!enableDeepFace ? 'md:col-span-2' : ''}`}>
           <CardContent className="p-6">
             <div className="flex items-center gap-4 mb-4">
               <div className="w-12 h-12 rounded-xl bg-cyan-500/10 flex items-center justify-center text-cyan-500 border border-cyan-500/20">
@@ -137,30 +152,45 @@ export default function ModelsPage() {
               <Settings className="w-5 h-5" /> System Settings
             </h3>
             <p className="text-sm text-zinc-400 mb-6">
-              Adjust global recognition parameters. The confirmation threshold determines how strict the AI is when verifying identity.
+              Adjust global recognition parameters and toggle active modules.
             </p>
             
-            <div className="bg-zinc-950/50 p-5 rounded-xl border border-zinc-800">
-               <div className="flex justify-between items-center mb-2">
-                 <label className="text-sm font-medium text-zinc-300">DeepFace Confirmation Threshold</label>
-                 <span className="text-cyan-400 font-mono font-semibold">{threshold.toFixed(2)}</span>
-               </div>
-               <p className="text-xs text-zinc-500 mb-6">
-                 Lower values = Stricter matching (fewer false positives). Higher values = Looser matching (fewer false negatives). Default is 0.35.
-               </p>
-               <div className="flex items-center gap-4 mb-6">
-                 <span className="text-xs text-zinc-500">0.10 (Strict)</span>
-                 <input 
-                   type="range" min="0.10" max="0.50" step="0.01" value={threshold} 
-                   onChange={(e) => setThreshold(parseFloat(e.target.value))}
-                   className="flex-1 accent-cyan-500 h-2 bg-zinc-800 rounded-lg appearance-none cursor-pointer"
-                 />
-                 <span className="text-xs text-zinc-500">0.50 (Loose)</span>
-               </div>
-               <Button onClick={handleSaveConfig} disabled={isSavingConfig} className="w-full bg-zinc-100 text-zinc-900 hover:bg-zinc-200">
-                 {isSavingConfig ? 'Saving...' : <><Save className="w-4 h-4 mr-2" /> Save Configuration</>}
-               </Button>
+            <div className="flex items-center justify-between p-4 bg-zinc-950/60 border border-zinc-800/80 rounded-xl mb-6">
+              <div>
+                <Label htmlFor="deepface-toggle" className="text-sm font-medium text-zinc-200 cursor-pointer">Enable DeepFace (Ensemble Model)</Label>
+                <p className="text-xs text-zinc-500 mt-1">Run secondary deep embedding comparison alongside SOTA MobileNetV2.</p>
+              </div>
+              <Switch id="deepface-toggle" checked={enableDeepFace} onCheckedChange={handleToggleDeepFace} />
             </div>
+            
+            {enableDeepFace ? (
+              <div className="bg-zinc-950/50 p-5 rounded-xl border border-zinc-800">
+                 <div className="flex justify-between items-center mb-2">
+                   <label className="text-sm font-medium text-zinc-300">DeepFace Confirmation Threshold</label>
+                   <span className="text-cyan-400 font-mono font-semibold">{threshold.toFixed(2)}</span>
+                 </div>
+                 <p className="text-xs text-zinc-500 mb-6">
+                   Lower values = Stricter matching (fewer false positives). Higher values = Looser matching (fewer false negatives). Default is 0.35.
+                 </p>
+                 <div className="flex items-center gap-4 mb-6">
+                   <span className="text-xs text-zinc-500">0.10 (Strict)</span>
+                   <input 
+                     type="range" min="0.10" max="0.50" step="0.01" value={threshold} 
+                     onChange={(e) => setThreshold(parseFloat(e.target.value))}
+                     className="flex-1 accent-cyan-500 h-2 bg-zinc-800 rounded-lg appearance-none cursor-pointer"
+                   />
+                   <span className="text-xs text-zinc-500">0.50 (Loose)</span>
+                 </div>
+                 <Button onClick={handleSaveConfig} disabled={isSavingConfig} className="w-full bg-zinc-100 text-zinc-900 hover:bg-zinc-200">
+                   {isSavingConfig ? 'Saving...' : <><Save className="w-4 h-4 mr-2" /> Save Configuration</>}
+                 </Button>
+              </div>
+            ) : (
+              <div className="bg-zinc-950/50 p-5 rounded-xl border border-zinc-800 text-center py-6 text-zinc-400 text-sm">
+                <Info className="w-5 h-5 text-cyan-500 mx-auto mb-2" />
+                DeepFace is currently disabled. Face recognition runs strictly using the SOTA MobileNetV2 model with a default confidence threshold of <span className="font-mono font-semibold text-zinc-200">0.80</span>.
+              </div>
+            )}
           </CardContent>
         </Card>
 

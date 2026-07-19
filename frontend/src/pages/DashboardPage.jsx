@@ -44,6 +44,7 @@ export default function DashboardPage() {
   const [isActionLoading, setIsActionLoading] = useState(false);
   
   const [isClearHistoryModalOpen, setIsClearHistoryModalOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
 
   const fetchDashboardData = async () => {
     try {
@@ -189,11 +190,19 @@ export default function DashboardPage() {
         
         {/* Person Management Table */}
         <Card className="bg-zinc-900/40 border-zinc-800 overflow-hidden flex flex-col">
-          <CardHeader className="flex flex-row items-center justify-between py-4 px-6 border-b border-zinc-800">
+          <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between py-4 px-6 border-b border-zinc-800 gap-3">
             <CardTitle className="text-base font-medium">Enrollment Roster</CardTitle>
-            <Link to="/upload">
-              <Button variant="outline" size="sm">Add Person</Button>
-            </Link>
+            <div className="flex items-center gap-2">
+              <Input 
+                placeholder="Search person..." 
+                value={searchTerm} 
+                onChange={e => setSearchTerm(e.target.value)} 
+                className="h-8 w-40 bg-zinc-950/60 border-zinc-800 text-xs text-zinc-200 placeholder:text-zinc-600 focus:border-zinc-700 outline-none"
+              />
+              <Link to="/upload">
+                <Button variant="outline" size="sm" className="h-8 text-xs">Add Person</Button>
+              </Link>
+            </div>
           </CardHeader>
           <div className="overflow-x-auto max-h-[400px] relative">
             <Table>
@@ -205,58 +214,61 @@ export default function DashboardPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {Object.keys(photos_per_person).map(name => {
-                  const isEditing = editingPerson === name;
-                  const isDeleting = deletingPerson === name;
-                  
-                  return (
-                    <TableRow key={name} className="border-zinc-800/50 hover:bg-zinc-800/20">
-                      <TableCell className="font-mono text-sm">
-                        {isEditing ? (
-                          <div className="flex items-center gap-2">
-                            <Input 
-                              value={newName} 
-                              onChange={e => setNewName(e.target.value.replace(/\s+/g, '_'))}
-                              className="h-8 py-1 px-2 text-xs bg-zinc-950 border-zinc-700"
-                              autoFocus
-                            />
-                            <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => handleRename(name)} disabled={isActionLoading}><Check className="h-4 w-4"/></Button>
-                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEditingPerson(null)}><X className="h-4 w-4"/></Button>
-                          </div>
-                        ) : (
-                          <span className="text-zinc-200">{name}</span>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-zinc-400">
-                        {photos_per_person[name]}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        {isDeleting ? (
-                          <div className="inline-flex items-center gap-2">
-                            <span className="text-red-500 text-xs font-medium">Confirm?</span>
-                            <Button variant="destructive" size="sm" className="h-8" onClick={() => handleDelete(name)} disabled={isActionLoading}>Delete</Button>
-                            <Button variant="ghost" size="sm" className="h-8" onClick={() => setDeletingPerson(null)}>Cancel</Button>
-                          </div>
-                        ) : (
-                          <div className="inline-flex gap-1">
-                            <Button variant="ghost" size="icon" className="h-8 w-8 text-zinc-400 hover:text-zinc-100" onClick={() => { setEditingPerson(name); setNewName(name); }}>
-                              <Edit2 className="h-4 w-4" />
-                            </Button>
-                            <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500 hover:bg-red-500/10 hover:text-red-400" onClick={() => setDeletingPerson(name)}>
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  )
-                })}
-                {total_people === 0 && (
+                {Object.keys(photos_per_person).filter(name => name.toLowerCase().includes(searchTerm.toLowerCase())).length === 0 ? (
                   <TableRow className="hover:bg-transparent">
                     <TableCell colSpan={3} className="text-center py-8 text-zinc-500 border-none">
-                      No personnel enrolled.
+                      {Object.keys(photos_per_person).length === 0 ? "No personnel enrolled." : "No matching personnel found."}
                     </TableCell>
                   </TableRow>
+                ) : (
+                  Object.keys(photos_per_person)
+                    .filter(name => name.toLowerCase().includes(searchTerm.toLowerCase()))
+                    .map(name => {
+                      const isEditing = editingPerson === name;
+                      const isDeleting = deletingPerson === name;
+                      
+                      return (
+                        <TableRow key={name} className="border-zinc-800/50 hover:bg-zinc-800/20">
+                          <TableCell className="font-mono text-sm">
+                            {isEditing ? (
+                              <div className="flex items-center gap-2">
+                                <Input 
+                                  value={newName} 
+                                  onChange={e => setNewName(e.target.value.replace(/\s+/g, '_'))}
+                                  className="h-8 py-1 px-2 text-xs bg-zinc-950 border-zinc-700"
+                                  autoFocus
+                                />
+                                <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => handleRename(name)} disabled={isActionLoading}><Check className="h-4 w-4"/></Button>
+                                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEditingPerson(null)}><X className="h-4 w-4"/></Button>
+                              </div>
+                            ) : (
+                              <span className="text-zinc-200">{name}</span>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-zinc-400">
+                            {photos_per_person[name]}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            {isDeleting ? (
+                              <div className="inline-flex items-center gap-2">
+                                <span className="text-red-500 text-xs font-medium">Confirm?</span>
+                                <Button variant="destructive" size="sm" className="h-8" onClick={() => handleDelete(name)} disabled={isActionLoading}>Delete</Button>
+                                <Button variant="ghost" size="sm" className="h-8" onClick={() => setDeletingPerson(null)}>Cancel</Button>
+                              </div>
+                            ) : (
+                              <div className="inline-flex gap-1">
+                                <Button variant="ghost" size="icon" className="h-8 w-8 text-zinc-400 hover:text-zinc-100" onClick={() => { setEditingPerson(name); setNewName(name); }}>
+                                  <Edit2 className="h-4 w-4" />
+                                </Button>
+                                <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500 hover:bg-red-500/10 hover:text-red-400" onClick={() => setDeletingPerson(name)}>
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      )
+                    })
                 )}
               </TableBody>
             </Table>

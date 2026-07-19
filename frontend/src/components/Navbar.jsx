@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink, Link } from 'react-router-dom';
-import { Activity, Box, Video, Home, Upload, ClipboardList, Radio, Settings, LogOut, Users } from 'lucide-react';
+import { Activity, Box, Video, Home, Upload, ClipboardList, Radio, Settings, LogOut, Users, User } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 export function Navbar() {
@@ -13,6 +13,7 @@ export function Navbar() {
     { to: '/attendance/live', label: 'Live Site', icon: Radio },
     { to: '/upload', label: 'Upload', icon: Upload },
     { to: '/test', label: 'Test Camera', icon: Video },
+    { to: '/profile', label: 'Profile', icon: User },
     { to: '/models', label: 'Settings', icon: Settings },
   ];
 
