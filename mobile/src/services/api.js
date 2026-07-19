@@ -2,9 +2,10 @@
 import { API_CONFIG } from '../theme';
 import * as FileSystem from 'expo-file-system';
 import { Platform } from 'react-native';
+import axios from 'axios';
 
 // Helper to convert an image URI to the appropriate format for FormData
-async function getFileObject(uri, defaultName = 'photo.jpg') {
+export async function getFileObject(uri, defaultName = 'photo.jpg') {
   let filename = uri.split('/').pop() || defaultName;
   // Ensure the filename has a valid image extension, which is required by the backend
   if (!/\.(jpg|jpeg|png|webp|bmp)$/i.test(filename)) {
@@ -51,233 +52,159 @@ export function setServerUrl(url) {
   if (!BASE_URL.endsWith('/api')) {
     BASE_URL = BASE_URL + '/api';
   }
+  api.defaults.baseURL = BASE_URL;
 }
 
 export function getServerUrl() {
   return BASE_URL;
 }
 
-// Check if server is reachable
-export async function pingServer() {
+// ─── Axios Instance ──────────────────────────────────────────────────────────
+
+export const api = axios.create({
+  baseURL: BASE_URL,
+  timeout: 30000,
+});
+
+let _interceptorSetup = false;
+
+export function setupAuthInterceptor(onTokenRefresh) {
+  if (_interceptorSetup) return;
+  
+  api.interceptors.response.use(
+    (response) => response,
+    async (error) => {
+      const originalRequest = error.config;
+      
+      if (error.response?.status === 401 && !originalRequest._retry) {
+        originalRequest._retry = true;
+        try {
+          return await onTokenRefresh(originalRequest);
+        } catch (refreshError) {
+          return Promise.reject(refreshError);
+        }
+      }
+      return Promise.reject(error);
+    }
+  );
+  _interceptorSetup = true;
+}
+
+// ─── API Endpoints (rewritten to use Axios instance) ──────────────────────────
+
+export async function checkHealth() {
   try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 5000);
-    const res = await fetch(`${BASE_URL}/ping`, { signal: controller.signal });
-    clearTimeout(timeout);
-    return res.ok;
-  } catch {
-    return false;
+    const response = await api.get('/health', { timeout: 3000 });
+    return response.data;
+  } catch (error) {
+    throw new Error('Server unreachable');
   }
 }
 
-// Get list of all trained persons
-export async function getPersons() {
-  const res = await fetch(`${BASE_URL}/persons`);
-  if (!res.ok) throw new Error('Failed to fetch persons');
-  return res.json();
+export async function getDashboardStats() {
+  const response = await api.get('/dashboard');
+  return response.data;
 }
 
-// Upload images and trigger training for a new person
-export async function uploadPerson(personName, imageUris, epochs = 5) {
+export async function predictImage(imageUri, config = {}) {
+  const formData = new FormData();
+  const fileObj = await getFileObject(imageUri, 'capture.jpg');
+  formData.append('image', fileObj);
+
+  const response = await api.post('/predict', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+    ...config,
+  });
+  return response.data;
+}
+
+export async function getPersons() {
+  const response = await api.get('/persons');
+  return response.data;
+}
+
+export async function getPersonPhotos(name) {
+  const response = await api.get(`/persons/${encodeURIComponent(name)}/photos`);
+  return response.data;
+}
+
+export async function deletePersonPhoto(name, angle, filename) {
+  const response = await api.delete(`/persons/${encodeURIComponent(name)}/photos/${angle}/${filename}`);
+  return response.data;
+}
+
+export async function movePersonPhoto(name, sourceAngle, targetAngle, filename) {
+  const response = await api.post(`/persons/${encodeURIComponent(name)}/photos/move`, {
+    source_angle: sourceAngle,
+    target_angle: targetAngle,
+    filename: filename
+  });
+  return response.data;
+}
+
+export async function renamePerson(oldName, newName) {
+  const response = await api.put(`/persons/${encodeURIComponent(oldName)}`, {
+    new_name: newName
+  });
+  return response.data;
+}
+
+export async function deletePerson(name) {
+  const response = await api.delete(`/persons/${encodeURIComponent(name)}`);
+  return response.data;
+}
+
+export async function triggerRetrain(name, epochs = 5) {
+  const response = await api.post(`/persons/${encodeURIComponent(name)}/retrain`, { epochs });
+  return response.data;
+}
+
+export async function uploadPerson(personName, imageUris) {
   const formData = new FormData();
   formData.append('person_name', personName);
-  formData.append('epochs', String(epochs));
 
-  const files = await Promise.all(
-    imageUris.map((uri, index) => getFileObject(uri, `photo_${index}.jpg`))
-  );
+  for (let i = 0; i < imageUris.length; i++) {
+    const fileObj = await getFileObject(imageUris[i], `photo_${i}.jpg`);
+    formData.append('files[]', fileObj);
+  }
 
-  files.forEach((file, index) => {
-    const filename = imageUris[index].split('/').pop() || `photo_${index}.jpg`;
-    if (Platform.OS === 'web') {
-      formData.append('extra_files', file, filename);
-    } else {
-      formData.append('extra_files', file);
-    }
+  const response = await api.post('/upload', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
   });
-
-  const res = await fetch(`${BASE_URL}/upload`, {
-    method: 'POST',
-    body: formData,
-  });
-
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: 'Upload failed' }));
-    throw new Error(err.error || 'Upload failed');
-  }
-
-  return res.json();
+  return response.data;
 }
 
-// Run face recognition prediction on an image
-export async function predict(imageUri) {
-  const formData = new FormData();
-  let filename = imageUri.split('/').pop() || 'photo.jpg';
-  if (!/\.(jpg|jpeg|png|webp|bmp)$/i.test(filename)) filename += '.jpg';
-  
-  const file = await getFileObject(imageUri, filename);
-
-  if (Platform.OS === 'web') {
-    formData.append('image', file, filename);
-  } else {
-    formData.append('image', file);
-  }
-
-  const res = await fetch(`${BASE_URL}/predict`, {
-    method: 'POST',
-    body: formData,
-  });
-
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: 'Prediction failed' }));
-    throw new Error(err.error || 'Prediction failed');
-  }
-
-  return res.json();
-}
-
-// Export ONNX model on server
-export async function exportOnnx() {
-  const res = await fetch(`${BASE_URL}/export-onnx`, { method: 'POST' });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: 'Export failed' }));
-    throw new Error(err.error || 'Export failed');
-  }
-  return res.json();
-}
-
-// Reset all models on server
-export async function resetModels() {
-  const res = await fetch(`${BASE_URL}/models/reset`, { method: 'POST' });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: 'Reset failed' }));
-    throw new Error(err.error || 'Reset failed');
-  }
-  return res.json();
-}
-
-// Get training status (polling-based since SSE is complex in React Native)
 export async function getTrainingStatus() {
-  try {
-    const res = await fetch(`${BASE_URL}/train/status`, {
-      headers: { 'Accept': 'text/event-stream' },
-    });
-    const text = await res.text();
-    const lines = text.split('\n')
-      .filter(line => line.startsWith('data: '))
-      .map(line => line.replace('data: ', ''));
-    const isDone = lines.includes('[DONE]');
-    return {
-      logs: lines.filter(l => l !== '[DONE]'),
-      isDone,
-    };
-  } catch {
-    return { logs: [], isDone: true };
-  }
+  const response = await api.get('/train/status');
+  return response.data;
 }
 
-// Download a model artifact file
-export async function downloadModelFile(filename) {
-  const url = `${BASE_URL}/download-file?name=${filename}`;
-  const localPath = FileSystem.documentDirectory + filename;
-
-  const download = FileSystem.createDownloadResumable(url, localPath);
-  const result = await download.downloadAsync();
-
-  return result.uri;
+export async function getConfig() {
+  const response = await api.get('/config');
+  return response.data;
 }
 
-// Get dashboard stats
-export async function getDashboard() {
-  const res = await fetch(`${BASE_URL}/dashboard`);
-  if (!res.ok) throw new Error('Failed to fetch dashboard data');
-  return res.json();
+export async function saveConfig(config) {
+  const response = await api.post('/config', config);
+  return response.data;
 }
 
-// Clear recognition history
-export async function clearHistory() {
-  const res = await fetch(`${BASE_URL}/history`, { method: 'DELETE' });
-  if (!res.ok) throw new Error('Failed to clear history');
-  return res.json();
-}
-// Get list of photos for a person
-export async function getPersonPhotos(name) {
-  const res = await fetch(`${BASE_URL}/persons/${name}/photos`);
-  if (!res.ok) throw new Error('Failed to fetch person photos');
-  return res.json();
+export async function exportOnnx() {
+  const response = await api.post('/export-onnx');
+  return response.data;
 }
 
-// Serves a specific cleaned photo file URL
-export function getPersonPhotoUrl(name, angle, filename) {
-  return `${BASE_URL}/persons/${name}/photos/${angle}/${filename}`;
+export async function resetModels(deleteDataset = false) {
+  const response = await api.post('/models/reset', { delete_dataset: deleteDataset });
+  return response.data;
 }
 
-// Delete a specific photo
-export async function deletePersonPhoto(name, angle, filename) {
-  const res = await fetch(`${BASE_URL}/persons/${name}/photos/${angle}/${filename}`, {
-    method: 'DELETE'
+export async function submitFeedback(predictionId, isCorrect, correctName = null, actionTaken = 'confirmed') {
+  const response = await api.post('/predict/feedback', {
+    prediction_id: predictionId,
+    is_correct: isCorrect,
+    correct_name: correctName,
+    action_taken: actionTaken
   });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: 'Delete photo failed' }));
-    throw new Error(err.error || 'Delete photo failed');
-  }
-  return res.json();
-}
-
-// Move a photo to a different angle
-export async function movePersonPhoto(name, sourceAngle, targetAngle, filename) {
-  const res = await fetch(`${BASE_URL}/persons/${name}/photos/move`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      source_angle: sourceAngle,
-      target_angle: targetAngle,
-      filename: filename
-    })
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: 'Move photo failed' }));
-    throw new Error(err.error || 'Move photo failed');
-  }
-  return res.json();
-}
-
-// Rename a person
-export async function renamePerson(oldName, newName) {
-  const res = await fetch(`${BASE_URL}/persons/${oldName}`, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ new_name: newName })
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: 'Rename person failed' }));
-    throw new Error(err.error || 'Rename person failed');
-  }
-  return res.json();
-}
-
-// Delete a person entirely
-export async function deletePerson(name) {
-  const res = await fetch(`${BASE_URL}/persons/${name}`, {
-    method: 'DELETE'
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: 'Delete person failed' }));
-    throw new Error(err.error || 'Delete person failed');
-  }
-  return res.json();
-}
-
-// Trigger retraining
-export async function triggerRetrain(name, epochs = 10) {
-  const res = await fetch(`${BASE_URL}/persons/${name}/retrain`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ epochs: parseInt(epochs) })
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: 'Retraining failed' }));
-    throw new Error(err.error || 'Retraining failed');
-  }
-  return res.json();
+  return response.data;
 }

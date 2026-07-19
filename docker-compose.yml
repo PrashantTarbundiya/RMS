@@ -1,0 +1,48 @@
+version: '3.8'
+
+services:
+  redis:
+    image: redis:alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+
+  api:
+    build: 
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    volumes:
+      # Mount data volume for persistent sqlite/encodings/images
+      - rms_edge_data:/app/data
+      # The edge license key must be supplied via a volume or directly
+      - ./backend/license.key:/app/license.key:ro
+    environment:
+      - DEPLOYMENT_MODE=local
+      - REDIS_URL=redis://redis:6379/0
+      # - CLOUD_API_URL=https://api.my-saas.com (for hybrid)
+    depends_on:
+      - redis
+    restart: unless-stopped
+
+  celery_worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    command: celery -A tasks.celery_app worker --loglevel=info
+    volumes:
+      - rms_edge_data:/app/data
+      - ./backend/license.key:/app/license.key:ro
+    environment:
+      - DEPLOYMENT_MODE=local
+      - REDIS_URL=redis://redis:6379/0
+    depends_on:
+      - redis
+    restart: unless-stopped
+
+volumes:
+  redis_data:
+  rms_edge_data:

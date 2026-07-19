@@ -1,627 +1,343 @@
-import React, { useState, useEffect } from 'react'
-import { Link } from 'react-router-dom'
-import axios from 'axios'
-import { motion } from 'framer-motion'
+import React, { useState, useEffect } from 'react';
+import { useAuth } from '../context/AuthContext';
+import { Link } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import { 
   Users, Image as ImageIcon, BarChart3, Clock, CheckCircle, 
-  AlertTriangle, Trash2, Edit2, Check, X, RefreshCw, Eye
-} from 'lucide-react'
-
-import { API_BASE } from '../config'
+  AlertTriangle, Trash2, Edit2, Check, X, RefreshCw 
+} from 'lucide-react';
+import { API_BASE } from '../config';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 
 export default function DashboardPage() {
-  const [stats, setStats] = useState(null)
-  const [history, setHistory] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
-  const [editingPerson, setEditingPerson] = useState(null)
-  const [newName, setNewName] = useState('')
-  const [deletingPerson, setDeletingPerson] = useState(null)
-  const [isActionLoading, setIsActionLoading] = useState(false)
-  const [actionStatus, setActionStatus] = useState({ type: '', message: '' })
+  const { apiClient } = useAuth();
+  const [stats, setStats] = useState(null);
+  const [history, setHistory] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  
+  const [editingPerson, setEditingPerson] = useState(null);
+  const [newName, setNewName] = useState('');
+  const [deletingPerson, setDeletingPerson] = useState(null);
+  const [isActionLoading, setIsActionLoading] = useState(false);
+  
+  const [isClearHistoryModalOpen, setIsClearHistoryModalOpen] = useState(false);
 
   const fetchDashboardData = async () => {
     try {
-      setError('')
+      setError('');
       const [statsRes, historyRes] = await Promise.all([
-        axios.get(`${API_BASE}/dashboard`),
-        axios.get(`${API_BASE}/history`)
-      ])
-      setStats(statsRes.data)
-      setHistory(historyRes.data)
+        apiClient.get(`${API_BASE}/dashboard`),
+        apiClient.get(`${API_BASE}/history`)
+      ]);
+      setStats(statsRes.data);
+      setHistory(historyRes.data);
     } catch (err) {
-      console.error(err)
-      setError('Failed to fetch dashboard data from server. Ensure Flask API is running.')
+      console.error(err);
+      setError('Failed to fetch dashboard data. Ensure the system is online.');
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   useEffect(() => {
-    fetchDashboardData()
-    // Poll stats every 10 seconds to keep dashboard alive
-    const interval = setInterval(fetchDashboardData, 10000)
-    return () => clearInterval(interval)
-  }, [])
+    fetchDashboardData();
+    const interval = setInterval(fetchDashboardData, 10000);
+    return () => clearInterval(interval);
+  }, []);
 
   const handleRename = async (oldName) => {
     if (!newName.trim() || newName.trim() === oldName) {
-      setEditingPerson(null)
-      return
+      setEditingPerson(null);
+      return;
     }
-    setIsActionLoading(true)
-    setActionStatus({ type: 'info', message: 'Renaming person...' })
+    setIsActionLoading(true);
     try {
-      const res = await axios.put(`${API_BASE}/persons/${oldName}`, { new_name: newName.trim() })
-      setActionStatus({ type: 'success', message: res.data.message })
-      setEditingPerson(null)
-      fetchDashboardData()
+      await apiClient.put(`${API_BASE}/persons/${oldName}`, { new_name: newName.trim() });
+      setEditingPerson(null);
+      fetchDashboardData();
     } catch (err) {
-      setActionStatus({ type: 'error', message: err.response?.data?.error || 'Failed to rename person' })
+      console.error(err);
     } finally {
-      setIsActionLoading(false)
+      setIsActionLoading(false);
     }
-  }
+  };
 
   const handleDelete = async (name) => {
-    setIsActionLoading(true)
-    setActionStatus({ type: 'info', message: 'Deleting person...' })
+    setIsActionLoading(true);
     try {
-      const res = await axios.delete(`${API_BASE}/persons/${name}`)
-      setActionStatus({ type: 'success', message: res.data.message })
-      setDeletingPerson(null)
-      fetchDashboardData()
+      await apiClient.delete(`${API_BASE}/persons/${name}`);
+      setDeletingPerson(null);
+      fetchDashboardData();
     } catch (err) {
-      setActionStatus({ type: 'error', message: err.response?.data?.error || 'Failed to delete person' })
+      console.error(err);
     } finally {
-      setIsActionLoading(false)
+      setIsActionLoading(false);
     }
-  }
+  };
 
-  const handleClearHistory = async () => {
-    if (!window.confirm('Are you sure you want to clear all recognition history?')) return
+  const executeClearHistory = async () => {
     try {
-      await axios.delete(`${API_BASE}/history`)
-      setHistory([])
-      fetchDashboardData()
+      await apiClient.delete(`${API_BASE}/history`);
+      setHistory([]);
+      fetchDashboardData();
     } catch (err) {
-      console.error(err)
+      console.error(err);
+    } finally {
+      setIsClearHistoryModalOpen(false);
     }
-  }
+  };
 
   if (loading) {
     return (
-      <div style={{ textAlign: 'center', padding: '4rem 0', color: 'var(--text-secondary)' }}>
-        <RefreshCw className="animate-spin" size={32} style={{ marginBottom: '1rem', color: 'var(--primary-light)' }} />
-        <p>Loading Dashboard stats...</p>
+      <div className="flex flex-col items-center justify-center py-20 text-zinc-500">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-zinc-500 border-t-transparent" />
+        <p className="mt-4 text-sm font-mono tracking-tight">Loading System Data...</p>
       </div>
-    )
+    );
   }
 
   if (error || !stats) {
     return (
-      <div className="animate-fade-in" style={{ padding: '2rem 0' }}>
-        <div className="glass-panel" style={{ padding: '2rem', border: '1px solid rgba(239, 68, 68, 0.3)', background: 'var(--error-bg)', color: 'var(--error)', textAlign: 'center' }}>
-          <AlertTriangle size={36} style={{ marginBottom: '1rem' }} />
-          <h2 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '0.5rem' }}>Failed to Load Dashboard</h2>
-          <p style={{ fontSize: '0.9rem', marginBottom: '1.5rem' }}>{error || 'Unable to connect to the backend server. Is it running?'}</p>
-          <button className="btn btn-secondary" onClick={() => { setLoading(true); fetchDashboardData(); }}>
+      <div className="p-6">
+        <Card className="border-red-500/20 bg-red-500/5 text-center p-6 shadow-sm">
+          <AlertTriangle className="mx-auto mb-3 h-8 w-8 text-red-500" />
+          <h2 className="text-lg font-medium text-red-500 mb-2">System Offline</h2>
+          <p className="text-red-500/80 mb-4">{error}</p>
+          <Button variant="outline" className="border-red-500/20 text-red-500 hover:bg-red-500/10" onClick={() => { setLoading(true); fetchDashboardData(); }}>
             Retry Connection
-          </button>
-        </div>
+          </Button>
+        </Card>
       </div>
-    )
+    );
   }
 
-  // Derived dashboard variables
-  const { total_people, total_photos, photos_per_person, requires_retrain, models_loaded, history_stats } = stats
-  const { total_predictions, success_count, warning_count, error_count, agreement_counts } = history_stats
-
-  // Success rate calculator
-  const successRate = total_predictions > 0 ? Math.round((success_count / total_predictions) * 100) : 0
-
-  // CSS for Inline Banner
-  const statusColors = {
-    error:   { bg: 'var(--error-bg)',   border: 'rgba(239, 68, 68, 0.3)',  color: 'var(--error)' },
-    success: { bg: 'var(--success-bg)', border: 'rgba(34, 197, 94, 0.3)',  color: 'var(--success)' },
-    info:    { bg: 'var(--info-bg)',    border: 'rgba(59, 130, 246, 0.3)', color: 'var(--info)' },
-  }
+  const { total_people, total_photos, photos_per_person, requires_retrain, models_loaded, history_stats } = stats;
+  const { total_predictions, success_count, error_count } = history_stats;
+  const successRate = total_predictions > 0 ? Math.round((success_count / total_predictions) * 100) : 0;
 
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: { opacity: 1, transition: { staggerChildren: 0.1 } }
-  }
-
+  };
   const itemVariants = {
-    hidden: { y: 20, opacity: 0 },
-    visible: { y: 0, opacity: 1, transition: { type: 'spring', stiffness: 300, damping: 24 } }
-  }
+    hidden: { opacity: 0, y: 10 },
+    visible: { opacity: 1, y: 0 }
+  };
 
   return (
-    <motion.div 
-      variants={containerVariants} 
-      initial="hidden" 
-      animate="visible"
-      style={{ paddingBottom: '4rem' }}
-    >
+    <motion.div variants={containerVariants} initial="hidden" animate="visible" className="pb-12 space-y-6">
       
-      {/* Page Header */}
-      <motion.div variants={itemVariants} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
+      {/* Header */}
+      <motion.div variants={itemVariants} className="flex justify-between items-center">
         <div>
-          <h1 className="page-title" style={{ margin: 0 }}>Dashboard</h1>
-          <p className="page-subtitle" style={{ margin: '4px 0 0 0' }}>Analytics, person management, and recognition logs.</p>
+          <h1 className="text-2xl font-semibold tracking-tight text-zinc-100">System Dashboard</h1>
+          <p className="text-zinc-400 text-sm mt-1">Real-time telemetry and management.</p>
         </div>
-        <motion.button 
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          className="btn btn-secondary" 
-          onClick={() => { setLoading(true); fetchDashboardData(); }}
-          style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '0.5rem 1rem', fontSize: '0.85rem' }}
-        >
-          <RefreshCw size={14} /> Refresh Data
-        </motion.button>
+        <Button variant="outline" size="sm" onClick={() => { setLoading(true); fetchDashboardData(); }}>
+          <RefreshCw className="mr-2 h-4 w-4" /> Refresh
+        </Button>
       </motion.div>
 
-      {/* Retraining Warning Banner */}
-      {requires_retrain && (
-        <div className="glass-panel animate-pulse" style={{ 
-          padding: '1.25rem 1.5rem', marginBottom: '2rem', 
-          border: '1px solid rgba(245, 158, 11, 0.4)', 
-          background: 'rgba(245, 158, 11, 0.08)',
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          flexWrap: 'wrap', gap: '1rem'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <AlertTriangle size={24} style={{ color: 'var(--warning)', flexShrink: 0 }} />
-            <div>
-              <h4 style={{ color: 'var(--warning)', margin: 0, fontWeight: '600', fontSize: '0.95rem' }}>Model Out of Sync</h4>
-              <p style={{ color: 'var(--text-secondary)', margin: '2px 0 0 0', fontSize: '0.85rem', lineHeight: '1.4' }}>
-                A class was deleted or models were initialized with structural changes. Retraining is required to update MobileNetV2.
-              </p>
-            </div>
-          </div>
-          <Link to="/training" className="btn btn-primary" style={{ padding: '0.5rem 1.25rem', fontSize: '0.85rem', background: 'var(--warning)', borderColor: 'var(--warning)', color: '#0F172A' }}>
-            Train Models Now
-          </Link>
+      {/* System Status Line (Calm) */}
+      <motion.div variants={itemVariants} className="flex flex-wrap gap-4 p-3 bg-zinc-900/50 border border-zinc-800 rounded-lg items-center text-sm">
+        <div className="flex items-center gap-2">
+          <span className="text-zinc-400">Status:</span> 
+          {requires_retrain ? <Badge variant="destructive" className="bg-amber-500/20 text-amber-500 hover:bg-amber-500/30">Retraining Required</Badge> : <Badge variant="outline" className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20">Operational</Badge>}
         </div>
-      )}
-
-      {/* Action Notification Banner */}
-      {actionStatus.message && (() => {
-        const s = statusColors[actionStatus.type] || statusColors.info
-        return (
-          <div className="mb-2" style={{
-            padding: '0.85rem 1rem', borderRadius: 'var(--radius-md)', 
-            background: s.bg, border: `1px solid ${s.border}`, color: s.color,
-            display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.9rem',
-            marginBottom: '1.5rem'
-          }}>
-            <span>{actionStatus.message}</span>
-            <button style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer' }} onClick={() => setActionStatus({ type: '', message: '' })}>
-              <X size={16} />
-            </button>
-          </div>
-        )
-      })()}
-
-      {/* ── KPI CARDS ── */}
-      <div className="card-grid" style={{ marginBottom: '2rem' }}>
-        
-        <KpiCard 
-          icon={<Users size={20} />} 
-          label="Registered People" 
-          value={total_people} 
-          desc="Unique classes" 
-          color="var(--primary-light)" 
-        />
-        
-        <KpiCard 
-          icon={<ImageIcon size={20} />} 
-          label="Cleaned Photos" 
-          value={total_photos} 
-          desc={`${total_people > 0 ? Math.round(total_photos / total_people) : 0} avg per person`} 
-          color="var(--secondary-light)" 
-        />
-        
-        <KpiCard 
-          icon={<Clock size={20} />} 
-          label="Total Predictions" 
-          value={total_predictions} 
-          desc="Web and mobile log count" 
-          color="var(--accent-cyan)" 
-        />
-        
-        <KpiCard 
-          icon={<CheckCircle size={20} />} 
-          label="Success Rate" 
-          value={`${successRate}%`} 
-          desc={`${success_count} recognized / ${error_count} unknown`} 
-          color="var(--success)" 
-        />
-
-      </div>
-
-      {/* ── VISUAL ANALYTICS (SVG CHARTS) ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '1.5rem', marginBottom: '2rem' }}>
-        
-        {/* Photos per Person Chart */}
-        <div className="glass-panel" style={{ padding: '1.5rem' }}>
-          <h3 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <BarChart3 size={18} style={{ color: 'var(--primary-light)' }} /> Cleaned Images per Registered Person
-          </h3>
-          {total_people === 0 ? (
-            <div style={{ textAlign: 'center', padding: '3rem 0', color: 'var(--text-tertiary)', fontSize: '0.9rem' }}>
-              No registered people. Go to the Upload page to add someone.
-            </div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              {Object.entries(photos_per_person).map(([name, count]) => {
-                const maxVal = Math.max(...Object.values(photos_per_person), 1)
-                const pct = (count / maxVal) * 100
-                return (
-                  <div key={name} style={{ display: 'grid', gridTemplateColumns: '150px 1fr 40px', alignItems: 'center', gap: '1rem' }}>
-                    <span style={{ fontSize: '0.85rem', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={name}>
-                      {name.replace(/_/g, ' ')}
-                    </span>
-                    <div style={{ height: '8px', background: 'var(--bg-input)', borderRadius: '999px', overflow: 'hidden', position: 'relative' }}>
-                      <div style={{ 
-                        width: `${pct}%`, 
-                        height: '100%', 
-                        background: 'linear-gradient(90deg, var(--primary), var(--secondary))', 
-                        borderRadius: '999px',
-                        transition: 'width 0.8s cubic-bezier(0.4, 0, 0.2, 1)'
-                      }} />
-                    </div>
-                    <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', textAlign: 'right', fontWeight: 600 }}>
-                      {count}
-                    </span>
-                  </div>
-                )
-              })}
-            </div>
-          )}
+        <div className="flex items-center gap-2">
+          <span className="text-zinc-400">DeepFace:</span>
+          {models_loaded.deepface ? <span className="text-emerald-500 font-medium">Loaded</span> : <span className="text-red-500 font-medium">Offline</span>}
         </div>
-
-        {/* Model Loaded Status Cards */}
-        <div className="glass-panel" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-          <div>
-            <h3 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '1.25rem' }}>Model Load Status</h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
-              <ModelStatusIndicator label="DeepFace (Facenet512)" loaded={models_loaded.deepface} />
-
-              <ModelStatusIndicator label="SOTA (MobileNetV2)" loaded={models_loaded.sota} />
-            </div>
-          </div>
-          <div style={{ borderTop: '1px solid var(--border)', marginTop: '1.5rem', paddingTop: '1rem', textAlign: 'center' }}>
-            <span style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)', lineHeight: '1.4', display: 'block' }}>
-              Ensuring all 3 models are loaded guarantees high accuracy ensemble voting.
-            </span>
-          </div>
+        <div className="flex items-center gap-2">
+          <span className="text-zinc-400">SOTA:</span>
+          {models_loaded.sota ? <span className="text-emerald-500 font-medium">Loaded</span> : <span className="text-red-500 font-medium">Offline</span>}
         </div>
+      </motion.div>
 
-      </div>
+      {/* KPI Grid */}
+      <motion.div variants={itemVariants} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <KpiCard icon={<Users className="h-5 w-5"/>} label="Total Enrolled" value={total_people} />
+        <KpiCard icon={<ImageIcon className="h-5 w-5"/>} label="Faces Processed" value={total_photos} />
+        <KpiCard icon={<Clock className="h-5 w-5"/>} label="Scan Events" value={total_predictions} />
+        <KpiCard icon={<CheckCircle className="h-5 w-5"/>} label="Accuracy Rate" value={`${successRate}%`} color="text-emerald-500" />
+      </motion.div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '2rem' }}>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         
-        {/* Model Agreement Donut Chart (SVG) */}
-        <div className="glass-panel" style={{ padding: '1.5rem', textAlign: 'center' }}>
-          <h3 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '1.5rem', textAlign: 'left' }}>Model Agreement Levels</h3>
-          {total_predictions === 0 ? (
-            <div style={{ padding: '3rem 0', color: 'var(--text-tertiary)', fontSize: '0.9rem' }}>
-              No prediction history yet. Perform some test scans to see statistics.
-            </div>
-          ) : (
-            <div style={{ display: 'flex', justifyContent: 'space-around', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
-              <svg width="150" height="150" viewBox="0 0 42 42" style={{ transform: 'rotate(-90deg)' }}>
-                {(() => {
-                  const three = agreement_counts['3/3'] || 0
-                  const two = agreement_counts['2/3'] || 0
-                  const one = agreement_counts['1/3'] || 0
-                  const zero = agreement_counts['0/3'] || 0
-                  const na = agreement_counts['N/A'] || 0
-                  const total = three + two + one + zero + na || 1
-                  
-                  const p3 = (three / total) * 100
-                  const p2 = (two / total) * 100
-                  const p1 = ((one + zero + na) / total) * 100
-
-                  return (
-                    <>
-                      {/* Circle Background */}
-                      <circle cx="21" cy="21" r="15.915" fill="transparent" stroke="var(--bg-input)" strokeWidth="4"></circle>
-                      
-                      {/* 3/3 Agreement (Success Green) */}
-                      <circle cx="21" cy="21" r="15.915" fill="transparent" stroke="var(--success)" strokeWidth="4"
-                        strokeDasharray={`${p3} ${100 - p3}`} strokeDashoffset="0"></circle>
-                      
-                      {/* 2/3 Agreement (Warning Yellow) */}
-                      <circle cx="21" cy="21" r="15.915" fill="transparent" stroke="var(--warning)" strokeWidth="4"
-                        strokeDasharray={`${p2} ${100 - p2}`} strokeDashoffset={-p3}></circle>
-                        
-                      {/* Low/No Agreement (Error Red) */}
-                      <circle cx="21" cy="21" r="15.915" fill="transparent" stroke="var(--error)" strokeWidth="4"
-                        strokeDasharray={`${p1} ${100 - p1}`} strokeDashoffset={-(p3 + p2)}></circle>
-                    </>
-                  )
-                })()}
-                <g style={{ transform: 'rotate(90deg) translate(0px, -42px)' }}>
-                  <text x="50%" y="55%" dominantBaseline="middle" textAnchor="middle" fill="var(--text-primary)" fontSize="5" fontWeight="bold">
-                    {Math.round(((agreement_counts['3/3'] || 0) + (agreement_counts['2/3'] || 0)) / (total_predictions || 1) * 100)}%
-                  </text>
-                  <text x="50%" y="70%" dominantBaseline="middle" textAnchor="middle" fill="var(--text-secondary)" fontSize="3">
-                    Consensus
-                  </text>
-                </g>
-              </svg>
-              
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', textAlign: 'left' }}>
-                <LegendItem color="var(--success)" label="3/3 Model Agreement" count={agreement_counts['3/3'] || 0} total={total_predictions} />
-                <LegendItem color="var(--warning)" label="2/3 Model Agreement" count={agreement_counts['2/3'] || 0} total={total_predictions} />
-                <LegendItem color="var(--error)" label="Low/No Agreement" count={(agreement_counts['1/3'] || 0) + (agreement_counts['0/3'] || 0) + (agreement_counts['N/A'] || 0)} total={total_predictions} />
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Success Rate Gauge */}
-        <div className="glass-panel" style={{ padding: '1.5rem', textAlign: 'center' }}>
-          <h3 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '1.5rem', textAlign: 'left' }}>Scans Accuracy Profile</h3>
-          {total_predictions === 0 ? (
-            <div style={{ padding: '3rem 0', color: 'var(--text-tertiary)', fontSize: '0.9rem' }}>
-              No scans recorded yet. Try the webcam or test uploading photos.
-            </div>
-          ) : (
-            <div style={{ display: 'flex', justifyContent: 'space-around', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
-              <div style={{ position: 'relative', width: '130px', height: '130px' }}>
-                <svg width="130" height="130" viewBox="0 0 100 100">
-                  <circle cx="50" cy="50" r="40" fill="transparent" stroke="var(--bg-input)" strokeWidth="8" strokeDasharray="180 360" strokeLinecap="round" style={{ transform: 'rotate(180deg)', transformOrigin: '50px 50px' }}></circle>
-                  <circle cx="50" cy="50" r="40" fill="transparent" stroke="url(#successGrad)" strokeWidth="8" 
-                    strokeDasharray={`${(successRate / 100) * 180} 360`} strokeLinecap="round"
-                    style={{ transform: 'rotate(180deg)', transformOrigin: '50px 50px', transition: 'stroke-dasharray 0.8s ease' }}></circle>
-                  <defs>
-                    <linearGradient id="successGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-                      <stop offset="0%" stopColor="var(--primary)" />
-                      <stop offset="100%" stopColor="var(--success)" />
-                    </linearGradient>
-                  </defs>
-                  <text x="50" y="45" textAnchor="middle" dominantBaseline="middle" fill="var(--text-primary)" fontSize="16" fontWeight="bold">
-                    {successRate}%
-                  </text>
-                  <text x="50" y="60" textAnchor="middle" dominantBaseline="middle" fill="var(--text-secondary)" fontSize="8">
-                    Accuracy Rate
-                  </text>
-                </svg>
-              </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', textAlign: 'left' }}>
-                <div style={{ fontSize: '0.85rem' }}>🟢 <strong style={{ color: 'var(--success)' }}>{success_count}</strong> Recognized</div>
-                <div style={{ fontSize: '0.85rem' }}>🟡 <strong style={{ color: 'var(--warning)' }}>{warning_count}</strong> Medium Conf.</div>
-                <div style={{ fontSize: '0.85rem' }}>🔴 <strong style={{ color: 'var(--error)' }}>{error_count}</strong> Unknown / Fails</div>
-              </div>
-            </div>
-          )}
-        </div>
-
-      </div>
-
-      {/* ── PERSON MANAGEMENT SECTION ── */}
-      <section className="glass-panel" style={{ padding: '2rem', marginBottom: '2rem' }}>
-        <h3 style={{ fontSize: '1.2rem', fontWeight: 600, marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <Users size={22} style={{ color: 'var(--primary-light)' }} /> Person Management
-        </h3>
-        
-        {total_people === 0 ? (
-          <div style={{ textAlign: 'center', padding: '2rem 0', color: 'var(--text-secondary)' }}>
-            No registered people. <Link to="/upload" style={{ color: 'var(--primary-light)' }}>Register your first person</Link> to start.
-          </div>
-        ) : (
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-              <thead>
-                <tr style={{ borderBottom: '1px solid var(--border)', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
-                  <th style={{ padding: '0.75rem 1rem' }}>Person Name</th>
-                  <th style={{ padding: '0.75rem 1rem' }}>Cleaned Photos</th>
-                  <th style={{ padding: '0.75rem 1rem', textAlign: 'right' }}>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {Object.keys(photos_per_person).map((name) => {
-                  const isEditing = editingPerson === name
-                  const isDeleting = deletingPerson === name
-                  const count = photos_per_person[name] || 0
+        {/* Person Management Table */}
+        <Card className="bg-zinc-900/40 border-zinc-800 overflow-hidden flex flex-col">
+          <CardHeader className="flex flex-row items-center justify-between py-4 px-6 border-b border-zinc-800">
+            <CardTitle className="text-base font-medium">Enrollment Roster</CardTitle>
+            <Link to="/upload">
+              <Button variant="outline" size="sm">Add Person</Button>
+            </Link>
+          </CardHeader>
+          <div className="overflow-x-auto max-h-[400px] relative">
+            <Table>
+              <TableHeader className="bg-zinc-900/80 sticky top-0 z-10 backdrop-blur-sm">
+                <TableRow className="border-zinc-800 hover:bg-transparent">
+                  <TableHead className="text-zinc-400">Identifier</TableHead>
+                  <TableHead className="text-zinc-400">Samples</TableHead>
+                  <TableHead className="text-right"></TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {Object.keys(photos_per_person).map(name => {
+                  const isEditing = editingPerson === name;
+                  const isDeleting = deletingPerson === name;
                   
                   return (
-                    <tr key={name} style={{ borderBottom: '1px solid var(--border)', fontSize: '0.9rem' }}>
-                      <td style={{ padding: '1rem' }}>
+                    <TableRow key={name} className="border-zinc-800/50 hover:bg-zinc-800/20">
+                      <TableCell className="font-mono text-sm">
                         {isEditing ? (
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <input 
-                              type="text" 
-                              className="text-input" 
+                          <div className="flex items-center gap-2">
+                            <Input 
                               value={newName} 
                               onChange={e => setNewName(e.target.value.replace(/\s+/g, '_'))}
-                              style={{ padding: '0.35rem 0.75rem', fontSize: '0.85rem', width: '200px', margin: 0 }}
-                              disabled={isActionLoading}
+                              className="h-8 py-1 px-2 text-xs bg-zinc-950 border-zinc-700"
+                              autoFocus
                             />
-                            <button className="btn btn-primary" style={{ padding: '0.35rem', borderRadius: '4px' }} onClick={() => handleRename(name)} disabled={isActionLoading}>
-                              <Check size={14} />
-                            </button>
-                            <button className="btn btn-secondary" style={{ padding: '0.35rem', borderRadius: '4px' }} onClick={() => setEditingPerson(null)} disabled={isActionLoading}>
-                              <X size={14} />
-                            </button>
+                            <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => handleRename(name)} disabled={isActionLoading}><Check className="h-4 w-4"/></Button>
+                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEditingPerson(null)}><X className="h-4 w-4"/></Button>
                           </div>
                         ) : (
-                          <span style={{ fontWeight: 600 }}>{name.replace(/_/g, ' ')}</span>
+                          <span className="text-zinc-200">{name}</span>
                         )}
-                      </td>
-                      <td style={{ padding: '1rem' }}>
-                        <span style={{ color: 'var(--text-secondary)' }}>{count} file{count !== 1 ? 's' : ''}</span>
-                      </td>
-                      <td style={{ padding: '1rem', textAlign: 'right' }}>
+                      </TableCell>
+                      <TableCell className="text-zinc-400">
+                        {photos_per_person[name]}
+                      </TableCell>
+                      <TableCell className="text-right">
                         {isDeleting ? (
-                          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
-                            <span style={{ color: 'var(--error)', fontSize: '0.8rem', marginRight: '6px' }}>Are you sure?</span>
-                            <button className="btn btn-danger" style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem' }} onClick={() => handleDelete(name)} disabled={isActionLoading}>
-                              Yes, Delete
-                            </button>
-                            <button className="btn btn-secondary" style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem' }} onClick={() => setDeletingPerson(null)} disabled={isActionLoading}>
-                              No
-                            </button>
+                          <div className="inline-flex items-center gap-2">
+                            <span className="text-red-500 text-xs font-medium">Confirm?</span>
+                            <Button variant="destructive" size="sm" className="h-8" onClick={() => handleDelete(name)} disabled={isActionLoading}>Delete</Button>
+                            <Button variant="ghost" size="sm" className="h-8" onClick={() => setDeletingPerson(null)}>Cancel</Button>
                           </div>
                         ) : (
-                          <div style={{ display: 'inline-flex', gap: '8px' }}>
-                            <Link 
-                              to={`/persons/edit/${name}`}
-                              className="btn btn-secondary hover-btn" 
-                              style={{ padding: '0.4rem', borderRadius: 'var(--radius-sm)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
-                              title="Edit Person & Photos"
-                            >
-                              <Edit2 size={14} />
-                            </Link>
-                            <button 
-                              className="btn btn-danger" 
-                              style={{ padding: '0.4rem', borderRadius: 'var(--radius-sm)', background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)' }}
-                              onClick={() => setDeletingPerson(name)}
-                              disabled={isActionLoading || isEditing}
-                              title="Delete Person"
-                            >
-                              <Trash2 size={14} style={{ color: 'var(--error)' }} />
-                            </button>
+                          <div className="inline-flex gap-1">
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-zinc-400 hover:text-zinc-100" onClick={() => { setEditingPerson(name); setNewName(name); }}>
+                              <Edit2 className="h-4 w-4" />
+                            </Button>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500 hover:bg-red-500/10 hover:text-red-400" onClick={() => setDeletingPerson(name)}>
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
                           </div>
                         )}
-                      </td>
-                    </tr>
+                      </TableCell>
+                    </TableRow>
                   )
                 })}
-              </tbody>
-            </table>
+                {total_people === 0 && (
+                  <TableRow className="hover:bg-transparent">
+                    <TableCell colSpan={3} className="text-center py-8 text-zinc-500 border-none">
+                      No personnel enrolled.
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
           </div>
-        )}
-      </section>
+        </Card>
 
-      {/* ── RECOGNITION HISTORY TABLE ── */}
-      <section className="glass-panel" style={{ padding: '2rem' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
-          <h3 style={{ fontSize: '1.2rem', fontWeight: 600, margin: 0, display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <Clock size={22} style={{ color: 'var(--primary-light)' }} /> Recent Recognition Logs
-          </h3>
-          {history.length > 0 && (
-            <button className="btn btn-secondary" style={{ padding: '0.4rem 0.85rem', fontSize: '0.8rem', borderColor: 'rgba(239,68,68,0.2)', color: 'var(--error)' }} onClick={handleClearHistory}>
-              Clear History Logs
-            </button>
-          )}
-        </div>
-
-        {history.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '2rem 0', color: 'var(--text-secondary)' }}>
-            No scans recorded in history log yet.
+        {/* Recent Telemetry */}
+        <Card className="bg-zinc-900/40 border-zinc-800 overflow-hidden flex flex-col">
+          <CardHeader className="flex flex-row items-center justify-between py-4 px-6 border-b border-zinc-800">
+            <CardTitle className="text-base font-medium">Recent Activity</CardTitle>
+            {history.length > 0 && (
+              <AlertDialog open={isClearHistoryModalOpen} onOpenChange={setIsClearHistoryModalOpen}>
+                <AlertDialogTrigger asChild>
+                  <Button variant="ghost" size="sm" className="h-8 text-zinc-400 hover:text-zinc-100">Clear</Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent className="bg-zinc-950 border-zinc-800 text-zinc-100">
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Clear Telemetry Log</AlertDialogTitle>
+                    <AlertDialogDescription className="text-zinc-400">
+                      Are you sure you want to purge all recognition telemetry logs? This cannot be undone.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel className="bg-transparent text-zinc-300 border-zinc-700 hover:bg-zinc-800 hover:text-zinc-100">Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={executeClearHistory} className="bg-red-500 text-white hover:bg-red-600">Confirm Clear</AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            )}
+          </CardHeader>
+          <div className="overflow-x-auto max-h-[400px] relative">
+            <Table>
+              <TableHeader className="bg-zinc-900/80 sticky top-0 z-10 backdrop-blur-sm">
+                <TableRow className="border-zinc-800 hover:bg-transparent">
+                  <TableHead className="text-zinc-400">Timestamp</TableHead>
+                  <TableHead className="text-zinc-400">Event</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {history.slice(0, 20).map((entry, idx) => (
+                  <TableRow key={idx} className="border-zinc-800/50 hover:bg-zinc-800/20">
+                    <TableCell className="text-zinc-500 font-mono text-xs whitespace-nowrap">
+                      {new Date(entry.timestamp).toLocaleTimeString()}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline" className={entry.status === 'error' ? 'bg-red-500/10 text-red-500 border-red-500/20' : 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20'}>
+                          {entry.status === 'error' ? 'NOT FOUND' : 'CONFIRMED'}
+                        </Badge>
+                        <span className="font-mono text-xs text-zinc-300">{entry.label}</span>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+                {history.length === 0 && (
+                  <TableRow className="hover:bg-transparent">
+                    <TableCell colSpan={2} className="text-center py-8 text-zinc-500 border-none">
+                      No recent activity.
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
           </div>
-        ) : (
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-              <thead>
-                <tr style={{ borderBottom: '1px solid var(--border)', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
-                  <th style={{ padding: '0.75rem 1rem' }}>Time</th>
-                  <th style={{ padding: '0.75rem 1rem' }}>Ensemble Result</th>
-                  <th style={{ padding: '0.75rem 1rem' }}>Status</th>
-                  <th style={{ padding: '0.75rem 1rem' }}>Agreement</th>
-                  <th style={{ padding: '0.75rem 1rem', textAlign: 'right' }}>Model Breakdown</th>
-                </tr>
-              </thead>
-              <tbody>
-                {history.map((entry, idx) => {
-                  const dateStr = new Date(entry.timestamp).toLocaleTimeString()
-                  const nameStr = entry.label.replace(/_/g, ' ')
-                  const confVal = Math.round(entry.confidence * 100)
-                  
-                  let badgeBg = 'var(--success-bg)'
-                  let badgeBorder = 'rgba(34,197,94,0.3)'
-                  let badgeColor = 'var(--success)'
-                  
-                  if (entry.status === 'warning') {
-                    badgeBg = 'rgba(245,158,11,0.1)'
-                    badgeBorder = 'rgba(245,158,11,0.3)'
-                    badgeColor = 'var(--warning)'
-                  } else if (entry.status === 'error') {
-                    badgeBg = 'var(--error-bg)'
-                    badgeBorder = 'rgba(239,68,68,0.3)'
-                    badgeColor = 'var(--error)'
-                  }
+        </Card>
+      </div>
 
-                  return (
-                    <tr key={idx} style={{ borderBottom: '1px solid var(--border)', fontSize: '0.9rem' }}>
-                      <td style={{ padding: '1rem', color: 'var(--text-secondary)' }}>{dateStr}</td>
-                      <td style={{ padding: '1rem' }}>
-                        <span style={{ 
-                          padding: '3px 8px', borderRadius: '4px', fontSize: '0.8rem', fontWeight: '600',
-                          background: badgeBg, border: `1px solid ${badgeBorder}`, color: badgeColor
-                        }}>
-                          {nameStr}
-                        </span>
-                      </td>
-                      <td style={{ padding: '1rem', fontWeight: 600, color: entry.status === 'error' ? '#FF453A' : '#30D158' }}>
-                        {entry.status === 'error' ? 'NOT FOUND' : 'CONFIRMED'}
-                      </td>
-                      <td style={{ padding: '1rem', color: 'var(--text-secondary)' }}>{entry.agreement}</td>
-                      <td style={{ padding: '1rem', textAlign: 'right', fontSize: '0.8rem', color: 'var(--text-tertiary)' }}>
-                        DeepFace: {entry.predictions?.deepface?.label || 'N/A'} ({Math.round((entry.predictions?.deepface?.confidence || 0) * 100)}%) | 
-                        MobileNetV2: {entry.predictions?.sota?.label || 'N/A'} ({Math.round((entry.predictions?.sota?.confidence || 0) * 100)}%)
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </section>
-      
     </motion.div>
-  )
+  );
 }
 
-function KpiCard({ icon, label, value, desc, color }) {
+function KpiCard({ icon, label, value, color = 'text-zinc-100' }) {
   return (
-    <div className="glass-panel" style={{ padding: '1.5rem', display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
-      <div style={{ 
-        width: '42px', height: '42px', borderRadius: 'var(--radius-md)', 
-        background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center', color: color 
-      }}>
+    <Card className="bg-zinc-900/40 border-zinc-800 p-4 flex items-start gap-4">
+      <div className="text-zinc-500 mt-1">
         {icon}
       </div>
       <div>
-        <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{label}</div>
-        <div style={{ fontSize: '1.5rem', fontWeight: 700, margin: '2px 0' }}>{value}</div>
-        <div style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>{desc}</div>
+        <div className="text-xs text-zinc-400 uppercase tracking-wider font-medium">{label}</div>
+        <div className={`text-2xl font-mono font-medium mt-1 ${color}`}>{value}</div>
       </div>
-    </div>
-  )
-}
-
-function ModelStatusIndicator({ label, loaded }) {
-  return (
-    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.65rem 0.85rem', background: 'var(--bg-input)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }}>
-      <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 500 }}>{label}</span>
-      <span style={{ 
-        fontSize: '0.75rem', fontWeight: 600, padding: '2px 8px', borderRadius: '4px',
-        background: loaded ? 'var(--success-bg)' : 'var(--error-bg)',
-        border: `1px solid ${loaded ? 'rgba(34,197,94,0.3)' : 'rgba(239,68,68,0.3)'}`,
-        color: loaded ? 'var(--success)' : 'var(--error)'
-      }}>
-        {loaded ? 'LOADED' : 'NOT FOUND'}
-      </span>
-    </div>
-  )
-}
-
-function LegendItem({ color, label, count, total }) {
-  const pct = total > 0 ? Math.round((count / total) * 100) : 0
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.8rem' }}>
-      <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: color }} />
-      <span style={{ color: 'var(--text-secondary)', width: '140px' }}>{label}</span>
-      <span style={{ fontWeight: 600 }}>{count} ({pct}%)</span>
-    </div>
-  )
+    </Card>
+  );
 }

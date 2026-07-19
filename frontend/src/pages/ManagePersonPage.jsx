@@ -1,683 +1,439 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react'
-import { useParams, useNavigate, Link } from 'react-router-dom'
-import axios from 'axios'
-import { ArrowLeft, Trash2, Camera, UploadCloud, Video, X, CheckCircle, AlertTriangle, Plus, RotateCw, Image as ImageIcon } from 'lucide-react'
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useAuth } from '../context/AuthContext';
+import Modal from '../components/Modal';
+import { useParams, useNavigate, Link } from 'react-router-dom';
+import { ArrowLeft, Trash2, Camera, UploadCloud, Video, X, CheckCircle, AlertTriangle, Info, Image as ImageIcon, RotateCw } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
-import { API_BASE } from '../config'
+import { API_BASE } from '../config';
+
+
+
+
 
 export default function ManagePersonPage() {
-  const { name } = useParams()
-  const navigate = useNavigate()
+  const { apiClient } = useAuth();
+  const { name } = useParams();
+  const navigate = useNavigate();
   
-  const [personName, setPersonName] = useState(name || '')
-  const [originalName, setOriginalName] = useState(name || '')
-  const [photos, setPhotos] = useState([])
-  const [isLoading, setIsLoading] = useState(true)
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [status, setStatus] = useState({ type: '', message: '' })
+  const [personName, setPersonName] = useState(name || '');
+  const [originalName, setOriginalName] = useState(name || '');
+  const [photos, setPhotos] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [status, setStatus] = useState({ type: '', message: '' });
   
-  // Retrain options
-  const [epochs, setEpochs] = useState(10)
-  const [activeField, setActiveField] = useState('front_img') // 'front_img', 'left_img', 'right_img'
+  const [confirmModal, setConfirmModal] = useState({ isOpen: false, itemToDelete: null });
+  const [epochs, setEpochs] = useState(10);
+  const [activeField, setActiveField] = useState('front_img');
   
-  // Uploading new photos
   const [images, setImages] = useState({
-    front_img: [],
-    left_img: [],
-    right_img: [],
-    extra_files: []
-  })
+    front_img: [], left_img: [], right_img: [], extra_files: []
+  });
   
-  // Webcam state
-  const [showWebcam, setShowWebcam] = useState(false)
-  const videoRef = useRef(null)
-  const streamRef = useRef(null)
+  const [showWebcam, setShowWebcam] = useState(false);
+  const videoRef = useRef(null);
+  const streamRef = useRef(null);
   
-  const totalNewImages = images.front_img.length + images.left_img.length + images.right_img.length + images.extra_files.length
+  const totalNewImages = images.front_img.length + images.left_img.length + images.right_img.length + images.extra_files.length;
 
-  // Clipboard Paste Support
   useEffect(() => {
     const handlePaste = (e) => {
-      const items = e.clipboardData?.items
-      if (!items) return
-      const files = []
+      const items = e.clipboardData?.items;
+      if (!items) return;
+      const files = [];
       for (let i = 0; i < items.length; i++) {
         if (items[i].type.indexOf('image') !== -1) {
-          const file = items[i].getAsFile()
-          if (file) {
-            files.push(file)
-          }
+          const file = items[i].getAsFile();
+          if (file) files.push(file);
         }
       }
       if (files.length > 0) {
-        setImages(prev => ({
-          ...prev,
-          [activeField]: [...prev[activeField], ...files]
-        }))
-        setStatus({ type: 'success', message: `Pasted ${files.length} image(s) into ${activeField.replace('_', ' ')}.` })
+        setImages(prev => ({ ...prev, [activeField]: [...prev[activeField], ...files] }));
+        setStatus({ type: 'success', message: `Pasted ${files.length} image(s) into ${activeField.replace('_', ' ')}.` });
       }
-    }
-    window.addEventListener('paste', handlePaste)
-    return () => window.removeEventListener('paste', handlePaste)
-  }, [activeField])
+    };
+    window.addEventListener('paste', handlePaste);
+    return () => window.removeEventListener('paste', handlePaste);
+  }, [activeField]);
 
-  // Load photos on mount
   const fetchPhotos = useCallback(async () => {
     try {
-      const res = await axios.get(`${API_BASE}/persons/${originalName}/photos`)
-      setPhotos(res.data)
+      const res = await apiClient.get(`${API_BASE}/persons/${originalName}/photos`);
+      setPhotos(res.data);
     } catch (err) {
-      console.error(err)
-      setStatus({ type: 'error', message: 'Failed to fetch person photos.' })
-    } finally {
-      setIsLoading(false)
-    }
-  }, [originalName])
+      setStatus({ type: 'error', message: 'Failed to fetch person photos.' });
+    } finally { setIsLoading(false); }
+  }, [originalName, apiClient]);
+
+  useEffect(() => { fetchPhotos(); }, [fetchPhotos]);
 
   useEffect(() => {
-    fetchPhotos()
-  }, [fetchPhotos])
+    return () => { if (streamRef.current) streamRef.current.getTracks().forEach(t => t.stop()); };
+  }, []);
 
-  // Cleanup webcam
-  useEffect(() => {
-    return () => {
-      if (streamRef.current) streamRef.current.getTracks().forEach(t => t.stop())
-    }
-  }, [])
-
-  // Webcam controls
   const startWebcam = async () => {
-    setShowWebcam(true)
+    setShowWebcam(true);
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } }
-      })
-      streamRef.current = stream
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream
-      }
+      });
+      streamRef.current = stream;
+      if (videoRef.current) videoRef.current.srcObject = stream;
     } catch (err) {
-      setStatus({ type: 'error', message: `Camera error: ${err.message}` })
-      setShowWebcam(false)
+      setStatus({ type: 'error', message: `Camera error: ${err.message}` });
+      setShowWebcam(false);
     }
-  }
+  };
 
   const stopWebcam = () => {
     if (streamRef.current) {
-      streamRef.current.getTracks().forEach(t => t.stop())
-      streamRef.current = null
+      streamRef.current.getTracks().forEach(t => t.stop());
+      streamRef.current = null;
     }
-    setShowWebcam(false)
-  }
+    setShowWebcam(false);
+  };
 
   const captureWebcam = useCallback(() => {
-    if (!videoRef.current) return
-    const canvas = document.createElement('canvas')
-    canvas.width = videoRef.current.videoWidth || 640
-    canvas.height = videoRef.current.videoHeight || 480
-    canvas.getContext('2d').drawImage(videoRef.current, 0, 0)
+    if (!videoRef.current) return;
+    const canvas = document.createElement('canvas');
+    canvas.width = videoRef.current.videoWidth || 640;
+    canvas.height = videoRef.current.videoHeight || 480;
+    canvas.getContext('2d').drawImage(videoRef.current, 0, 0);
     canvas.toBlob(blob => {
       if (blob) {
-        const file = new File([blob], `webcam_${Date.now()}.jpg`, { type: 'image/jpeg' })
-        setImages(prev => ({ ...prev, extra_files: [...prev.extra_files, file] }))
-        setStatus({ type: 'success', message: 'Photo captured and added to extra files.' })
+        const file = new File([blob], `webcam_${Date.now()}.jpg`, { type: 'image/jpeg' });
+        setImages(prev => ({ ...prev, extra_files: [...prev.extra_files, file] }));
+        setStatus({ type: 'success', message: 'Photo captured.' });
       }
-    }, 'image/jpeg', 0.9)
-  }, [])
+    }, 'image/jpeg', 0.9);
+  }, []);
 
-  // File Handling
   const handleFile = (field, files) => {
-    if (!files) return
-    const validFiles = Array.from(files).filter(f => f.type.startsWith('image/'))
+    if (!files) return;
+    const validFiles = Array.from(files).filter(f => f.type.startsWith('image/'));
     if (validFiles.length === 0) {
-      setStatus({ type: 'error', message: 'Please select valid image files only.' })
-      return
+      setStatus({ type: 'error', message: 'Please select valid image files only.' });
+      return;
     }
-    setImages(prev => ({
-      ...prev,
-      [field]: [...prev[field], ...validFiles]
-    }))
-  }
+    setImages(prev => ({ ...prev, [field]: [...prev[field], ...validFiles] }));
+  };
 
   const removeNewFile = (field, index) => {
-    setImages(prev => ({
-      ...prev,
-      [field]: prev[field].filter((_, i) => i !== index)
-    }))
-  }
+    setImages(prev => ({ ...prev, [field]: prev[field].filter((_, i) => i !== index) }));
+  };
 
-  // Delete existing photo
-  const handleDeletePhoto = async (angle, filename) => {
-    if (!window.confirm(`Are you sure you want to delete this photo from the ${angle} angle?`)) return
+  const handleDeletePhoto = (angle, filename) => {
+    setConfirmModal({ isOpen: true, itemToDelete: { angle, filename } });
+  };
+
+  const executeDeletePhoto = async () => {
+    if (!confirmModal.itemToDelete) return;
+    const { angle, filename } = confirmModal.itemToDelete;
     try {
-      setIsSubmitting(true)
-      const res = await axios.delete(`${API_BASE}/persons/${originalName}/photos/${angle}/${filename}`)
-      setStatus({ type: 'success', message: res.data.message })
-      fetchPhotos()
+      setIsSubmitting(true);
+      const res = await apiClient.delete(`${API_BASE}/persons/${originalName}/photos/${angle}/${filename}`);
+      setStatus({ type: 'success', message: res.data.message });
+      fetchPhotos();
     } catch (err) {
-      console.error(err)
-      setStatus({ type: 'error', message: err.response?.data?.error || 'Failed to delete photo.' })
+      setStatus({ type: 'error', message: err.response?.data?.error || 'Failed to delete photo.' });
     } finally {
-      setIsSubmitting(false)
+      setIsSubmitting(false);
+      setConfirmModal({ isOpen: false, itemToDelete: null });
     }
-  }
+  };
 
-  // Move existing photo on backend
   const handleMoveExistingPhoto = async (sourceAngle, targetAngle, filename) => {
     try {
-      setStatus({ type: 'info', message: 'Moving photo...' })
-      await axios.post(`${API_BASE}/persons/${originalName}/photos/move`, {
-        source_angle: sourceAngle,
-        target_angle: targetAngle,
-        filename: filename
-      })
-      setStatus({ type: 'success', message: `Moved photo to ${targetAngle} category successfully.` })
-      fetchPhotos()
+      setStatus({ type: 'info', message: 'Moving photo...' });
+      await apiClient.post(`${API_BASE}/persons/${originalName}/photos/move`, { source_angle: sourceAngle, target_angle: targetAngle, filename });
+      setStatus({ type: 'success', message: `Moved photo to ${targetAngle}.` });
+      fetchPhotos();
     } catch (err) {
-      console.error(err)
-      setStatus({ type: 'error', message: err.response?.data?.error || 'Failed to move photo.' })
+      setStatus({ type: 'error', message: err.response?.data?.error || 'Failed to move photo.' });
     }
-  }
+  };
 
-  // Move newly selected local file between categories
   const handleMoveLocalFile = (sourceField, targetField, index) => {
-    if (sourceField === targetField) return
-    const fileToMove = images[sourceField][index]
+    if (sourceField === targetField) return;
+    const fileToMove = images[sourceField][index];
     setImages(prev => ({
       ...prev,
       [sourceField]: prev[sourceField].filter((_, i) => i !== index),
       [targetField]: [...prev[targetField], fileToMove]
-    }))
-    setStatus({ type: 'success', message: `Moved new photo to ${targetField.replace('_', ' ')}.` })
-  }
+    }));
+    setStatus({ type: 'success', message: `Moved new upload to ${targetField}.` });
+  };
 
-  // Submit edits & retraining
-  const handleSaveChanges = async (triggerRetrain = false) => {
-    setIsSubmitting(true)
-    setStatus({ type: 'info', message: 'Processing your changes...' })
+  const handleUpdate = async (e) => {
+    e.preventDefault();
+    if (!personName.trim()) { setStatus({ type: 'error', message: 'Person Name is required.' }); return; }
+    
+    setIsSubmitting(true);
+    setStatus({ type: 'info', message: 'Updating...' });
 
-    try {
-      let currentActiveName = originalName
-
-      // 1. Rename if changed
-      if (personName.trim() && personName.trim() !== originalName) {
-        const renameRes = await axios.put(`${API_BASE}/persons/${originalName}`, {
-          new_name: personName.trim()
-        })
-        currentActiveName = personName.trim()
-        setOriginalName(currentActiveName)
+    if (personName !== originalName) {
+      try {
+        await apiClient.put(`${API_BASE}/persons/${originalName}`, { new_name: personName.trim() });
+        setOriginalName(personName.trim());
+        navigate(`/persons/edit/${personName.trim()}`, { replace: true });
+        setStatus({ type: 'success', message: 'Name updated successfully.' });
+      } catch (err) {
+        setStatus({ type: 'error', message: err.response?.data?.error || 'Failed to rename person.' });
+        setIsSubmitting(false);
+        return;
       }
-
-      // 2. Upload new photos if any selected
-      if (totalNewImages > 0) {
-        const formData = new FormData()
-        formData.append('person_name', currentActiveName)
-        formData.append('epochs', epochs)
-        
-        images.front_img.forEach(file => formData.append('front_img', file))
-        images.left_img.forEach(file => formData.append('left_img', file))
-        images.right_img.forEach(file => formData.append('right_img', file))
-        images.extra_files.forEach(file => formData.append('extra_files', file))
-
-        const uploadRes = await axios.post(`${API_BASE}/upload`, formData, {
-          headers: { 'Content-Type': 'multipart/form-data' }
-        })
-        
-        setStatus({ type: 'success', message: 'Photos uploaded successfully. Fine-tuning models...' })
-        // Clear new images state
-        setImages({ front_img: [], left_img: [], right_img: [], extra_files: [] })
-        setTimeout(() => navigate('/training'), 800)
-        return
-      }
-
-      // 3. Trigger retrain without adding photos (if requested)
-      if (triggerRetrain) {
-        const retrainRes = await axios.post(`${API_BASE}/persons/${currentActiveName}/retrain`, {
-          epochs: epochs
-        })
-        setStatus({ type: 'success', message: retrainRes.data.message })
-        setTimeout(() => navigate('/training'), 800)
-        return
-      }
-
-      setStatus({ type: 'success', message: 'Changes saved successfully.' })
-      fetchPhotos()
-
-    } catch (err) {
-      console.error(err)
-      setStatus({ 
-        type: 'error', 
-        message: err.response?.data?.error || 'Failed to save changes. Please try again.' 
-      })
-    } finally {
-      setIsSubmitting(false)
     }
-  }
 
-  // Categorize existing photos
-  const frontalPhotos = photos.filter(p => p.angle === 'frontal')
-  const leftPhotos = photos.filter(p => p.angle === 'left')
-  const rightPhotos = photos.filter(p => p.angle === 'right')
-  const extraPhotos = photos.filter(p => p.angle === 'extra')
+    if (totalNewImages > 0) {
+      const formData = new FormData();
+      formData.append('person_name', personName.trim());
+      formData.append('epochs', epochs);
+      images.front_img.forEach(file => formData.append('front_img', file));
+      images.left_img.forEach(file => formData.append('left_img', file));
+      images.right_img.forEach(file => formData.append('right_img', file));
+      images.extra_files.forEach(file => formData.append('extra_files', file));
+      
+      try {
+        await apiClient.post(`${API_BASE}/upload`, formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+        setStatus({ type: 'success', message: 'Photos uploaded and retraining triggered.' });
+        setImages({ front_img: [], left_img: [], right_img: [], extra_files: [] });
+        setTimeout(() => navigate('/training'), 3000);
+      } catch (err) {
+        setStatus({ type: 'error', message: err.response?.data?.error || 'Upload failed.' });
+        setIsSubmitting(false);
+      }
+    } else {
+      try {
+        await apiClient.post(`${API_BASE}/persons/${personName.trim()}/retrain`, { epochs });
+        setStatus({ type: 'success', message: 'Retraining triggered with existing dataset.' });
+        setTimeout(() => navigate('/training'), 3000);
+      } catch (err) {
+        setStatus({ type: 'error', message: err.response?.data?.error || 'Retraining failed.' });
+        setIsSubmitting(false);
+      }
+    }
+  };
 
   if (isLoading) {
     return (
-      <div style={{ textAlign: 'center', padding: '3rem 0', color: 'var(--text-secondary)' }}>
-        <p>Loading person details...</p>
+      <div style={{ display: 'flex', justifyContent: 'center', padding: 'var(--space-8)' }}>
+        <RotateCw className="spin" size={32} color="var(--accent-violet)" />
       </div>
-    )
+    );
   }
 
   return (
-    <div className="animate-fade-in" style={{ paddingBottom: '4rem' }}>
-      
-      {/* Back Button */}
-      <div style={{ marginBottom: '1.5rem' }}>
-        <Link to="/dashboard" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', color: 'var(--text-secondary)', textDecoration: 'none', fontSize: '0.9rem' }}>
-          <ArrowLeft size={16} /> Back to Dashboard
-        </Link>
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ paddingBottom: 'var(--space-8)' }}>
+      <div style={{ marginBottom: 'var(--space-6)', display: 'flex', alignItems: 'center', gap: 'var(--space-4)' }}>
+        <Link to="/" style={{ color: 'var(--text-muted)' }}><ArrowLeft size={24} /></Link>
+        <div>
+          <h1 style={{ margin: 0, fontSize: 'var(--text-2xl)' }}>Edit Enrolled Profile</h1>
+          <p style={{ margin: '4px 0 0 0', color: 'var(--text-muted)' }}>Manage photos and retrain the model for {originalName}.</p>
+        </div>
       </div>
 
-      <h1 className="page-title" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '12px' }}>
-        Manage Person: <span style={{ color: 'var(--primary-light)' }}>{originalName.replace(/_/g, ' ')}</span>
-      </h1>
-      <p className="page-subtitle" style={{ marginBottom: '2rem' }}>
-        Modify database entries, delete incorrect crops, upload new training data, or fine-tune models.
-      </p>
+      <div className="bg-zinc-900/40 border border-zinc-800 rounded-xl p-6 shadow-sm" as="form" onSubmit={handleUpdate}>
+        <AnimatePresence>
+          {status.message && (
+            <motion.div 
+              initial={{ opacity: 0, height: 0 }} 
+              animate={{ opacity: 1, height: 'auto' }} 
+              exit={{ opacity: 0, height: 0 }}
+              style={{ marginBottom: 'var(--space-6)' }}
+            >
+              <div style={{
+                padding: 'var(--space-3) var(--space-4)', borderRadius: 'var(--radius-sm)',
+                background: status.type === 'error' ? 'var(--error-bg)' : status.type === 'success' ? 'var(--success-bg)' : 'var(--bg-elevated)',
+                border: `1px solid ${status.type === 'error' ? 'rgba(239, 68, 68, 0.3)' : status.type === 'success' ? 'rgba(48, 209, 88, 0.3)' : 'var(--border-subtle)'}`,
+                color: status.type === 'error' ? 'var(--alert-crimson)' : status.type === 'success' ? 'var(--confirm-green)' : 'var(--text-primary)',
+                display: 'flex', alignItems: 'center', gap: 'var(--space-2)', fontSize: 'var(--text-sm)'
+              }}>
+                {status.type === 'error' ? <AlertCircle size={16} /> : status.type === 'success' ? <CheckCircle size={16} /> : <Info size={16} />}
+                {status.message}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
-      {/* Status Banner */}
-      {status.message && (
-        <div className="animate-fade-in" style={{
-          padding: '1rem', borderRadius: 'var(--radius-md)', 
-          background: status.type === 'error' ? 'var(--error-bg)' : status.type === 'success' ? 'var(--success-bg)' : 'var(--info-bg)', 
-          border: `1px solid ${status.type === 'error' ? 'rgba(239, 68, 68, 0.3)' : status.type === 'success' ? 'rgba(16, 185, 129, 0.3)' : 'rgba(59, 130, 246, 0.3)'}`, 
-          color: status.type === 'error' ? 'var(--error)' : status.type === 'success' ? 'var(--success)' : 'var(--info)',
-          display: 'flex', alignItems: 'center', gap: '10px', fontSize: '0.9rem',
-          marginBottom: '2rem'
-        }}>
-          {status.type === 'error' ? <AlertTriangle size={18} /> : <CheckCircle size={18} />}
-          {status.message}
+        <div style={{ display: 'flex', gap: 'var(--space-4)', flexWrap: 'wrap', marginBottom: 'var(--space-6)' }}>
+          <div style={{ flex: 2, minWidth: '250px' }}>
+            <label style={{ display: 'block', fontSize: 'var(--text-sm)', color: 'var(--text-muted)', marginBottom: 'var(--space-2)' }}>Person Name</label>
+            <Input type="text" value={personName} onChange={(e) => setPersonName(e.target.value.replace(/\s+/g, '_'))} required />
+          </div>
+          <div style={{ flex: 1, minWidth: '150px' }}>
+            <label style={{ display: 'block', fontSize: 'var(--text-sm)', color: 'var(--text-muted)', marginBottom: 'var(--space-2)' }}>Training Epochs</label>
+            <Input type="number" min="1" max="50" value={epochs} onChange={(e) => setEpochs(e.target.value)} />
+          </div>
         </div>
-      )}
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '2rem' }}>
-        
-        {/* LEFT COLUMN: Name, Settings, Upload Form */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-          
-          {/* General Settings */}
-          <section className="glass-panel" style={{ padding: '2rem' }}>
-            <h3 style={{ fontSize: '1.1rem', fontWeight: 600, marginBottom: '1.5rem', borderBottom: '1px solid var(--border)', paddingBottom: '0.5rem' }}>
-              General Settings
-            </h3>
-            
-            <div className="input-group">
-              <label className="input-label">Rename Person Name</label>
-              <input 
-                type="text" 
-                className="text-input" 
-                value={personName} 
-                onChange={e => setPersonName(e.target.value.replace(/\s+/g, '_'))}
-                disabled={isSubmitting}
-              />
-              <span style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>⚠️ Renaming updates embedding tags instantly without requiring model retraining.</span>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-4)' }}>
+          <h3 style={{ fontSize: 'var(--text-base)', margin: 0 }}>Reference Images</h3>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-4)' }}>
+            <span className="bg-zinc-800 text-zinc-300 px-2 py-1 rounded-md text-xs" status="default">Total: {photos.length + totalNewImages}</span>
+            <button className="bg-zinc-100 text-zinc-900 hover:bg-zinc-200 px-4 py-2 rounded-md font-medium" type="button" variant="secondary" size="sm" onClick={showWebcam ? stopWebcam : startWebcam}>
+              {showWebcam ? <><X size={14} style={{ marginRight: '8px' }} /> Close Camera</> : <><Video size={14} style={{ marginRight: '8px' }} /> Open Webcam</>}
+            </button>
+          </div>
+        </div>
+
+        {showWebcam && (
+          <div style={{ padding: 'var(--space-4)', background: 'var(--bg-elevated)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-subtle)', marginBottom: 'var(--space-6)', textAlign: 'center' }}>
+            <video ref={videoRef} autoPlay playsInline muted style={{ width: '100%', maxWidth: '400px', borderRadius: 'var(--radius-sm)', marginBottom: 'var(--space-4)' }} />
+            <div>
+              <button className="bg-zinc-100 text-zinc-900 hover:bg-zinc-200 px-4 py-2 rounded-md font-medium" type="button" variant="primary" onClick={captureWebcam}>
+                <Camera size={16} style={{ marginRight: '8px' }} /> Capture Photo
+              </button>
             </div>
+          </div>
+        )}
 
-            <div className="input-group" style={{ marginTop: '1.5rem' }}>
-              <label className="input-label" style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span>Fine-Tuning Epochs</span>
-                <strong style={{ color: 'var(--primary-light)' }}>{epochs} epochs</strong>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 'var(--space-4)', marginBottom: 'var(--space-6)' }}>
+          <DropBox 
+            field="front_img" title="Frontal Face" files={images.front_img} existingFiles={photos.filter(p => p.angle === 'frontal')} personName={originalName}
+            isActive={activeField === 'front_img'} onFocus={() => setActiveField('front_img')} onFiles={(files) => handleFile('front_img', files)} 
+            onRemove={(idx) => removeNewFile('front_img', idx)} onDeleteExisting={(fn) => handleDeletePhoto('frontal', fn)}
+            onDropMoveLocal={(src, idx) => handleMoveLocalFile(src, 'front_img', idx)} onDropMoveExisting={(src, fn) => handleMoveExistingPhoto(src, 'frontal', fn)}
+          />
+          <DropBox 
+            field="left_img" title="Left Profile" files={images.left_img} existingFiles={photos.filter(p => p.angle === 'left')} personName={originalName}
+            isActive={activeField === 'left_img'} onFocus={() => setActiveField('left_img')} onFiles={(files) => handleFile('left_img', files)} 
+            onRemove={(idx) => removeNewFile('left_img', idx)} onDeleteExisting={(fn) => handleDeletePhoto('left', fn)}
+            onDropMoveLocal={(src, idx) => handleMoveLocalFile(src, 'left_img', idx)} onDropMoveExisting={(src, fn) => handleMoveExistingPhoto(src, 'left', fn)}
+          />
+          <DropBox 
+            field="right_img" title="Right Profile" files={images.right_img} existingFiles={photos.filter(p => p.angle === 'right')} personName={originalName}
+            isActive={activeField === 'right_img'} onFocus={() => setActiveField('right_img')} onFiles={(files) => handleFile('right_img', files)} 
+            onRemove={(idx) => removeNewFile('right_img', idx)} onDeleteExisting={(fn) => handleDeletePhoto('right', fn)}
+            onDropMoveLocal={(src, idx) => handleMoveLocalFile(src, 'right_img', idx)} onDropMoveExisting={(src, fn) => handleMoveExistingPhoto(src, 'right', fn)}
+          />
+        </div>
+
+        <h3 style={{ fontSize: 'var(--text-base)', marginBottom: 'var(--space-2)', margin: 0 }}>Bulk Upload (Unsorted)</h3>
+        <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)', marginBottom: 'var(--space-4)' }}>
+          {activeField === 'extra_files' ? 'Currently the active paste target.' : 'Click to make this the active paste target.'}
+        </p>
+
+        <div 
+          onClick={() => setActiveField('extra_files')}
+          onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
+          onDrop={(e) => {
+            e.preventDefault(); e.stopPropagation();
+            const srcType = e.dataTransfer.getData("sourceType");
+            if (srcType === "local") handleMoveLocalFile(e.dataTransfer.getData("sourceField"), 'extra_files', parseInt(e.dataTransfer.getData("sourceIndex")));
+            else if (srcType === "existing") handleMoveExistingPhoto(e.dataTransfer.getData("sourceAngle"), 'extra', e.dataTransfer.getData("filename"));
+            else if (e.dataTransfer.files) handleFile('extra_files', e.dataTransfer.files);
+          }}
+          style={{
+            border: activeField === 'extra_files' ? '2px dashed var(--accent-violet)' : '1px dashed var(--border-subtle)',
+            background: activeField === 'extra_files' ? 'var(--bg-elevated)' : 'transparent',
+            padding: 'var(--space-6)', borderRadius: 'var(--radius-md)', textAlign: 'center', transition: 'all var(--duration) var(--ease)', cursor: 'pointer',
+            minHeight: '150px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center'
+          }}
+        >
+          <input type="file" multiple accept="image/*" id="bulk-upload-manage" style={{ display: 'none' }} onChange={(e) => handleFile('extra_files', e.target.files)} />
+          
+          {(images.extra_files.length === 0 && photos.filter(p => p.angle === 'extra').length === 0) ? (
+            <label htmlFor="bulk-upload-manage" style={{ cursor: 'pointer', width: '100%', height: '100%' }}>
+              <UploadCloud size={24} style={{ color: 'var(--text-muted)', marginBottom: 'var(--space-2)' }} />
+              <div style={{ color: 'var(--text-primary)' }}>Drop photos or click to browse</div>
+            </label>
+          ) : (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-2)', justifyContent: 'center', width: '100%' }}>
+              {photos.filter(p => p.angle === 'extra').map(p => (
+                <div key={p.filename} draggable onDragStart={(e) => { e.dataTransfer.setData("sourceType", "existing"); e.dataTransfer.setData("sourceAngle", "extra"); e.dataTransfer.setData("filename", p.filename); }} style={{ position: 'relative', width: '60px', height: '60px' }}>
+                  <img src={`${API_BASE}/persons/${originalName}/photos/extra/${p.filename}`} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '4px', border: '1px solid var(--accent-violet)' }} />
+                  <button type="button" onClick={(e) => { e.stopPropagation(); handleDeletePhoto('extra', p.filename); }} style={{ position: 'absolute', top: -4, right: -4, background: 'var(--alert-crimson)', color: '#fff', border: 'none', borderRadius: '50%', width: 16, height: 16, fontSize: 10, cursor: 'pointer' }}>×</button>
+                </div>
+              ))}
+              {images.extra_files.map((f, i) => (
+                <div key={i} draggable onDragStart={(e) => { e.dataTransfer.setData("sourceType", "local"); e.dataTransfer.setData("sourceField", "extra_files"); e.dataTransfer.setData("sourceIndex", i.toString()); }} style={{ position: 'relative', width: '60px', height: '60px' }}>
+                  <img src={URL.createObjectURL(f)} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '4px', border: '1px solid var(--border-subtle)' }} />
+                  <button type="button" onClick={(e) => { e.stopPropagation(); removeNewFile('extra_files', i); }} style={{ position: 'absolute', top: -4, right: -4, background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: '50%', width: 16, height: 16, fontSize: 10, cursor: 'pointer' }}>×</button>
+                </div>
+              ))}
+              <label htmlFor="bulk-upload-manage" style={{ width: '60px', height: '60px', border: '1px dashed var(--text-muted)', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+                <UploadCloud size={16} color="var(--text-muted)" />
               </label>
-              <input 
-                type="range" 
-                min="1" max="50" 
-                value={epochs} 
-                onChange={e => setEpochs(parseInt(e.target.value))}
-                style={{ width: '100%', accentColor: 'var(--primary)' }}
-                disabled={isSubmitting}
-              />
-              <span style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>Epoch values between 10-15 are recommended for new profiles.</span>
             </div>
-
-            <div style={{ display: 'flex', gap: '10px', marginTop: '2rem' }}>
-              <button className="btn btn-primary hover-btn" style={{ flex: 1 }} onClick={() => handleSaveChanges(true)} disabled={isSubmitting}>
-                <RotateCw size={16} /> Save & Retrain Models
-              </button>
-              <button className="btn btn-secondary" onClick={() => handleSaveChanges(false)} disabled={isSubmitting}>
-                Save Details Only
-              </button>
-            </div>
-          </section>
-
-          {/* Upload / Capture Additional Images */}
-          <section className="glass-panel" style={{ padding: '2rem' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid var(--border)', paddingBottom: '0.5rem' }}>
-              <h3 style={{ fontSize: '1.1rem', fontWeight: 600, margin: 0 }}>Add New Photos</h3>
-              <button type="button" className="btn btn-secondary" style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem' }} onClick={showWebcam ? stopWebcam : startWebcam}>
-                {showWebcam ? <><X size={12} /> Close Camera</> : <><Video size={12} /> Live Capture</>}
-              </button>
-            </div>
-
-            {/* Webcam Module */}
-            {showWebcam && (
-              <div style={{ padding: '1rem', background: 'rgba(0,0,0,0.3)', borderRadius: 'var(--radius-lg)', marginBottom: '1.5rem', textAlign: 'center' }}>
-                <video ref={videoRef} autoPlay playsInline muted style={{ width: '100%', borderRadius: 'var(--radius-md)', marginBottom: '1rem' }} />
-                <button type="button" className="btn btn-primary hover-btn" onClick={captureWebcam}>
-                  <Camera size={16} /> Capture Photo
-                </button>
-              </div>
-            )}
-
-            {/* Angle-Specific Dropzones */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              <div>
-                <label className="input-label" style={{ fontSize: '0.8rem', display: 'flex', justifyContent: 'space-between' }}>
-                  <span>Frontal Profile</span>
-                  {activeField === 'front_img' && <span style={{ color: 'var(--primary)', fontSize: '0.75rem', fontWeight: 'bold' }}>Active Target</span>}
-                </label>
-                <DropBoxSmall 
-                  field="front_img" 
-                  files={images.front_img} 
-                  isActive={activeField === 'front_img'} 
-                  onFocus={() => setActiveField('front_img')} 
-                  onFiles={f => handleFile('front_img', f)} 
-                  onRemove={i => removeNewFile('front_img', i)} 
-                  onDropMoveLocal={(sourceField, index) => handleMoveLocalFile(sourceField, 'front_img', index)}
-                  onDropMoveExisting={(sourceAngle, filename) => handleMoveExistingPhoto(sourceAngle, 'frontal', filename)}
-                />
-              </div>
-              <div>
-                <label className="input-label" style={{ fontSize: '0.8rem', display: 'flex', justifyContent: 'space-between' }}>
-                  <span>Left profile</span>
-                  {activeField === 'left_img' && <span style={{ color: 'var(--primary)', fontSize: '0.75rem', fontWeight: 'bold' }}>Active Target</span>}
-                </label>
-                <DropBoxSmall 
-                  field="left_img" 
-                  files={images.left_img} 
-                  isActive={activeField === 'left_img'} 
-                  onFocus={() => setActiveField('left_img')} 
-                  onFiles={f => handleFile('left_img', f)} 
-                  onRemove={i => removeNewFile('left_img', i)} 
-                  onDropMoveLocal={(sourceField, index) => handleMoveLocalFile(sourceField, 'left_img', index)}
-                  onDropMoveExisting={(sourceAngle, filename) => handleMoveExistingPhoto(sourceAngle, 'left', filename)}
-                />
-              </div>
-              <div>
-                <label className="input-label" style={{ fontSize: '0.8rem', display: 'flex', justifyContent: 'space-between' }}>
-                  <span>Right profile</span>
-                  {activeField === 'right_img' && <span style={{ color: 'var(--primary)', fontSize: '0.75rem', fontWeight: 'bold' }}>Active Target</span>}
-                </label>
-                <DropBoxSmall 
-                  field="right_img" 
-                  files={images.right_img} 
-                  isActive={activeField === 'right_img'} 
-                  onFocus={() => setActiveField('right_img')} 
-                  onFiles={f => handleFile('right_img', f)} 
-                  onRemove={i => removeNewFile('right_img', i)} 
-                  onDropMoveLocal={(sourceField, index) => handleMoveLocalFile(sourceField, 'right_img', index)}
-                  onDropMoveExisting={(sourceAngle, filename) => handleMoveExistingPhoto(sourceAngle, 'right', filename)}
-                />
-              </div>
-            </div>
-
-            {totalNewImages > 0 && (
-              <div style={{ marginTop: '1.5rem' }}>
-                <button className="btn btn-primary btn-block hover-btn" onClick={() => handleSaveChanges(true)} disabled={isSubmitting}>
-                  <CheckCircle size={18} /> Upload & Fine-Tune Models
-                </button>
-              </div>
-            )}
-          </section>
-
+          )}
         </div>
 
-        {/* RIGHT COLUMN: Current Photos Gallery */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-          
-          <section className="glass-panel" style={{ padding: '2rem', height: '100%', display: 'flex', flexDirection: 'column' }}>
-            <h3 style={{ fontSize: '1.1rem', fontWeight: 600, marginBottom: '1.5rem', borderBottom: '1px solid var(--border)', paddingBottom: '0.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span>Cleaned Photos Database</span>
-              <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{photos.length} files total</span>
-            </h3>
-
-            {photos.length === 0 ? (
-              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary)', padding: '3rem 0' }}>
-                <ImageIcon size={48} style={{ opacity: 0.3, marginBottom: '1rem' }} />
-                <p>No photos in database for this person.</p>
-              </div>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', overflowY: 'auto', flex: 1, maxHeight: '650px', paddingRight: '6px' }}>
-                
-                {/* Frontal Category */}
-                {frontalPhotos.length > 0 && (
-                  <DropZoneExisting
-                    title="FRONTAL ANGLE"
-                    photos={frontalPhotos}
-                    targetAngle="frontal"
-                    originalName={originalName}
-                    handleDeletePhoto={handleDeletePhoto}
-                    isSubmitting={isSubmitting}
-                    handleMoveExistingPhoto={handleMoveExistingPhoto}
-                  />
-                )}
-
-                {/* Left Profile Category */}
-                {leftPhotos.length > 0 && (
-                  <DropZoneExisting
-                    title="LEFT PROFILE"
-                    photos={leftPhotos}
-                    targetAngle="left"
-                    originalName={originalName}
-                    handleDeletePhoto={handleDeletePhoto}
-                    isSubmitting={isSubmitting}
-                    handleMoveExistingPhoto={handleMoveExistingPhoto}
-                  />
-                )}
-
-                {/* Right Profile Category */}
-                {rightPhotos.length > 0 && (
-                  <DropZoneExisting
-                    title="RIGHT PROFILE"
-                    photos={rightPhotos}
-                    targetAngle="right"
-                    originalName={originalName}
-                    handleDeletePhoto={handleDeletePhoto}
-                    isSubmitting={isSubmitting}
-                    handleMoveExistingPhoto={handleMoveExistingPhoto}
-                  />
-                )}
-
-                {/* Extra Category */}
-                {extraPhotos.length > 0 && (
-                  <div>
-                    <h4 style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--primary-light)', marginBottom: '0.5rem', letterSpacing: '0.05em' }}>EXTRA ANGLE</h4>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(70px, 1fr))', gap: '8px' }}>
-                      {extraPhotos.map(p => (
-                        <PhotoThumb key={p.filename} photo={p} name={originalName} onDelete={() => handleDeletePhoto(p.angle, p.filename)} disabled={isSubmitting} />
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-              </div>
-            )}
-          </section>
-
-        </div>
-
+        <button className="bg-zinc-100 text-zinc-900 hover:bg-zinc-200 px-4 py-2 rounded-md font-medium" type="submit" variant="primary" style={{ width: '100%', marginTop: 'var(--space-8)', justifyContent: 'center' }} disabled={isSubmitting}>
+          {isSubmitting ? 'Updating Profile & Models...' : 'Commit Changes & Retrain'}
+        </button>
       </div>
-
-    </div>
-  )
-}
-
-// Compact photo thumbnail component with hover delete button
-function PhotoThumb({ photo, name, onDelete, disabled }) {
-  const [hovered, setHovered] = useState(false)
-  const fullUrl = `${API_BASE}/persons/${name}/photos/${photo.angle}/${photo.filename}`
-  
-  return (
-    <div 
-      style={{ position: 'relative', width: '70px', height: '70px', borderRadius: '4px', overflow: 'hidden', border: '1px solid var(--border)', background: 'rgba(0,0,0,0.2)', cursor: 'grab' }}
-      draggable={true}
-      onDragStart={(e) => {
-        e.dataTransfer.setData("sourceType", "existing")
-        e.dataTransfer.setData("sourceAngle", photo.angle)
-        e.dataTransfer.setData("filename", photo.filename)
-      }}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-    >
-      <img src={fullUrl} alt="face crop" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-      {hovered && (
-        <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <button 
-            type="button" 
-            onClick={onDelete} 
-            disabled={disabled}
-            style={{ border: 'none', background: 'var(--error)', color: '#fff', borderRadius: '50%', width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
-          >
-            <Trash2 size={14} />
-          </button>
-        </div>
-      )}
-    </div>
-  )
-}
-
-// Small custom dropbox input for management screen
-function DropBoxSmall({ field, files, isActive, onFocus, onFiles, onRemove, onDropMoveLocal, onDropMoveExisting }) {
-  const fileInputRef = useRef(null)
-  const [isDragActive, setIsDragActive] = useState(false)
-  
-  const handleDragOver = (e) => { e.preventDefault(); e.stopPropagation() }
-  const handleDragEnter = (e) => { e.preventDefault(); e.stopPropagation(); setIsDragActive(true) }
-  const handleDragLeave = (e) => { e.preventDefault(); e.stopPropagation(); setIsDragActive(false) }
-  const handleDrop = (e) => {
-    e.preventDefault(); e.stopPropagation()
-    setIsDragActive(false)
-    
-    const sourceType = e.dataTransfer.getData("sourceType")
-    if (sourceType === "local") {
-      const sourceField = e.dataTransfer.getData("sourceField")
-      const index = parseInt(e.dataTransfer.getData("sourceIndex"))
-      if (sourceField && !isNaN(index)) {
-        onDropMoveLocal(sourceField, index)
-      }
-    } else if (sourceType === "existing") {
-      const sourceAngle = e.dataTransfer.getData("sourceAngle")
-      const filename = e.dataTransfer.getData("filename")
-      if (sourceAngle && filename) {
-        onDropMoveExisting(sourceAngle, filename)
-      }
-    } else if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-      onFiles(e.dataTransfer.files)
-    }
-  }
-
-  return (
-    <div 
-      className={`dropzone ${(files && files.length > 0) ? 'active' : ''}`}
-      onDragOver={handleDragOver}
-      onDragEnter={handleDragEnter}
-      onDragLeave={handleDragLeave}
-      onDrop={handleDrop}
-      onClick={(e) => {
-        onFocus()
-        fileInputRef.current?.click()
-      }}
-      onMouseEnter={onFocus}
-      style={{ 
-        padding: '0.5rem 1rem', 
-        display: 'flex', 
-        justifyContent: 'space-between', 
-        alignItems: 'center', 
-        minHeight: '45px', 
-        borderStyle: isActive ? 'solid' : 'dashed', 
-        borderWidth: isActive ? '2px' : '1px',
-        borderColor: (isActive || isDragActive) ? 'var(--primary)' : 'var(--border)',
-        boxShadow: isActive ? 'var(--shadow-glow)' : 'none',
-        transition: 'all 0.25s var(--ease)',
-        borderRadius: 'var(--radius-md)',
-        cursor: 'pointer'
-      }}
-    >
-      <input 
-        type="file" 
-        multiple 
-        accept="image/*" 
-        ref={fileInputRef} 
-        style={{ display: 'none' }} 
-        onChange={e => e.target.files && onFiles(e.target.files)} 
-      />
       
-      {files && files.length > 0 ? (
-        <div style={{ display: 'flex', gap: '4px', overflowX: 'auto', flex: 1, paddingRight: '12px' }} onClick={e => e.stopPropagation()}>
-          {files.map((file, idx) => (
-            <div key={idx} style={{ position: 'relative', width: '32px', height: '32px' }}>
-              <img src={URL.createObjectURL(file)} alt="preview" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '2px' }} />
-              <button 
-                type="button" 
-                onClick={() => onRemove(idx)}
-                style={{ position: 'absolute', top: -3, right: -3, background: 'var(--error)', border: 'none', color: '#fff', borderRadius: '50%', width: '12px', height: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: 0 }}
-              >
-                <X size={8} />
-              </button>
+      <Modal 
+        isOpen={confirmModal.isOpen} 
+        onClose={() => setConfirmModal({ isOpen: false, itemToDelete: null })}
+        title="Confirm Deletion"
+        footer={
+          <>
+            <button className="bg-zinc-100 text-zinc-900 hover:bg-zinc-200 px-4 py-2 rounded-md font-medium" variant="ghost" onClick={() => setConfirmModal({ isOpen: false, itemToDelete: null })}>Cancel</button>
+            <button className="bg-zinc-100 text-zinc-900 hover:bg-zinc-200 px-4 py-2 rounded-md font-medium" variant="danger" onClick={executeDeletePhoto}>Delete Photo</button>
+          </>
+        }
+      >
+        <p style={{ color: 'var(--text-muted)' }}>Are you sure you want to permanently delete this reference photo? This action cannot be undone.</p>
+      </Modal>
+    </motion.div>
+  );
+}
+
+function DropBox({ field, title, files, existingFiles, personName, isActive, onFocus, onFiles, onRemove, onDeleteExisting, onDropMoveLocal, onDropMoveExisting }) {
+  const fileInputRef = useRef(null);
+  const [isDragActive, setIsDragActive] = useState(false);
+  const hasContent = files.length > 0 || existingFiles.length > 0;
+
+  return (
+    <div 
+      onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
+      onDragEnter={(e) => { e.preventDefault(); e.stopPropagation(); setIsDragActive(true); }}
+      onDragLeave={(e) => { e.preventDefault(); e.stopPropagation(); setIsDragActive(false); }}
+      onDrop={(e) => {
+        e.preventDefault(); e.stopPropagation(); setIsDragActive(false);
+        const srcType = e.dataTransfer.getData("sourceType");
+        if (srcType === "local") onDropMoveLocal(e.dataTransfer.getData("sourceField"), parseInt(e.dataTransfer.getData("sourceIndex")));
+        else if (srcType === "existing") onDropMoveExisting(e.dataTransfer.getData("sourceAngle"), e.dataTransfer.getData("filename"));
+        else if (e.dataTransfer.files) onFiles(e.dataTransfer.files);
+      }}
+      onClick={() => { onFocus(); fileInputRef.current?.click(); }}
+      style={{
+        border: isActive ? '2px solid var(--accent-violet)' : (isDragActive ? '2px dashed var(--accent-violet)' : '1px dashed var(--border-subtle)'),
+        background: isActive ? 'rgba(91, 95, 239, 0.05)' : 'var(--bg-elevated)',
+        borderRadius: 'var(--radius-sm)', minHeight: '120px', display: 'flex', flexDirection: 'column',
+        alignItems: 'center', justifyContent: 'center', padding: 'var(--space-4)', position: 'relative',
+        cursor: 'pointer', transition: 'all var(--duration) var(--ease)'
+      }}
+    >
+      <input type="file" multiple accept="image/*" ref={fileInputRef} style={{ display: 'none' }} onChange={(e) => e.target.files && onFiles(e.target.files)} />
+      
+      {isActive && (
+        <span style={{ position: 'absolute', top: 4, left: 6, fontSize: '10px', color: 'var(--accent-violet)', fontWeight: 600, fontFamily: 'var(--font-mono)' }}>TARGET</span>
+      )}
+
+      {hasContent ? (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-2)', justifyContent: 'center', width: '100%', marginTop: isActive ? '14px' : '0' }}>
+          {existingFiles.map((p) => (
+            <div key={p.filename} draggable onDragStart={(e) => { e.dataTransfer.setData("sourceType", "existing"); e.dataTransfer.setData("sourceAngle", p.angle); e.dataTransfer.setData("filename", p.filename); }} onClick={(e) => e.stopPropagation()} style={{ position: 'relative', width: '40px', height: '40px' }}>
+              <img src={`${API_BASE}/persons/${personName}/photos/${p.angle}/${p.filename}`} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '4px', border: '1px solid var(--accent-violet)' }} />
+              <button type="button" onClick={(e) => { e.stopPropagation(); onDeleteExisting(p.filename); }} style={{ position: 'absolute', top: -4, right: -4, background: 'var(--alert-crimson)', color: '#fff', border: 'none', borderRadius: '50%', width: 14, height: 14, fontSize: 10, cursor: 'pointer' }}>×</button>
+            </div>
+          ))}
+          {files.map((f, i) => (
+            <div key={i} draggable onDragStart={(e) => { e.dataTransfer.setData("sourceType", "local"); e.dataTransfer.setData("sourceField", field); e.dataTransfer.setData("sourceIndex", i.toString()); }} onClick={(e) => e.stopPropagation()} style={{ position: 'relative', width: '40px', height: '40px' }}>
+              <img src={URL.createObjectURL(f)} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '4px', border: '1px solid var(--border-subtle)' }} />
+              <button type="button" onClick={(e) => { e.stopPropagation(); onRemove(i); }} style={{ position: 'absolute', top: -4, right: -4, background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: '50%', width: 14, height: 14, fontSize: 10, cursor: 'pointer' }}>×</button>
             </div>
           ))}
         </div>
       ) : (
-        <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <UploadCloud size={14} /> Click or Drop files here
-        </span>
+        <>
+          <ImageIcon size={20} style={{ color: 'var(--text-muted)', marginBottom: '4px' }} />
+          <span style={{ fontSize: 'var(--text-sm)', color: 'var(--text-primary)', fontWeight: 500 }}>{title}</span>
+        </>
       )}
     </div>
-  )
-}
-
-function DropZoneExisting({ title, photos, targetAngle, originalName, handleDeletePhoto, isSubmitting, handleMoveExistingPhoto }) {
-  const [isDragActive, setIsDragActive] = useState(false)
-
-  const handleDragOver = (e) => { e.preventDefault(); e.stopPropagation() }
-  const handleDragEnter = (e) => { e.preventDefault(); e.stopPropagation(); setIsDragActive(true) }
-  const handleDragLeave = (e) => { e.preventDefault(); e.stopPropagation(); setIsDragActive(false) }
-  
-  const handleDrop = (e) => {
-    e.preventDefault(); e.stopPropagation()
-    setIsDragActive(false)
-    const sourceType = e.dataTransfer.getData("sourceType")
-    if (sourceType === "existing") {
-      const sourceAngle = e.dataTransfer.getData("sourceAngle")
-      const filename = e.dataTransfer.getData("filename")
-      if (sourceAngle && filename && sourceAngle !== targetAngle) {
-        handleMoveExistingPhoto(sourceAngle, targetAngle, filename)
-      }
-    }
-  }
-
-  return (
-    <div 
-      onDragOver={handleDragOver}
-      onDragEnter={handleDragEnter}
-      onDragLeave={handleDragLeave}
-      onDrop={handleDrop}
-      style={{
-        padding: '1rem',
-        border: isDragActive ? '2px dashed var(--primary)' : '2px solid transparent',
-        borderRadius: 'var(--radius-md)',
-        backgroundColor: isDragActive ? 'var(--primary-glow)' : 'transparent',
-        transition: 'all 0.2s var(--ease)',
-        minHeight: '100px'
-      }}
-    >
-      <h4 style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--primary-light)', marginBottom: '0.5rem', letterSpacing: '0.05em' }}>
-        {title}
-      </h4>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(70px, 1fr))', gap: '8px' }}>
-        {photos.map(p => (
-          <PhotoThumb key={p.filename} photo={p} name={originalName} onDelete={() => handleDeletePhoto(p.angle, p.filename)} disabled={isSubmitting} />
-        ))}
-      </div>
-    </div>
-  )
+  );
 }

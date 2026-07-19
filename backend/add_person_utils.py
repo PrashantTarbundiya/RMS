@@ -23,6 +23,7 @@ PROJECT_ROOT = os.path.dirname(BACKEND_DIR)
 
 # Reuse existing pipeline functions
 from model import apply_clahe, get_embedding, generate_augments, NUM_AUGMENTS_QUICK
+from org_storage import get_sota_model_path, get_sota_classes_path
 from face_detection import SideFaceDetector
 from clean_dataset import _build_mediapipe_detector, _detect_with_mediapipe, EXTRA_PAD
 
@@ -98,7 +99,7 @@ def update_deepface_model(person_name, image_paths, encodings_path=None):
         print("   No existing encodings found. Creating new file.")
 
     # Initialize face detector
-    detector = SideFaceDetector(min_detection_confidence=0.30)  # 0.30 = improved side-face recall (multi-pass cascade)
+    detector = SideFaceDetector(min_detection_confidence=0.45)  # 0.45 = balanced to reduce false positives
     
     new_count = 0
 
@@ -292,13 +293,14 @@ def recompute_person_embeddings(person_name):
 def update_sota_model(person_name, dataset_dir=None,
                       model_path=None,
                       classes_path=None,
-                      num_epochs=5, batch_size=16):
+                      num_epochs=5, batch_size=16,
+                      org_id=None):
     if dataset_dir is None:
         dataset_dir = os.path.join(PROJECT_ROOT, 'dataset_cleaned')
     if model_path is None:
-        model_path = os.path.join(BACKEND_DIR, 'models', 'sota_finetune', 'best_mobile_sideface.pth')
+        model_path = get_sota_model_path(org_id)
     if classes_path is None:
-        classes_path = os.path.join(BACKEND_DIR, 'models', 'sota_finetune', 'mobile_classes.txt')
+        classes_path = get_sota_classes_path(org_id)
     """
     Add a new person to the SOTA MobileNetV2 model:
     1. Read existing class names
@@ -511,7 +513,7 @@ def clean_and_save_face(img_bgr, output_path, margin_ratio=0.20):
 # MASTER FUNCTION: Save images + clean + update DeepFace (Synchronous/Fast)
 # ============================================================================
 
-def add_person_fast(person_name, image_data_list, dataset_dir=None):
+def add_person_fast(person_name, image_data_list, dataset_dir=None, encodings_path=None):
     if dataset_dir is None:
         dataset_dir = os.path.join(PROJECT_ROOT, 'dataset_cleaned')
     """
@@ -598,7 +600,7 @@ def add_person_fast(person_name, image_data_list, dataset_dir=None):
     # 3. Update DeepFace (instant — no retrain) if we added new images
     if saved_cleaned_paths:
         try:
-            new_encs, new_names, num_added = update_deepface_model(person_name, saved_cleaned_paths)
+            new_encs, new_names, num_added = update_deepface_model(person_name, saved_cleaned_paths, encodings_path=encodings_path)
             status_parts.append(f"✅ **DeepFace**: Added {num_added} embeddings (total: {len(new_encs)})")
         except Exception as e:
             status_parts.append(f"⚠️ **DeepFace**: Error — {e}")

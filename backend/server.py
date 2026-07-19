@@ -1,6 +1,11 @@
 import sys
 import os
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'  # Suppress TF warnings
+
+# Load .env file before any other imports read env vars
+from dotenv import load_dotenv
+load_dotenv(os.path.join(os.path.dirname(os.path.abspath(__file__)), '.env'))
+
 import time
 import socket
 import threading
@@ -10,7 +15,7 @@ import datetime
 import re
 import hashlib
 from io import StringIO
-from flask import Flask, request, jsonify, Response, send_file
+from flask import Flask, request, jsonify, Response, send_file, g
 from flask_cors import CORS
 from werkzeug.utils import secure_filename
 import shutil
@@ -43,8 +48,38 @@ logging.basicConfig(
 )
 logger = logging.getLogger('rms-api')
 
+
+
 # ─── App Setup ─────────────────────────────────────────────────────────
 app = Flask(__name__)
+
+# Sentry Error Tracking
+import sentry_sdk
+from sentry_sdk.integrations.flask import FlaskIntegration
+sentry_dsn = os.environ.get('SENTRY_DSN')
+if sentry_dsn:
+    sentry_sdk.init(
+        dsn=sentry_dsn,
+        integrations=[FlaskIntegration()],
+        traces_sample_rate=1.0
+    )
+
+# Rate Limiting
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
+
+def get_rate_limit_key():
+    from middleware import get_current_org_id
+    org_id = get_current_org_id()
+    return org_id if org_id else get_remote_address()
+
+limiter_storage = os.environ.get('REDIS_URL', 'memory://')
+limiter = Limiter(
+    get_rate_limit_key,
+    app=app,
+    default_limits=["10000 per day", "1000 per hour"],
+    storage_uri=limiter_storage
+)
 
 # Environment-aware CORS: restrict origins in production
 allowed_origins = [
@@ -63,6 +98,74 @@ else:
     CORS(app)  # Wide open for local development
 
 app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024  # 50 MB max upload
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-secret-key')
+
+# ─── Database Initialization & License Gating ───────────────────────────
+from database.db import init_database, create_tables, is_db_available
+from license import enforce_local_license
+
+deployment_mode = os.environ.get('DEPLOYMENT_MODE', 'cloud').lower()
+if deployment_mode in ('local', 'hybrid'):
+    logger.info(f"Starting in {deployment_mode} mode. Validating offline license...")
+    enforce_local_license()
+    
+if deployment_mode == 'hybrid':
+    from sync import start_sync_worker
+    start_sync_worker()
+
+db_connected = init_database()
+if db_connected:
+    create_tables()  # Auto-create tables in dev; use Alembic migrations in production
+    logger.info("Multi-tenant mode: PostgreSQL connected.")
+else:
+    logger.info("Single-tenant mode: using local file storage.")
+
+@app.route('/api/sync', methods=['POST'])
+def receive_sync():
+    """Cloud API endpoint to receive AttendanceLog from edge appliances."""
+    from database.db import get_session
+    from database.models import AttendanceLog
+    from datetime import datetime
+    
+    data = request.get_json()
+    logs = data.get('logs', [])
+    
+    if not logs:
+        return jsonify({'message': 'No logs provided'}), 200
+        
+    try:
+        with get_session() as session:
+            for log_data in logs:
+                existing = session.query(AttendanceLog).filter_by(id=log_data['id']).first()
+                if not existing:
+                    new_log = AttendanceLog(
+                        id=log_data['id'],
+                        org_id=log_data['org_id'],
+                        employee_id=log_data['employee_id'],
+                        camera_id=log_data['camera_id'],
+                        checkin_time=datetime.fromisoformat(log_data['checkin_time']),
+                        confidence=log_data.get('confidence'),
+                        method=log_data.get('method'),
+                        status=log_data.get('status'),
+                        prediction_label=log_data.get('prediction_label'),
+                        is_confirmed=log_data.get('is_confirmed'),
+                        synced=True
+                    )
+                    session.add(new_log)
+            session.commit()
+            return jsonify({'message': f'Synced {len(logs)} logs successfully'}), 200
+    except Exception as e:
+        logger.error(f"Sync insertion error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+# Import auth and middleware (available regardless of DB mode)
+from middleware import require_auth, require_role, inject_org_id, get_current_org_id
+
+from employees import employees_bp
+app.register_blueprint(employees_bp)
+
+from routes.analytics import analytics_bp
+app.register_blueprint(analytics_bp)
 
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'webp', 'bmp'}
 MAX_FILES_PER_UPLOAD = 20
@@ -114,6 +217,255 @@ def ping():
     """Minimal ping endpoint for connection testing."""
     return jsonify({'pong': True})
 
+# ─── Authentication Endpoints ─────────────────────────────────────────
+@app.route('/api/auth/register', methods=['POST'])
+def auth_register():
+    """
+    Register a new organization and its first admin user.
+    Creates: Organization + User (org_admin) + Subscription (trial) + storage dirs.
+    """
+    if not is_db_available():
+        return jsonify({'error': 'Registration requires multi-tenant mode (DATABASE_URL must be set).'}), 400
+
+    data = request.get_json()
+    if not data:
+        return jsonify({'error': 'JSON body required.'}), 400
+
+    org_name = (data.get('org_name') or '').strip()
+    email = (data.get('email') or '').strip().lower()
+    password = data.get('password', '')
+    admin_name = (data.get('name') or '').strip()
+
+    if not org_name or not email or not password:
+        return jsonify({'error': 'org_name, email, and password are required.'}), 400
+    if len(password) < 8:
+        return jsonify({'error': 'Password must be at least 8 characters.'}), 400
+    if '@' not in email:
+        return jsonify({'error': 'Invalid email address.'}), 400
+
+    from database.db import get_db_session
+    from database.models import Organization, User, Subscription, UserRole, PlanTier, SubscriptionStatus
+    from auth import hash_password, create_access_token, create_refresh_token
+    from org_storage import initialize_org_storage
+    import re as re_mod
+
+    # Generate a URL-safe slug from the org name
+    slug = re_mod.sub(r'[^a-z0-9]+', '-', org_name.lower()).strip('-')
+
+    try:
+        with get_db_session() as db:
+            if db is None:
+                return jsonify({'error': 'Database unavailable.'}), 503
+
+            # Check for duplicate org slug
+            existing_org = db.query(Organization).filter_by(slug=slug).first()
+            if existing_org:
+                return jsonify({'error': f'Organization "{org_name}" already exists.'}), 409
+
+            # Check for duplicate email within any org
+            existing_user = db.query(User).filter_by(email=email).first()
+            if existing_user:
+                return jsonify({'error': f'Email "{email}" is already registered.'}), 409
+
+            # Create organization
+            org = Organization(name=org_name, slug=slug)
+            db.add(org)
+            db.flush()  # Get the generated ID
+
+            # Create admin user
+            user = User(
+                org_id=org.id,
+                email=email,
+                password_hash=hash_password(password),
+                name=admin_name or email.split('@')[0],
+                role=UserRole.org_admin,
+            )
+            db.add(user)
+
+            # Create starter subscription
+            sub = Subscription(
+                org_id=org.id,
+                plan_tier=PlanTier.starter,
+                max_employees=25,
+                max_cameras=1,
+                status=SubscriptionStatus.trial,
+            )
+            db.add(sub)
+            db.flush()
+
+            # Initialize file storage for this org
+            initialize_org_storage(org.id)
+
+            # Generate tokens
+            access_token = create_access_token(user.id, org.id, user.role)
+            refresh_token = create_refresh_token(user.id)
+
+            return jsonify({
+                'message': f'Organization "{org_name}" created successfully.',
+                'access_token': access_token,
+                'refresh_token': refresh_token,
+                'user': {
+                    'id': user.id,
+                    'email': user.email,
+                    'name': user.name,
+                    'role': user.role.value,
+                    'org_id': org.id,
+                    'org_name': org.name,
+                }
+            }), 201
+    except Exception as e:
+        logger.error(f"Registration error: {e}", exc_info=True)
+        return jsonify({'error': f'Registration failed: {str(e)}'}), 500
+
+
+@app.route('/api/auth/login', methods=['POST'])
+def auth_login():
+    """Authenticate a user and return JWT tokens."""
+    if not is_db_available():
+        return jsonify({'error': 'Login requires multi-tenant mode.'}), 400
+
+    data = request.get_json()
+    if not data:
+        return jsonify({'error': 'JSON body required.'}), 400
+
+    email = (data.get('email') or '').strip().lower()
+    password = data.get('password', '')
+
+    if not email or not password:
+        return jsonify({'error': 'Email and password are required.'}), 400
+
+    from database.db import get_db_session
+    from database.models import User, Organization
+    from auth import verify_password, create_access_token, create_refresh_token
+
+    try:
+        with get_db_session() as db:
+            if db is None:
+                return jsonify({'error': 'Database unavailable.'}), 503
+
+            user = db.query(User).filter_by(email=email).first()
+            if user is None or not verify_password(password, user.password_hash):
+                return jsonify({'error': 'Invalid email or password.'}), 401
+
+            if not user.is_active:
+                return jsonify({'error': 'Account is deactivated. Contact your administrator.'}), 403
+
+            org = db.query(Organization).filter_by(id=user.org_id).first()
+
+            # Update last login timestamp
+            from datetime import datetime as dt, timezone as tz
+            user.last_login_at = dt.now(tz.utc)
+
+            access_token = create_access_token(user.id, user.org_id, user.role)
+            refresh_token = create_refresh_token(user.id)
+
+            return jsonify({
+                'access_token': access_token,
+                'refresh_token': refresh_token,
+                'user': {
+                    'id': user.id,
+                    'email': user.email,
+                    'name': user.name,
+                    'role': user.role.value,
+                    'org_id': user.org_id,
+                    'org_name': org.name if org else 'Unknown',
+                }
+            })
+    except Exception as e:
+        logger.error(f"Login error: {e}", exc_info=True)
+        return jsonify({'error': 'Login failed.'}), 500
+
+
+@app.route('/api/auth/refresh', methods=['POST'])
+def auth_refresh():
+    """Exchange a valid refresh token for a new access token."""
+    if not is_db_available():
+        return jsonify({'error': 'Token refresh requires multi-tenant mode.'}), 400
+
+    data = request.get_json()
+    refresh_token = (data or {}).get('refresh_token', '')
+    if not refresh_token:
+        return jsonify({'error': 'refresh_token is required.'}), 400
+
+    from auth import decode_token, create_access_token
+    from database.db import get_db_session
+    from database.models import User, Organization
+
+    payload = decode_token(refresh_token)
+    if payload is None or payload.get('type') != 'refresh':
+        return jsonify({'error': 'Invalid or expired refresh token.'}), 401
+
+    try:
+        with get_db_session() as db:
+            if db is None:
+                return jsonify({'error': 'Database unavailable.'}), 503
+
+            user = db.query(User).filter_by(id=payload['sub']).first()
+            if user is None or not user.is_active:
+                return jsonify({'error': 'User not found or deactivated.'}), 401
+
+            org = db.query(Organization).filter_by(id=user.org_id).first()
+
+            new_access_token = create_access_token(user.id, user.org_id, user.role)
+
+            return jsonify({
+                'access_token': new_access_token,
+                'user': {
+                    'id': user.id,
+                    'email': user.email,
+                    'name': user.name,
+                    'role': user.role.value,
+                    'org_id': user.org_id,
+                    'org_name': org.name if org else 'Unknown',
+                }
+            })
+    except Exception as e:
+        logger.error(f"Token refresh error: {e}", exc_info=True)
+        return jsonify({'error': 'Token refresh failed.'}), 500
+
+
+@app.route('/api/auth/me', methods=['GET'])
+@require_auth
+def auth_me():
+    """Return the authenticated user's profile."""
+    user_data = g.current_user
+
+    if not is_db_available() or user_data.get('user_id') is None:
+        return jsonify({
+            'user': {
+                'id': None,
+                'email': 'local@admin',
+                'name': 'Local Admin',
+                'role': 'org_admin',
+                'org_id': None,
+                'org_name': 'Local Instance',
+            }
+        })
+
+    from database.db import get_db_session
+    from database.models import User, Organization
+
+    try:
+        with get_db_session() as db:
+            user = db.query(User).filter_by(id=user_data['user_id']).first()
+            if user is None:
+                return jsonify({'error': 'User not found.'}), 404
+            org = db.query(Organization).filter_by(id=user.org_id).first()
+            return jsonify({
+                'user': {
+                    'id': user.id,
+                    'email': user.email,
+                    'name': user.name,
+                    'role': user.role.value,
+                    'org_id': user.org_id,
+                    'org_name': org.name if org else 'Unknown',
+                }
+            })
+    except Exception as e:
+        logger.error(f"Auth /me error: {e}", exc_info=True)
+        return jsonify({'error': 'Failed to fetch user profile.'}), 500
+
+
 # Configuration — paths relative to project structure (configurable via env vars)
 STORAGE_DIR = os.environ.get('STORAGE_DIR', PROJECT_ROOT)
 DATASET_CLEANED_DIR = os.path.join(STORAGE_DIR, 'dataset_cleaned')
@@ -128,15 +480,18 @@ for _dir in [DATA_DIR, DATASET_CLEANED_DIR, os.path.join(STORAGE_DIR, 'dataset')
 logger.info(f"Storage directory: {STORAGE_DIR}")
 logger.info(f"Dataset directory: {DATASET_CLEANED_DIR}")
 
-def log_recognition(faces_results):
+def log_recognition(faces_results, org_id=None):
     if not faces_results:
         return
     try:
+        from org_storage import get_recognition_history_path
+        history_path = get_recognition_history_path(org_id)
+        
         # Load existing history
         history = []
-        if os.path.exists(RECOGNITION_HISTORY_PATH):
+        if os.path.exists(history_path):
             try:
-                with open(RECOGNITION_HISTORY_PATH, 'r') as f:
+                with open(history_path, 'r') as f:
                     history = json.load(f)
             except Exception:
                 pass
@@ -172,7 +527,7 @@ def log_recognition(faces_results):
         # Cap at 100 entries
         history = history[:100]
         
-        with open(RECOGNITION_HISTORY_PATH, 'w') as f:
+        with open(history_path, 'w') as f:
             json.dump(history, f, indent=2)
     except Exception as e:
         logger.warning(f"Failed to log recognition history: {e}")
@@ -204,61 +559,33 @@ def compute_image_hash(img_bytes):
 logger.info("Initializing Face Detection and Recognition Models...")
 
 # ─── Model State (lazy-loadable) ────────────────────────────────────────
-_models_loaded = False
+_org_model_cache = {}  # { org_id: { 'deepface_encodings', 'deepface_names', 'sota_model', 'sota_classes', 'sota_transform', 'sota_device', 'sota_loaded' } }
 face_cascade = None
-deepface_encodings = None
-deepface_names = None
-sota_model = None
-sota_classes = []
-sota_transform = None
-sota_device = None
-sota_loaded = False
 
-def get_face_cascade():
-    global face_cascade
-    if face_cascade is not None:
-        try:
-            if not face_cascade.empty():
-                return face_cascade
-        except Exception:
-            pass
-    base_dir = os.path.dirname(os.path.abspath(__file__))
-    paths_to_try = [
-        os.path.join(base_dir, 'haarcascade_frontalface_default.xml'),
-        os.path.join(base_dir, '..', 'haarcascade_frontalface_default.xml'),
-        'haarcascade_frontalface_default.xml'
-    ]
-    for p in paths_to_try:
-        abs_p = os.path.abspath(p)
-        if os.path.exists(abs_p):
-            try:
-                clf = cv2.CascadeClassifier(abs_p)
-                if not clf.empty():
-                    face_cascade = clf
-                    logger.info(f"Face cascade loaded from: {abs_p}")
-                    return face_cascade
-            except Exception as e:
-                logger.warning(f"Failed to load cascade from {abs_p}: {e}")
-    logger.warning("Could not load face cascade from any path!")
-    return None
+# ─── Deep Learning Face Detector ──────────────────────────────────────────
+from face_detection import SideFaceDetector
+face_detector = SideFaceDetector(min_detection_confidence=0.45)
 
-def load_deepface():
+def load_deepface(org_id=None):
     try:
-        if not os.path.exists(DEEPFACE_MODEL_PATH):
-            logger.info("DeepFace encodings file not found (not yet trained)")
+        from org_storage import get_encodings_path
+        path = get_encodings_path(org_id)
+        if not os.path.exists(path):
+            logger.info(f"DeepFace encodings file not found for org {org_id} (not yet trained)")
             return None, None
-        with open(DEEPFACE_MODEL_PATH, "rb") as f:
+        with open(path, "rb") as f:
             data = pickle.load(f)
-        logger.info(f"DeepFace loaded: {len(data.get('encodings', []))} encodings")
+        logger.info(f"DeepFace loaded for org {org_id}: {len(data.get('encodings', []))} encodings")
         return data["encodings"], data["names"]
     except Exception as e:
-        logger.warning(f"DeepFace encodings not loadable: {e}")
+        logger.warning(f"DeepFace encodings not loadable for org {org_id}: {e}")
         return None, None
 
 
-def load_sota():
+def load_sota(org_id=None):
+    from org_storage import get_sota_model_path, get_sota_classes_path
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    classes_path = os.path.join(BACKEND_DIR, 'models', 'sota_finetune', 'mobile_classes.txt')
+    classes_path = get_sota_classes_path(org_id)
     classes = []
     if os.path.exists(classes_path):
         with open(classes_path, "r") as f:
@@ -267,18 +594,19 @@ def load_sota():
     model = build_mobile_model(num_classes=num_classes)
 
     is_loaded = False
-    if os.path.exists(SOTA_MODEL_PATH):
+    model_path = get_sota_model_path(org_id)
+    if os.path.exists(model_path):
         try:
-            state_dict = torch.load(SOTA_MODEL_PATH, map_location=device)
+            state_dict = torch.load(model_path, map_location=device)
             result = model.load_state_dict(state_dict, strict=False)
             if result.missing_keys:
                 logger.warning(f"SOTA model: missing keys: {result.missing_keys}")
             if result.unexpected_keys:
                 logger.warning(f"SOTA model: unexpected keys: {result.unexpected_keys}")
             is_loaded = True
-            logger.info("SOTA model loaded successfully")
+            logger.info(f"SOTA model loaded successfully for org {org_id}")
         except Exception as e:
-            logger.warning(f"SOTA model failed to load: {e}. Using untrained model.")
+            logger.warning(f"SOTA model failed to load for org {org_id}: {e}. Using untrained model.")
     model.to(device)
     model.eval()
     val_transform = transforms.Compose([
@@ -288,39 +616,46 @@ def load_sota():
     ])
     return model, classes, val_transform, device, is_loaded
 
-def ensure_models_loaded():
-    """Lazy-load all models on first inference request."""
-    global _models_loaded, deepface_encodings, deepface_names
-    global sota_model, sota_classes, sota_transform, sota_device, sota_loaded
-    if _models_loaded:
-        return
-    logger.info("Lazy-loading models for first inference...")
-    get_face_cascade()
-    deepface_encodings, deepface_names = load_deepface()
-    sota_model, sota_classes, sota_transform, sota_device, sota_loaded = load_sota()
-    _models_loaded = True
-    logger.info("All models loaded.")
+def ensure_org_models_loaded(org_id=None):
+    """Lazy-load models for a specific org on first inference request."""
+    global _org_model_cache
+    if org_id not in _org_model_cache:
+        logger.info(f"Lazy-loading models for org {org_id}...")
+        d_encs, d_names = load_deepface(org_id)
+        s_model, s_classes, s_transform, s_device, s_loaded = load_sota(org_id)
+        _org_model_cache[org_id] = {
+            'deepface_encodings': d_encs,
+            'deepface_names': d_names,
+            'sota_model': s_model,
+            'sota_classes': s_classes,
+            'sota_transform': s_transform,
+            'sota_device': s_device,
+            'sota_loaded': s_loaded
+        }
+        logger.info(f"All models loaded for org {org_id}.")
+    return _org_model_cache[org_id]
 
-def reload_models():
-    """Reloads models into memory after training."""
-    global _models_loaded, deepface_encodings, deepface_names
-    global sota_model, sota_classes, sota_transform, sota_device, sota_loaded
-    logger.info("Hot-reloading models...")
-    new_encs, new_names = load_deepface()
-    if new_encs is not None:
-        deepface_encodings = new_encs
-        deepface_names = new_names
-    sota_model, sota_classes, sota_transform, sota_device, sota_loaded = load_sota()
+def reload_org_models(org_id=None):
+    """Reloads models into memory for a specific org after training."""
+    global _org_model_cache
+    logger.info(f"Hot-reloading models for org {org_id}...")
+    d_encs, d_names = load_deepface(org_id)
+    s_model, s_classes, s_transform, s_device, s_loaded = load_sota(org_id)
+    _org_model_cache[org_id] = {
+        'deepface_encodings': d_encs,
+        'deepface_names': d_names,
+        'sota_model': s_model,
+        'sota_classes': s_classes,
+        'sota_transform': s_transform,
+        'sota_device': s_device,
+        'sota_loaded': s_loaded
+    }
     _models_loaded = True
     logger.info("Models reloaded globally.")
 # ────────────────────────────────────────────────────────────────────────
 
-# Load models eagerly during local dev, lazy on production (Render)
-if not os.environ.get('LAZY_LOAD_MODELS'):
-    ensure_models_loaded()
-else:
-    logger.info("LAZY_LOAD_MODELS set — models will load on first inference request.")
-
+# Models are now lazy-loaded per organization (ensure_org_models_loaded)
+# Eager loading globally is no longer applicable in multi-tenant architecture.
 class ThreadSafeStringWriter(StringIO):
     """Captures stdout from training threads without corrupting the global stdout."""
     def __init__(self, callback):
@@ -339,6 +674,7 @@ def add_log(msg):
     logger.info(f"[Training]: {msg}")
 
 @app.route('/api/persons', methods=['GET'])
+@require_auth
 def get_persons():
     """Returns a list of all trained persons."""
     if not os.path.exists(DATASET_CLEANED_DIR):
@@ -348,7 +684,10 @@ def get_persons():
     return jsonify(persons)
 
 @app.route('/api/upload', methods=['POST'])
-def upload_person():
+@require_auth
+@require_role('org_admin')
+@inject_org_id
+def upload_person(org_id):
     """Uploads images and triggers adding a person but DOES NOT start training immediately."""
     person_name = request.form.get('person_name', '').strip()
     if not person_name:
@@ -360,6 +699,12 @@ def upload_person():
     if not _VALID_NAME_PATTERN.match(person_name):
         return jsonify({'error': 'Person name can only contain letters, numbers, underscores, and hyphens'}), 400
         
+    # Check subscription limits
+    from billing import check_subscription_limit
+    allowed, error_response = check_subscription_limit(org_id, new_employees_count=1)
+    if not allowed:
+        return error_response
+
     try:
         epochs = int(request.form.get('epochs', 5))
         epochs = max(1, min(epochs, 50))  # Clamp to 1-50
@@ -426,83 +771,106 @@ def upload_person():
     if training_status['is_training']:
         return jsonify({'error': 'A model refinement is currently running in the background. Please wait for it to finish.'}), 409
 
+    org_dataset_dir = get_dataset_cleaned_dir(org_id)
+    org_encodings_path = get_encodings_path(org_id)
+
     # Execute fast enrollment synchronously
     try:
         from add_person_utils import add_person_fast
-        print(f"--- Starting fast enrollment for {person_name} ---")
-        result_msg = add_person_fast(person_name, image_data_list, dataset_dir=DATASET_CLEANED_DIR)
+        print(f"--- Starting fast enrollment for {person_name} (Org: {org_id}) ---")
+        result_msg = add_person_fast(
+            person_name, 
+            image_data_list, 
+            dataset_dir=org_dataset_dir,
+            encodings_path=org_encodings_path
+        )
         print("\n--- Fast Enrollment Completed ---")
         print(result_msg)
         
         # Hot reload DeepFace immediately for instant usability
-        reload_models()
+        reload_org_models(org_id)
     except Exception as e:
         logger.error(f"Fast enrollment error: {e}")
         return jsonify({'error': f"Failed during fast enrollment: {str(e)}"}), 500
 
-    # Start MobileNetV2 fine-tuning in background thread
-    thread = threading.Thread(target=run_sota_finetune_pipeline, args=(person_name, epochs))
-    thread.start()
+    from tasks import retrain_model_task
+    import redis
+    
+    # Dispatch Celery task
+    task = retrain_model_task.delay(person_name, epochs, org_id)
+    
+    # Store the task ID in Redis for this org so SSE can find it
+    try:
+        r = redis.Redis(host='localhost', port=6379, db=0)
+        r.set(f"retrain_task_{org_id}", task.id)
+        r.set(f"retrain_task_{org_id}_last_log_idx", 0) # reset index
+    except Exception as e:
+        logger.warning(f"Failed to set task ID in Redis: {e}")
 
     msg = f'Person enrolled and searchable now. Model refinement running in background.'
     if rejected_count > 0:
         msg += f' ({rejected_count} file(s) rejected/failed)'
     return jsonify({'message': msg})
 
-def run_sota_finetune_pipeline(person_name, epochs=5):
-    """Executes the SOTA MobileNetV2 fine-tuning in the background and captures stdout for SSE."""
-    training_status['is_training'] = True
-    training_status['logs'] = []
-    training_status['progress'] = 0
-
-    def output_callback(text):
-        for line in text.splitlines():
-            if line.strip():
-                training_status['logs'].append(line)
-        
-    old_stdout = sys.stdout
-    sys.stdout = ThreadSafeStringWriter(output_callback)
-    
-    try:
-        from add_person_utils import update_sota_model
-        print(f"--- Starting background model refinement for {person_name} (Epochs: {epochs}) ---")
-        update_sota_model(person_name, dataset_dir=DATASET_CLEANED_DIR, num_epochs=epochs)
-        print("\n--- Pipeline Completed ---")
-        training_status['progress'] = 100
-        
-        # Trigger hot-reload of models for inference now that background training is done
-        reload_models()
-    except Exception as e:
-        print(f"\n--- Pipeline Error ---")
-        print(str(e))
-    finally:
-        sys.stdout = old_stdout
-        training_status['is_training'] = False
+# run_sota_finetune_pipeline has been moved to Celery tasks.py
 
 @app.route('/api/train/status', methods=['GET'])
-def get_training_status():
-    """Server-Sent Events endpoint to stream training logs."""
+@require_auth
+@inject_org_id
+def get_training_status(org_id):
+    """Server-Sent Events endpoint to stream training logs from Celery task."""
     def generate():
-        last_log_idx = 0
+        import redis
+        import time
+        from tasks import celery_app
+        
+        r = redis.Redis(host='localhost', port=6379, db=0)
+        
         while True:
-            # Send new logs
-            logs_count = len(training_status['logs'])
-            if logs_count > last_log_idx:
-                new_logs = training_status['logs'][last_log_idx:logs_count]
-                for log in new_logs:
-                    yield f"data: {log}\n\n"
-                last_log_idx = logs_count
-            
-            # Send status update ping
-            if not training_status['is_training'] and last_log_idx >= len(training_status['logs']):
-                yield "data: [DONE]\n\n"
-                break
+            try:
+                task_id = r.get(f"retrain_task_{org_id}")
+                if not task_id:
+                    yield "data: [INFO] No training active for this org.\n\n"
+                    time.sleep(2)
+                    continue
+                    
+                task_id = task_id.decode('utf-8')
+                task = celery_app.AsyncResult(task_id)
                 
-            time.sleep(0.5)
+                last_log_idx = int(r.get(f"retrain_task_{org_id}_last_log_idx") or b'0')
+                
+                if task.state == 'PENDING':
+                    yield "data: [INFO] Waiting for Celery worker to pick up task...\n\n"
+                elif task.state in ('STARTING', 'TRAINING', 'SUCCESS', 'FAILURE'):
+                    info = task.info if isinstance(task.info, dict) else {}
+                    logs = info.get('logs', [])
+                    
+                    logs_count = len(logs)
+                    if logs_count > last_log_idx:
+                        new_logs = logs[last_log_idx:logs_count]
+                        for log in new_logs:
+                            yield f"data: {log}\n\n"
+                        r.set(f"retrain_task_{org_id}_last_log_idx", logs_count)
+                        
+                    if task.state in ('SUCCESS', 'FAILURE'):
+                        yield f"data: [INFO] Task Finished ({task.state})\n\n"
+                        if task.state == 'SUCCESS':
+                            # Trigger memory reload on the flask worker that happens to stream this
+                            reload_org_models(org_id)
+                        yield "event: close\ndata: close\n\n"
+                        break
+                else:
+                    yield f"data: [INFO] Task State: {task.state}\n\n"
+            except Exception as e:
+                yield f"data: [ERROR] SSE failed: {e}\n\n"
+                
+            time.sleep(1)
 
-    return Response(generate(), mimetype='text/event-stream')
+    return Response(stream_with_context(generate()), mimetype='text/event-stream')
 
 @app.route('/api/export-onnx', methods=['POST'])
+@require_auth
+@require_role('org_admin')
 def export_onnx_model():
     """Exports the SOTA MobileNetV2 map to an ONNX file."""
     if not os.path.exists(SOTA_MODEL_PATH):
@@ -537,6 +905,7 @@ def export_onnx_model():
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/download-model', methods=['GET'])
+@require_auth
 def download_model():
     """Downloads the MobileNetV2 ONNX file (legacy endpoint)."""
     path = os.path.join(PROJECT_ROOT, "sideface_mobile.onnx")
@@ -572,6 +941,7 @@ _MIME_MAP = {
 
 
 @app.route('/api/download-file', methods=['GET'])
+@require_auth
 def download_file():
     """
     Secure download endpoint for trained model artefacts.
@@ -613,6 +983,7 @@ def download_file():
 
 
 @app.route('/api/download-list', methods=['GET'])
+@require_auth
 def download_list():
     """
     Returns a list of all downloadable artefacts with their availability
@@ -633,17 +1004,18 @@ def download_list():
     return jsonify({'files': files})
 
 @app.route('/api/models/reset', methods=['POST'])
-def reset_models():
-    """Deletes all trained models and optionally dataset."""
+@require_auth
+@require_role('org_admin')
+@inject_org_id
+def reset_models(org_id):
+    """Deletes all trained models and dataset for the organization."""
     try:
+        from org_storage import get_sota_model_path, get_sota_classes_path, get_encodings_path, get_dataset_cleaned_dir, get_raw_dataset_dir
+        
         files_to_remove = [
-            SOTA_MODEL_PATH,
-            DEEPFACE_MODEL_PATH,
-            os.path.join(BACKEND_DIR, 'models', 'sota_finetune', 'mobile_classes.txt'),
-            os.path.join(PROJECT_ROOT, 'sideface_mobile.onnx'),
-            os.path.join(PROJECT_ROOT, 'facenet512.onnx'),
-            os.path.join(BACKEND_DIR, 'data', 'class_centroids.json'),
-            os.path.join(BACKEND_DIR, 'data', 'label_map.json'),
+            get_sota_model_path(org_id),
+            get_sota_classes_path(org_id),
+            get_encodings_path(org_id),
         ]
         
         removed = []
@@ -652,20 +1024,28 @@ def reset_models():
                 os.remove(f)
                 removed.append(os.path.basename(f))
                 
-        # Clear specific folders without deleting the whole directory
-        raw_dataset_dir = os.path.join(PROJECT_ROOT, 'dataset')
+        # Clear specific folders for the org
+        raw_dataset_dir = get_raw_dataset_dir(org_id)
         if os.path.exists(raw_dataset_dir):
             shutil.rmtree(raw_dataset_dir)
             
-        if os.path.exists(DATASET_CLEANED_DIR):
-            shutil.rmtree(DATASET_CLEANED_DIR)
+        org_cleaned_dir = get_dataset_cleaned_dir(org_id)
+        if os.path.exists(org_cleaned_dir):
+            shutil.rmtree(org_cleaned_dir)
+
+        # Clear memory cache for this org
+        global _org_model_cache
+        if org_id in _org_model_cache:
+            del _org_model_cache[org_id]
 
         return jsonify({'message': f'Reset successful. Removed: {", ".join(removed) if removed else "Nothing to remove"}'})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/predict', methods=['POST'])
-def predict():
+@require_auth
+@inject_org_id
+def predict(org_id):
     """Takes an image and returns face bounding boxes and predictions from all 3 models."""
     if 'image' not in request.files:
         return jsonify({'error': 'No image provided'}), 400
@@ -677,30 +1057,39 @@ def predict():
         return jsonify({'error': f'Unsupported file type. Allowed: {", ".join(ALLOWED_EXTENSIONS)}'}), 400
 
     try:
-        # Ensure models are loaded (lazy-loading for production)
-        ensure_models_loaded()
+        # Phase 5: Per-Camera Threshold Tuning
+        camera_id = request.form.get('camera_id')
+        camera_threshold = None
+        if camera_id:
+            from database.models import Camera
+            from database.db import get_db_session
+            with get_db_session() as session:
+                if session is not None:
+                    cam = session.query(Camera).filter_by(id=camera_id, org_id=org_id).first()
+                    if cam and cam.confirm_threshold_override:
+                        camera_threshold = cam.confirm_threshold_override
+
+        # Ensure models are loaded for this org (lazy-loading for production)
+        org_models = ensure_org_models_loaded(org_id)
         
         pil_img = Image.open(file.stream).convert('RGB')
         # Validate minimum image dimensions
         if pil_img.width < 20 or pil_img.height < 20:
             return jsonify({'error': 'Image is too small. Minimum size is 20x20 pixels.'}), 400
         img_np = cv2.cvtColor(np.array(pil_img), cv2.COLOR_RGB2BGR)
-        gray = cv2.cvtColor(img_np, cv2.COLOR_BGR2GRAY)
         
-        cascade = get_face_cascade()
+        # Phase 5: Deep Learning Face Detection (MediaPipe)
+        detected_faces_info = face_detector.detect_faces(img_np, profile_only=False)
         faces = []
-        if cascade is not None:
-            try:
-                if not cascade.empty():
-                    faces = cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=8, minSize=(60, 60))
-            except Exception as e:
-                logger.warning(f"OpenCV detectMultiScale failed: {e}")
+        for face_info in detected_faces_info:
+            b = face_info['bbox']
+            faces.append((b['x'], b['y'], b['w'], b['h']))
 
         if len(faces) == 0:
             # Fallback: Treat the whole image as the bounding box and pass to models
             h, w = img_np.shape[:2]
             faces = [(0, 0, w, h)]
-            message = "Cascade failed to find a face: Full image evaluated."
+            message = "Detector failed to find a face: Full image evaluated."
         else:
             message = f'Detected {len(faces)} face(s)'
 
@@ -717,9 +1106,28 @@ def predict():
             face_roi_pil = pil_img.crop((x1, y1, x2, y2))
             face_roi_cv = img_np[y1:y2, x1:x2]
             
+            # Phase 5: Liveness Detection (Anti-Spoofing)
+            from liveness import evaluate_liveness
+            is_live, liveness_score, liveness_reason = evaluate_liveness(face_roi_cv)
+            
+            if not is_live:
+                results.append({
+                    'bbox': {'x': x, 'y': y, 'w': w, 'h': h},
+                    'prediction': 'SPOOF DETECTED',
+                    'confidence': 0.0,
+                    'is_confirmed': False,
+                    'details': {'liveness_reason': liveness_reason, 'liveness_score': liveness_score}
+                })
+                continue # Skip this face
             
             # Predict SOTA (guarded — won't crash if model/classes are empty)
             sota_label, sota_conf_val = '[UNTRAINED]', 0.0
+            sota_model = org_models.get('sota_model')
+            sota_transform = org_models.get('sota_transform')
+            sota_device = org_models.get('sota_device')
+            sota_classes = org_models.get('sota_classes')
+            sota_loaded = org_models.get('sota_loaded')
+            
             if sota_model is not None and sota_transform is not None:
                 try:
                     input_tensor = sota_transform(face_roi_pil).unsqueeze(0).to(sota_device)
@@ -739,6 +1147,9 @@ def predict():
             # Predict DeepFace — use TTA (Test-Time Augmentation) for higher accuracy
             df_label, df_conf = "Not Trained", 0.0
             df_confidence_level = "rejected"
+            deepface_encodings = org_models.get('deepface_encodings')
+            deepface_names = org_models.get('deepface_names')
+            
             if deepface_encodings is not None:
                 try:
                     processed = apply_clahe(face_roi_cv)
@@ -748,7 +1159,10 @@ def predict():
                         # Fallback to single embedding if TTA fails
                         emb = get_embedding(processed)
                     if emb is not None:
-                        df_label, dist, df_confidence_level = find_match_knn(emb, deepface_encodings, deepface_names)
+                        df_label, dist, df_confidence_level = find_match_knn(
+                            emb, deepface_encodings, deepface_names, 
+                            custom_threshold=camera_threshold
+                        )
                         df_conf = max(0, (1 - dist))
                 except Exception as e:
                     logger.warning(f"DeepFace prediction error: {e}")
@@ -803,14 +1217,17 @@ def predict():
                 emb = get_embedding(processed)
                 if emb:
                     store_prediction_for_feedback(
-                        pred_id, emb,
+                        pred_id,
+                        img_np,
+                        face_roi_cv,
                         result['ensemble']['label'],
                         result['ensemble']['confidence'],
-                        face_img=face_roi_cv
+                        embedding=emb,
+                        org_id=org_id
                     )
 
         # Log to recognition history
-        log_recognition(results)
+        log_recognition(results, org_id)
             
         return jsonify({'faces': results, 'message': message})
     except Exception as e:
@@ -819,6 +1236,7 @@ def predict():
 
 # ─── Recognition History Endpoints ────────────────────────────────────
 @app.route('/api/history', methods=['GET'])
+@require_auth
 def get_history():
     """Retrieve recognition logs."""
     history = []
@@ -831,6 +1249,8 @@ def get_history():
     return jsonify(history)
 
 @app.route('/api/history', methods=['DELETE'])
+@require_auth
+@require_role('org_admin')
 def clear_history():
     """Clear recognition logs."""
     try:
@@ -842,6 +1262,8 @@ def clear_history():
 
 # ─── Feedback Learning Endpoint ───────────────────────────────────────
 @app.route('/api/predict/feedback', methods=['POST'])
+@require_auth
+@require_role('manager')
 def submit_feedback():
     """
     Accept operator feedback on a prediction for online learning.
@@ -883,6 +1305,7 @@ def submit_feedback():
 
 # ─── Config Endpoints ───────────────────────────────────────
 @app.route('/api/config', methods=['GET'])
+@require_auth
 def get_config_endpoint():
     try:
         from config_utils import load_config
@@ -892,6 +1315,8 @@ def get_config_endpoint():
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/config', methods=['POST'])
+@require_auth
+@require_role('org_admin')
 def save_config_endpoint():
     try:
         from config_utils import save_config
@@ -906,24 +1331,31 @@ def save_config_endpoint():
 
 
 @app.route('/api/feedback/stats', methods=['GET'])
+@require_auth
 def feedback_stats():
     """Get feedback learning statistics."""
     return jsonify(get_feedback_stats())
 
 # ─── Dashboard Stats Endpoint ─────────────────────────────────────────
 @app.route('/api/dashboard', methods=['GET'])
-def get_dashboard_stats():
+@require_auth
+@inject_org_id
+def get_dashboard_stats(org_id=None):
+    from org_storage import get_dataset_cleaned_path, get_recognition_history_path
+    
+    dataset_cleaned_dir = get_dataset_cleaned_path(org_id)
+    
     expected_classes = []
-    if os.path.exists(DATASET_CLEANED_DIR):
-        expected_classes = sorted([name for name in os.listdir(DATASET_CLEANED_DIR) 
-                                   if os.path.isdir(os.path.join(DATASET_CLEANED_DIR, name))])
+    if os.path.exists(dataset_cleaned_dir):
+        expected_classes = sorted([name for name in os.listdir(dataset_cleaned_dir) 
+                                   if os.path.isdir(os.path.join(dataset_cleaned_dir, name))])
                                    
     total_people = len(expected_classes)
     total_photos = 0
     photos_per_person = {}
     
     for p in expected_classes:
-        p_dir = os.path.join(DATASET_CLEANED_DIR, p)
+        p_dir = os.path.join(dataset_cleaned_dir, p)
         # Count all image files recursively in this person's directory
         count = 0
         if os.path.exists(p_dir):
@@ -932,8 +1364,10 @@ def get_dashboard_stats():
         photos_per_person[p] = count
         total_photos += count
         
-    sota_loaded_state = sota_loaded
-    sota_classes_state = sota_classes
+    org_models = get_models_for_org(org_id)
+    sota_loaded_state = org_models.get('sota_loaded', False)
+    sota_classes_state = org_models.get('sota_classes', [])
+    deepface_encodings = org_models.get('deepface_encodings')
     
     requires_retrain = False
     if total_people > 0:
@@ -942,9 +1376,10 @@ def get_dashboard_stats():
 
     # Read history for stats
     history = []
-    if os.path.exists(RECOGNITION_HISTORY_PATH):
+    history_path = get_recognition_history_path(org_id)
+    if os.path.exists(history_path):
         try:
-            with open(RECOGNITION_HISTORY_PATH, 'r') as f:
+            with open(history_path, 'r') as f:
                 history = json.load(f)
         except Exception:
             pass
@@ -988,6 +1423,8 @@ def get_dashboard_stats():
 
 # ─── Person Management Endpoints (Rename & Delete) ───────────────────
 @app.route('/api/persons/<name>', methods=['DELETE'])
+@require_auth
+@require_role('org_admin')
 def delete_person(name):
     # Sanitize name
     name = name.strip()
@@ -1056,6 +1493,8 @@ def delete_person(name):
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/persons/<old_name>', methods=['PUT'])
+@require_auth
+@require_role('org_admin')
 def rename_person(old_name):
     old_name = old_name.strip()
     data = request.get_json() or {}
@@ -1176,6 +1615,7 @@ def rebuild_person_embeddings(name):
 
 # ─── Photo Management Endpoints ───────────────────────────────────────
 @app.route('/api/persons/<name>/photos', methods=['GET'])
+@require_auth
 def list_person_photos(name):
     """Lists all cleaned photo details for a person."""
     name = name.strip()
@@ -1201,6 +1641,7 @@ def list_person_photos(name):
     return jsonify(photos)
 
 @app.route('/api/persons/<name>/photos/<angle>/<filename>', methods=['GET'])
+@require_auth
 def get_person_photo(name, angle, filename):
     """Serves a specific cleaned photo file."""
     path = os.path.join(DATASET_CLEANED_DIR, name, angle, filename)
@@ -1209,6 +1650,8 @@ def get_person_photo(name, angle, filename):
     return jsonify({'error': 'Photo not found'}), 404
 
 @app.route('/api/persons/<name>/photos/<angle>/<filename>', methods=['DELETE'])
+@require_auth
+@require_role('org_admin')
 def delete_person_photo(name, angle, filename):
     """Deletes a photo from clean (and raw) dataset and updates DeepFace."""
     name = name.strip()
@@ -1236,6 +1679,8 @@ def delete_person_photo(name, angle, filename):
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/persons/<name>/photos/move', methods=['POST'])
+@require_auth
+@require_role('org_admin')
 def move_person_photo(name):
     """Moves a cleaned photo (and its raw counterpart) to a different face angle folder."""
     name = name.strip()
@@ -1287,10 +1732,17 @@ def move_person_photo(name):
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/persons/<name>/retrain', methods=['POST'])
-def trigger_person_retrain(name):
+@require_auth
+@require_role('org_admin')
+@inject_org_id
+def trigger_person_retrain(name, org_id):
     """Triggers fine-tuning SOTA on current dataset for a person."""
     name = name.strip()
-    if not os.path.exists(os.path.join(DATASET_CLEANED_DIR, name)):
+    
+    from org_storage import get_dataset_cleaned_dir
+    org_dataset_dir = get_dataset_cleaned_dir(org_id)
+    
+    if not os.path.exists(os.path.join(org_dataset_dir, name)):
         return jsonify({'error': 'Person not found'}), 404
         
     try:
@@ -1300,12 +1752,28 @@ def trigger_person_retrain(name):
     except ValueError:
         epochs = 5
 
-    if training_status['is_training']:
-        return jsonify({'error': 'A model refinement is currently running in the background. Please wait for it to finish.'}), 409
+    import redis
+    try:
+        r = redis.Redis(host='localhost', port=6379, db=0)
+        # Verify no active training is happening for this org
+        task_id = r.get(f"retrain_task_{org_id}")
+        if task_id:
+            from tasks import celery_app
+            task = celery_app.AsyncResult(task_id.decode('utf-8'))
+            if task.state in ('PENDING', 'STARTING', 'TRAINING'):
+                return jsonify({'error': 'A model refinement is currently running in the background. Please wait for it to finish.'}), 409
+    except Exception as e:
+        logger.warning(f"Failed to check Redis for active tasks: {e}")
 
-    # Start training in background thread
-    thread = threading.Thread(target=run_sota_finetune_pipeline, args=(name, epochs))
-    thread.start()
+    # Start training in background Celery task
+    from tasks import retrain_model_task
+    task = retrain_model_task.delay(name, epochs, org_id)
+    
+    try:
+        r.set(f"retrain_task_{org_id}", task.id)
+        r.set(f"retrain_task_{org_id}_last_log_idx", 0)
+    except Exception as e:
+        pass
 
     return jsonify({'message': f"Retraining started for '{name}'."})
 

@@ -45,7 +45,7 @@ class SideFaceDetector:
         'unknown': (128, 128, 128)        # Gray
     }
     
-    def __init__(self, min_detection_confidence=0.30):
+    def __init__(self, min_detection_confidence=0.45):
         """
         Initialize the Enhanced Side Face Detector.
         
@@ -82,20 +82,9 @@ class SideFaceDetector:
             except Exception:
                 pass  # Fallback not available — fine, primary is good enough
         
-        # Haar profile cascade for extreme side faces
-        self._haar_profile = None
-        try:
-            haar_profile_path = os.path.join(
-                cv2.data.haarcascades, 'haarcascade_profileface.xml'
-            )
-            if os.path.exists(haar_profile_path):
-                cascade = cv2.CascadeClassifier(haar_profile_path)
-                if not cascade.empty():
-                    self._haar_profile = cascade
-        except Exception:
-            pass
+        # Removed Haar profile cascade (Phase 5 upgrade)
         
-        print("✅ Face detector initialized (multi-pass cascade)!")
+        print("[INFO] Face detector initialized (multi-pass cascade)!")
     
     def _ensure_model(self):
         """Download the face detection model if not present."""
@@ -401,50 +390,8 @@ class SideFaceDetector:
         return faces
     
     def _run_haar_profile(self, image):
-        """Run Haar profile cascade as fallback for extreme side faces."""
-        if self._haar_profile is None:
-            return []
-        
-        try:
-            gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-            h, w = image.shape[:2]
-            
-            faces = []
-            # Detect left-looking profiles
-            left_detections = self._haar_profile.detectMultiScale(
-                gray, scaleFactor=1.1, minNeighbors=3, minSize=(30, 30)
-            )
-            for (x, y, bw, bh) in (left_detections if len(left_detections) > 0 else []):
-                faces.append({
-                    'bbox': {'x': int(x), 'y': int(y), 'w': int(bw), 'h': int(bh)},
-                    'confidence': 0.5,
-                    'direction': 'left_profile',
-                    'angle': 60.0,
-                    'profile_confidence': 70.0,
-                    'keypoints': [],
-                    'soft_biometrics': {}
-                })
-            
-            # Detect right-looking profiles (flip image)
-            flipped = cv2.flip(gray, 1)
-            right_detections = self._haar_profile.detectMultiScale(
-                flipped, scaleFactor=1.1, minNeighbors=3, minSize=(30, 30)
-            )
-            for (x, y, bw, bh) in (right_detections if len(right_detections) > 0 else []):
-                # Mirror the x coordinate back
-                faces.append({
-                    'bbox': {'x': int(w - x - bw), 'y': int(y), 'w': int(bw), 'h': int(bh)},
-                    'confidence': 0.5,
-                    'direction': 'right_profile',
-                    'angle': 60.0,
-                    'profile_confidence': 70.0,
-                    'keypoints': [],
-                    'soft_biometrics': {}
-                })
-            
-            return faces
-        except Exception:
-            return []
+        """Removed in Phase 5: Deep Learning Face Detection upgrade."""
+        return []
     
     def detect_faces(self, image, profile_only=True):
         """
@@ -473,11 +420,6 @@ class SideFaceDetector:
         if len(faces_1) < 1 and self._low_conf_detector is not None:
             faces_2 = self._run_blazeface(image, self._low_conf_detector)
             all_faces.extend(faces_2)
-        
-        # Pass 3: Haar profile cascade (only if still no faces found)
-        if len(all_faces) < 1:
-            faces_3 = self._run_haar_profile(image)
-            all_faces.extend(faces_3)
         
         # Deduplicate with NMS
         all_faces = self._nms_faces(all_faces, iou_threshold=0.4)

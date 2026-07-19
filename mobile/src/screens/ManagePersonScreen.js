@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-  View, StyleSheet, ScrollView, Image, Alert, FlatList, TouchableOpacity,
+  View, StyleSheet, ScrollView, Image, FlatList, TouchableOpacity,
 } from 'react-native';
 import {
   Text, TextInput, Portal, Dialog, RadioButton, ActivityIndicator, Snackbar, IconButton
@@ -16,6 +16,7 @@ import {
   deletePerson,
   triggerRetrain
 } from '../services/api';
+import CustomDialog from '../components/CustomDialog';
 
 export default function ManagePersonScreen({ route, navigation }) {
   const { personName: routePersonName } = route.params;
@@ -36,6 +37,15 @@ export default function ManagePersonScreen({ route, navigation }) {
   const [snackVisible, setSnackVisible] = useState(false);
   const [snackMessage, setSnackMessage] = useState('');
   const [snackType, setSnackType] = useState('success');
+
+  const [dialogState, setDialogState] = useState({
+    visible: false,
+    title: '',
+    message: '',
+    type: 'alert',
+    onConfirm: () => {},
+    confirmText: 'OK',
+  });
 
   function showSnack(type, message) {
     setSnackType(type);
@@ -83,30 +93,27 @@ export default function ManagePersonScreen({ route, navigation }) {
   };
 
   const handleDeletePerson = () => {
-    Alert.alert(
-      'Delete Profile',
-      `Are you sure you want to delete ${originalName.replace(/_/g, ' ')} entirely? This removes all training photos.`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            setIsActionLoading(true);
-            try {
-              await deletePerson(originalName);
-              showSnack('success', 'Profile deleted successfully.');
-              navigation.goBack();
-            } catch (err) {
-              console.warn(err);
-              showSnack('error', err.message || 'Failed to delete profile.');
-            } finally {
-              setIsActionLoading(false);
-            }
-          }
+    setDialogState({
+      visible: true,
+      title: 'Delete Profile',
+      message: `Are you sure you want to delete ${originalName.replace(/_/g, ' ')} entirely? This removes all training photos.`,
+      type: 'confirm',
+      confirmText: 'Delete',
+      onConfirm: async () => {
+        setDialogState(prev => ({ ...prev, visible: false }));
+        setIsActionLoading(true);
+        try {
+          await deletePerson(originalName);
+          showSnack('success', 'Profile deleted successfully.');
+          navigation.goBack();
+        } catch (err) {
+          console.warn(err);
+          showSnack('error', err.message || 'Failed to delete person.');
+        } finally {
+          setIsActionLoading(false);
         }
-      ]
-    );
+      }
+    });
   };
 
   const handleRetrain = async () => {
@@ -119,9 +126,17 @@ export default function ManagePersonScreen({ route, navigation }) {
     setIsActionLoading(true);
     try {
       const res = await triggerRetrain(originalName, numEpochs);
-      Alert.alert('Fine-Tuning Started', res.message || 'Models are training in background.', [
-        { text: 'OK', onPress: () => navigation.navigate('Models') }
-      ]);
+      setDialogState({
+        visible: true,
+        title: 'Fine-Tuning Started',
+        message: res.message || 'Models are training in background.',
+        type: 'alert',
+        confirmText: 'OK',
+        onConfirm: () => {
+          setDialogState(prev => ({ ...prev, visible: false }));
+          navigation.navigate('Models');
+        }
+      });
     } catch (err) {
       console.warn(err);
       showSnack('error', err.message || 'Failed to trigger training.');
@@ -131,30 +146,27 @@ export default function ManagePersonScreen({ route, navigation }) {
   };
 
   const handleDeletePhoto = (photo) => {
-    Alert.alert(
-      'Delete Photo',
-      'Are you sure you want to delete this cropped dataset photo?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            setIsActionLoading(true);
-            try {
-              await deletePersonPhoto(originalName, photo.angle, photo.filename);
-              fetchPhotos();
-              showSnack('success', 'Photo deleted.');
-            } catch (err) {
-              console.warn(err);
-              showSnack('error', err.message || 'Failed to delete photo.');
-            } finally {
-              setIsActionLoading(false);
-            }
-          }
+    setDialogState({
+      visible: true,
+      title: 'Delete Photo',
+      message: 'Are you sure you want to delete this cropped dataset photo?',
+      type: 'confirm',
+      confirmText: 'Delete',
+      onConfirm: async () => {
+        setDialogState(prev => ({ ...prev, visible: false }));
+        setIsActionLoading(true);
+        try {
+          await deletePersonPhoto(originalName, photo.angle, photo.filename);
+          fetchPhotos();
+          showSnack('success', 'Photo deleted.');
+        } catch (err) {
+          console.warn(err);
+          showSnack('error', err.message || 'Failed to delete photo.');
+        } finally {
+          setIsActionLoading(false);
         }
-      ]
-    );
+      }
+    });
   };
 
   const handleOpenMoveDialog = (photo) => {
@@ -387,6 +399,17 @@ export default function ManagePersonScreen({ route, navigation }) {
           {snackMessage}
         </Text>
       </Snackbar>
+
+      <CustomDialog
+        visible={dialogState.visible}
+        onDismiss={() => setDialogState(prev => ({ ...prev, visible: false }))}
+        title={dialogState.title}
+        message={dialogState.message}
+        type={dialogState.type}
+        onConfirm={dialogState.onConfirm}
+        onCancel={() => setDialogState(prev => ({ ...prev, visible: false }))}
+        confirmText={dialogState.confirmText}
+      />
     </View>
   );
 }

@@ -1,10 +1,13 @@
-import React, { useState } from 'react'
-import { Link } from 'react-router-dom'
+import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { 
   HelpCircle, BookOpen, Monitor, Smartphone, Server,
-  ChevronDown, ChevronRight, AlertTriangle, CheckCircle, Info,
-  Camera, Upload, Brain, Zap, Settings
-} from 'lucide-react'
+  ChevronDown, ChevronRight, AlertTriangle, CheckCircle, 
+  Camera, Brain, Zap
+} from 'lucide-react';
+import { motion } from 'framer-motion';
+
+
 
 const FAQ_DATA = [
   {
@@ -39,27 +42,29 @@ const FAQ_DATA = [
     q: 'Is my data sent to any cloud?',
     a: 'No. Everything runs 100% locally on your computer. No data leaves your network. The mobile app sends images to your computer\'s local Flask server over WiFi.'
   },
-]
+];
 
 export default function SupportPage() {
   return (
-    <div className="animate-fade-in" style={{ paddingBottom: '3rem' }}>
-      <h1 className="page-title">Help & Support</h1>
-      <p className="page-subtitle">Learn how to use the platform, troubleshoot issues, and get the most out of face recognition.</p>
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ paddingBottom: 'var(--space-8)' }}>
+      <div style={{ marginBottom: 'var(--space-8)' }}>
+        <h1 style={{ margin: 0, fontSize: 'var(--text-2xl)' }}>Help & Support</h1>
+        <p style={{ margin: '4px 0 0 0', color: 'var(--text-muted)' }}>
+          Learn how to use the platform, troubleshoot issues, and get the most out of face recognition.
+        </p>
+      </div>
 
-      {/* ── QUICK START GUIDE ── */}
-      <section style={{ marginBottom: '3rem' }}>
-        <h2 style={{ fontSize: '1.4rem', fontWeight: '700', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <BookOpen size={22} style={{ color: 'var(--primary-light)' }} />
+      <section style={{ marginBottom: 'var(--space-8)' }}>
+        <h2 style={{ fontSize: 'var(--text-xl)', fontWeight: 700, marginBottom: 'var(--space-4)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <BookOpen size={22} color="var(--accent-violet)" />
           Quick Start Guide
         </h2>
-
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: 'var(--space-4)' }}>
           <GuideStep num={1} icon={<Camera size={20} />} title="Register a Person" link="/upload">
             Go to the <strong>Upload</strong> page. Enter the person's name and upload 3+ face photos from different angles.
           </GuideStep>
           <GuideStep num={2} icon={<Brain size={20} />} title="Train the Models" link="/training">
-            Navigate to <strong>Training</strong>. All 3 models will train automatically when you upload. Watch the progress in the terminal.
+            Navigate to <strong>Training</strong>. All models train automatically when you upload. Watch the progress in the terminal.
           </GuideStep>
           <GuideStep num={3} icon={<Zap size={20} />} title="Test Recognition" link="/test">
             Go to <strong>Test</strong>. Upload a photo or use your webcam. The Ensemble result shows the combined prediction.
@@ -70,16 +75,15 @@ export default function SupportPage() {
         </div>
       </section>
 
-      {/* ── TIPS FOR BEST ACCURACY ── */}
-      <section className="glass-panel" style={{ padding: '2rem', marginBottom: '3rem' }}>
-        <h2 style={{ fontSize: '1.2rem', fontWeight: '700', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <CheckCircle size={20} style={{ color: 'var(--success)' }} />
+      <div className="bg-zinc-900/40 border border-zinc-800 rounded-xl p-6 shadow-sm" style={{ marginBottom: 'var(--space-8)' }}>
+        <h2 style={{ fontSize: 'var(--text-lg)', fontWeight: 700, marginBottom: 'var(--space-4)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <CheckCircle size={20} color="var(--confirm-green)" />
           Tips for Best Accuracy
         </h2>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: 'var(--space-6)' }}>
           <div>
-            <h4 style={{ color: 'var(--success)', fontSize: '0.85rem', fontWeight: '600', marginBottom: '0.5rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>✅ Do</h4>
-            <ul style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', lineHeight: '1.8', listStyle: 'none', padding: 0 }}>
+            <h4 style={{ color: 'var(--confirm-green)', fontSize: 'var(--text-sm)', fontWeight: 600, marginBottom: 'var(--space-2)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>✅ Do</h4>
+            <ul style={{ color: 'var(--text-secondary)', fontSize: 'var(--text-sm)', lineHeight: 1.8, listStyle: 'none', padding: 0, margin: 0 }}>
               <li>• Upload at least 3 photos per person</li>
               <li>• Include frontal + left + right angles</li>
               <li>• Use well-lit photos with clear faces</li>
@@ -88,8 +92,8 @@ export default function SupportPage() {
             </ul>
           </div>
           <div>
-            <h4 style={{ color: 'var(--error)', fontSize: '0.85rem', fontWeight: '600', marginBottom: '0.5rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>❌ Avoid</h4>
-            <ul style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', lineHeight: '1.8', listStyle: 'none', padding: 0 }}>
+            <h4 style={{ color: 'var(--alert-crimson)', fontSize: 'var(--text-sm)', fontWeight: 600, marginBottom: 'var(--space-2)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>❌ Avoid</h4>
+            <ul style={{ color: 'var(--text-secondary)', fontSize: 'var(--text-sm)', lineHeight: 1.8, listStyle: 'none', padding: 0, margin: 0 }}>
               <li>• Blurry or motion-blurred photos</li>
               <li>• Photos with sunglasses or masks</li>
               <li>• Very dark or overexposed images</li>
@@ -98,66 +102,48 @@ export default function SupportPage() {
             </ul>
           </div>
         </div>
-      </section>
+      </div>
 
-      {/* ── SYSTEM ARCHITECTURE ── */}
-      <section style={{ marginBottom: '3rem' }}>
-        <h2 style={{ fontSize: '1.4rem', fontWeight: '700', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <Server size={22} style={{ color: 'var(--primary-light)' }} />
+      <section style={{ marginBottom: 'var(--space-8)' }}>
+        <h2 style={{ fontSize: 'var(--text-xl)', fontWeight: 700, marginBottom: 'var(--space-4)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <Server size={22} color="var(--accent-violet)" />
           System Architecture
         </h2>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 'var(--space-4)' }}>
           <ArchCard
             icon={<Server size={22} />}
             title="Backend (Flask API)"
-            items={[
-              'Python 3.13 + Flask on port 5000',
-              'Handles training, inference, model management',
-              'Runs PyTorch models + DeepFace embeddings',
-              'RESTful API consumed by web + mobile',
-            ]}
+            items={['Python 3.13 + Flask on port 5000', 'Handles training, inference, model management', 'Runs PyTorch models + DeepFace embeddings', 'RESTful API consumed by web + mobile']}
           />
           <ArchCard
             icon={<Monitor size={22} />}
             title="Web Dashboard (React)"
-            items={[
-              'Vite + React on port 5173',
-              'Upload faces, trigger training, test predictions',
-              'Webcam support for live inference',
-              'Responsive design for all screen sizes',
-            ]}
+            items={['Vite + React on port 5173', 'Upload faces, trigger training, test predictions', 'Webcam support for live inference', 'Responsive design for all screen sizes']}
           />
           <ArchCard
             icon={<Smartphone size={22} />}
             title="Mobile App (Expo)"
-            items={[
-              'React Native with Expo',
-              'Camera-based face capture + recognition',
-              'Connects to Flask server over WiFi',
-              'Works with Expo Go or standalone APK',
-            ]}
+            items={['React Native with Expo', 'Camera-based face capture + recognition', 'Connects to Flask server over WiFi', 'Works with Expo Go or standalone APK']}
           />
         </div>
       </section>
 
-      {/* ── FAQ ── */}
-      <section style={{ marginBottom: '2rem' }}>
-        <h2 style={{ fontSize: '1.4rem', fontWeight: '700', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <HelpCircle size={22} style={{ color: 'var(--primary-light)' }} />
+      <section style={{ marginBottom: 'var(--space-8)' }}>
+        <h2 style={{ fontSize: 'var(--text-xl)', fontWeight: 700, marginBottom: 'var(--space-4)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <HelpCircle size={22} color="var(--accent-cyan)" />
           Frequently Asked Questions
         </h2>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
           {FAQ_DATA.map((faq, i) => <FAQItem key={i} question={faq.q} answer={faq.a} />)}
         </div>
       </section>
 
-      {/* ── TROUBLESHOOTING ── */}
-      <section className="glass-panel" style={{ padding: '2rem' }}>
-        <h2 style={{ fontSize: '1.2rem', fontWeight: '700', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <AlertTriangle size={20} style={{ color: 'var(--warning)' }} />
+      <div className="bg-zinc-900/40 border border-zinc-800 rounded-xl p-6 shadow-sm" style={{ borderColor: 'rgba(217, 119, 6, 0.3)' }}>
+        <h2 style={{ fontSize: 'var(--text-lg)', fontWeight: 700, marginBottom: 'var(--space-4)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <AlertTriangle size={20} color="var(--alert-amber)" />
           Common Issues
         </h2>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
           <TroubleItem
             issue="Mobile app can't connect to server"
             fix="Ensure both devices are on the same WiFi. Check your PC's IP with 'ipconfig' (Windows) or 'ifconfig' (Mac). Enter it in the mobile app's Settings screen as http://YOUR_IP:5000"
@@ -175,93 +161,90 @@ export default function SupportPage() {
             fix="Ensure all Python dependencies are installed: pip install flask flask-cors torch torchvision opencv-python mediapipe deepface. Use Python 3.13."
           />
         </div>
-      </section>
-    </div>
-  )
+      </div>
+    </motion.div>
+  );
 }
 
 function GuideStep({ num, icon, title, link, children }) {
   return (
-    <Link to={link} style={{ textDecoration: 'none', color: 'inherit' }}>
-      <div className="glass-panel" style={{
-        padding: '1.5rem', cursor: 'pointer', transition: 'all 0.2s ease',
-        height: '100%',
-      }}
-        onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(37, 99, 235, 0.3)'; e.currentTarget.style.transform = 'translateY(-2px)' }}
-        onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.transform = 'translateY(0)' }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '0.75rem' }}>
-          <div style={{
-            width: '32px', height: '32px', borderRadius: 'var(--radius-sm)',
-            background: 'rgba(37, 99, 235, 0.1)', display: 'flex',
-            alignItems: 'center', justifyContent: 'center', color: 'var(--primary-light)',
-            fontSize: '0.8rem', fontWeight: '700',
-          }}>{num}</div>
-          <span style={{ fontWeight: '600', fontSize: '1rem' }}>{title}</span>
+    <Link to={link} style={{ textDecoration: 'none' }}>
+      <motion.div whileHover={{ y: -2, scale: 1.01 }} style={{ height: '100%', cursor: 'pointer' }}>
+        <div className="bg-zinc-900/40 border border-zinc-800 rounded-xl p-6 shadow-sm" style={{ height: '100%' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: 'var(--space-3)' }}>
+            <div style={{
+              width: '32px', height: '32px', borderRadius: 'var(--radius-sm)',
+              background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent-violet)',
+              fontSize: 'var(--text-sm)', fontWeight: 700, fontFamily: 'var(--font-mono)'
+            }}>{num}</div>
+            <span style={{ fontWeight: 600, fontSize: 'var(--text-base)', color: 'var(--text-primary)' }}>{title}</span>
+          </div>
+          <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: 'var(--text-sm)', lineHeight: 1.6 }}>{children}</p>
         </div>
-        <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', lineHeight: '1.6' }}>{children}</p>
-      </div>
+      </motion.div>
     </Link>
-  )
+  );
 }
 
 function ArchCard({ icon, title, items }) {
   return (
-    <div className="glass-panel" style={{ padding: '1.5rem' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '1rem', color: 'var(--primary-light)' }}>
+    <div className="bg-zinc-900/40 border border-zinc-800 rounded-xl p-6 shadow-sm">
+      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: 'var(--space-4)', color: 'var(--accent-violet)' }}>
         {icon}
-        <span style={{ fontWeight: '600', color: 'var(--text-primary)' }}>{title}</span>
+        <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{title}</span>
       </div>
-      <ul style={{ listStyle: 'none', padding: 0, display: 'flex', flexDirection: 'column', gap: '6px' }}>
+      <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '8px' }}>
         {items.map((item, i) => (
-          <li key={i} style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
-            <ChevronRight size={14} style={{ color: 'var(--text-tertiary)', flexShrink: 0, marginTop: '3px' }} />
+          <li key={i} style={{ color: 'var(--text-secondary)', fontSize: 'var(--text-sm)', display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
+            <ChevronRight size={14} style={{ color: 'var(--text-muted)', flexShrink: 0, marginTop: '2px' }} />
             {item}
           </li>
         ))}
       </ul>
     </div>
-  )
+  );
 }
 
 function FAQItem({ question, answer }) {
-  const [open, setOpen] = useState(false)
+  const [open, setOpen] = useState(false);
   return (
     <div style={{
-      border: '1px solid var(--border)', borderRadius: 'var(--radius-md)',
-      overflow: 'hidden', transition: 'border-color 0.2s',
-      borderColor: open ? 'rgba(37, 99, 235, 0.25)' : 'var(--border)',
+      border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-sm)',
+      overflow: 'hidden', transition: 'border-color var(--duration) var(--ease)',
+      borderColor: open ? 'var(--accent-violet)' : 'var(--border-subtle)',
+      background: 'var(--bg-surface)'
     }}>
       <button onClick={() => setOpen(!open)} style={{
         width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-        padding: '1rem 1.25rem', background: open ? 'rgba(37, 99, 235, 0.04)' : 'var(--bg-card)',
+        padding: 'var(--space-3) var(--space-4)', background: 'transparent',
         border: 'none', color: 'var(--text-primary)', cursor: 'pointer',
-        fontWeight: '500', fontSize: '0.95rem', fontFamily: 'inherit', textAlign: 'left',
-        transition: 'background 0.2s',
+        fontWeight: 500, fontSize: 'var(--text-base)', fontFamily: 'inherit', textAlign: 'left',
       }}>
         {question}
         <ChevronDown size={18} style={{
-          color: 'var(--text-tertiary)', transition: 'transform 0.2s',
+          color: 'var(--text-muted)', transition: 'transform 0.2s',
           transform: open ? 'rotate(180deg)' : 'rotate(0deg)', flexShrink: 0,
         }} />
       </button>
-      {open && (
-        <div style={{
-          padding: '0 1.25rem 1rem', color: 'var(--text-secondary)',
-          fontSize: '0.9rem', lineHeight: '1.7', background: 'rgba(37, 99, 235, 0.02)',
-        }}>
-          {answer}
-        </div>
-      )}
+      <AnimatePresence>
+        {open && (
+          <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} style={{ overflow: 'hidden' }}>
+            <div style={{ padding: '0 var(--space-4) var(--space-4)', color: 'var(--text-secondary)', fontSize: 'var(--text-sm)', lineHeight: 1.7 }}>
+              {answer}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
-  )
+  );
 }
 
 function TroubleItem({ issue, fix }) {
   return (
-    <div style={{ borderLeft: '3px solid var(--warning)', paddingLeft: '1rem' }}>
-      <div style={{ fontWeight: '600', fontSize: '0.9rem', marginBottom: '4px' }}>{issue}</div>
-      <div style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', lineHeight: '1.6' }}>{fix}</div>
+    <div style={{ borderLeft: '3px solid var(--alert-amber)', paddingLeft: 'var(--space-3)' }}>
+      <div style={{ fontWeight: 600, fontSize: 'var(--text-sm)', marginBottom: '4px', color: 'var(--text-primary)' }}>{issue}</div>
+      <div style={{ color: 'var(--text-secondary)', fontSize: 'var(--text-sm)', lineHeight: 1.6 }}>{fix}</div>
     </div>
-  )
+  );
 }

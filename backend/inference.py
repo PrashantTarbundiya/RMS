@@ -203,7 +203,7 @@ def apply_clahe(image):
 from model import get_embedding
 
 
-def find_match_knn(embedding, known_encodings, known_names, k=KNN_K, max_dist=MAX_DISTANCE, ratio=RATIO_TEST):
+def find_match_knn(embedding, known_encodings, known_names, k=KNN_K, max_dist=MAX_DISTANCE, ratio=RATIO_TEST, angle_label='frontal', custom_threshold=None):
     """
     KNN Majority Voting + Ratio Test + Binary Classification.
     
@@ -211,7 +211,7 @@ def find_match_knn(embedding, known_encodings, known_names, k=KNN_K, max_dist=MA
         tuple: (name, distance, confidence_level)
         confidence_level is one of:
         - 'confirmed'  : distance < get_confirm_threshold(), passed all gates
-          - 'rejected'   : failed one or more gates
+        - 'rejected'   : failed one or more gates
     
     For gate camera: only 'confirmed' results should be displayed.
     'rejected' = Unknown, no exceptions.
@@ -265,7 +265,12 @@ def find_match_knn(embedding, known_encodings, known_names, k=KNN_K, max_dist=MA
 
     # --- Gate 4: Binary classification ---
     # Only distances below the configured threshold are truly confirmed
-    confirm_threshold = get_confirm_threshold()
+    confirm_threshold = custom_threshold if custom_threshold is not None else get_confirm_threshold()
+    
+    # Relax threshold for side profiles (they inherently have fewer matching features)
+    if angle_label in ['left_profile', 'right_profile']:
+        confirm_threshold += 0.10  # e.g., 0.55 -> 0.65 (more lenient distance cutoff)
+        
     if winner_dist <= confirm_threshold:
         return winner, winner_dist, "confirmed"
     else:
@@ -294,6 +299,7 @@ def recognition_worker(known_encodings, known_names):
             for face_data in faces_to_process:
                 crop = face_data['crop']
                 bbox = face_data['bbox']
+                angle_label = face_data.get('angle_label', 'frontal')
 
                 name = "Unknown"
                 dist = 1.0
@@ -309,7 +315,7 @@ def recognition_worker(known_encodings, known_names):
                         )
 
                         if embedding is not None:
-                            name, dist, confidence_level = find_match_knn(embedding, known_encodings, known_names)
+                            name, dist, confidence_level = find_match_knn(embedding, known_encodings, known_names, angle_label=angle_label)
                     except Exception:
                         pass
 
@@ -384,7 +390,7 @@ def main():
     rec_thread.start()
 
     # Initialize detector (MediaPipe - Fast, runs in main thread)
-    detector = SideFaceDetector(min_detection_confidence=0.30)
+    detector = SideFaceDetector(min_detection_confidence=0.45)
 
     print("🎥 Starting optimized video stream...")
     cap = cv2.VideoCapture(0)
@@ -434,7 +440,7 @@ def main():
                     y2 = min(H, y + h + margin_y)
                     crop = frame[y1:y2, x1:x2].copy()
 
-                    faces_payload.append({'crop': crop, 'bbox': bbox})
+                    faces_payload.append({'crop': crop, 'bbox': bbox, 'angle_label': face.get('angle_label', 'frontal')})
 
                 if faces_payload:
                     recognizer_queue.put((frame.copy(), faces_payload, time.time()))

@@ -1,224 +1,193 @@
-import React, { useState, useEffect, useRef } from 'react'
-import { Link } from 'react-router-dom'
-import { Terminal, CheckCircle, Download } from 'lucide-react'
+import React, { useState, useEffect, useRef } from 'react';
+import { Link } from 'react-router-dom';
+import { Terminal, CheckCircle, Download, Activity } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
-import { API_BASE } from '../config'
+import { API_BASE } from '../config';
+
+
+
 
 export default function TrainingPage() {
-  const [logs, setLogs] = useState([])
-  const [isTraining, setIsTraining] = useState(false)
-  const logsEndRef = useRef(null)
-  const eventSourceRef = useRef(null)
+  const [logs, setLogs] = useState([]);
+  const [isTraining, setIsTraining] = useState(false);
+  const logsEndRef = useRef(null);
+  const eventSourceRef = useRef(null);
 
   const connectToStream = () => {
-    if (eventSourceRef.current) {
-      eventSourceRef.current.close()
-    }
-
-    setIsTraining(true)
-    const source = new EventSource(`${API_BASE}/train/status`)
-    eventSourceRef.current = source
+    if (eventSourceRef.current) eventSourceRef.current.close();
+    setIsTraining(true);
+    const source = new EventSource(`${API_BASE}/train/status`);
+    eventSourceRef.current = source;
 
     source.onmessage = (e) => {
       if (e.data === '[DONE]') {
-        setIsTraining(false)
-        source.close()
+        setIsTraining(false);
+        source.close();
       } else {
-        setLogs(prev => [...prev, e.data])
+        setLogs(prev => [...prev, e.data]);
       }
-    }
+    };
 
     source.onerror = () => {
-      source.close()
-      setIsTraining(false)
-    }
-  }
+      source.close();
+      setIsTraining(false);
+    };
+  };
 
   useEffect(() => {
-    // Automatically connect on mount to see if training is running
-    connectToStream()
-    return () => {
-      if (eventSourceRef.current) eventSourceRef.current.close()
-    }
-  }, [])
+    connectToStream();
+    return () => { if (eventSourceRef.current) eventSourceRef.current.close(); };
+  }, []);
 
   useEffect(() => {
-    logsEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [logs])
+    logsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [logs]);
 
-  // Parse log to extract epoch dynamically
   const extractProgress = () => {
-    let sotaPercent = 0
-    let dfPercent = 100 // DeepFace is always 100% since it completes synchronously on upload
-
-    let currentBlock = null
+    let sotaPercent = 0;
+    let dfPercent = 100;
+    let currentBlock = null;
 
     for (let i = 0; i < logs.length; i++) {
-        const line = logs[i]
+        const line = logs[i];
         if (line.includes('SOTA MobileNetV2: Fine-tuning') || line.includes('Starting background model refinement')) {
-            currentBlock = 'sota'
-            sotaPercent = 5
+            currentBlock = 'sota';
+            sotaPercent = 5;
         } else if (line.includes('Pipeline Completed') || line.includes('Saved updated model: sota_finetune') || line.includes('Saved updated model: best_mobile_sideface')) {
-            sotaPercent = 100
-            break
+            sotaPercent = 100;
+            break;
         }
-
         if (line.includes('Epoch [')) {
-            const match = line.match(/Epoch \[(\d+)\/(\d+)\]/)
+            const match = line.match(/Epoch \[(\d+)\/(\d+)\]/);
             if (match) {
-                const currentE = parseInt(match[1], 10)
-                const totalE = parseInt(match[2], 10)
-                const p = Math.floor((currentE / totalE) * 100)
-                if (currentBlock === 'sota') sotaPercent = p === 100 ? 99 : p 
+                const currentE = parseInt(match[1], 10);
+                const totalE = parseInt(match[2], 10);
+                const p = Math.floor((currentE / totalE) * 100);
+                if (currentBlock === 'sota') sotaPercent = p === 100 ? 99 : p;
             }
         }
     }
+    if (isTraining && sotaPercent === 0) sotaPercent = 1;
+    return { dfPercent, sotaPercent };
+  };
 
-    // If training stream hasn't output anything yet but isTraining is true, sota is pending/starting
-    if (isTraining && sotaPercent === 0) {
-      sotaPercent = 1;
-    }
-
-    return { dfPercent, sotaPercent }
-  }
-
-  const { dfPercent, sotaPercent } = extractProgress()
+  const { dfPercent, sotaPercent } = extractProgress();
 
   return (
-    <div className="animate-fade-in">
-      <h1 className="page-title">Model Refinement (Background Job)</h1>
-      <p className="page-subtitle">DeepFace embeddings are processed instantly. SOTA MobileNetV2 fine-tuning runs asynchronously in the background to prevent blocking.</p>
-
-      <div className="card-grid">
-        <ModelProgressCard 
-          title="DeepFace (Facenet512)" 
-          subtitle="Instant Embeddings" 
-          percent={dfPercent} 
-          isTraining={false}
-        />
-        <ModelProgressCard 
-          title="SOTA MobileNetV2" 
-          subtitle="Edge Optimized" 
-          percent={sotaPercent} 
-          isTraining={isTraining && sotaPercent < 100}
-        />
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ paddingBottom: 'var(--space-8)' }}>
+      <div style={{ marginBottom: 'var(--space-6)' }}>
+        <h1 style={{ margin: 0, fontSize: 'var(--text-2xl)' }}>Model Refinement</h1>
+        <p style={{ margin: '4px 0 0 0', color: 'var(--text-muted)' }}>
+          DeepFace embeddings are processed instantly. SOTA MobileNetV2 fine-tuning runs asynchronously in the background.
+        </p>
       </div>
 
-      {(!isTraining && sotaPercent === 100) && (
-        <div className="glass-panel" style={{ 
-          marginTop: '2rem', padding: '1.5rem', 
-          border: '1px solid rgba(34, 197, 94, 0.3)', 
-          background: 'var(--success-bg)',
-          display: 'flex', flexDirection: 'column',
-          borderRadius: 'var(--radius-lg)'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '1.5rem' }}>
-            <CheckCircle size={32} color="var(--success)" />
-            <div>
-              <h3 style={{ color: 'var(--success)', margin: 0, fontSize: '1.2rem' }}>Training Complete</h3>
-              <p style={{ color: 'var(--text-secondary)', margin: '4px 0 0 0' }}>All models have been successfully updated. Download your trained models below.</p>
-            </div>
-          </div>
-          
-          {/* Download Resources Grid */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            {/* Core Trained Models */}
-            <div style={{ padding: '1rem', background: 'var(--bg-card)', borderRadius: '8px', border: '1px solid var(--border)' }}>
-              <h4 style={{ margin: '0 0 0.8rem 0', fontWeight: '500', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Terminal size={14}/> Trained Model Files
-              </h4>
-              <div style={{ display: 'flex', gap: '0.8rem', flexWrap: 'wrap' }}>
-                <a href={`${API_BASE}/download-file?name=encodings.pickle`} className="btn btn-primary" style={{ padding: '0.5rem 1rem', fontSize: '0.9rem', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <Download size={14} /> encodings.pickle
-                </a>
-                <a href={`${API_BASE}/download-file?name=best_mobile_sideface.pth`} className="btn btn-primary" style={{ padding: '0.5rem 1rem', fontSize: '0.9rem', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <Download size={14} /> best_mobile_sideface.pth
-                </a>
-                <a href={`${API_BASE}/download-file?name=mobile_classes.txt`} className="btn btn-secondary" style={{ padding: '0.5rem 1rem', fontSize: '0.9rem', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <Download size={14} /> mobile_classes.txt
-                </a>
-              </div>
-              <p style={{ margin: '0.8rem 0 0 0', fontSize: '0.85rem', color: 'var(--text-tertiary)' }}>
-                These are the core trained model files used by the recognition system.
-              </p>
-            </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 'var(--space-4)', marginBottom: 'var(--space-6)' }}>
+        <ModelProgressCard title="DeepFace (Facenet512)" subtitle="Instant Embeddings" percent={dfPercent} isTraining={false} />
+        <ModelProgressCard title="SOTA MobileNetV2" subtitle="Edge Optimized" percent={sotaPercent} isTraining={isTraining && sotaPercent < 100} />
+      </div>
 
-            {/* ONNX Mobile Exports */}
-            <div style={{ padding: '1rem', background: 'var(--bg-card)', borderRadius: '8px', border: '1px solid var(--border)' }}>
-              <h4 style={{ margin: '0 0 0.8rem 0', fontWeight: '500', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Terminal size={14}/> Mobile Edge Exports (ONNX)
-              </h4>
-              <div style={{ display: 'flex', gap: '0.8rem', flexWrap: 'wrap' }}>
-                <a href={`${API_BASE}/download-file?name=sideface_mobile.onnx`} className="btn btn-secondary" style={{ padding: '0.4rem 0.8rem', fontSize: '0.9rem', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <Download size={14} /> sideface_mobile.onnx
-                </a>
-                <a href={`${API_BASE}/download-file?name=facenet512.onnx`} className="btn btn-secondary" style={{ padding: '0.4rem 0.8rem', fontSize: '0.9rem', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <Download size={14} /> facenet512.onnx
-                </a>
-                <a href={`${API_BASE}/download-file?name=class_centroids.json`} className="btn btn-secondary" style={{ padding: '0.4rem 0.8rem', fontSize: '0.9rem', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <Download size={14} /> class_centroids.json
-                </a>
-                <a href={`${API_BASE}/download-file?name=label_map.json`} className="btn btn-secondary" style={{ padding: '0.4rem 0.8rem', fontSize: '0.9rem', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <Download size={14} /> label_map.json
-                </a>
+      <AnimatePresence>
+        {(!isTraining && sotaPercent === 100) && (
+          <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} style={{ marginBottom: 'var(--space-6)' }}>
+            <div className="bg-zinc-900/40 border border-zinc-800 rounded-xl p-6 shadow-sm" style={{ background: 'var(--success-bg)', borderColor: 'rgba(48, 209, 88, 0.3)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', marginBottom: 'var(--space-4)' }}>
+                <CheckCircle size={24} color="var(--confirm-green)" />
+                <div>
+                  <h3 style={{ margin: 0, color: 'var(--confirm-green)', fontSize: 'var(--text-lg)' }}>Training Complete</h3>
+                  <p style={{ margin: '4px 0 0 0', color: 'var(--text-muted)' }}>All models have been successfully updated.</p>
+                </div>
               </div>
-              <p style={{ margin: '0.8rem 0 0 0', fontSize: '0.85rem', color: 'var(--text-tertiary)' }}>
-                ONNX exports for mobile deployment. Export via the <Link to="/models" style={{ color: 'var(--accent-teal)' }}>Models Page</Link> first.
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
+              
+              <div style={{ display: 'grid', gap: 'var(--space-4)' }}>
+                <div style={{ padding: 'var(--space-4)', background: 'var(--bg-surface)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-subtle)' }}>
+                  <h4 style={{ margin: '0 0 var(--space-3) 0', fontSize: 'var(--text-sm)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Terminal size={14} /> Core Models
+                  </h4>
+                  <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
+                    <button className="bg-zinc-100 text-zinc-900 hover:bg-zinc-200 px-4 py-2 rounded-md font-medium" as="a" href={`${API_BASE}/download-file?name=encodings.pickle`} variant="primary" size="sm">
+                      <Download size={14} style={{ marginRight: '6px' }} /> encodings.pickle
+                    </button>
+                    <button className="bg-zinc-100 text-zinc-900 hover:bg-zinc-200 px-4 py-2 rounded-md font-medium" as="a" href={`${API_BASE}/download-file?name=best_mobile_sideface.pth`} variant="primary" size="sm">
+                      <Download size={14} style={{ marginRight: '6px' }} /> best_mobile_sideface.pth
+                    </button>
+                  </div>
+                </div>
 
-      <div className="terminal mt-4">
-        <div className="terminal-header">
-          <div className="term-dot"></div>
-          <div className="term-dot"></div>
-          <div className="term-dot"></div>
-          <span style={{ marginLeft: '10px' }}><Terminal size={14} /> Training Log Output</span>
+                <div style={{ padding: 'var(--space-4)', background: 'var(--bg-surface)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-subtle)' }}>
+                  <h4 style={{ margin: '0 0 var(--space-3) 0', fontSize: 'var(--text-sm)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Activity size={14} /> Edge Exports (ONNX)
+                  </h4>
+                  <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
+                    <button className="bg-zinc-100 text-zinc-900 hover:bg-zinc-200 px-4 py-2 rounded-md font-medium" as="a" href={`${API_BASE}/download-file?name=sideface_mobile.onnx`} variant="secondary" size="sm">
+                      <Download size={14} style={{ marginRight: '6px' }} /> sideface_mobile.onnx
+                    </button>
+                    <button className="bg-zinc-100 text-zinc-900 hover:bg-zinc-200 px-4 py-2 rounded-md font-medium" as="a" href={`${API_BASE}/download-file?name=facenet512.onnx`} variant="secondary" size="sm">
+                      <Download size={14} style={{ marginRight: '6px' }} /> facenet512.onnx
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <div className="bg-zinc-900/40 border border-zinc-800 rounded-xl p-6 shadow-sm">
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', borderBottom: '1px solid var(--border-subtle)', paddingBottom: 'var(--space-3)', marginBottom: 'var(--space-3)' }}>
+          <Terminal size={16} />
+          <h3 style={{ margin: 0, fontSize: 'var(--text-base)', fontFamily: 'var(--font-mono)' }}>Terminal Output</h3>
         </div>
         
-        {logs.length === 0 ? (
-          <div style={{ opacity: 0.5 }}>Waiting for training to start...</div>
-        ) : (
-          logs.map((log, i) => (
-            <div key={i} className="terminal-line">{log}</div>
-          ))
-        )}
-        <div ref={logsEndRef} />
+        <div style={{ 
+          background: '#0a0a0a', borderRadius: 'var(--radius-sm)', padding: 'var(--space-4)', 
+          fontFamily: 'var(--font-mono)', fontSize: '13px', color: '#a3a3a3', height: '400px', overflowY: 'auto' 
+        }}>
+          {logs.length === 0 ? (
+            <div style={{ opacity: 0.5 }}>Waiting for training telemetry...</div>
+          ) : (
+            logs.map((log, i) => (
+              <div key={i} style={{ padding: '2px 0', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                <span style={{ color: '#666', marginRight: '10px' }}>{String(i + 1).padStart(4, '0')}</span>
+                {log}
+              </div>
+            ))
+          )}
+          <div ref={logsEndRef} />
+        </div>
       </div>
-    </div>
-  )
+    </motion.div>
+  );
 }
 
 function ModelProgressCard({ title, subtitle, percent, isTraining }) {
-  let statusClass = 'status-ready'
-  let statusText = 'Complete'
-  
-  if (percent === 0) {
-    statusClass = 'status-missing'
-    statusText = 'Pending'
-  } else if (isTraining || percent < 100) {
-    statusClass = 'status-training'
-    statusText = 'Training...'
-  }
+  let status = percent === 0 ? 'default' : (isTraining || percent < 100) ? 'progress' : 'success';
+  let statusText = percent === 0 ? 'Pending' : (isTraining || percent < 100) ? 'Training' : 'Complete';
 
   return (
-    <div className="glass-panel model-card">
-      <div className="model-header">
+    <div className="bg-zinc-900/40 border border-zinc-800 rounded-xl p-6 shadow-sm" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 'var(--space-4)' }}>
         <div>
-          <div className="model-title">{title}</div>
-          <div className="model-subtitle">{subtitle}</div>
+          <h3 style={{ margin: 0, fontSize: 'var(--text-lg)' }}>{title}</h3>
+          <p style={{ margin: '2px 0 0 0', color: 'var(--text-muted)', fontSize: 'var(--text-sm)' }}>{subtitle}</p>
         </div>
-        <div className={`status-badge ${statusClass}`}>
-          <div className="status-dot"></div>
-          {statusText}
-        </div>
+        <span className="bg-zinc-800 text-zinc-300 px-2 py-1 rounded-md text-xs" status={status}>{statusText}</span>
       </div>
       
-      <div className="progress-container">
-        <div className="progress-bar" style={{ width: `${percent}%` }}></div>
+      <div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 'var(--space-2)', fontSize: 'var(--text-sm)' }}>
+          <span style={{ fontFamily: 'var(--font-mono)' }}>{percent}%</span>
+        </div>
+        <div style={{ height: '6px', background: 'var(--bg-input)', borderRadius: '3px', overflow: 'hidden' }}>
+          <motion.div 
+            initial={{ width: 0 }}
+            animate={{ width: `${percent}%` }}
+            transition={{ type: 'tween', duration: 0.5 }}
+            style={{ height: '100%', background: status === 'success' ? 'var(--confirm-green)' : 'var(--accent-violet)' }}
+          />
+        </div>
       </div>
     </div>
-  )
+  );
 }

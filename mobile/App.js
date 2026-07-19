@@ -18,6 +18,8 @@ import ManagePersonScreen from './src/screens/ManagePersonScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
 import SupportScreen from './src/screens/SupportScreen';
 import CameraCaptureScreen from './src/screens/CameraCaptureScreen';
+import LoginScreen from './src/screens/LoginScreen';
+import { AuthProvider, useAuth } from './src/context/AuthContext';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -164,21 +166,48 @@ function MainTabs() {
   );
 }
 
-export default function App() {
+function AppContent() {
+  const { isAuthenticated, isMultiTenant, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <StatusBar style="dark" />
+      </View>
+    );
+  }
+
+  // Determine if we need to show the login screen
+  const requireLogin = isMultiTenant === true && !isAuthenticated;
+
   return (
-    <SafeAreaProvider>
-      <PaperProvider theme={paperTheme}>
-        <NavigationContainer theme={navigationTheme}>
-          <StatusBar style="dark" />
-          <Stack.Navigator screenOptions={{ headerShown: false }}>
+    <NavigationContainer theme={navigationTheme}>
+      <StatusBar style="dark" />
+      <Stack.Navigator screenOptions={{ headerShown: false }}>
+        {requireLogin ? (
+          <Stack.Screen name="Login" component={LoginScreen} />
+        ) : (
+          <>
             <Stack.Screen name="Root" component={MainTabs} />
             <Stack.Screen 
               name="CameraCapture" 
               component={CameraCaptureScreen} 
               options={{ presentation: 'fullScreenModal' }}
             />
-          </Stack.Navigator>
-        </NavigationContainer>
+          </>
+        )}
+      </Stack.Navigator>
+    </NavigationContainer>
+  );
+}
+
+export default function App() {
+  return (
+    <SafeAreaProvider>
+      <PaperProvider theme={paperTheme}>
+        <AuthProvider>
+          <AppContent />
+        </AuthProvider>
       </PaperProvider>
     </SafeAreaProvider>
   );

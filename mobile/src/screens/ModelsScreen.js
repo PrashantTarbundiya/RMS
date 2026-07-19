@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import {
-  View, StyleSheet, ScrollView, Alert, TouchableOpacity,
+  View, StyleSheet, ScrollView, TouchableOpacity,
 } from 'react-native';
 import { Text, ActivityIndicator, IconButton, Snackbar } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { COLORS, SPACING, FONT_SIZES, BORDER_RADIUS, APPLE_GLASS_STYLE } from '../theme';
 import { getPersons, exportOnnx, resetModels, downloadModelFile, pingServer } from '../services/api';
+import CustomDialog from '../components/CustomDialog';
 
 export default function ModelsScreen({ navigation }) {
   const [persons, setPersons] = useState([]);
@@ -15,6 +16,7 @@ export default function ModelsScreen({ navigation }) {
   const [serverOnline, setServerOnline] = useState(null);
   const [status, setStatus] = useState(null);
   const [snackVisible, setSnackVisible] = useState(false);
+  const [resetDialogVisible, setResetDialogVisible] = useState(false);
 
   useEffect(() => {
     refresh();
@@ -71,27 +73,19 @@ export default function ModelsScreen({ navigation }) {
   }
 
   function handleReset() {
-    Alert.alert(
-      'Reset All Models',
-      'This will permanently delete all trained model weights and datasets. This cannot be undone.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete Everything',
-          style: 'destructive',
-          onPress: async () => {
-            showStatus('info', 'Deleting all models...');
-            try {
-              const result = await resetModels();
-              showStatus('success', result.message);
-              setPersons([]);
-            } catch (err) {
-              showStatus('error', err.message);
-            }
-          },
-        },
-      ]
-    );
+    setResetDialogVisible(true);
+  }
+
+  async function confirmReset() {
+    setResetDialogVisible(false);
+    showStatus('info', 'Deleting all models...');
+    try {
+      const result = await resetModels();
+      showStatus('success', result.message);
+      setPersons([]);
+    } catch (err) {
+      showStatus('error', err.message);
+    }
   }
 
   return (
@@ -244,6 +238,17 @@ export default function ModelsScreen({ navigation }) {
           {status?.message}
         </Text>
       </Snackbar>
+
+      <CustomDialog
+        visible={resetDialogVisible}
+        onDismiss={() => setResetDialogVisible(false)}
+        title="Reset All Models"
+        message="This will permanently delete all trained model weights and datasets. This cannot be undone."
+        onConfirm={confirmReset}
+        onCancel={() => setResetDialogVisible(false)}
+        type="confirm"
+        confirmText="Delete Everything"
+      />
     </View>
   );
 }

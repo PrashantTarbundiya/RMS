@@ -1,437 +1,353 @@
-import React, { useState, useRef, useCallback, useEffect } from 'react'
-import axios from 'axios'
-import { Camera, Image as ImageIcon, Video, RefreshCw, Maximize, Play, X, AlertCircle, ThumbsUp, ThumbsDown, Check } from 'lucide-react'
+import React, { useState, useRef, useCallback, useEffect } from 'react';
+import { useAuth } from '../context/AuthContext';
+import { Camera, Image as ImageIcon, Video, Maximize, Play, X, AlertCircle, ThumbsUp, ThumbsDown, Check, Loader2 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
-import { API_BASE } from '../config'
+import { API_BASE } from '../config';
+
+
+
+
+import Modal from '../components/Modal';
 
 export default function TestPage() {
-  const [mode, setMode] = useState('upload') // 'upload' or 'webcam'
-  const [file, setFile] = useState(null)
-  const [previewSize, setPreviewSize] = useState({ width: 0, height: 0 })
-  const [results, setResults] = useState(null)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
-  const [webcamError, setWebcamError] = useState('')
-  const [webcamReady, setWebcamReady] = useState(false)
-  const [isDragActive, setIsDragActive] = useState(false)
-  const [includeDeepFace, setIncludeDeepFace] = useState(false)
-  const [feedbackState, setFeedbackState] = useState({}) // track feedback status per prediction_id
-  const [personsList, setPersonsList] = useState([])
-  const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false)
-  const [feedbackContext, setFeedbackContext] = useState(null)
+  const { apiClient } = useAuth();
+  const [mode, setMode] = useState('upload'); // 'upload' or 'webcam'
+  const [file, setFile] = useState(null);
+  const [previewSize, setPreviewSize] = useState({ width: 0, height: 0 });
+  const [results, setResults] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [webcamError, setWebcamError] = useState('');
+  const [webcamReady, setWebcamReady] = useState(false);
+  const [isDragActive, setIsDragActive] = useState(false);
+  const [includeDeepFace, setIncludeDeepFace] = useState(false);
+  const [feedbackState, setFeedbackState] = useState({}); // track feedback status per prediction_id
+  const [personsList, setPersonsList] = useState([]);
+  const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
+  const [feedbackContext, setFeedbackContext] = useState(null);
   
-  const webcamRef = useRef(null)
-  const imgRef = useRef(null)
-  const videoRef = useRef(null)
+  const webcamRef = useRef(null);
+  const imgRef = useRef(null);
+  const videoRef = useRef(null);
 
   // Global Clipboard Paste Support
   useEffect(() => {
     const handleGlobalPaste = (e) => {
-      if (mode !== 'upload') return
-      const items = e.clipboardData?.items
-      if (!items) return
+      if (mode !== 'upload') return;
+      const items = e.clipboardData?.items;
+      if (!items) return;
       for (let i = 0; i < items.length; i++) {
         if (items[i].type.indexOf('image') !== -1) {
-          const pastedFile = items[i].getAsFile()
+          const pastedFile = items[i].getAsFile();
           if (pastedFile) {
-            setFile(pastedFile)
-            setResults(null)
-            setError('')
-            e.preventDefault()
-            break
+            setFile(pastedFile);
+            setResults(null);
+            setError('');
+            e.preventDefault();
+            break;
           }
         }
       }
-    }
-    window.addEventListener('paste', handleGlobalPaste)
-    return () => window.removeEventListener('paste', handleGlobalPaste)
-  }, [mode])
+    };
+    window.addEventListener('paste', handleGlobalPaste);
+    return () => window.removeEventListener('paste', handleGlobalPaste);
+  }, [mode]);
 
   // Fetch persons for the feedback dropdown
   useEffect(() => {
     const fetchPersons = async () => {
       try {
-        const res = await axios.get(`${API_BASE}/persons`)
+        const res = await apiClient.get(`${API_BASE}/persons`);
         if (res.data && res.data.persons) {
-          setPersonsList(res.data.persons)
+          setPersonsList(res.data.persons);
         }
       } catch (err) {
-        console.error('Failed to fetch persons list', err)
+        console.error('Failed to fetch persons list', err);
       }
-    }
-    fetchPersons()
-  }, [])
+    };
+    fetchPersons();
+  }, []);
 
   const handleFileChange = (e) => {
     if (e.target.files && e.target.files[0]) {
-      const selectedFile = e.target.files[0]
-      
-      // Validate file type
+      const selectedFile = e.target.files[0];
       if (!selectedFile.type.startsWith('image/')) {
-        setError('Please select a valid image file (JPEG, PNG, WebP).')
-        return
+        setError('Please select a valid image file (JPEG, PNG, WebP).');
+        return;
       }
-      
-      // Validate file size (max 10MB)
       if (selectedFile.size > 10 * 1024 * 1024) {
-        setError('Image file is too large. Maximum size is 10MB.')
-        return
+        setError('Image file is too large. Maximum size is 10MB.');
+        return;
       }
-
-      setFile(selectedFile)
-      setResults(null)
-      setError('')
+      setFile(selectedFile);
+      setResults(null);
+      setError('');
     }
-  }
+  };
 
-  // Use native getUserMedia instead of react-webcam for better compatibility
   const startWebcam = useCallback(async () => {
-    setWebcamError('')
-    setWebcamReady(false)
+    setWebcamError('');
+    setWebcamReady(false);
     
     try {
-      // Check if we're on HTTPS or localhost (required for getUserMedia)
       const isSecure = window.location.protocol === 'https:' || 
                        window.location.hostname === 'localhost' || 
-                       window.location.hostname === '127.0.0.1'
+                       window.location.hostname === '127.0.0.1';
       
       if (!isSecure) {
-        setWebcamError(
-          `Webcam requires HTTPS or localhost. You are accessing from "${window.location.hostname}". ` +
-          'Open the app at http://localhost:5173 instead, or use the Image upload mode.'
-        )
-        return
+        setWebcamError('Webcam requires HTTPS or localhost.');
+        return;
       }
 
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        setWebcamError('Your browser does not support webcam access. Please use Image upload mode.')
-        return
+        setWebcamError('Your browser does not support webcam access.');
+        return;
       }
 
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } }
-      })
+      });
       
       if (videoRef.current) {
-        videoRef.current.srcObject = stream
-        videoRef.current.play()
-        setWebcamReady(true)
+        videoRef.current.srcObject = stream;
+        videoRef.current.play();
+        setWebcamReady(true);
       }
     } catch (err) {
-      console.error('Webcam error:', err)
-      if (err.name === 'NotAllowedError') {
-        setWebcamError('Camera permission denied. Please allow camera access in your browser settings and refresh.')
-      } else if (err.name === 'NotFoundError') {
-        setWebcamError('No camera device found. Make sure your webcam is connected.')
-      } else if (err.name === 'NotReadableError') {
-        setWebcamError('Camera is in use by another application. Close other apps using the camera and try again.')
-      } else {
-        setWebcamError(`Camera error: ${err.message}. Try using Image upload mode instead.`)
-      }
+      console.error('Webcam error:', err);
+      if (err.name === 'NotAllowedError') setWebcamError('Camera permission denied.');
+      else if (err.name === 'NotFoundError') setWebcamError('No camera device found.');
+      else setWebcamError(`Camera error: ${err.message}`);
     }
-  }, [])
+  }, []);
 
   const stopWebcam = useCallback(() => {
     if (videoRef.current && videoRef.current.srcObject) {
-      const tracks = videoRef.current.srcObject.getTracks()
-      tracks.forEach(track => track.stop())
-      videoRef.current.srcObject = null
+      const tracks = videoRef.current.srcObject.getTracks();
+      tracks.forEach(track => track.stop());
+      videoRef.current.srcObject = null;
     }
-    setWebcamReady(false)
-  }, [])
+    setWebcamReady(false);
+  }, []);
 
   const captureWebcam = useCallback(() => {
-    if (!videoRef.current || !webcamReady) return
-
+    if (!videoRef.current || !webcamReady) return;
     try {
-      const canvas = document.createElement('canvas')
-      canvas.width = videoRef.current.videoWidth
-      canvas.height = videoRef.current.videoHeight
-      const ctx = canvas.getContext('2d')
-      ctx.drawImage(videoRef.current, 0, 0)
+      const canvas = document.createElement('canvas');
+      canvas.width = videoRef.current.videoWidth;
+      canvas.height = videoRef.current.videoHeight;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(videoRef.current, 0, 0);
       
       canvas.toBlob((blob) => {
         if (blob) {
-          const capturedFile = new File([blob], 'webcam_capture.jpg', { type: 'image/jpeg' })
-          setFile(capturedFile)
-          setMode('upload')
-          setResults(null)
-          setError('')
-          stopWebcam()
+          const capturedFile = new File([blob], 'webcam_capture.jpg', { type: 'image/jpeg' });
+          setFile(capturedFile);
+          setMode('upload');
+          setResults(null);
+          setError('');
+          stopWebcam();
         }
-      }, 'image/jpeg', 0.85)
+      }, 'image/jpeg', 0.85);
     } catch (err) {
-      setError('Failed to capture photo: ' + err.message)
+      setError('Failed to capture photo: ' + err.message);
     }
-  }, [webcamReady, stopWebcam])
+  }, [webcamReady, stopWebcam]);
 
-  // Clean up webcam when switching modes
   const switchToUpload = useCallback(() => {
-    stopWebcam()
-    setMode('upload')
-    setWebcamError('')
-  }, [stopWebcam])
+    stopWebcam();
+    setMode('upload');
+    setWebcamError('');
+  }, [stopWebcam]);
 
   const switchToWebcam = useCallback(() => {
-    setMode('webcam')
-    setFile(null)
-    setResults(null)
-    setWebcamError('')
-    // Start webcam after a tick so the video element is rendered
-    setTimeout(() => startWebcam(), 100)
-  }, [startWebcam])
+    setMode('webcam');
+    setFile(null);
+    setResults(null);
+    setWebcamError('');
+    setTimeout(() => startWebcam(), 100);
+  }, [startWebcam]);
 
   const runPrediction = async () => {
-    if (!file) {
-      setError('Please provide an image first.')
-      return
-    }
-
-    setLoading(true)
-    setError('')
-    setResults(null)
-
-    const formData = new FormData()
-    formData.append('image', file)
+    if (!file) { setError('Please provide an image first.'); return; }
+    setLoading(true); setError(''); setResults(null);
+    const formData = new FormData();
+    formData.append('image', file);
 
     try {
-      const res = await axios.post(`${API_BASE}/predict`, formData, {
+      const res = await apiClient.post(`${API_BASE}/predict`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
-        timeout: 30000, // 30 second timeout
-      })
-      setResults(res.data)
-      
-      // Update image dimensions for bounding box calculations
+        timeout: 30000,
+      });
+      setResults(res.data);
       if (imgRef.current) {
         setPreviewSize({
            width: imgRef.current.clientWidth,
            height: imgRef.current.clientHeight,
            naturalWidth: imgRef.current.naturalWidth,
            naturalHeight: imgRef.current.naturalHeight
-        })
+        });
       }
-      
     } catch (err) {
-      if (err.code === 'ECONNABORTED') {
-        setError('Request timed out. The server may be overloaded. Try again.')
-      } else if (!err.response) {
-        setError('Cannot connect to the server. Make sure Flask is running on port 5000.')
-      } else {
-        setError(err.response?.data?.error || 'Failed to run prediction')
-      }
+      setError(err.response?.data?.error || 'Failed to run prediction');
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const submitFeedback = async (predictionId, isCorrect, predictedName) => {
     if (!isCorrect) {
-      setFeedbackContext({ predictionId, isCorrect, predictedName })
-      setIsFeedbackModalOpen(true)
-      return
+      setFeedbackContext({ predictionId, isCorrect, predictedName });
+      setIsFeedbackModalOpen(true);
+      return;
     }
-    
     try {
-      await axios.post(`${API_BASE}/predict/feedback`, {
-        prediction_id: predictionId,
-        is_correct: isCorrect,
-        correct_name: ''
-      })
-      setFeedbackState(prev => ({ ...prev, [predictionId]: 'success' }))
+      await apiClient.post(`${API_BASE}/predict/feedback`, { prediction_id: predictionId, is_correct: isCorrect, correct_name: '' });
+      setFeedbackState(prev => ({ ...prev, [predictionId]: 'success' }));
     } catch (err) {
-      console.error(err)
-      alert("Failed to submit feedback")
+      setFeedbackState(prev => ({ ...prev, [predictionId]: 'error' }));
     }
-  }
+  };
 
   const confirmFeedback = async (correctName) => {
-    if (!feedbackContext) return
-    setIsFeedbackModalOpen(false)
-    
+    if (!feedbackContext) return;
+    setIsFeedbackModalOpen(false);
     try {
-      await axios.post(`${API_BASE}/predict/feedback`, {
-        prediction_id: feedbackContext.predictionId,
-        is_correct: feedbackContext.isCorrect,
-        correct_name: correctName
-      })
-      setFeedbackState(prev => ({ ...prev, [feedbackContext.predictionId]: 'success' }))
+      await apiClient.post(`${API_BASE}/predict/feedback`, { prediction_id: feedbackContext.predictionId, is_correct: feedbackContext.isCorrect, correct_name: correctName });
+      setFeedbackState(prev => ({ ...prev, [feedbackContext.predictionId]: 'success' }));
     } catch (err) {
-      console.error(err)
-      alert("Failed to submit feedback")
+      setFeedbackState(prev => ({ ...prev, [feedbackContext.predictionId]: 'error' }));
     }
-    setFeedbackContext(null)
-  }
+    setFeedbackContext(null);
+  };
 
-  // Modal Component for selecting a person
-  const FeedbackModal = () => {
-    const [selectedName, setSelectedName] = useState('')
-    
-    if (!isFeedbackModalOpen) return null
-
+  const FeedbackModalContent = () => {
+    const [selectedName, setSelectedName] = useState('');
     return (
-      <div style={{
-        position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
-        backgroundColor: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000
-      }}>
-        <div className="glass-panel" style={{ width: '90%', maxWidth: '400px', padding: '2rem' }}>
-          <h2 style={{ fontSize: '1.25rem', marginTop: 0, marginBottom: '1rem' }}>Correct the Prediction</h2>
-          <p style={{ color: 'var(--text-secondary)', marginBottom: '1.5rem', fontSize: '0.95rem' }}>
-            Who is this actually? Select from existing persons or mark as a false detection.
-          </p>
-          
-          <select 
-            value={selectedName}
-            onChange={(e) => setSelectedName(e.target.value)}
-            style={{ 
-              width: '100%', padding: '0.75rem', borderRadius: '8px', 
-              background: 'rgba(255,255,255,0.05)', color: 'white', 
-              border: '1px solid rgba(255,255,255,0.1)', marginBottom: '1.5rem',
-              outline: 'none', fontSize: '1rem'
-            }}
-          >
-            <option value="" disabled>Select a person...</option>
-            <option value="FALSE_DETECTION" style={{ color: 'var(--error)' }}>Not a Person (False Detection)</option>
-            {personsList.map(p => (
-              <option key={p} value={p} style={{ color: 'black' }}>{p}</option>
-            ))}
-          </select>
-
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem' }}>
-            <button 
-              onClick={() => { setIsFeedbackModalOpen(false); setFeedbackContext(null); }}
-              style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer' }}
-            >
-              Cancel
-            </button>
-            <button 
-              onClick={() => confirmFeedback(selectedName)}
-              disabled={!selectedName}
-              className="btn btn-primary"
-            >
-              Submit Feedback
-            </button>
-          </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+        <p style={{ color: 'var(--text-muted)' }}>Who is this actually? Select from existing persons or mark as a false detection.</p>
+        <select 
+          value={selectedName}
+          onChange={(e) => setSelectedName(e.target.value)}
+          style={{ 
+            width: '100%', padding: '0.75rem', borderRadius: 'var(--radius-sm)', 
+            background: 'var(--bg-input)', color: 'var(--text-primary)', 
+            border: '1px solid var(--border-subtle)', outline: 'none'
+          }}
+        >
+          <option value="" disabled>Select a person...</option>
+          <option value="FALSE_DETECTION" style={{ color: 'var(--alert-crimson)' }}>Not a Person (False Detection)</option>
+          {personsList.map(p => (
+            <option key={p} value={p}>{p}</option>
+          ))}
+        </select>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 'var(--space-2)' }}>
+          <button className="bg-zinc-100 text-zinc-900 hover:bg-zinc-200 px-4 py-2 rounded-md font-medium" variant="ghost" onClick={() => { setIsFeedbackModalOpen(false); setFeedbackContext(null); }}>Cancel</button>
+          <button className="bg-zinc-100 text-zinc-900 hover:bg-zinc-200 px-4 py-2 rounded-md font-medium" variant="primary" onClick={() => confirmFeedback(selectedName)} disabled={!selectedName}>Submit Feedback</button>
         </div>
       </div>
-    )
-  }
+    );
+  };
 
   return (
-    <div className="page-container animate-fade-in">
-      <FeedbackModal />
-      <div className="page-header">
-        <h1 className="page-title">Live Inference Test</h1>
-        <p className="page-subtitle">Test out the 3 trained models simultaneously using an uploaded photo or your webcam.</p>
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ paddingBottom: 'var(--space-8)' }}>
+      
+      <Modal 
+        isOpen={isFeedbackModalOpen} 
+        onClose={() => { setIsFeedbackModalOpen(false); setFeedbackContext(null); }}
+        title="Correct the Prediction"
+      >
+        <FeedbackModalContent />
+      </Modal>
+
+      <div style={{ marginBottom: 'var(--space-6)' }}>
+        <h1 style={{ margin: 0, fontSize: 'var(--text-2xl)' }}>Live Inference Console</h1>
+        <p style={{ margin: '4px 0 0 0', color: 'var(--text-muted)' }}>Test models simultaneously using upload or webcam.</p>
       </div>
 
       {error && (
-        <div style={{ padding: '0.85rem 1rem', background: 'var(--error-bg)', border: '1px solid rgba(239,68,68,0.3)', color: 'var(--error)', borderRadius: 'var(--radius-md)', marginBottom: '1.5rem', display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '0.9rem' }}>
-          <AlertCircle size={18} style={{ flexShrink: 0, marginTop: '2px' }} />
-          <span>{error}</span>
+        <div className="bg-zinc-900/40 border border-zinc-800 rounded-xl p-6 shadow-sm" style={{ padding: 'var(--space-4)', border: '1px solid var(--alert-crimson)', background: 'rgba(248, 113, 113, 0.05)', marginBottom: 'var(--space-6)', display: 'flex', gap: 'var(--space-2)' }}>
+          <AlertCircle size={18} color="var(--alert-crimson)" style={{ marginTop: '2px' }} />
+          <span style={{ color: 'var(--text-primary)' }}>{error}</span>
         </div>
       )}
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem', marginTop: '1rem' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-6)', minHeight: '500px' }}>
         
-        {/* Input Section */}
-        <div className="glass-panel" style={{ display: 'flex', flexDirection: 'column', padding: '1.5rem' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-             <h2 style={{ fontSize: '1.25rem', margin: 0, fontWeight: '600' }}>Input Source</h2>
+        {/* Input Block */}
+        <div className="bg-zinc-900/40 border border-zinc-800 rounded-xl p-6 shadow-sm" style={{ display: 'flex', flexDirection: 'column' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-4)' }}>
+             <h2 style={{ fontSize: 'var(--text-base)', margin: 0 }}>Target Image</h2>
              
-             {/* Segmented Control */}
-             <div style={{ display: 'flex', gap: '4px', background: 'rgba(0,0,0,0.3)', padding: '4px', borderRadius: '12px' }}>
+             <div style={{ display: 'flex', gap: '4px', background: 'var(--bg-elevated)', padding: '4px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-subtle)' }}>
                 <button 
                   onClick={switchToUpload}
                   style={{ 
                     display: 'flex', alignItems: 'center', gap: '6px',
-                    padding: '0.5rem 1rem', fontSize: '0.9rem', fontWeight: '500',
-                    borderRadius: '8px', border: 'none', cursor: 'pointer', transition: 'all 0.2s',
-                    background: mode === 'upload' ? 'var(--accent-cyan)' : 'transparent',
-                    color: mode === 'upload' ? '#000' : 'var(--text-secondary)'
+                    padding: '4px 12px', fontSize: 'var(--text-sm)',
+                    borderRadius: 'var(--radius-xs)', border: 'none', cursor: 'pointer', transition: 'all var(--duration) var(--ease)',
+                    background: mode === 'upload' ? 'var(--text-primary)' : 'transparent',
+                    color: mode === 'upload' ? 'var(--bg-base)' : 'var(--text-muted)'
                   }}
                 >
-                  <ImageIcon size={16} /> Image
+                  <ImageIcon size={14} /> Upload
                 </button>
                 <button 
                   onClick={switchToWebcam}
                   style={{ 
                     display: 'flex', alignItems: 'center', gap: '6px',
-                    padding: '0.5rem 1rem', fontSize: '0.9rem', fontWeight: '500',
-                    borderRadius: '8px', border: 'none', cursor: 'pointer', transition: 'all 0.2s',
-                    background: mode === 'webcam' ? 'var(--accent-cyan)' : 'transparent',
-                    color: mode === 'webcam' ? '#000' : 'var(--text-secondary)'
+                    padding: '4px 12px', fontSize: 'var(--text-sm)',
+                    borderRadius: 'var(--radius-xs)', border: 'none', cursor: 'pointer', transition: 'all var(--duration) var(--ease)',
+                    background: mode === 'webcam' ? 'var(--text-primary)' : 'transparent',
+                    color: mode === 'webcam' ? 'var(--bg-base)' : 'var(--text-muted)'
                   }}
                 >
-                  <Video size={16} /> Webcam
+                  <Video size={14} /> Webcam
                 </button>
              </div>
           </div>
 
           <div 
-            onDragOver={(e) => { e.preventDefault(); e.stopPropagation() }}
-            onDragEnter={(e) => { e.preventDefault(); e.stopPropagation(); if (mode === 'upload') setIsDragActive(true) }}
-            onDragLeave={(e) => { e.preventDefault(); e.stopPropagation(); setIsDragActive(false) }}
+            onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
+            onDragEnter={(e) => { e.preventDefault(); e.stopPropagation(); if (mode === 'upload') setIsDragActive(true); }}
+            onDragLeave={(e) => { e.preventDefault(); e.stopPropagation(); setIsDragActive(false); }}
             onDrop={(e) => {
-              e.preventDefault(); e.stopPropagation(); setIsDragActive(false)
+              e.preventDefault(); e.stopPropagation(); setIsDragActive(false);
               if (mode === 'upload' && e.dataTransfer.files && e.dataTransfer.files[0]) {
-                const selectedFile = e.dataTransfer.files[0]
+                const selectedFile = e.dataTransfer.files[0];
                 if (selectedFile.type.startsWith('image/')) {
-                  setFile(selectedFile)
-                  setResults(null)
-                  setError('')
-                } else {
-                  setError('Please select a valid image file (JPEG, PNG, WebP).')
-                }
+                  setFile(selectedFile); setResults(null); setError('');
+                } else setError('Please select a valid image file (JPEG, PNG, WebP).');
               }
             }}
             style={{ 
-              flex: 1, 
-              display: 'flex', 
-              flexDirection: 'column', 
-              justifyContent: 'center', 
-              background: 'rgba(0,0,0,0.2)', 
-              borderRadius: '8px', 
-              overflow: 'hidden', 
-              position: 'relative', 
-              minHeight: '300px',
-              border: isDragActive ? '2px dashed var(--primary)' : '1px solid var(--border)',
-              transition: 'border-color 0.2s var(--ease)'
+              flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center',
+              background: 'var(--bg-elevated)', borderRadius: 'var(--radius-md)', border: isDragActive ? '2px dashed var(--accent-violet)' : '1px solid var(--border-subtle)',
+              overflow: 'hidden', position: 'relative', transition: 'border-color var(--duration) var(--ease)', minHeight: '350px'
             }}
           >
              {mode === 'webcam' ? (
                 <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
                   {webcamError ? (
                     <div style={{ padding: '2rem', textAlign: 'center' }}>
-                      <AlertCircle size={48} style={{ color: 'var(--warning)', margin: '0 auto 1rem', opacity: 0.7 }} />
-                      <p style={{ color: 'var(--warning)', marginBottom: '1rem', lineHeight: '1.6' }}>{webcamError}</p>
-                      <button className="btn btn-secondary" onClick={startWebcam} style={{ marginRight: '0.5rem' }}>
-                        Retry Camera
-                      </button>
-                      <button className="btn btn-secondary" onClick={switchToUpload}>
-                        Use Image Upload
-                      </button>
+                      <AlertCircle size={32} color="var(--alert-crimson)" style={{ margin: '0 auto var(--space-4)' }} />
+                      <p style={{ color: 'var(--text-muted)', marginBottom: 'var(--space-4)' }}>{webcamError}</p>
+                      <button className="bg-zinc-100 text-zinc-900 hover:bg-zinc-200 px-4 py-2 rounded-md font-medium" variant="secondary" onClick={startWebcam}>Retry Camera</button>
                     </div>
                   ) : (
                     <>
-                      <video 
-                        ref={videoRef}
-                        autoPlay 
-                        playsInline 
-                        muted
-                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                      />
-                      {webcamReady && (
-                        <div style={{ position: 'absolute', bottom: '1rem', width: '100%', display: 'flex', justifyContent: 'center' }}>
-                          <button className="btn btn-primary" onClick={captureWebcam} style={{ borderRadius: '50px', padding: '0.8rem 2rem' }}>
-                            <Camera size={20} /> Capture Photo
+                      <video ref={videoRef} autoPlay playsInline muted style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      {webcamReady ? (
+                        <div style={{ position: 'absolute', bottom: 'var(--space-4)' }}>
+                          <button className="bg-zinc-100 text-zinc-900 hover:bg-zinc-200 px-4 py-2 rounded-md font-medium" variant="primary" onClick={captureWebcam} style={{ borderRadius: 'var(--radius-full)' }}>
+                            <Camera size={16} style={{ marginRight: '8px' }} /> Capture
                           </button>
                         </div>
-                      )}
-                      {!webcamReady && !webcamError && (
-                        <div style={{ position: 'absolute', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px' }}>
-                          <RefreshCw className="spin" size={32} style={{ color: 'var(--accent-cyan)' }} />
-                          <span style={{ color: 'var(--text-secondary)' }}>Starting camera...</span>
+                      ) : (
+                        <div style={{ position: 'absolute', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 'var(--space-2)' }}>
+                          <Loader2 className="spin" size={24} color="var(--accent-violet)" />
+                          <span style={{ color: 'var(--text-muted)' }}>Initializing...</span>
                         </div>
                       )}
                     </>
@@ -442,209 +358,138 @@ export default function TestPage() {
                   <div style={{ position: 'relative', width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
                       <button 
                          onClick={() => { setFile(null); setResults(null); }}
-                         className="remove-btn"
-                         title="Remove Image"
-                      >
-                         <X size={16} />
-                      </button>
+                         style={{ position: 'absolute', top: '12px', right: '12px', zIndex: 10, background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', color: 'var(--text-primary)', borderRadius: 'var(--radius-full)', padding: '4px', cursor: 'pointer' }}
+                      ><X size={14} /></button>
 
                       <div style={{ position: 'relative', width: '100%', flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
                         <img 
-                          ref={imgRef}
-                          src={URL.createObjectURL(file)} 
-                          alt="Input" 
+                          ref={imgRef} src={URL.createObjectURL(file)} alt="Input" 
                           style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} 
-                          onLoad={(e) => {
-                             setPreviewSize({
-                               width: e.target.clientWidth,
-                               height: e.target.clientHeight,
-                               naturalWidth: e.target.naturalWidth,
-                               naturalHeight: e.target.naturalHeight
-                             })
-                          }}
+                          onLoad={(e) => setPreviewSize({ width: e.target.clientWidth, height: e.target.clientHeight, naturalWidth: e.target.naturalWidth, naturalHeight: e.target.naturalHeight })}
                         />
                         {/* Bounding Boxes */}
                         {results && results.faces && previewSize.naturalWidth > 0 && results.faces.map((face, idx) => {
-                           const scaleX = previewSize.width / previewSize.naturalWidth
-                           const scaleY = previewSize.height / previewSize.naturalHeight
+                           const scaleX = previewSize.width / previewSize.naturalWidth;
+                           const scaleY = previewSize.height / previewSize.naturalHeight;
+                           const imgRenderProps = imgRef.current.getBoundingClientRect();
+                           const containerProps = imgRef.current.parentElement.getBoundingClientRect();
+                           const offsetX = (containerProps.width - imgRenderProps.width) / 2;
+                           const offsetY = (containerProps.height - imgRenderProps.height) / 2;
                            
-                           const imgRenderProps = imgRef.current.getBoundingClientRect()
-                           const containerProps = imgRef.current.parentElement.getBoundingClientRect()
-                           
-                           const offsetX = (containerProps.width - imgRenderProps.width) / 2
-                           const offsetY = (containerProps.height - imgRenderProps.height) / 2
+                           const useEnsemble = includeDeepFace;
+                           const displayConf = useEnsemble ? face.ensemble.confidence : face.predictions.sota.confidence;
+                           const displayLabel = useEnsemble ? face.ensemble.label : face.predictions.sota.label;
+                           const isConfirmed = useEnsemble ? face.ensemble.is_confirmed === true : (displayConf > 0.8 && displayLabel !== 'Unknown');
+                           const boxColor = isConfirmed ? 'var(--confirm-green)' : 'var(--alert-crimson)';
 
                            return (
                               <div key={idx} style={{
-                                 position: 'absolute',
-                                 border: '2px solid var(--accent-1)',
-                                 left: offsetX + (face.bbox.x * scaleX),
-                                 top: offsetY + (face.bbox.y * scaleY),
-                                 width: face.bbox.w * scaleX,
-                                 height: face.bbox.h * scaleY,
-                                 pointerEvents: 'none'
+                                 position: 'absolute', border: `2px solid ${boxColor}`,
+                                 left: offsetX + (face.bbox.x * scaleX), top: offsetY + (face.bbox.y * scaleY),
+                                 width: face.bbox.w * scaleX, height: face.bbox.h * scaleY, pointerEvents: 'none'
                                }}>
                                  <div style={{ 
-                                   position: 'absolute', top: '-25px', left: '-2px', 
-                                   background: 'var(--accent-1)', color: '#000', 
-                                   padding: '2px 6px', fontSize: '0.75rem', fontWeight: 'bold',
-                                   whiteSpace: 'nowrap'
+                                   position: 'absolute', top: '-24px', left: '-2px', 
+                                   background: boxColor, color: '#000', 
+                                   padding: '2px 6px', fontSize: '10px', fontWeight: 'bold', fontFamily: 'var(--font-mono)'
                                  }}>
-                                   Face {idx + 1}
+                                   FACE {idx + 1}
                                  </div>
                               </div>
-                           )
+                           );
                         })}
                       </div>
-
-                      {/* Helper UI overlay before running prediction */}
-                      {!results && !loading && (
-                        <div style={{ 
-                          position: 'absolute', bottom: '1rem', background: 'rgba(0,0,0,0.6)', 
-                          padding: '0.5rem 1rem', borderRadius: '20px', fontSize: '0.9rem',
-                          backdropFilter: 'blur(4px)', color: 'var(--accent-cyan)'
-                        }}>
-                           Image selected. Click "Run Recognition" below.
-                        </div>
-                      )}
                   </div>
                 ) : (
-                  <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
-                     <ImageIcon size={48} style={{ margin: '0 auto 1rem', opacity: 0.5 }} />
-                     <p>Upload an image to start</p>
+                  <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>
+                     <ImageIcon size={32} style={{ margin: '0 auto var(--space-4)', opacity: 0.5 }} />
+                     <p>Drag and drop, paste, or click to upload</p>
                      <input type="file" accept="image/jpeg,image/png,image/webp" id="test-upload" style={{ display: 'none' }} onChange={handleFileChange} />
-                     <label htmlFor="test-upload" className="btn btn-secondary" style={{ marginTop: '1rem', display: 'inline-block', cursor: 'pointer' }}>
-                        Browse Files
+                     <label htmlFor="test-upload" style={{ marginTop: 'var(--space-4)', display: 'inline-block' }}>
+                        <button className="bg-zinc-100 text-zinc-900 hover:bg-zinc-200 px-4 py-2 rounded-md font-medium" variant="secondary" as="span">Browse Files</button>
                      </label>
                   </div>
                 )
              )}
           </div>
 
-          <div style={{ marginTop: '1rem' }}>
-            <button 
-               className="btn btn-primary" 
-               style={{ width: '100%', display: 'flex', justifyContent: 'center', padding: '1rem' }}
-               onClick={runPrediction}
-               disabled={!file || loading}
-            >
-               {loading ? <RefreshCw className="spin" size={20} /> : <Play size={20} />}
-               {loading ? 'Running Inference...' : 'Run Recognition on All Models'}
+          <div style={{ marginTop: 'var(--space-4)' }}>
+            <button className="bg-zinc-100 text-zinc-900 hover:bg-zinc-200 px-4 py-2 rounded-md font-medium" variant="primary" style={{ width: '100%', justifyContent: 'center' }} onClick={runPrediction} disabled={!file || loading}>
+               {loading ? <Loader2 className="spin" size={16} style={{ marginRight: '8px' }} /> : <Play size={16} style={{ marginRight: '8px' }} />}
+               {loading ? 'Processing...' : 'Execute Identification'}
             </button>
           </div>
         </div>
 
-        {/* Output Section */}
-        <div className="glass-panel" style={{ display: 'flex', flexDirection: 'column', padding: '1.5rem' }}>
-          <h2 style={{ fontSize: '1.25rem', marginBottom: '1.5rem', fontWeight: '600' }}>Model Predictions</h2>
+        {/* Results Block */}
+        <div className="bg-zinc-900/40 border border-zinc-800 rounded-xl p-6 shadow-sm" style={{ display: 'flex', flexDirection: 'column' }}>
+          <h2 style={{ fontSize: 'var(--text-base)', marginBottom: 'var(--space-4)', margin: 0 }}>Telemetry & Results</h2>
           
-          {/* Model Selection Checkboxes */}
-          <div style={{ 
-            display: 'flex', 
-            flexDirection: 'column',
-            gap: '8px', 
-            background: 'rgba(0,0,0,0.2)', 
-            padding: '1rem', 
-            borderRadius: '8px', 
-            border: '1px solid var(--border)',
-            marginBottom: '1.5rem'
-          }}>
-            <span style={{ fontSize: '0.8rem', fontWeight: '600', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-              Select Active Models:
-            </span>
-            <div style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap', marginTop: '4px' }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.9rem', cursor: 'pointer', userSelect: 'none' }}>
-                <input type="checkbox" checked={true} disabled style={{ accentColor: 'var(--primary)' }} />
-                <span>SOTA MobileNetV2 (Default)</span>
-              </label>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.9rem', cursor: 'pointer', userSelect: 'none' }}>
-                <input 
-                  type="checkbox" 
-                  checked={includeDeepFace} 
-                  onChange={(e) => setIncludeDeepFace(e.target.checked)} 
-                  style={{ accentColor: 'var(--primary)' }} 
-                />
-                <span>DeepFace (Facenet512)</span>
-              </label>
-            </div>
+          <div style={{ display: 'flex', gap: 'var(--space-4)', background: 'var(--bg-elevated)', padding: 'var(--space-3)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-subtle)', marginBottom: 'var(--space-4)' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: 'var(--text-sm)', color: 'var(--text-primary)' }}>
+              <input type="checkbox" checked={true} disabled /> MobileNetV2
+            </label>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: 'var(--text-sm)', color: 'var(--text-primary)' }}>
+              <input type="checkbox" checked={includeDeepFace} onChange={(e) => setIncludeDeepFace(e.target.checked)} /> DeepFace (Facenet512)
+            </label>
           </div>
           
-          <div style={{ flex: 1, overflowY: 'auto', paddingRight: '0.5rem' }}>
+          <div style={{ flex: 1, overflowY: 'auto' }}>
             {loading ? (
-               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-secondary)' }}>
-                  <RefreshCw className="spin" size={40} style={{ marginBottom: '1rem', color: 'var(--accent-1)' }} />
-                  <p>Analyzing faces using active models...</p>
+               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-muted)' }}>
+                  <div className="w-8 h-8 rounded-full border-2 border-zinc-500 animate-spin" isLoading />
+                  <p style={{ marginTop: 'var(--space-4)', fontFamily: 'var(--font-mono)', fontSize: 'var(--text-sm)' }}>Analyzing spatial data...</p>
                </div>
             ) : results ? (
                results.faces.length > 0 ? (
-                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                    <div style={{ color: 'var(--success)', marginBottom: '0.5rem', fontWeight: '500' }}>
-                       {results.message}
-                    </div>
+                 <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+                    <div style={{ color: 'var(--confirm-green)', fontSize: 'var(--text-sm)' }}>{results.message}</div>
+                    
                     {results.faces.map((face, i) => {
                        const useEnsemble = includeDeepFace;
-                       
                        const displayLabel = useEnsemble ? face.ensemble.label : face.predictions.sota.label;
                        const displayConf = useEnsemble ? face.ensemble.confidence : face.predictions.sota.confidence;
-                       const displayMethod = useEnsemble ? face.ensemble.method : "SOTA Model Only";
+                       const displayMethod = useEnsemble ? face.ensemble.method : "SOTA Base";
                        const isConfirmed = useEnsemble ? face.ensemble.is_confirmed === true : (displayConf > 0.8 && displayLabel !== 'Unknown');
-                       const resultTitle = isConfirmed ? "✅ IDENTITY CONFIRMED" : "❌ NOT FOUND";
+                       const statusStr = isConfirmed ? 'confirmed' : 'not-found';
 
                        return (
-                        <div key={i} style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', padding: '1rem' }}>
-                           <h3 style={{ margin: '0 0 0.5rem 0', fontSize: '1.1rem', color: 'var(--accent-1)' }}>Face {i + 1}</h3>
+                        <div className="bg-zinc-900/40 border border-zinc-800 rounded-xl p-6 shadow-sm" key={i} padding="var(--space-4)" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)' }}>
+                           <h3 style={{ margin: '0 0 var(--space-4) 0', fontSize: 'var(--text-sm)', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>FACE DETECTED {i + 1}</h3>
                            
-                           {/* Main Result — Binary Classification */}
-                           <div style={{ 
-                             background: isConfirmed ? 'rgba(48, 209, 88, 0.10)' : 'rgba(255, 69, 58, 0.10)', 
-                             border: isConfirmed ? '1px solid rgba(48, 209, 88, 0.3)' : '1px solid rgba(255, 69, 58, 0.3)', 
-                             borderRadius: '8px', padding: '0.8rem', marginBottom: '1rem' 
-                           }}>
+                           <div className="w-8 h-8 rounded-full border-2 border-zinc-500 animate-spin" status={statusStr} style={{ display: 'block', padding: 'var(--space-4)', background: 'var(--bg-surface)' }}>
                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                <div>
-                                 <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '1px' }}>
-                                   {resultTitle}
+                                 <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
+                                   {isConfirmed ? 'IDENTITY CONFIRMED' : 'NO MATCH FOUND'}
                                  </span>
-                                 <div style={{ fontSize: '1.25rem', fontWeight: '700', color: isConfirmed ? '#30D158' : '#FF453A', marginTop: '4px' }}>
+                                 <div style={{ fontSize: 'var(--text-lg)', fontWeight: '500', color: isConfirmed ? 'var(--confirm-green)' : 'var(--alert-crimson)', marginTop: '4px' }}>
                                    {isConfirmed ? displayLabel.replace(/_/g, ' ') : 'Unknown Person'}
                                  </div>
                                </div>
-                               <div style={{ 
-                                 width: '48px', height: '48px', borderRadius: '24px',
-                                 border: `2px solid ${isConfirmed ? '#30D158' : '#FF453A'}`,
-                                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                 fontSize: '1.5rem'
-                               }}>
+                               <div style={{ fontSize: 'var(--text-2xl)', color: isConfirmed ? 'var(--confirm-green)' : 'var(--alert-crimson)' }}>
                                  {isConfirmed ? '✓' : '✗'}
                                </div>
                              </div>
 
-                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
-                               <div style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)' }}>
-                                 {displayMethod} · Status: {(face.ensemble?.confidence_level || 'N/A').toUpperCase()}
+                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'var(--space-4)', paddingTop: 'var(--space-3)', borderTop: '1px dashed var(--border-subtle)' }}>
+                               <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
+                                 MTHD: {displayMethod.toUpperCase()} | CONF: {(displayConf * 100).toFixed(1)}%
                                </div>
                                
                                {face.prediction_id && (
-                                 <div style={{ display: 'flex', gap: '8px' }}>
+                                 <div style={{ display: 'flex', gap: '4px' }}>
                                     {feedbackState[face.prediction_id] === 'success' ? (
-                                      <span style={{ color: 'var(--success)', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                        <Check size={14} /> Feedback saved
+                                      <span style={{ color: 'var(--confirm-green)', fontSize: 'var(--text-xs)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                        <Check size={12} /> Logged
                                       </span>
                                     ) : (
                                       <>
-                                        <button 
-                                          onClick={() => submitFeedback(face.prediction_id, true, displayLabel)}
-                                          style={{ background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '4px', padding: '4px 8px', cursor: 'pointer', color: 'var(--success)' }}
-                                          title="Correct"
-                                        >
-                                          <ThumbsUp size={16} />
+                                        <button className="bg-zinc-100 text-zinc-900 hover:bg-zinc-200 px-4 py-2 rounded-md font-medium" variant="ghost" size="sm" onClick={() => submitFeedback(face.prediction_id, true, displayLabel)} title="Correct Detection">
+                                          <ThumbsUp size={14} color="var(--confirm-green)" />
                                         </button>
-                                        <button 
-                                          onClick={() => submitFeedback(face.prediction_id, false, displayLabel)}
-                                          style={{ background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '4px', padding: '4px 8px', cursor: 'pointer', color: 'var(--error)' }}
-                                          title="Incorrect"
-                                        >
-                                          <ThumbsDown size={16} />
+                                        <button className="bg-zinc-100 text-zinc-900 hover:bg-zinc-200 px-4 py-2 rounded-md font-medium" variant="ghost" size="sm" onClick={() => submitFeedback(face.prediction_id, false, displayLabel)} title="Incorrect Detection">
+                                          <ThumbsDown size={14} color="var(--alert-crimson)" />
                                         </button>
                                       </>
                                     )}
@@ -653,21 +498,16 @@ export default function TestPage() {
                              </div>
                            </div>
 
-                           <div style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)', marginBottom: '0.5rem', textTransform: 'uppercase', letterSpacing: '1px' }}>
-                             Individual Models
-                           </div>
-                           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
-                              <PredictionRow 
-                                model="SOTA MobileNetV2" 
-                                label={face.predictions.sota.label} 
-                                conf={face.predictions.sota.confidence} 
-                              />
+                           <div style={{ marginTop: 'var(--space-4)', display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'var(--text-xs)', fontFamily: 'var(--font-mono)' }}>
+                                 <span style={{ color: 'var(--text-muted)' }}>MobileNetV2</span>
+                                 <span style={{ color: 'var(--text-primary)' }}>{face.predictions.sota.label} ({(face.predictions.sota.confidence * 100).toFixed(1)}%)</span>
+                              </div>
                               {includeDeepFace && (
-                                <PredictionRow 
-                                  model="DeepFace (Facenet512)" 
-                                  label={face.predictions.deepface.label} 
-                                  conf={face.predictions.deepface.confidence} 
-                                />
+                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'var(--text-xs)', fontFamily: 'var(--font-mono)' }}>
+                                   <span style={{ color: 'var(--text-muted)' }}>Facenet512</span>
+                                   <span style={{ color: 'var(--text-primary)' }}>{face.predictions.deepface.label} ({(face.predictions.deepface.confidence * 100).toFixed(1)}%)</span>
+                                </div>
                               )}
                            </div>
                         </div>
@@ -675,35 +515,20 @@ export default function TestPage() {
                     })}
                  </div>
                ) : (
-                 <div style={{ textAlign: 'center', marginTop: '4rem', color: 'var(--text-secondary)' }}>
-                    <Maximize size={48} style={{ margin: '0 auto 1rem', opacity: 0.5 }} />
-                    <p>No faces found in the image.</p>
+                 <div style={{ textAlign: 'center', marginTop: 'var(--space-8)', color: 'var(--text-muted)' }}>
+                    <Maximize size={32} style={{ margin: '0 auto var(--space-4)', opacity: 0.5 }} />
+                    <p>No faces detected in the provided frame.</p>
                  </div>
                )
             ) : (
-               <div style={{ textAlign: 'center', marginTop: '4rem', color: 'var(--text-secondary)' }}>
-                  <p>Outputs will appear here after running inference.</p>
+               <div style={{ textAlign: 'center', marginTop: 'var(--space-8)', color: 'var(--text-muted)' }}>
+                  <p>Inference output will appear here.</p>
                </div>
             )}
           </div>
         </div>
         
       </div>
-    </div>
-  )
-}
-
-function PredictionRow({ model, label }) {
-  let isTrained = !label.includes('UNTRAINED') && !label.includes('Not Trained') && !label.includes('Error')
-
-  return (
-    <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', marginBottom: '4px' }}>
-         <span style={{ color: 'var(--text-secondary)' }}>{model}</span>
-         <span style={{ fontWeight: '500', color: !isTrained ? 'var(--text-secondary)' : '#fff' }}>
-           {label}
-         </span>
-      </div>
-    </div>
-  )
+    </motion.div>
+  );
 }
