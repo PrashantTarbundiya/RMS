@@ -29,11 +29,11 @@ export default function UploadPage() {
   const { apiClient } = useAuth();
   const navigate = useNavigate();
   
-  const [mode, setMode] = useState('new'); // 'new' or 'update'
+  const [mode, setMode] = useState(() => sessionStorage.getItem('upload_mode') || 'new');
   const [existingPersons, setExistingPersons] = useState([]);
-  const [personName, setPersonName] = useState('');
+  const [personName, setPersonName] = useState(() => sessionStorage.getItem('upload_personName') || '');
   const [existingPhotos, setExistingPhotos] = useState([]);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState(() => sessionStorage.getItem('upload_searchQuery') || '');
   const [showDropdown, setShowDropdown] = useState(false);
   
   const [images, setImages] = useState({
@@ -41,7 +41,10 @@ export default function UploadPage() {
   });
   
   const [confirmModal, setConfirmModal] = useState({ isOpen: false, itemToDelete: null });
-  const [epochs, setEpochs] = useState(5);
+  const [epochs, setEpochs] = useState(() => {
+    const saved = sessionStorage.getItem('upload_epochs');
+    return saved ? parseInt(saved, 10) : 5;
+  });
   const [showWebcam, setShowWebcam] = useState(false);
   const videoRef = useRef(null);
   const streamRef = useRef(null);
@@ -53,6 +56,35 @@ export default function UploadPage() {
 
   const totalNewImages = images.front_img.length + images.left_img.length + images.right_img.length + images.extra_files.length;
   const totalAvailablePhotos = totalNewImages + existingPhotos.length;
+
+  useEffect(() => {
+    sessionStorage.setItem('upload_mode', mode);
+  }, [mode]);
+
+  useEffect(() => {
+    sessionStorage.setItem('upload_personName', personName);
+  }, [personName]);
+
+  useEffect(() => {
+    sessionStorage.setItem('upload_searchQuery', searchQuery);
+  }, [searchQuery]);
+
+  useEffect(() => {
+    sessionStorage.setItem('upload_epochs', epochs.toString());
+  }, [epochs]);
+
+  useEffect(() => {
+    const handleBeforeUnload = (e) => {
+      const hasUnsavedChanges = personName.trim() || totalNewImages > 0;
+      if (hasUnsavedChanges && !isSubmitting) {
+        e.preventDefault();
+        e.returnValue = 'You have unsaved changes (entered name or selected images). Are you sure you want to leave?';
+        return e.returnValue;
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [personName, totalNewImages, isSubmitting]);
 
   useEffect(() => {
     const fetchPersons = async () => {
@@ -250,6 +282,9 @@ export default function UploadPage() {
         const res = await apiClient.post(`${API_BASE}/upload`, formData, { headers: { 'Content-Type': 'multipart/form-data' } });
         setStatus({ type: 'success', message: res.data.message });
         setPersonName('');
+        setSearchQuery('');
+        sessionStorage.removeItem('upload_personName');
+        sessionStorage.removeItem('upload_searchQuery');
         setImages({ front_img: [], left_img: [], right_img: [], extra_files: [] });
         setTimeout(() => navigate('/training'), 3000);
       } catch (err) {
@@ -260,6 +295,9 @@ export default function UploadPage() {
         const res = await apiClient.post(`${API_BASE}/persons/${personName.trim()}/retrain`, { epochs });
         setStatus({ type: 'success', message: res.data.message });
         setPersonName('');
+        setSearchQuery('');
+        sessionStorage.removeItem('upload_personName');
+        sessionStorage.removeItem('upload_searchQuery');
         setTimeout(() => navigate('/training'), 3000);
       } catch (err) {
         setStatus({ type: 'error', message: err.response?.data?.error || 'Failed to trigger retrain.' });

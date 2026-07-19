@@ -30,7 +30,7 @@ class SafeImageFolder(Dataset):
                 skipped += 1
         
         if skipped > 0:
-            print(f"⚠️ Skipped {skipped} missing/broken file(s) from dataset.")
+            print(f"[Warning] Skipped {skipped} missing/broken file(s) from dataset.")
         
         self.samples = valid_samples
         

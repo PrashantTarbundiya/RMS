@@ -82,7 +82,7 @@ def update_deepface_model(person_name, image_paths, encodings_path=None):
         tuple: (new_encodings_list, new_names_list, num_added)
     """
     print(f"\n{'='*50}")
-    print(f"📦 DeepFace: Adding embeddings for '{person_name}'")
+    print(f"DeepFace: Adding embeddings for '{person_name}'")
     print(f"{'='*50}")
 
     # Load existing encodings
@@ -107,13 +107,13 @@ def update_deepface_model(person_name, image_paths, encodings_path=None):
         try:
             image = cv2.imread(img_path)
             if image is None:
-                print(f"   ⚠️ Could not read: {os.path.basename(img_path)}")
+                print(f"   [Warning] Could not read: {os.path.basename(img_path)}")
                 continue
 
             # Quality check before processing
             is_valid, issues = check_image_quality(image)
             if not is_valid:
-                print(f"   ⚠️ Quality issues for {os.path.basename(img_path)}: {'; '.join(issues)}")
+                print(f"   [Warning] Quality issues for {os.path.basename(img_path)}: {'; '.join(issues)}")
                 # Still process but warn — don't discard, as even noisy data helps with few-shot
 
             # Detect face using our SideFaceDetector
@@ -158,10 +158,10 @@ def update_deepface_model(person_name, image_paths, encodings_path=None):
                     existing_names.append(person_name)
                     new_count += 1
 
-            print(f"   ✅ Processed: {os.path.basename(img_path)}")
+            print(f"   [OK] Processed: {os.path.basename(img_path)}")
 
         except Exception as e:
-            print(f"   ❌ Error processing {os.path.basename(img_path)}: {e}")
+            print(f"   [Error] Error processing {os.path.basename(img_path)}: {e}")
 
     detector.close()
 
@@ -175,7 +175,7 @@ def update_deepface_model(person_name, image_paths, encodings_path=None):
     with open(encodings_path, "wb") as f:
         pickle.dump(data, f)
 
-    print(f"   💾 Saved {new_count} new embeddings. Total: {len(existing_encodings)}")
+    print(f"   [Saved] Saved {new_count} new embeddings. Total: {len(existing_encodings)}")
 
     return existing_encodings, existing_names, new_count
 
@@ -185,11 +185,11 @@ def recompute_person_embeddings(person_name):
     Useful for feedback loops where a single image is added to the folder.
     It removes their old embeddings and recalculates them.
     """
-    print(f"🔄 Recomputing embeddings for '{person_name}'...")
+    print(f"[Recomputing] Recomputing embeddings for '{person_name}'...")
     
     person_dir = os.path.join(BACKEND_DIR, 'dataset', person_name)
     if not os.path.exists(person_dir):
-        print(f"❌ Cannot recompute: folder for {person_name} does not exist.")
+        print(f"[Error] Cannot recompute: folder for {person_name} does not exist.")
         return
         
     image_paths = [
@@ -198,7 +198,7 @@ def recompute_person_embeddings(person_name):
     ]
     
     if not image_paths:
-        print(f"⚠️ No images found for {person_name}.")
+        print(f"[Warning] No images found for {person_name}.")
         return
 
     # Load existing
@@ -262,7 +262,7 @@ def recompute_person_embeddings(person_name):
                         existing_names.append(person_name)
                         new_count += 1
         except Exception as e:
-            print(f"   ❌ Error recomputing {img_path}: {e}")
+            print(f"   [Error] Error recomputing {img_path}: {e}")
             
     detector.close()
     
@@ -283,7 +283,7 @@ def recompute_person_embeddings(person_name):
     global_encodings.extend(existing_encodings)
     global_names.extend(existing_names)
     
-    print(f"✅ Recomputed {new_count} embeddings for {person_name}. Live reload complete.")
+    print(f"[OK] Recomputed {new_count} embeddings for {person_name}. Live reload complete.")
 
 
 # ============================================================================
@@ -362,6 +362,14 @@ def update_sota_model(person_name, dataset_dir=None,
     # Build new model
     model = build_mobile_model(num_classes=actual_num_classes).to(device)
 
+    # If on CPU, freeze backbone to make training 10x-15x faster!
+    if device.type == "cpu":
+        print("   [INFO] CPU detected: freezing backbone features to accelerate training.")
+        for param in model.parameters():
+            param.requires_grad = False
+        for param in model.classifier.parameters():
+            param.requires_grad = True
+
     # Try to load old weights
     if os.path.exists(model_path):
         try:
@@ -371,9 +379,9 @@ def update_sota_model(person_name, dataset_dir=None,
                 if key in new_state and old_state[key].shape == new_state[key].shape:
                     new_state[key] = old_state[key]
             model.load_state_dict(new_state)
-            print("   ✅ Loaded compatible weights from previous model.")
+            print("   [OK] Loaded compatible weights from previous model.")
         except Exception as e:
-            print(f"   ⚠️ Could not load old weights: {e}. Training from scratch.")
+            print(f"   [Warning] Could not load old weights: {e}. Training from scratch.")
 
     # Fine-tune with improved training recipe
     criterion = nn.CrossEntropyLoss(label_smoothing=0.1)
@@ -488,7 +496,7 @@ def clean_and_save_face(img_bgr, output_path, margin_ratio=0.20):
 
     if len(faces) == 0:
         # No face detected — save original as fallback (side faces at steep angles)
-        print(f"   ⚠️  No face detected, saving full image as fallback.")
+        print(f"   [Warning] No face detected, saving full image as fallback.")
         cv2.imwrite(output_path, img_bgr)
         return output_path
 
@@ -571,7 +579,7 @@ def add_person_fast(person_name, image_data_list, dataset_dir=None, encodings_pa
             os.makedirs(raw_dir, exist_ok=True)
             raw_path = os.path.join(raw_dir, filename)
             cv2.imwrite(raw_path, img_bgr)
-            print(f"   📸 Raw saved: {raw_path}")
+            print(f"   [Raw saved] {raw_path}")
 
             # 2. Clean (face crop) and save to dataset_cleaned/{name}/{angle}/
             cleaned_dir = os.path.join(cleaned_base, person_name, angle)
@@ -590,22 +598,22 @@ def add_person_fast(person_name, image_data_list, dataset_dir=None, encodings_pa
     status_parts = []
     if saved_cleaned_paths:
         status_parts.append(
-            f"📁 Saved {len(saved_cleaned_paths)} cleaned images ({', '.join(saved_summary)})\n"
-            f"   Raw → `dataset/{person_name}/`\n"
-            f"   Cleaned → `{dataset_dir}/{person_name}/`\n"
+            f"[Saved] Saved {len(saved_cleaned_paths)} cleaned images ({', '.join(saved_summary)})\n"
+            f"   Raw -> `dataset/{person_name}/`\n"
+            f"   Cleaned -> `{dataset_dir}/{person_name}/`\n"
         )
     else:
-        status_parts.append(f"📁 Retraining on existing dataset for {person_name}.\n")
+        status_parts.append(f"[Saved] Retraining on existing dataset for {person_name}.\n")
 
     # 3. Update DeepFace (instant — no retrain) if we added new images and DeepFace is enabled
     from config_utils import load_config
     if saved_cleaned_paths and load_config().get("ENABLE_DEEPFACE", False):
         try:
             new_encs, new_names, num_added = update_deepface_model(person_name, saved_cleaned_paths, encodings_path=encodings_path)
-            status_parts.append(f"✅ **DeepFace**: Added {num_added} embeddings (total: {len(new_encs)})")
+            status_parts.append(f"**DeepFace**: Added {num_added} embeddings (total: {len(new_encs)})")
         except Exception as e:
-            status_parts.append(f"⚠️ **DeepFace**: Error — {e}")
+            status_parts.append(f"**DeepFace**: Error — {e}")
     elif saved_cleaned_paths:
-        status_parts.append("ℹ️ **DeepFace**: Model is disabled in settings. Skipping embedding generation.")
+        status_parts.append("**DeepFace**: Model is disabled in settings. Skipping embedding generation.")
 
     return "\n\n".join(status_parts)
