@@ -21,9 +21,9 @@ export function Navbar() {
       {/* Desktop Header */}
       <div className="sidebar-header">
         <Link to="/" className="brand">
-          <Reticle className="brand-logo-reticle">
-            <div className="brand-mark"></div>
-          </Reticle>
+          <div className="w-8 h-8 rounded-full border border-zinc-700 flex items-center justify-center mr-3 bg-zinc-800">
+            <span className="font-mono text-zinc-300 font-bold">R</span>
+          </div>
           <div className="brand-text">
             <h1>RMS Console</h1>
             {user && (

@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { setupAuthInterceptor, api, SERVER_URL } from '../services/api';
+import { setupAuthInterceptor, api } from '../services/api';
 
 const AuthContext = createContext(null);
 

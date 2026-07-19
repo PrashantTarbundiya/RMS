@@ -32,8 +32,11 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center p-4 bg-zinc-950">
-      <Card className="w-full max-w-sm border-zinc-800 bg-zinc-900/50 backdrop-blur-xl">
+    <div 
+      className="flex min-h-screen items-center justify-center p-4 bg-zinc-950 bg-cover bg-center bg-no-repeat"
+      style={{ backgroundImage: 'url(/auth-bg.png)' }}
+    >
+      <Card className="w-full max-w-sm border-zinc-800 bg-zinc-950/80 backdrop-blur-2xl shadow-2xl">
         <CardHeader className="space-y-3 text-center">
           <div className="mx-auto bg-zinc-800 p-3 rounded-xl border border-zinc-700/50 shadow-sm">
             <Scan className="w-8 h-8 text-zinc-100" />

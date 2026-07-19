@@ -1216,12 +1216,13 @@ def predict(org_id):
                 processed = apply_clahe(face_roi_cv)
                 emb = get_embedding(processed)
                 if emb:
+                    ensemble_data = result.get('ensemble', {})
                     store_prediction_for_feedback(
                         pred_id,
                         img_np,
                         face_roi_cv,
-                        result['ensemble']['label'],
-                        result['ensemble']['confidence'],
+                        ensemble_data.get('label', 'SPOOF DETECTED'),
+                        ensemble_data.get('confidence', 0.0),
                         embedding=emb,
                         org_id=org_id
                     )
@@ -1231,8 +1232,10 @@ def predict(org_id):
             
         return jsonify({'faces': results, 'message': message})
     except Exception as e:
+        import traceback
+        trace = traceback.format_exc()
         logger.error(f"Predict error: {e}", exc_info=True)
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': str(e), 'trace': trace}), 500
 
 # ─── Recognition History Endpoints ────────────────────────────────────
 @app.route('/api/history', methods=['GET'])

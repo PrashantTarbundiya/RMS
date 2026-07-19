@@ -1,12 +1,14 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { Camera, Image as ImageIcon, Video, Maximize, Play, X, AlertCircle, ThumbsUp, ThumbsDown, Check, Loader2 } from 'lucide-react';
+import { Camera, Image as ImageIcon, Video, Maximize, Play, X, AlertCircle, ThumbsUp, ThumbsDown, Check, Loader2, UploadCloud } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 import { API_BASE } from '../config';
-
-
-
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 
 import Modal from '../components/Modal';
 
@@ -21,15 +23,15 @@ export default function TestPage() {
   const [webcamError, setWebcamError] = useState('');
   const [webcamReady, setWebcamReady] = useState(false);
   const [isDragActive, setIsDragActive] = useState(false);
-  const [includeDeepFace, setIncludeDeepFace] = useState(false);
+  const [includeDeepFace, setIncludeDeepFace] = useState(true);
   const [feedbackState, setFeedbackState] = useState({}); // track feedback status per prediction_id
   const [personsList, setPersonsList] = useState([]);
   const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
   const [feedbackContext, setFeedbackContext] = useState(null);
   
-  const webcamRef = useRef(null);
-  const imgRef = useRef(null);
   const videoRef = useRef(null);
+  const imgRef = useRef(null);
+  const streamRef = useRef(null);
 
   // Global Clipboard Paste Support
   useEffect(() => {
@@ -61,6 +63,8 @@ export default function TestPage() {
         const res = await apiClient.get(`${API_BASE}/persons`);
         if (res.data && res.data.persons) {
           setPersonsList(res.data.persons);
+        } else if (res.data && Array.isArray(res.data)) {
+          setPersonsList(res.data);
         }
       } catch (err) {
         console.error('Failed to fetch persons list', err);
@@ -109,6 +113,7 @@ export default function TestPage() {
         video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } }
       });
       
+      streamRef.current = stream;
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
         videoRef.current.play();
@@ -123,13 +128,20 @@ export default function TestPage() {
   }, []);
 
   const stopWebcam = useCallback(() => {
-    if (videoRef.current && videoRef.current.srcObject) {
-      const tracks = videoRef.current.srcObject.getTracks();
+    if (streamRef.current) {
+      const tracks = streamRef.current.getTracks();
       tracks.forEach(track => track.stop());
+      streamRef.current = null;
+    }
+    if (videoRef.current) {
       videoRef.current.srcObject = null;
     }
     setWebcamReady(false);
   }, []);
+
+  useEffect(() => {
+    return () => stopWebcam();
+  }, [stopWebcam]);
 
   const captureWebcam = useCallback(() => {
     if (!videoRef.current || !webcamReady) return;
@@ -225,33 +237,29 @@ export default function TestPage() {
   const FeedbackModalContent = () => {
     const [selectedName, setSelectedName] = useState('');
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
-        <p style={{ color: 'var(--text-muted)' }}>Who is this actually? Select from existing persons or mark as a false detection.</p>
+      <div className="flex flex-col gap-4 bg-zinc-950 p-4">
+        <p className="text-zinc-400 text-sm">Who is this actually? Select from existing persons or mark as a false detection.</p>
         <select 
           value={selectedName}
           onChange={(e) => setSelectedName(e.target.value)}
-          style={{ 
-            width: '100%', padding: '0.75rem', borderRadius: 'var(--radius-sm)', 
-            background: 'var(--bg-input)', color: 'var(--text-primary)', 
-            border: '1px solid var(--border-subtle)', outline: 'none'
-          }}
+          className="w-full p-2.5 rounded-md bg-zinc-900 border border-zinc-800 text-zinc-100 outline-none focus:border-zinc-600"
         >
           <option value="" disabled>Select a person...</option>
-          <option value="FALSE_DETECTION" style={{ color: 'var(--alert-crimson)' }}>Not a Person (False Detection)</option>
+          <option value="FALSE_DETECTION" className="text-red-400 font-medium">Not a Person (False Detection)</option>
           {personsList.map(p => (
             <option key={p} value={p}>{p}</option>
           ))}
         </select>
-        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 'var(--space-2)' }}>
-          <button className="bg-zinc-100 text-zinc-900 hover:bg-zinc-200 px-4 py-2 rounded-md font-medium" variant="ghost" onClick={() => { setIsFeedbackModalOpen(false); setFeedbackContext(null); }}>Cancel</button>
-          <button className="bg-zinc-100 text-zinc-900 hover:bg-zinc-200 px-4 py-2 rounded-md font-medium" variant="primary" onClick={() => confirmFeedback(selectedName)} disabled={!selectedName}>Submit Feedback</button>
+        <div className="flex justify-end gap-2 mt-2">
+          <Button variant="ghost" onClick={() => { setIsFeedbackModalOpen(false); setFeedbackContext(null); }}>Cancel</Button>
+          <Button variant="default" onClick={() => confirmFeedback(selectedName)} disabled={!selectedName} className="bg-zinc-100 text-zinc-900 hover:bg-zinc-200">Submit Feedback</Button>
         </div>
       </div>
     );
   };
 
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ paddingBottom: 'var(--space-8)' }}>
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="pb-12 max-w-7xl mx-auto space-y-6">
       
       <Modal 
         isOpen={isFeedbackModalOpen} 
@@ -261,272 +269,279 @@ export default function TestPage() {
         <FeedbackModalContent />
       </Modal>
 
-      <div style={{ marginBottom: 'var(--space-6)' }}>
-        <h1 style={{ margin: 0, fontSize: 'var(--text-2xl)' }}>Live Inference Console</h1>
-        <p style={{ margin: '4px 0 0 0', color: 'var(--text-muted)' }}>Test models simultaneously using upload or webcam.</p>
+      <div>
+        <h1 className="text-2xl font-semibold tracking-tight text-zinc-100">Live Inference Console</h1>
+        <p className="mt-1 text-sm text-zinc-400">Test face recognition models simultaneously using upload or webcam.</p>
       </div>
 
       {error && (
-        <div className="bg-zinc-900/40 border border-zinc-800 rounded-xl p-6 shadow-sm" style={{ padding: 'var(--space-4)', border: '1px solid var(--alert-crimson)', background: 'rgba(248, 113, 113, 0.05)', marginBottom: 'var(--space-6)', display: 'flex', gap: 'var(--space-2)' }}>
-          <AlertCircle size={18} color="var(--alert-crimson)" style={{ marginTop: '2px' }} />
-          <span style={{ color: 'var(--text-primary)' }}>{error}</span>
-        </div>
+        <Card className="border-red-500/20 bg-red-500/5 shadow-sm">
+          <CardContent className="p-4 flex gap-2 items-center text-red-500">
+            <AlertCircle className="h-5 w-5" />
+            <span className="text-sm font-medium">{error}</span>
+          </CardContent>
+        </Card>
       )}
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-6)', minHeight: '500px' }}>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 min-h-[500px]">
         
         {/* Input Block */}
-        <div className="bg-zinc-900/40 border border-zinc-800 rounded-xl p-6 shadow-sm" style={{ display: 'flex', flexDirection: 'column' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-4)' }}>
-             <h2 style={{ fontSize: 'var(--text-base)', margin: 0 }}>Target Image</h2>
+        <Card className="bg-zinc-900/40 border-zinc-800 flex flex-col overflow-hidden">
+          <CardHeader className="flex flex-row items-center justify-between pb-4 border-b border-zinc-800">
+             <CardTitle className="text-base font-medium">Target Image</CardTitle>
              
-             <div style={{ display: 'flex', gap: '4px', background: 'var(--bg-elevated)', padding: '4px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-subtle)' }}>
-                <button 
+             <div className="flex gap-1 p-1 bg-zinc-950 rounded-lg border border-zinc-800">
+                <Button 
+                  variant={mode === 'upload' ? 'secondary' : 'ghost'} 
+                  size="sm"
                   onClick={switchToUpload}
-                  style={{ 
-                    display: 'flex', alignItems: 'center', gap: '6px',
-                    padding: '4px 12px', fontSize: 'var(--text-sm)',
-                    borderRadius: 'var(--radius-xs)', border: 'none', cursor: 'pointer', transition: 'all var(--duration) var(--ease)',
-                    background: mode === 'upload' ? 'var(--text-primary)' : 'transparent',
-                    color: mode === 'upload' ? 'var(--bg-base)' : 'var(--text-muted)'
-                  }}
+                  className={`h-7 px-3 text-xs ${mode === 'upload' ? 'bg-zinc-800 text-zinc-100 hover:bg-zinc-700' : 'text-zinc-500 hover:text-zinc-300'}`}
                 >
-                  <ImageIcon size={14} /> Upload
-                </button>
-                <button 
+                  <ImageIcon className="w-3.5 h-3.5 mr-1.5" /> Upload
+                </Button>
+                <Button 
+                  variant={mode === 'webcam' ? 'secondary' : 'ghost'}
+                  size="sm"
                   onClick={switchToWebcam}
-                  style={{ 
-                    display: 'flex', alignItems: 'center', gap: '6px',
-                    padding: '4px 12px', fontSize: 'var(--text-sm)',
-                    borderRadius: 'var(--radius-xs)', border: 'none', cursor: 'pointer', transition: 'all var(--duration) var(--ease)',
-                    background: mode === 'webcam' ? 'var(--text-primary)' : 'transparent',
-                    color: mode === 'webcam' ? 'var(--bg-base)' : 'var(--text-muted)'
-                  }}
+                  className={`h-7 px-3 text-xs ${mode === 'webcam' ? 'bg-zinc-800 text-zinc-100 hover:bg-zinc-700' : 'text-zinc-500 hover:text-zinc-300'}`}
                 >
-                  <Video size={14} /> Webcam
-                </button>
+                  <Video className="w-3.5 h-3.5 mr-1.5" /> Webcam
+                </Button>
              </div>
-          </div>
+          </CardHeader>
+          <CardContent className="p-6 flex-1 flex flex-col">
 
-          <div 
-            onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
-            onDragEnter={(e) => { e.preventDefault(); e.stopPropagation(); if (mode === 'upload') setIsDragActive(true); }}
-            onDragLeave={(e) => { e.preventDefault(); e.stopPropagation(); setIsDragActive(false); }}
-            onDrop={(e) => {
-              e.preventDefault(); e.stopPropagation(); setIsDragActive(false);
-              if (mode === 'upload' && e.dataTransfer.files && e.dataTransfer.files[0]) {
-                const selectedFile = e.dataTransfer.files[0];
-                if (selectedFile.type.startsWith('image/')) {
-                  setFile(selectedFile); setResults(null); setError('');
-                } else setError('Please select a valid image file (JPEG, PNG, WebP).');
-              }
-            }}
-            style={{ 
-              flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center',
-              background: 'var(--bg-elevated)', borderRadius: 'var(--radius-md)', border: isDragActive ? '2px dashed var(--accent-violet)' : '1px solid var(--border-subtle)',
-              overflow: 'hidden', position: 'relative', transition: 'border-color var(--duration) var(--ease)', minHeight: '350px'
-            }}
-          >
-             {mode === 'webcam' ? (
-                <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-                  {webcamError ? (
-                    <div style={{ padding: '2rem', textAlign: 'center' }}>
-                      <AlertCircle size={32} color="var(--alert-crimson)" style={{ margin: '0 auto var(--space-4)' }} />
-                      <p style={{ color: 'var(--text-muted)', marginBottom: 'var(--space-4)' }}>{webcamError}</p>
-                      <button className="bg-zinc-100 text-zinc-900 hover:bg-zinc-200 px-4 py-2 rounded-md font-medium" variant="secondary" onClick={startWebcam}>Retry Camera</button>
+            <div 
+              onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
+              onDragEnter={(e) => { e.preventDefault(); e.stopPropagation(); if (mode === 'upload') setIsDragActive(true); }}
+              onDragLeave={(e) => { e.preventDefault(); e.stopPropagation(); setIsDragActive(false); }}
+              onDrop={(e) => {
+                e.preventDefault(); e.stopPropagation(); setIsDragActive(false);
+                if (mode === 'upload' && e.dataTransfer.files && e.dataTransfer.files[0]) {
+                  const selectedFile = e.dataTransfer.files[0];
+                  if (selectedFile.type.startsWith('image/')) {
+                    setFile(selectedFile); setResults(null); setError('');
+                  } else setError('Please select a valid image file (JPEG, PNG, WebP).');
+                }
+              }}
+              className={`flex-1 flex flex-col justify-center items-center bg-zinc-950/50 rounded-xl overflow-hidden relative min-h-[350px] transition-colors border-2 ${isDragActive ? 'border-dashed border-violet-500 bg-violet-500/5' : 'border-solid border-zinc-800'}`}
+            >
+               {mode === 'webcam' ? (
+                  <div className="w-full h-full flex flex-col items-center justify-center bg-black">
+                    {webcamError ? (
+                      <div className="p-8 text-center">
+                        <AlertCircle className="w-8 h-8 text-red-500 mx-auto mb-4" />
+                        <p className="text-zinc-400 mb-4 text-sm">{webcamError}</p>
+                        <Button variant="secondary" onClick={startWebcam}>Retry Camera</Button>
+                      </div>
+                    ) : (
+                      <>
+                        <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover" />
+                        {webcamReady ? (
+                          <div className="absolute bottom-4 left-0 right-0 flex justify-center">
+                            <Button className="rounded-full bg-zinc-100 text-zinc-900 hover:bg-zinc-200 hover:scale-105 transition-transform shadow-xl" onClick={captureWebcam}>
+                              <Camera className="w-4 h-4 mr-2" /> Capture
+                            </Button>
+                          </div>
+                        ) : (
+                          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-zinc-950/80">
+                            <Loader2 className="w-6 h-6 animate-spin text-zinc-500" />
+                            <span className="text-zinc-400 text-sm font-mono tracking-tight">Initializing Camera...</span>
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
+               ) : (
+                   file ? (
+                    <div className="relative w-full h-full flex flex-col items-center justify-center p-2">
+                        <Button 
+                           variant="outline" size="icon"
+                           onClick={() => { setFile(null); setResults(null); }}
+                           className="absolute top-2 right-2 z-10 h-8 w-8 rounded-full bg-zinc-950/80 border-zinc-700 text-zinc-300 hover:text-zinc-100 hover:bg-zinc-800"
+                        ><X className="w-4 h-4" /></Button>
+
+                        <div className="relative w-full flex-1 flex items-center justify-center overflow-hidden rounded-lg bg-zinc-900/50 border border-zinc-800/50">
+                          <img 
+                            ref={imgRef} src={URL.createObjectURL(file)} alt="Input" 
+                            className="max-w-full max-h-full object-contain pointer-events-none"
+                            onLoad={(e) => setPreviewSize({ width: e.target.clientWidth, height: e.target.clientHeight, naturalWidth: e.target.naturalWidth, naturalHeight: e.target.naturalHeight })}
+                          />
+                          {/* Bounding Boxes */}
+                          {results && results.faces && previewSize.naturalWidth > 0 && results.faces.map((face, idx) => {
+                             const scaleX = previewSize.width / previewSize.naturalWidth;
+                             const scaleY = previewSize.height / previewSize.naturalHeight;
+                             const imgRenderProps = imgRef.current.getBoundingClientRect();
+                             const containerProps = imgRef.current.parentElement.getBoundingClientRect();
+                             const offsetX = (containerProps.width - imgRenderProps.width) / 2;
+                             const offsetY = (containerProps.height - imgRenderProps.height) / 2;
+                             
+                             const useEnsemble = includeDeepFace;
+                             const displayConf = useEnsemble ? face.ensemble.confidence : face.predictions?.sota?.confidence;
+                             const displayLabel = useEnsemble ? face.ensemble.label : face.predictions?.sota?.label;
+                             const isConfirmed = useEnsemble ? face.ensemble.is_confirmed === true : (displayConf > 0.8 && displayLabel !== 'Unknown');
+                             const boxColor = isConfirmed ? '#10b981' : '#ef4444'; // emerald-500 or red-500
+
+                             return (
+                                <div key={idx} className="absolute pointer-events-none" style={{
+                                   border: `2px solid ${boxColor}`,
+                                   left: offsetX + (face.bbox.x * scaleX), top: offsetY + (face.bbox.y * scaleY),
+                                   width: face.bbox.w * scaleX, height: face.bbox.h * scaleY
+                                 }}>
+                                   <div className="absolute -top-6 -left-0.5 px-1.5 py-0.5 text-[10px] font-bold font-mono tracking-widest" style={{ background: boxColor, color: '#000' }}>
+                                     FACE {idx + 1}
+                                   </div>
+                                </div>
+                             );
+                          })}
+                        </div>
                     </div>
                   ) : (
-                    <>
-                      <video ref={videoRef} autoPlay playsInline muted style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                      {webcamReady ? (
-                        <div style={{ position: 'absolute', bottom: 'var(--space-4)' }}>
-                          <button className="bg-zinc-100 text-zinc-900 hover:bg-zinc-200 px-4 py-2 rounded-md font-medium" variant="primary" onClick={captureWebcam} style={{ borderRadius: 'var(--radius-full)' }}>
-                            <Camera size={16} style={{ marginRight: '8px' }} /> Capture
-                          </button>
-                        </div>
-                      ) : (
-                        <div style={{ position: 'absolute', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 'var(--space-2)' }}>
-                          <Loader2 className="spin" size={24} color="var(--accent-violet)" />
-                          <span style={{ color: 'var(--text-muted)' }}>Initializing...</span>
-                        </div>
-                      )}
-                    </>
-                  )}
-                </div>
-             ) : (
-                 file ? (
-                  <div style={{ position: 'relative', width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-                      <button 
-                         onClick={() => { setFile(null); setResults(null); }}
-                         style={{ position: 'absolute', top: '12px', right: '12px', zIndex: 10, background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', color: 'var(--text-primary)', borderRadius: 'var(--radius-full)', padding: '4px', cursor: 'pointer' }}
-                      ><X size={14} /></button>
+                    <div className="p-8 text-center text-zinc-500 w-full h-full flex flex-col items-center justify-center">
+                       <UploadCloud className="w-10 h-10 mb-4 opacity-50 text-zinc-400" />
+                       <p className="text-sm">Drag and drop, paste, or click to upload</p>
+                       <input type="file" accept="image/jpeg,image/png,image/webp" id="test-upload" className="hidden" onChange={handleFileChange} />
+                       <label htmlFor="test-upload" className="mt-6 cursor-pointer">
+                          <span className="bg-zinc-900 border border-zinc-700 text-zinc-300 hover:bg-zinc-800 px-4 py-2 rounded-md font-medium text-sm transition-colors shadow-sm inline-block">Browse Files</span>
+                       </label>
+                    </div>
+                  )
+               )}
+            </div>
 
-                      <div style={{ position: 'relative', width: '100%', flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-                        <img 
-                          ref={imgRef} src={URL.createObjectURL(file)} alt="Input" 
-                          style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} 
-                          onLoad={(e) => setPreviewSize({ width: e.target.clientWidth, height: e.target.clientHeight, naturalWidth: e.target.naturalWidth, naturalHeight: e.target.naturalHeight })}
-                        />
-                        {/* Bounding Boxes */}
-                        {results && results.faces && previewSize.naturalWidth > 0 && results.faces.map((face, idx) => {
-                           const scaleX = previewSize.width / previewSize.naturalWidth;
-                           const scaleY = previewSize.height / previewSize.naturalHeight;
-                           const imgRenderProps = imgRef.current.getBoundingClientRect();
-                           const containerProps = imgRef.current.parentElement.getBoundingClientRect();
-                           const offsetX = (containerProps.width - imgRenderProps.width) / 2;
-                           const offsetY = (containerProps.height - imgRenderProps.height) / 2;
-                           
-                           const useEnsemble = includeDeepFace;
-                           const displayConf = useEnsemble ? face.ensemble.confidence : face.predictions.sota.confidence;
-                           const displayLabel = useEnsemble ? face.ensemble.label : face.predictions.sota.label;
-                           const isConfirmed = useEnsemble ? face.ensemble.is_confirmed === true : (displayConf > 0.8 && displayLabel !== 'Unknown');
-                           const boxColor = isConfirmed ? 'var(--confirm-green)' : 'var(--alert-crimson)';
-
-                           return (
-                              <div key={idx} style={{
-                                 position: 'absolute', border: `2px solid ${boxColor}`,
-                                 left: offsetX + (face.bbox.x * scaleX), top: offsetY + (face.bbox.y * scaleY),
-                                 width: face.bbox.w * scaleX, height: face.bbox.h * scaleY, pointerEvents: 'none'
-                               }}>
-                                 <div style={{ 
-                                   position: 'absolute', top: '-24px', left: '-2px', 
-                                   background: boxColor, color: '#000', 
-                                   padding: '2px 6px', fontSize: '10px', fontWeight: 'bold', fontFamily: 'var(--font-mono)'
-                                 }}>
-                                   FACE {idx + 1}
-                                 </div>
-                              </div>
-                           );
-                        })}
-                      </div>
-                  </div>
-                ) : (
-                  <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>
-                     <ImageIcon size={32} style={{ margin: '0 auto var(--space-4)', opacity: 0.5 }} />
-                     <p>Drag and drop, paste, or click to upload</p>
-                     <input type="file" accept="image/jpeg,image/png,image/webp" id="test-upload" style={{ display: 'none' }} onChange={handleFileChange} />
-                     <label htmlFor="test-upload" style={{ marginTop: 'var(--space-4)', display: 'inline-block' }}>
-                        <button className="bg-zinc-100 text-zinc-900 hover:bg-zinc-200 px-4 py-2 rounded-md font-medium" variant="secondary" as="span">Browse Files</button>
-                     </label>
-                  </div>
-                )
-             )}
-          </div>
-
-          <div style={{ marginTop: 'var(--space-4)' }}>
-            <button className="bg-zinc-100 text-zinc-900 hover:bg-zinc-200 px-4 py-2 rounded-md font-medium" variant="primary" style={{ width: '100%', justifyContent: 'center' }} onClick={runPrediction} disabled={!file || loading}>
-               {loading ? <Loader2 className="spin" size={16} style={{ marginRight: '8px' }} /> : <Play size={16} style={{ marginRight: '8px' }} />}
-               {loading ? 'Processing...' : 'Execute Identification'}
-            </button>
-          </div>
-        </div>
+            <div className="mt-6">
+              <Button 
+                className="w-full bg-zinc-100 text-zinc-900 hover:bg-zinc-200 text-sm h-11"
+                onClick={runPrediction} 
+                disabled={!file || loading}
+              >
+                 {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Play className="w-4 h-4 mr-2" />}
+                 {loading ? 'Processing Identity...' : 'Execute Inference'}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Results Block */}
-        <div className="bg-zinc-900/40 border border-zinc-800 rounded-xl p-6 shadow-sm" style={{ display: 'flex', flexDirection: 'column' }}>
-          <h2 style={{ fontSize: 'var(--text-base)', marginBottom: 'var(--space-4)', margin: 0 }}>Telemetry & Results</h2>
-          
-          <div style={{ display: 'flex', gap: 'var(--space-4)', background: 'var(--bg-elevated)', padding: 'var(--space-3)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-subtle)', marginBottom: 'var(--space-4)' }}>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: 'var(--text-sm)', color: 'var(--text-primary)' }}>
-              <input type="checkbox" checked={true} disabled /> MobileNetV2
-            </label>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: 'var(--text-sm)', color: 'var(--text-primary)' }}>
-              <input type="checkbox" checked={includeDeepFace} onChange={(e) => setIncludeDeepFace(e.target.checked)} /> DeepFace (Facenet512)
-            </label>
-          </div>
-          
-          <div style={{ flex: 1, overflowY: 'auto' }}>
-            {loading ? (
-               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-muted)' }}>
-                  <div className="w-8 h-8 rounded-full border-2 border-zinc-500 animate-spin" isLoading />
-                  <p style={{ marginTop: 'var(--space-4)', fontFamily: 'var(--font-mono)', fontSize: 'var(--text-sm)' }}>Analyzing spatial data...</p>
-               </div>
-            ) : results ? (
-               results.faces.length > 0 ? (
-                 <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
-                    <div style={{ color: 'var(--confirm-green)', fontSize: 'var(--text-sm)' }}>{results.message}</div>
-                    
-                    {results.faces.map((face, i) => {
-                       const useEnsemble = includeDeepFace;
-                       const displayLabel = useEnsemble ? face.ensemble.label : face.predictions.sota.label;
-                       const displayConf = useEnsemble ? face.ensemble.confidence : face.predictions.sota.confidence;
-                       const displayMethod = useEnsemble ? face.ensemble.method : "SOTA Base";
-                       const isConfirmed = useEnsemble ? face.ensemble.is_confirmed === true : (displayConf > 0.8 && displayLabel !== 'Unknown');
-                       const statusStr = isConfirmed ? 'confirmed' : 'not-found';
-
-                       return (
-                        <div className="bg-zinc-900/40 border border-zinc-800 rounded-xl p-6 shadow-sm" key={i} padding="var(--space-4)" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)' }}>
-                           <h3 style={{ margin: '0 0 var(--space-4) 0', fontSize: 'var(--text-sm)', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>FACE DETECTED {i + 1}</h3>
-                           
-                           <div className="w-8 h-8 rounded-full border-2 border-zinc-500 animate-spin" status={statusStr} style={{ display: 'block', padding: 'var(--space-4)', background: 'var(--bg-surface)' }}>
-                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                               <div>
-                                 <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
-                                   {isConfirmed ? 'IDENTITY CONFIRMED' : 'NO MATCH FOUND'}
-                                 </span>
-                                 <div style={{ fontSize: 'var(--text-lg)', fontWeight: '500', color: isConfirmed ? 'var(--confirm-green)' : 'var(--alert-crimson)', marginTop: '4px' }}>
-                                   {isConfirmed ? displayLabel.replace(/_/g, ' ') : 'Unknown Person'}
-                                 </div>
-                               </div>
-                               <div style={{ fontSize: 'var(--text-2xl)', color: isConfirmed ? 'var(--confirm-green)' : 'var(--alert-crimson)' }}>
-                                 {isConfirmed ? '✓' : '✗'}
-                               </div>
-                             </div>
-
-                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'var(--space-4)', paddingTop: 'var(--space-3)', borderTop: '1px dashed var(--border-subtle)' }}>
-                               <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
-                                 MTHD: {displayMethod.toUpperCase()} | CONF: {(displayConf * 100).toFixed(1)}%
-                               </div>
-                               
-                               {face.prediction_id && (
-                                 <div style={{ display: 'flex', gap: '4px' }}>
-                                    {feedbackState[face.prediction_id] === 'success' ? (
-                                      <span style={{ color: 'var(--confirm-green)', fontSize: 'var(--text-xs)', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                        <Check size={12} /> Logged
-                                      </span>
-                                    ) : (
-                                      <>
-                                        <button className="bg-zinc-100 text-zinc-900 hover:bg-zinc-200 px-4 py-2 rounded-md font-medium" variant="ghost" size="sm" onClick={() => submitFeedback(face.prediction_id, true, displayLabel)} title="Correct Detection">
-                                          <ThumbsUp size={14} color="var(--confirm-green)" />
-                                        </button>
-                                        <button className="bg-zinc-100 text-zinc-900 hover:bg-zinc-200 px-4 py-2 rounded-md font-medium" variant="ghost" size="sm" onClick={() => submitFeedback(face.prediction_id, false, displayLabel)} title="Incorrect Detection">
-                                          <ThumbsDown size={14} color="var(--alert-crimson)" />
-                                        </button>
-                                      </>
-                                    )}
-                                 </div>
-                               )}
-                             </div>
-                           </div>
-
-                           <div style={{ marginTop: 'var(--space-4)', display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
-                              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'var(--text-xs)', fontFamily: 'var(--font-mono)' }}>
-                                 <span style={{ color: 'var(--text-muted)' }}>MobileNetV2</span>
-                                 <span style={{ color: 'var(--text-primary)' }}>{face.predictions.sota.label} ({(face.predictions.sota.confidence * 100).toFixed(1)}%)</span>
-                              </div>
-                              {includeDeepFace && (
-                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'var(--text-xs)', fontFamily: 'var(--font-mono)' }}>
-                                   <span style={{ color: 'var(--text-muted)' }}>Facenet512</span>
-                                   <span style={{ color: 'var(--text-primary)' }}>{face.predictions.deepface.label} ({(face.predictions.deepface.confidence * 100).toFixed(1)}%)</span>
-                                </div>
-                              )}
-                           </div>
+        <Card className="bg-zinc-900/40 border-zinc-800 flex flex-col">
+          <CardHeader className="flex flex-row items-center justify-between pb-4 border-b border-zinc-800">
+            <CardTitle className="text-base font-medium">Telemetry & Results</CardTitle>
+          </CardHeader>
+          <CardContent className="p-6 flex-1 flex flex-col">
+            
+            <div className="flex gap-4 p-3 bg-zinc-950/50 rounded-lg border border-zinc-800 mb-6">
+              <div className="flex items-center space-x-2">
+                <Switch id="sota" checked={true} disabled />
+                <Label htmlFor="sota" className="text-xs font-mono text-zinc-400">MobileNetV2</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Switch id="df" checked={includeDeepFace} onCheckedChange={setIncludeDeepFace} />
+                <Label htmlFor="df" className="text-xs font-mono text-zinc-100 cursor-pointer">DeepFace / Ensemble</Label>
+              </div>
+            </div>
+            
+            <div className="flex-1 overflow-y-auto">
+              {loading ? (
+                 <div className="flex flex-col items-center justify-center h-full text-zinc-500 py-20">
+                    <Loader2 className="w-8 h-8 animate-spin" />
+                    <p className="mt-4 font-mono text-xs tracking-wider uppercase">Analyzing spatial data...</p>
+                 </div>
+              ) : results ? (
+                 results.faces && results.faces.length > 0 ? (
+                   <div className="space-y-4">
+                      {results.message && (
+                        <div className="text-emerald-500 font-mono text-xs mb-2 border-l-2 border-emerald-500 pl-2">
+                          [SYS] {results.message}
                         </div>
-                       );
-                    })}
+                      )}
+                      
+                      {results.faces.map((face, i) => {
+                         const useEnsemble = includeDeepFace;
+                         const displayLabel = useEnsemble ? face.ensemble?.label : face.predictions?.sota?.label;
+                         const displayConf = useEnsemble ? (face.ensemble?.confidence || 0) : (face.predictions?.sota?.confidence || 0);
+                         const displayMethod = useEnsemble ? (face.ensemble?.method || 'N/A') : "SOTA Base";
+                         const isConfirmed = useEnsemble ? face.ensemble?.is_confirmed === true : (displayConf > 0.8 && displayLabel !== 'Unknown');
+                         
+                         const spoofed = displayLabel === 'SPOOF DETECTED';
+                         
+                         const statusColor = spoofed ? 'text-amber-500' : (isConfirmed ? 'text-emerald-500' : 'text-red-500');
+                         const statusBorder = spoofed ? 'border-amber-500/30' : (isConfirmed ? 'border-emerald-500/30' : 'border-red-500/30');
+                         const statusBg = spoofed ? 'bg-amber-500/5' : (isConfirmed ? 'bg-emerald-500/5' : 'bg-red-500/5');
+
+                         return (
+                          <div className="bg-zinc-950/50 border border-zinc-800 rounded-xl p-5 shadow-sm relative overflow-hidden" key={i}>
+                             <div className={`absolute top-0 left-0 w-1 h-full ${isConfirmed ? 'bg-emerald-500' : (spoofed ? 'bg-amber-500' : 'bg-red-500')}`} />
+                             
+                             <h3 className="m-0 mb-4 text-xs font-semibold text-zinc-500 font-mono tracking-wider">TARGET {i + 1}</h3>
+                             
+                             <div className={`p-4 rounded-lg border ${statusBorder} ${statusBg}`}>
+                               <div className="flex justify-between items-start">
+                                 <div>
+                                   <div className="text-[10px] font-mono tracking-wider text-zinc-500 mb-1 uppercase">
+                                     {spoofed ? 'LIVENESS FAILED' : (isConfirmed ? 'IDENTITY CONFIRMED' : 'NO MATCH FOUND')}
+                                   </div>
+                                   <div className={`text-xl font-medium tracking-tight ${statusColor}`}>
+                                     {displayLabel ? displayLabel.replace(/_/g, ' ') : 'Unknown'}
+                                   </div>
+                                 </div>
+                               </div>
+
+                               <div className="flex justify-between items-center mt-4 pt-4 border-t border-zinc-800/50">
+                                 <div className="text-[10px] text-zinc-500 font-mono tracking-wider uppercase">
+                                   MTHD: {displayMethod} | CONF: {(displayConf * 100).toFixed(1)}%
+                                 </div>
+                                 
+                                 {face.prediction_id && !spoofed && (
+                                   <div className="flex gap-1.5">
+                                      {feedbackState[face.prediction_id] === 'success' ? (
+                                        <Badge variant="outline" className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20 text-[10px] px-2 font-mono">
+                                          <Check className="w-3 h-3 mr-1" /> Logged
+                                        </Badge>
+                                      ) : (
+                                        <>
+                                          <Button variant="ghost" size="icon" className="h-7 w-7 text-emerald-500 hover:text-emerald-400 hover:bg-emerald-500/10 rounded" onClick={() => submitFeedback(face.prediction_id, true, displayLabel)} title="Correct Detection">
+                                            <ThumbsUp className="w-3.5 h-3.5" />
+                                          </Button>
+                                          <Button variant="ghost" size="icon" className="h-7 w-7 text-red-500 hover:text-red-400 hover:bg-red-500/10 rounded" onClick={() => submitFeedback(face.prediction_id, false, displayLabel)} title="Incorrect Detection">
+                                            <ThumbsDown className="w-3.5 h-3.5" />
+                                          </Button>
+                                        </>
+                                      )}
+                                   </div>
+                                 )}
+                               </div>
+                             </div>
+
+                             <div className="mt-4 flex flex-col gap-2 p-3 bg-zinc-900/50 rounded-lg border border-zinc-800">
+                                <div className="flex justify-between text-[11px] font-mono">
+                                   <span className="text-zinc-500">MobileNetV2</span>
+                                   <span className="text-zinc-300">{face.predictions?.sota?.label} ({(face.predictions?.sota?.confidence * 100).toFixed(1)}%)</span>
+                                </div>
+                                {includeDeepFace && face.predictions?.deepface && (
+                                  <div className="flex justify-between text-[11px] font-mono border-t border-zinc-800/50 pt-2">
+                                     <span className="text-zinc-500">Facenet512</span>
+                                     <span className="text-zinc-300">{face.predictions.deepface.label} ({(face.predictions.deepface.confidence * 100).toFixed(1)}%)</span>
+                                  </div>
+                                )}
+                             </div>
+                          </div>
+                         );
+                      })}
+                   </div>
+                 ) : (
+                   <div className="text-center py-20 text-zinc-500">
+                      <Maximize className="w-10 h-10 mx-auto mb-4 opacity-50" />
+                      <p className="text-sm">No faces detected in the provided frame.</p>
+                   </div>
+                 )
+              ) : (
+                 <div className="text-center py-20 text-zinc-500">
+                    <p className="text-sm font-mono tracking-tight">Inference output will appear here.</p>
                  </div>
-               ) : (
-                 <div style={{ textAlign: 'center', marginTop: 'var(--space-8)', color: 'var(--text-muted)' }}>
-                    <Maximize size={32} style={{ margin: '0 auto var(--space-4)', opacity: 0.5 }} />
-                    <p>No faces detected in the provided frame.</p>
-                 </div>
-               )
-            ) : (
-               <div style={{ textAlign: 'center', marginTop: 'var(--space-8)', color: 'var(--text-muted)' }}>
-                  <p>Inference output will appear here.</p>
-               </div>
-            )}
-          </div>
-        </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
         
       </div>
     </motion.div>

@@ -4,8 +4,9 @@ import { Download, Trash2, Box, Cpu, AlertTriangle, Settings, Save, CheckCircle,
 import { motion, AnimatePresence } from 'framer-motion';
 
 import { API_BASE } from '../config';
-
-
+import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 
 export default function ModelsPage() {
   const { apiClient } = useAuth();
@@ -66,10 +67,10 @@ export default function ModelsPage() {
   };
 
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ paddingBottom: 'var(--space-8)' }}>
-      <div style={{ marginBottom: 'var(--space-6)' }}>
-        <h1 style={{ margin: 0, fontSize: 'var(--text-2xl)' }}>Model Management</h1>
-        <p style={{ margin: '4px 0 0 0', color: 'var(--text-muted)' }}>Export models for edge deployment or reset the system.</p>
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="pb-12 max-w-5xl mx-auto space-y-6">
+      <div>
+        <h1 className="text-2xl font-semibold tracking-tight text-zinc-100">Model Management</h1>
+        <p className="mt-1 text-sm text-zinc-400">Export models for edge deployment or reset the system.</p>
       </div>
 
       <AnimatePresence>
@@ -78,128 +79,138 @@ export default function ModelsPage() {
             initial={{ opacity: 0, height: 0 }} 
             animate={{ opacity: 1, height: 'auto' }} 
             exit={{ opacity: 0, height: 0 }}
-            style={{ marginBottom: 'var(--space-6)' }}
+            className="overflow-hidden"
           >
-            <div style={{
-              padding: 'var(--space-3) var(--space-4)', borderRadius: 'var(--radius-sm)',
-              background: status.type === 'error' ? 'var(--error-bg)' : status.type === 'success' ? 'var(--success-bg)' : 'var(--bg-elevated)',
-              border: `1px solid ${status.type === 'error' ? 'rgba(239, 68, 68, 0.3)' : status.type === 'success' ? 'rgba(48, 209, 88, 0.3)' : 'var(--border-subtle)'}`,
-              color: status.type === 'error' ? 'var(--alert-crimson)' : status.type === 'success' ? 'var(--confirm-green)' : 'var(--text-primary)',
-              display: 'flex', alignItems: 'center', gap: 'var(--space-2)', fontSize: 'var(--text-sm)'
-            }}>
-              {status.type === 'error' ? <AlertTriangle size={16} /> : status.type === 'success' ? <CheckCircle size={16} /> : <Info size={16} />}
+            <div className={`p-4 rounded-lg flex items-center gap-3 text-sm mb-2 border ${
+              status.type === 'error' ? 'bg-red-500/10 text-red-500 border-red-500/20' : 
+              status.type === 'success' ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' : 
+              'bg-blue-500/10 text-blue-500 border-blue-500/20'
+            }`}>
+              {status.type === 'error' ? <AlertTriangle className="w-5 h-5" /> : status.type === 'success' ? <CheckCircle className="w-5 h-5" /> : <Info className="w-5 h-5" />}
               {status.message}
             </div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 'var(--space-4)', marginBottom: 'var(--space-6)' }}>
-        <div className="bg-zinc-900/40 border border-zinc-800 rounded-xl p-6 shadow-sm">
-          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', marginBottom: 'var(--space-3)' }}>
-            <Cpu size={24} color="var(--accent-violet)" />
-            <div>
-              <div style={{ fontSize: 'var(--text-lg)', fontWeight: 500 }}>DeepFace 512</div>
-              <div style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>encodings.pickle</div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <Card className="bg-zinc-900/40 border-zinc-800">
+          <CardContent className="p-6">
+            <div className="flex items-center gap-4 mb-4">
+              <div className="w-12 h-12 rounded-xl bg-violet-500/10 flex items-center justify-center text-violet-500 border border-violet-500/20">
+                <Cpu className="w-6 h-6" />
+              </div>
+              <div>
+                <div className="text-lg font-medium text-zinc-100">DeepFace 512</div>
+                <div className="text-sm text-zinc-500 font-mono">encodings.pickle</div>
+              </div>
             </div>
-          </div>
-          <p style={{ margin: 0, fontSize: 'var(--text-sm)', color: 'var(--text-secondary)' }}>
-            Stores raw L2-normalized embeddings using Facenet512.
-          </p>
-        </div>
+            <p className="text-sm text-zinc-400 m-0">
+              Stores raw L2-normalized embeddings using Facenet512.
+            </p>
+          </CardContent>
+        </Card>
 
-        <div className="bg-zinc-900/40 border border-zinc-800 rounded-xl p-6 shadow-sm">
-          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', marginBottom: 'var(--space-3)' }}>
-            <Box size={24} color="var(--accent-cyan)" />
-            <div>
-              <div style={{ fontSize: 'var(--text-lg)', fontWeight: 500 }}>MobileNetV2</div>
-              <div style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>best_mobile_sideface.pth</div>
+        <Card className="bg-zinc-900/40 border-zinc-800">
+          <CardContent className="p-6">
+            <div className="flex items-center gap-4 mb-4">
+              <div className="w-12 h-12 rounded-xl bg-cyan-500/10 flex items-center justify-center text-cyan-500 border border-cyan-500/20">
+                <Box className="w-6 h-6" />
+              </div>
+              <div>
+                <div className="text-lg font-medium text-zinc-100">MobileNetV2</div>
+                <div className="text-sm text-zinc-500 font-mono">best_mobile_sideface.pth</div>
+              </div>
             </div>
-          </div>
-          <p style={{ margin: 0, fontSize: 'var(--text-sm)', color: 'var(--text-secondary)' }}>
-            SOTA lightweight model explicitly trained for edge device inference.
-          </p>
-        </div>
+            <p className="text-sm text-zinc-400 m-0">
+              SOTA lightweight model explicitly trained for edge device inference.
+            </p>
+          </CardContent>
+        </Card>
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-6)' }}>
+      <div className="flex flex-col gap-6">
         
-        <div className="bg-zinc-900/40 border border-zinc-800 rounded-xl p-6 shadow-sm">
-          <h3 style={{ margin: '0 0 var(--space-4) 0', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px', fontSize: 'var(--text-lg)' }}>
-            <Settings size={20} /> System Settings
-          </h3>
-          <p style={{ color: 'var(--text-secondary)', marginBottom: 'var(--space-6)', fontSize: 'var(--text-sm)' }}>
-            Adjust global recognition parameters. The confirmation threshold determines how strict the AI is when verifying identity.
-          </p>
-          
-          <div style={{ background: 'var(--bg-elevated)', padding: 'var(--space-4)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-subtle)' }}>
-             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 'var(--space-2)' }}>
-               <label style={{ fontWeight: 500, fontSize: 'var(--text-sm)' }}>DeepFace Confirmation Threshold</label>
-               <span style={{ color: 'var(--accent-cyan)', fontWeight: 600, fontFamily: 'var(--font-mono)' }}>{threshold.toFixed(2)}</span>
-             </div>
-             <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', marginBottom: 'var(--space-4)' }}>
-               Lower values = Stricter matching (fewer false positives). Higher values = Looser matching (fewer false negatives). Default is 0.35.
-             </p>
-             <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-4)', marginBottom: 'var(--space-6)' }}>
-               <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>0.10 (Strict)</span>
-               <input 
-                 type="range" min="0.10" max="0.50" step="0.01" value={threshold} 
-                 onChange={(e) => setThreshold(parseFloat(e.target.value))}
-                 style={{ flex: 1, accentColor: 'var(--accent-cyan)' }}
-               />
-               <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>0.50 (Loose)</span>
-             </div>
-             <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-               <button className="bg-zinc-100 text-zinc-900 hover:bg-zinc-200 px-4 py-2 rounded-md font-medium" variant="primary" onClick={handleSaveConfig} disabled={isSavingConfig || (config && threshold === config.CONFIRM_THRESHOLD)}>
-                 <Save size={16} style={{ marginRight: '6px' }} />
-                 {isSavingConfig ? 'Saving...' : 'Save Configuration'}
-               </button>
-             </div>
-          </div>
-        </div>
-
-        <div className="bg-zinc-900/40 border border-zinc-800 rounded-xl p-6 shadow-sm">
-          <h3 style={{ margin: '0 0 var(--space-4) 0', color: 'var(--text-primary)', fontSize: 'var(--text-lg)' }}>Export & Download</h3>
-          <p style={{ color: 'var(--text-secondary)', marginBottom: 'var(--space-6)', fontSize: 'var(--text-sm)' }}>
-            Convert the trained MobileNetV2 model to ONNX format (Open Neural Network Exchange). 
-            This format is highly optimized for deployment on mobile devices (React Native) or edge hardware.
-          </p>
-          
-          <div style={{ display: 'flex', gap: 'var(--space-3)' }}>
-            <button className="bg-zinc-100 text-zinc-900 hover:bg-zinc-200 px-4 py-2 rounded-md font-medium" variant="secondary" onClick={handleExport} disabled={isExporting}>
-              {isExporting ? 'Exporting...' : '1. Export to ONNX'}
-            </button>
-            <button className="bg-zinc-100 text-zinc-900 hover:bg-zinc-200 px-4 py-2 rounded-md font-medium" variant="primary" onClick={handleDownload}>
-              <Download size={16} style={{ marginRight: '8px' }} /> 2. Download Model
-            </button>
-          </div>
-        </div>
-
-        <div className="bg-zinc-900/40 border border-zinc-800 rounded-xl p-6 shadow-sm" style={{ border: '1px solid rgba(239, 68, 68, 0.3)' }}>
-          <h3 style={{ margin: '0 0 var(--space-4) 0', color: 'var(--alert-crimson)', display: 'flex', alignItems: 'center', gap: '8px', fontSize: 'var(--text-lg)' }}>
-            <AlertTriangle size={20} /> Danger Zone
-          </h3>
-          <p style={{ color: 'var(--text-secondary)', marginBottom: 'var(--space-6)', fontSize: 'var(--text-sm)' }}>
-            This action will permanently delete all trained model weights and raw face datasets from the system. 
-            You will need to upload new faces to start fresh. This cannot be undone.
-          </p>
-
-          {!showConfirm ? (
-            <button className="bg-zinc-100 text-zinc-900 hover:bg-zinc-200 px-4 py-2 rounded-md font-medium" variant="danger" onClick={() => setShowConfirm(true)}>
-              <Trash2 size={16} style={{ marginRight: '8px' }} /> Reset All Models
-            </button>
-          ) : (
-            <div style={{ display: 'flex', gap: 'var(--space-4)', alignItems: 'center' }}>
-              <span style={{ color: 'var(--alert-crimson)', fontWeight: 600, fontSize: 'var(--text-sm)' }}>Are you sure?</span>
-              <button className="bg-zinc-100 text-zinc-900 hover:bg-zinc-200 px-4 py-2 rounded-md font-medium" variant="danger" onClick={handleReset} disabled={isResetting}>
-                {isResetting ? 'Deleting...' : 'Yes, Delete Everything'}
-              </button>
-              <button className="bg-zinc-100 text-zinc-900 hover:bg-zinc-200 px-4 py-2 rounded-md font-medium" variant="ghost" onClick={() => setShowConfirm(false)}>
-                Cancel
-              </button>
+        <Card className="bg-zinc-900/40 border-zinc-800">
+          <CardContent className="p-6">
+            <h3 className="text-lg font-medium text-zinc-100 flex items-center gap-2 mb-2">
+              <Settings className="w-5 h-5" /> System Settings
+            </h3>
+            <p className="text-sm text-zinc-400 mb-6">
+              Adjust global recognition parameters. The confirmation threshold determines how strict the AI is when verifying identity.
+            </p>
+            
+            <div className="bg-zinc-950/50 p-5 rounded-xl border border-zinc-800">
+               <div className="flex justify-between items-center mb-2">
+                 <label className="text-sm font-medium text-zinc-300">DeepFace Confirmation Threshold</label>
+                 <span className="text-cyan-400 font-mono font-semibold">{threshold.toFixed(2)}</span>
+               </div>
+               <p className="text-xs text-zinc-500 mb-6">
+                 Lower values = Stricter matching (fewer false positives). Higher values = Looser matching (fewer false negatives). Default is 0.35.
+               </p>
+               <div className="flex items-center gap-4 mb-6">
+                 <span className="text-xs text-zinc-500">0.10 (Strict)</span>
+                 <input 
+                   type="range" min="0.10" max="0.50" step="0.01" value={threshold} 
+                   onChange={(e) => setThreshold(parseFloat(e.target.value))}
+                   className="flex-1 accent-cyan-500 h-2 bg-zinc-800 rounded-lg appearance-none cursor-pointer"
+                 />
+                 <span className="text-xs text-zinc-500">0.50 (Loose)</span>
+               </div>
+               <Button onClick={handleSaveConfig} disabled={isSavingConfig} className="w-full bg-zinc-100 text-zinc-900 hover:bg-zinc-200">
+                 {isSavingConfig ? 'Saving...' : <><Save className="w-4 h-4 mr-2" /> Save Configuration</>}
+               </Button>
             </div>
-          )}
-        </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-zinc-900/40 border-zinc-800">
+          <CardContent className="p-6">
+            <h3 className="text-lg font-medium text-zinc-100 flex items-center gap-2 mb-2">
+              <Download className="w-5 h-5" /> Export MobileNetV2 for Edge
+            </h3>
+            <p className="text-sm text-zinc-400 mb-6">
+              Convert the trained PyTorch MobileNetV2 model into an ONNX format to deploy directly to iOS/Android apps or edge devices.
+            </p>
+            
+            <div className="flex flex-wrap gap-3">
+              <Button onClick={handleExport} disabled={isExporting} variant="outline" className="bg-zinc-950/50 border-zinc-800 text-zinc-300 hover:bg-zinc-800 hover:text-zinc-100">
+                {isExporting ? 'Exporting...' : <><Cpu className="w-4 h-4 mr-2" /> 1. Generate ONNX Model</>}
+              </Button>
+              <Button onClick={handleDownload} variant="default" className="bg-cyan-500/10 text-cyan-500 hover:bg-cyan-500/20 border border-cyan-500/20">
+                <Download className="w-4 h-4 mr-2" /> 2. Download ONNX File
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-red-500/20 bg-red-500/5 overflow-hidden">
+          <div className="h-1 w-full bg-gradient-to-r from-red-500/50 to-transparent"></div>
+          <CardContent className="p-6">
+            <h3 className="text-lg font-medium text-red-500 flex items-center gap-2 mb-2">
+              <AlertTriangle className="w-5 h-5" /> Danger Zone
+            </h3>
+            <p className="text-sm text-zinc-400 mb-6">
+              Resetting the system will permanently delete all trained models (DeepFace and MobileNetV2) and all collected identity datasets. You will need to re-register everyone.
+            </p>
+            
+            {showConfirm ? (
+              <div className="bg-zinc-950 p-4 rounded-xl border border-red-500/30 flex items-center justify-between gap-4 flex-wrap">
+                <span className="text-sm text-zinc-300">Are you absolutely sure? This action cannot be undone.</span>
+                <div className="flex gap-2">
+                  <Button variant="outline" onClick={() => setShowConfirm(false)} className="border-zinc-700 hover:bg-zinc-800 text-zinc-300">Cancel</Button>
+                  <Button variant="destructive" onClick={handleReset} disabled={isResetting} className="bg-red-500 hover:bg-red-600 text-white">
+                    {isResetting ? 'Resetting...' : 'Yes, Delete Everything'}
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <Button onClick={() => setShowConfirm(true)} variant="outline" className="text-red-500 border-red-500/30 hover:bg-red-500 hover:text-white transition-colors">
+                <Trash2 className="w-4 h-4 mr-2" /> Factory Reset AI
+              </Button>
+            )}
+          </CardContent>
+        </Card>
 
       </div>
     </motion.div>

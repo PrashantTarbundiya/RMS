@@ -1,15 +1,15 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
-import Modal from '../components/Modal';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { ArrowLeft, Trash2, Camera, UploadCloud, Video, X, CheckCircle, AlertTriangle, Info, Image as ImageIcon, RotateCw } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 import { API_BASE } from '../config';
-
-
-
-
+import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import Modal from '../components/Modal';
 
 export default function ManagePersonPage() {
   const { apiClient } = useAuth();
@@ -217,152 +217,163 @@ export default function ManagePersonPage() {
 
   if (isLoading) {
     return (
-      <div style={{ display: 'flex', justifyContent: 'center', padding: 'var(--space-8)' }}>
-        <RotateCw className="spin" size={32} color="var(--accent-violet)" />
+      <div className="flex justify-center py-16">
+        <RotateCw className="animate-spin w-8 h-8 text-violet-500" />
       </div>
     );
   }
 
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ paddingBottom: 'var(--space-8)' }}>
-      <div style={{ marginBottom: 'var(--space-6)', display: 'flex', alignItems: 'center', gap: 'var(--space-4)' }}>
-        <Link to="/" style={{ color: 'var(--text-muted)' }}><ArrowLeft size={24} /></Link>
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="pb-12 max-w-5xl mx-auto space-y-6">
+      <div className="flex items-center gap-4 mb-6">
+        <Link to="/" className="text-zinc-400 hover:text-zinc-200 transition-colors">
+          <ArrowLeft className="w-6 h-6" />
+        </Link>
         <div>
-          <h1 style={{ margin: 0, fontSize: 'var(--text-2xl)' }}>Edit Enrolled Profile</h1>
-          <p style={{ margin: '4px 0 0 0', color: 'var(--text-muted)' }}>Manage photos and retrain the model for {originalName}.</p>
+          <h1 className="text-2xl font-semibold tracking-tight text-zinc-100">Edit Enrolled Profile</h1>
+          <p className="mt-1 text-sm text-zinc-400">Manage photos and retrain the model for {originalName}.</p>
         </div>
       </div>
 
-      <div className="bg-zinc-900/40 border border-zinc-800 rounded-xl p-6 shadow-sm" as="form" onSubmit={handleUpdate}>
-        <AnimatePresence>
-          {status.message && (
-            <motion.div 
-              initial={{ opacity: 0, height: 0 }} 
-              animate={{ opacity: 1, height: 'auto' }} 
-              exit={{ opacity: 0, height: 0 }}
-              style={{ marginBottom: 'var(--space-6)' }}
-            >
-              <div style={{
-                padding: 'var(--space-3) var(--space-4)', borderRadius: 'var(--radius-sm)',
-                background: status.type === 'error' ? 'var(--error-bg)' : status.type === 'success' ? 'var(--success-bg)' : 'var(--bg-elevated)',
-                border: `1px solid ${status.type === 'error' ? 'rgba(239, 68, 68, 0.3)' : status.type === 'success' ? 'rgba(48, 209, 88, 0.3)' : 'var(--border-subtle)'}`,
-                color: status.type === 'error' ? 'var(--alert-crimson)' : status.type === 'success' ? 'var(--confirm-green)' : 'var(--text-primary)',
-                display: 'flex', alignItems: 'center', gap: 'var(--space-2)', fontSize: 'var(--text-sm)'
-              }}>
-                {status.type === 'error' ? <AlertCircle size={16} /> : status.type === 'success' ? <CheckCircle size={16} /> : <Info size={16} />}
-                {status.message}
+      <Card className="bg-zinc-900/40 border-zinc-800">
+        <CardContent className="p-6">
+          <form onSubmit={handleUpdate}>
+            <AnimatePresence>
+              {status.message && (
+                <motion.div 
+                  initial={{ opacity: 0, height: 0 }} 
+                  animate={{ opacity: 1, height: 'auto' }} 
+                  exit={{ opacity: 0, height: 0 }}
+                  className="overflow-hidden mb-6"
+                >
+                  <div className={`p-4 rounded-lg flex items-center gap-3 text-sm border ${
+                    status.type === 'error' ? 'bg-red-500/10 text-red-500 border-red-500/20' : 
+                    status.type === 'success' ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' : 
+                    'bg-blue-500/10 text-blue-500 border-blue-500/20'
+                  }`}>
+                    {status.type === 'error' ? <AlertTriangle className="w-5 h-5" /> : status.type === 'success' ? <CheckCircle className="w-5 h-5" /> : <Info className="w-5 h-5" />}
+                    {status.message}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            <div className="flex flex-wrap gap-4 mb-6">
+              <div className="flex-2 min-w-[250px] space-y-2">
+                <label className="text-sm font-medium text-zinc-400">Person Name</label>
+                <Input 
+                  type="text" 
+                  value={personName} 
+                  onChange={(e) => setPersonName(e.target.value.replace(/\s+/g, '_'))} 
+                  required 
+                  className="bg-zinc-950 border-zinc-800 text-zinc-100"
+                />
               </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        <div style={{ display: 'flex', gap: 'var(--space-4)', flexWrap: 'wrap', marginBottom: 'var(--space-6)' }}>
-          <div style={{ flex: 2, minWidth: '250px' }}>
-            <label style={{ display: 'block', fontSize: 'var(--text-sm)', color: 'var(--text-muted)', marginBottom: 'var(--space-2)' }}>Person Name</label>
-            <Input type="text" value={personName} onChange={(e) => setPersonName(e.target.value.replace(/\s+/g, '_'))} required />
-          </div>
-          <div style={{ flex: 1, minWidth: '150px' }}>
-            <label style={{ display: 'block', fontSize: 'var(--text-sm)', color: 'var(--text-muted)', marginBottom: 'var(--space-2)' }}>Training Epochs</label>
-            <Input type="number" min="1" max="50" value={epochs} onChange={(e) => setEpochs(e.target.value)} />
-          </div>
-        </div>
-
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-4)' }}>
-          <h3 style={{ fontSize: 'var(--text-base)', margin: 0 }}>Reference Images</h3>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-4)' }}>
-            <span className="bg-zinc-800 text-zinc-300 px-2 py-1 rounded-md text-xs" status="default">Total: {photos.length + totalNewImages}</span>
-            <button className="bg-zinc-100 text-zinc-900 hover:bg-zinc-200 px-4 py-2 rounded-md font-medium" type="button" variant="secondary" size="sm" onClick={showWebcam ? stopWebcam : startWebcam}>
-              {showWebcam ? <><X size={14} style={{ marginRight: '8px' }} /> Close Camera</> : <><Video size={14} style={{ marginRight: '8px' }} /> Open Webcam</>}
-            </button>
-          </div>
-        </div>
-
-        {showWebcam && (
-          <div style={{ padding: 'var(--space-4)', background: 'var(--bg-elevated)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-subtle)', marginBottom: 'var(--space-6)', textAlign: 'center' }}>
-            <video ref={videoRef} autoPlay playsInline muted style={{ width: '100%', maxWidth: '400px', borderRadius: 'var(--radius-sm)', marginBottom: 'var(--space-4)' }} />
-            <div>
-              <button className="bg-zinc-100 text-zinc-900 hover:bg-zinc-200 px-4 py-2 rounded-md font-medium" type="button" variant="primary" onClick={captureWebcam}>
-                <Camera size={16} style={{ marginRight: '8px' }} /> Capture Photo
-              </button>
+              <div className="flex-1 min-w-[150px] space-y-2">
+                <label className="text-sm font-medium text-zinc-400">Training Epochs</label>
+                <Input 
+                  type="number" 
+                  min="1" max="50" 
+                  value={epochs} 
+                  onChange={(e) => setEpochs(e.target.value)} 
+                  className="bg-zinc-950 border-zinc-800 text-zinc-100"
+                />
+              </div>
             </div>
-          </div>
-        )}
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 'var(--space-4)', marginBottom: 'var(--space-6)' }}>
-          <DropBox 
-            field="front_img" title="Frontal Face" files={images.front_img} existingFiles={photos.filter(p => p.angle === 'frontal')} personName={originalName}
-            isActive={activeField === 'front_img'} onFocus={() => setActiveField('front_img')} onFiles={(files) => handleFile('front_img', files)} 
-            onRemove={(idx) => removeNewFile('front_img', idx)} onDeleteExisting={(fn) => handleDeletePhoto('frontal', fn)}
-            onDropMoveLocal={(src, idx) => handleMoveLocalFile(src, 'front_img', idx)} onDropMoveExisting={(src, fn) => handleMoveExistingPhoto(src, 'frontal', fn)}
-          />
-          <DropBox 
-            field="left_img" title="Left Profile" files={images.left_img} existingFiles={photos.filter(p => p.angle === 'left')} personName={originalName}
-            isActive={activeField === 'left_img'} onFocus={() => setActiveField('left_img')} onFiles={(files) => handleFile('left_img', files)} 
-            onRemove={(idx) => removeNewFile('left_img', idx)} onDeleteExisting={(fn) => handleDeletePhoto('left', fn)}
-            onDropMoveLocal={(src, idx) => handleMoveLocalFile(src, 'left_img', idx)} onDropMoveExisting={(src, fn) => handleMoveExistingPhoto(src, 'left', fn)}
-          />
-          <DropBox 
-            field="right_img" title="Right Profile" files={images.right_img} existingFiles={photos.filter(p => p.angle === 'right')} personName={originalName}
-            isActive={activeField === 'right_img'} onFocus={() => setActiveField('right_img')} onFiles={(files) => handleFile('right_img', files)} 
-            onRemove={(idx) => removeNewFile('right_img', idx)} onDeleteExisting={(fn) => handleDeletePhoto('right', fn)}
-            onDropMoveLocal={(src, idx) => handleMoveLocalFile(src, 'right_img', idx)} onDropMoveExisting={(src, fn) => handleMoveExistingPhoto(src, 'right', fn)}
-          />
-        </div>
-
-        <h3 style={{ fontSize: 'var(--text-base)', marginBottom: 'var(--space-2)', margin: 0 }}>Bulk Upload (Unsorted)</h3>
-        <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)', marginBottom: 'var(--space-4)' }}>
-          {activeField === 'extra_files' ? 'Currently the active paste target.' : 'Click to make this the active paste target.'}
-        </p>
-
-        <div 
-          onClick={() => setActiveField('extra_files')}
-          onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
-          onDrop={(e) => {
-            e.preventDefault(); e.stopPropagation();
-            const srcType = e.dataTransfer.getData("sourceType");
-            if (srcType === "local") handleMoveLocalFile(e.dataTransfer.getData("sourceField"), 'extra_files', parseInt(e.dataTransfer.getData("sourceIndex")));
-            else if (srcType === "existing") handleMoveExistingPhoto(e.dataTransfer.getData("sourceAngle"), 'extra', e.dataTransfer.getData("filename"));
-            else if (e.dataTransfer.files) handleFile('extra_files', e.dataTransfer.files);
-          }}
-          style={{
-            border: activeField === 'extra_files' ? '2px dashed var(--accent-violet)' : '1px dashed var(--border-subtle)',
-            background: activeField === 'extra_files' ? 'var(--bg-elevated)' : 'transparent',
-            padding: 'var(--space-6)', borderRadius: 'var(--radius-md)', textAlign: 'center', transition: 'all var(--duration) var(--ease)', cursor: 'pointer',
-            minHeight: '150px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center'
-          }}
-        >
-          <input type="file" multiple accept="image/*" id="bulk-upload-manage" style={{ display: 'none' }} onChange={(e) => handleFile('extra_files', e.target.files)} />
-          
-          {(images.extra_files.length === 0 && photos.filter(p => p.angle === 'extra').length === 0) ? (
-            <label htmlFor="bulk-upload-manage" style={{ cursor: 'pointer', width: '100%', height: '100%' }}>
-              <UploadCloud size={24} style={{ color: 'var(--text-muted)', marginBottom: 'var(--space-2)' }} />
-              <div style={{ color: 'var(--text-primary)' }}>Drop photos or click to browse</div>
-            </label>
-          ) : (
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-2)', justifyContent: 'center', width: '100%' }}>
-              {photos.filter(p => p.angle === 'extra').map(p => (
-                <div key={p.filename} draggable onDragStart={(e) => { e.dataTransfer.setData("sourceType", "existing"); e.dataTransfer.setData("sourceAngle", "extra"); e.dataTransfer.setData("filename", p.filename); }} style={{ position: 'relative', width: '60px', height: '60px' }}>
-                  <img src={`${API_BASE}/persons/${originalName}/photos/extra/${p.filename}`} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '4px', border: '1px solid var(--accent-violet)' }} />
-                  <button type="button" onClick={(e) => { e.stopPropagation(); handleDeletePhoto('extra', p.filename); }} style={{ position: 'absolute', top: -4, right: -4, background: 'var(--alert-crimson)', color: '#fff', border: 'none', borderRadius: '50%', width: 16, height: 16, fontSize: 10, cursor: 'pointer' }}>×</button>
-                </div>
-              ))}
-              {images.extra_files.map((f, i) => (
-                <div key={i} draggable onDragStart={(e) => { e.dataTransfer.setData("sourceType", "local"); e.dataTransfer.setData("sourceField", "extra_files"); e.dataTransfer.setData("sourceIndex", i.toString()); }} style={{ position: 'relative', width: '60px', height: '60px' }}>
-                  <img src={URL.createObjectURL(f)} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '4px', border: '1px solid var(--border-subtle)' }} />
-                  <button type="button" onClick={(e) => { e.stopPropagation(); removeNewFile('extra_files', i); }} style={{ position: 'absolute', top: -4, right: -4, background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: '50%', width: 16, height: 16, fontSize: 10, cursor: 'pointer' }}>×</button>
-                </div>
-              ))}
-              <label htmlFor="bulk-upload-manage" style={{ width: '60px', height: '60px', border: '1px dashed var(--text-muted)', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
-                <UploadCloud size={16} color="var(--text-muted)" />
-              </label>
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-base font-semibold text-zinc-100 m-0">Reference Images</h3>
+              <div className="flex items-center gap-4">
+                <Badge variant="secondary" className="bg-zinc-800 text-zinc-300">Total: {photos.length + totalNewImages}</Badge>
+                <Button type="button" variant="outline" size="sm" onClick={showWebcam ? stopWebcam : startWebcam} className="bg-zinc-950 border-zinc-800 text-zinc-300 hover:text-zinc-100">
+                  {showWebcam ? <><X className="w-4 h-4 mr-2" /> Close Camera</> : <><Video className="w-4 h-4 mr-2" /> Open Webcam</>}
+                </Button>
+              </div>
             </div>
-          )}
-        </div>
 
-        <button className="bg-zinc-100 text-zinc-900 hover:bg-zinc-200 px-4 py-2 rounded-md font-medium" type="submit" variant="primary" style={{ width: '100%', marginTop: 'var(--space-8)', justifyContent: 'center' }} disabled={isSubmitting}>
-          {isSubmitting ? 'Updating Profile & Models...' : 'Commit Changes & Retrain'}
-        </button>
-      </div>
+            {showWebcam && (
+              <div className="p-4 bg-zinc-950 rounded-lg border border-zinc-800 mb-6 text-center">
+                <video ref={videoRef} autoPlay playsInline muted className="w-full max-w-[400px] rounded-lg mx-auto mb-4 bg-black object-cover aspect-video" />
+                <div>
+                  <Button type="button" onClick={captureWebcam} className="bg-violet-600 hover:bg-violet-700 text-white">
+                    <Camera className="w-4 h-4 mr-2" /> Capture Photo
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+              <DropBox 
+                field="front_img" title="Frontal Face" files={images.front_img} existingFiles={photos.filter(p => p.angle === 'frontal')} personName={originalName}
+                isActive={activeField === 'front_img'} onFocus={() => setActiveField('front_img')} onFiles={(files) => handleFile('front_img', files)} 
+                onRemove={(idx) => removeNewFile('front_img', idx)} onDeleteExisting={(fn) => handleDeletePhoto('frontal', fn)}
+                onDropMoveLocal={(src, idx) => handleMoveLocalFile(src, 'front_img', idx)} onDropMoveExisting={(src, fn) => handleMoveExistingPhoto(src, 'frontal', fn)}
+              />
+              <DropBox 
+                field="left_img" title="Left Profile" files={images.left_img} existingFiles={photos.filter(p => p.angle === 'left')} personName={originalName}
+                isActive={activeField === 'left_img'} onFocus={() => setActiveField('left_img')} onFiles={(files) => handleFile('left_img', files)} 
+                onRemove={(idx) => removeNewFile('left_img', idx)} onDeleteExisting={(fn) => handleDeletePhoto('left', fn)}
+                onDropMoveLocal={(src, idx) => handleMoveLocalFile(src, 'left_img', idx)} onDropMoveExisting={(src, fn) => handleMoveExistingPhoto(src, 'left', fn)}
+              />
+              <DropBox 
+                field="right_img" title="Right Profile" files={images.right_img} existingFiles={photos.filter(p => p.angle === 'right')} personName={originalName}
+                isActive={activeField === 'right_img'} onFocus={() => setActiveField('right_img')} onFiles={(files) => handleFile('right_img', files)} 
+                onRemove={(idx) => removeNewFile('right_img', idx)} onDeleteExisting={(fn) => handleDeletePhoto('right', fn)}
+                onDropMoveLocal={(src, idx) => handleMoveLocalFile(src, 'right_img', idx)} onDropMoveExisting={(src, fn) => handleMoveExistingPhoto(src, 'right', fn)}
+              />
+            </div>
+
+            <h3 className="text-base font-semibold text-zinc-100 mb-1 m-0">Bulk Upload (Unsorted)</h3>
+            <p className="text-sm text-zinc-500 mb-4">
+              {activeField === 'extra_files' ? 'Currently the active paste target.' : 'Click to make this the active paste target.'}
+            </p>
+
+            <div 
+              onClick={() => setActiveField('extra_files')}
+              onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
+              onDrop={(e) => {
+                e.preventDefault(); e.stopPropagation();
+                const srcType = e.dataTransfer.getData("sourceType");
+                if (srcType === "local") handleMoveLocalFile(e.dataTransfer.getData("sourceField"), 'extra_files', parseInt(e.dataTransfer.getData("sourceIndex")));
+                else if (srcType === "existing") handleMoveExistingPhoto(e.dataTransfer.getData("sourceAngle"), 'extra', e.dataTransfer.getData("filename"));
+                else if (e.dataTransfer.files) handleFile('extra_files', e.dataTransfer.files);
+              }}
+              className={`min-h-[150px] p-6 rounded-lg text-center flex flex-col items-center justify-center cursor-pointer transition-all border-2 ${activeField === 'extra_files' ? 'border-violet-500 border-dashed bg-violet-500/5' : 'border-zinc-800 border-dashed bg-transparent hover:border-zinc-700 hover:bg-zinc-900/50'}`}
+            >
+              <input type="file" multiple accept="image/*" id="bulk-upload-manage" className="hidden" onChange={(e) => handleFile('extra_files', e.target.files)} />
+              
+              {(images.extra_files.length === 0 && photos.filter(p => p.angle === 'extra').length === 0) ? (
+                <label htmlFor="bulk-upload-manage" className="cursor-pointer w-full h-full flex flex-col items-center justify-center text-zinc-400 hover:text-zinc-300">
+                  <UploadCloud className="w-8 h-8 mb-3 opacity-50" />
+                  <div className="font-medium text-sm">Drop photos or click to browse</div>
+                </label>
+              ) : (
+                <div className="flex flex-wrap gap-3 justify-center w-full">
+                  {photos.filter(p => p.angle === 'extra').map(p => (
+                    <div key={p.filename} draggable onDragStart={(e) => { e.dataTransfer.setData("sourceType", "existing"); e.dataTransfer.setData("sourceAngle", "extra"); e.dataTransfer.setData("filename", p.filename); }} className="relative w-16 h-16 group cursor-grab active:cursor-grabbing">
+                      <img src={`${API_BASE}/persons/${originalName}/photos/extra/${p.filename}`} className="w-full h-full object-cover rounded-md border border-violet-500/50 shadow-sm" />
+                      <button type="button" onClick={(e) => { e.stopPropagation(); handleDeletePhoto('extra', p.filename); }} className="absolute -top-2 -right-2 bg-red-500 text-white w-5 h-5 rounded-full text-[10px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-md hover:bg-red-600 focus:outline-none">✕</button>
+                    </div>
+                  ))}
+                  {images.extra_files.map((f, i) => (
+                    <div key={i} draggable onDragStart={(e) => { e.dataTransfer.setData("sourceType", "local"); e.dataTransfer.setData("sourceField", "extra_files"); e.dataTransfer.setData("sourceIndex", i.toString()); }} className="relative w-16 h-16 group cursor-grab active:cursor-grabbing">
+                      <img src={URL.createObjectURL(f)} className="w-full h-full object-cover rounded-md border border-zinc-700 shadow-sm" />
+                      <button type="button" onClick={(e) => { e.stopPropagation(); removeNewFile('extra_files', i); }} className="absolute -top-2 -right-2 bg-zinc-800 border border-zinc-700 text-zinc-300 w-5 h-5 rounded-full text-[10px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-md hover:bg-zinc-700 focus:outline-none">✕</button>
+                    </div>
+                  ))}
+                  <label htmlFor="bulk-upload-manage" className="w-16 h-16 border border-dashed border-zinc-600 rounded-md flex items-center justify-center cursor-pointer hover:bg-zinc-800 transition-colors text-zinc-500 hover:text-zinc-300">
+                    <UploadCloud className="w-5 h-5" />
+                  </label>
+                </div>
+              )}
+            </div>
+
+            <Button type="submit" disabled={isSubmitting} className="w-full mt-8 bg-zinc-100 text-zinc-900 hover:bg-zinc-200">
+              {isSubmitting ? 'Updating Profile & Models...' : 'Commit Changes & Retrain'}
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
       
       <Modal 
         isOpen={confirmModal.isOpen} 
@@ -370,12 +381,12 @@ export default function ManagePersonPage() {
         title="Confirm Deletion"
         footer={
           <>
-            <button className="bg-zinc-100 text-zinc-900 hover:bg-zinc-200 px-4 py-2 rounded-md font-medium" variant="ghost" onClick={() => setConfirmModal({ isOpen: false, itemToDelete: null })}>Cancel</button>
-            <button className="bg-zinc-100 text-zinc-900 hover:bg-zinc-200 px-4 py-2 rounded-md font-medium" variant="danger" onClick={executeDeletePhoto}>Delete Photo</button>
+            <Button variant="outline" onClick={() => setConfirmModal({ isOpen: false, itemToDelete: null })} className="bg-zinc-950 border-zinc-800 text-zinc-300 hover:bg-zinc-800">Cancel</Button>
+            <Button variant="destructive" onClick={executeDeletePhoto} className="bg-red-500 hover:bg-red-600 text-white">Delete Photo</Button>
           </>
         }
       >
-        <p style={{ color: 'var(--text-muted)' }}>Are you sure you want to permanently delete this reference photo? This action cannot be undone.</p>
+        <p className="text-zinc-400 text-sm m-0">Are you sure you want to permanently delete this reference photo? This action cannot be undone.</p>
       </Modal>
     </motion.div>
   );
@@ -399,40 +410,40 @@ function DropBox({ field, title, files, existingFiles, personName, isActive, onF
         else if (e.dataTransfer.files) onFiles(e.dataTransfer.files);
       }}
       onClick={() => { onFocus(); fileInputRef.current?.click(); }}
-      style={{
-        border: isActive ? '2px solid var(--accent-violet)' : (isDragActive ? '2px dashed var(--accent-violet)' : '1px dashed var(--border-subtle)'),
-        background: isActive ? 'rgba(91, 95, 239, 0.05)' : 'var(--bg-elevated)',
-        borderRadius: 'var(--radius-sm)', minHeight: '120px', display: 'flex', flexDirection: 'column',
-        alignItems: 'center', justifyContent: 'center', padding: 'var(--space-4)', position: 'relative',
-        cursor: 'pointer', transition: 'all var(--duration) var(--ease)'
-      }}
+      className={`relative min-h-[120px] rounded-lg p-4 flex flex-col items-center justify-center cursor-pointer transition-all border-2 ${
+        isActive 
+          ? 'border-violet-500 border-solid bg-violet-500/5' 
+          : isDragActive 
+            ? 'border-violet-500 border-dashed bg-violet-500/5' 
+            : 'border-zinc-800 border-dashed bg-zinc-950/50 hover:bg-zinc-900'
+      }`}
     >
-      <input type="file" multiple accept="image/*" ref={fileInputRef} style={{ display: 'none' }} onChange={(e) => e.target.files && onFiles(e.target.files)} />
+      <input type="file" multiple accept="image/*" ref={fileInputRef} className="hidden" onChange={(e) => e.target.files && onFiles(e.target.files)} />
       
       {isActive && (
-        <span style={{ position: 'absolute', top: 4, left: 6, fontSize: '10px', color: 'var(--accent-violet)', fontWeight: 600, fontFamily: 'var(--font-mono)' }}>TARGET</span>
+        <span className="absolute top-2 left-3 text-[10px] text-violet-500 font-bold font-mono tracking-wider">TARGET</span>
       )}
 
       {hasContent ? (
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-2)', justifyContent: 'center', width: '100%', marginTop: isActive ? '14px' : '0' }}>
+        <div className={`flex flex-wrap gap-2 justify-center w-full ${isActive ? 'mt-3' : 'mt-0'}`}>
           {existingFiles.map((p) => (
-            <div key={p.filename} draggable onDragStart={(e) => { e.dataTransfer.setData("sourceType", "existing"); e.dataTransfer.setData("sourceAngle", p.angle); e.dataTransfer.setData("filename", p.filename); }} onClick={(e) => e.stopPropagation()} style={{ position: 'relative', width: '40px', height: '40px' }}>
-              <img src={`${API_BASE}/persons/${personName}/photos/${p.angle}/${p.filename}`} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '4px', border: '1px solid var(--accent-violet)' }} />
-              <button type="button" onClick={(e) => { e.stopPropagation(); onDeleteExisting(p.filename); }} style={{ position: 'absolute', top: -4, right: -4, background: 'var(--alert-crimson)', color: '#fff', border: 'none', borderRadius: '50%', width: 14, height: 14, fontSize: 10, cursor: 'pointer' }}>×</button>
+            <div key={p.filename} draggable onDragStart={(e) => { e.dataTransfer.setData("sourceType", "existing"); e.dataTransfer.setData("sourceAngle", p.angle); e.dataTransfer.setData("filename", p.filename); }} onClick={(e) => e.stopPropagation()} className="relative w-11 h-11 group cursor-grab active:cursor-grabbing">
+              <img src={`${API_BASE}/persons/${personName}/photos/${p.angle}/${p.filename}`} className="w-full h-full object-cover rounded border border-violet-500/50 shadow-sm" />
+              <button type="button" onClick={(e) => { e.stopPropagation(); onDeleteExisting(p.filename); }} className="absolute -top-2 -right-2 bg-red-500 text-white w-4 h-4 rounded-full text-[9px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600 focus:outline-none shadow-md">✕</button>
             </div>
           ))}
           {files.map((f, i) => (
-            <div key={i} draggable onDragStart={(e) => { e.dataTransfer.setData("sourceType", "local"); e.dataTransfer.setData("sourceField", field); e.dataTransfer.setData("sourceIndex", i.toString()); }} onClick={(e) => e.stopPropagation()} style={{ position: 'relative', width: '40px', height: '40px' }}>
-              <img src={URL.createObjectURL(f)} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '4px', border: '1px solid var(--border-subtle)' }} />
-              <button type="button" onClick={(e) => { e.stopPropagation(); onRemove(i); }} style={{ position: 'absolute', top: -4, right: -4, background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: '50%', width: 14, height: 14, fontSize: 10, cursor: 'pointer' }}>×</button>
+            <div key={i} draggable onDragStart={(e) => { e.dataTransfer.setData("sourceType", "local"); e.dataTransfer.setData("sourceField", field); e.dataTransfer.setData("sourceIndex", i.toString()); }} onClick={(e) => e.stopPropagation()} className="relative w-11 h-11 group cursor-grab active:cursor-grabbing">
+              <img src={URL.createObjectURL(f)} className="w-full h-full object-cover rounded border border-zinc-700 shadow-sm" />
+              <button type="button" onClick={(e) => { e.stopPropagation(); onRemove(i); }} className="absolute -top-2 -right-2 bg-zinc-800 border border-zinc-700 text-zinc-300 w-4 h-4 rounded-full text-[9px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-zinc-700 focus:outline-none shadow-md">✕</button>
             </div>
           ))}
         </div>
       ) : (
-        <>
-          <ImageIcon size={20} style={{ color: 'var(--text-muted)', marginBottom: '4px' }} />
-          <span style={{ fontSize: 'var(--text-sm)', color: 'var(--text-primary)', fontWeight: 500 }}>{title}</span>
-        </>
+        <div className="flex flex-col items-center text-zinc-500">
+          <ImageIcon className="w-6 h-6 mb-2 opacity-50" />
+          <span className="text-sm font-medium">{title}</span>
+        </div>
       )}
     </div>
   );

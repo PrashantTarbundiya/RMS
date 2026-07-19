@@ -51,11 +51,12 @@ function ProtectedRoute({ children }) {
  * Only used for login/register pages.
  */
 function GuestRoute({ children }) {
-  const { isAuthenticated, loading, isMultiTenant } = useAuth();
+  const { isAuthenticated, loading } = useAuth();
 
   if (loading) return null;
 
-  if (isAuthenticated && isMultiTenant) {
+  // Redirect to dashboard if logged in (both single and multi-tenant)
+  if (isAuthenticated) {
     return <Navigate to="/dashboard" replace />;
   }
 
@@ -69,12 +70,12 @@ function AnimatedRoutes() {
   return (
     <AnimatePresence mode="wait">
       <Routes location={location} key={location.pathname}>
-        {/* Auth routes (guest only) */}
+        {/* Auth/Public routes (guest only) */}
+        <Route path="/" element={<GuestRoute><PageWrapper><LandingPage /></PageWrapper></GuestRoute>} />
         <Route path="/login" element={<GuestRoute><PageWrapper><LoginPage /></PageWrapper></GuestRoute>} />
         <Route path="/register" element={<GuestRoute><PageWrapper><RegisterPage /></PageWrapper></GuestRoute>} />
 
         {/* Protected routes */}
-        <Route path="/" element={<ProtectedRoute><PageWrapper><LandingPage /></PageWrapper></ProtectedRoute>} />
         <Route path="/dashboard" element={<ProtectedRoute><PageWrapper><DashboardPage /></PageWrapper></ProtectedRoute>} />
         <Route path="/attendance" element={<ProtectedRoute><PageWrapper><AttendancePage /></PageWrapper></ProtectedRoute>} />
         <Route path="/attendance/live" element={<ProtectedRoute><PageWrapper><LiveAttendancePage /></PageWrapper></ProtectedRoute>} />

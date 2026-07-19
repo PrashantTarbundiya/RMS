@@ -34,15 +34,23 @@ export default function RegisterPage() {
       await register(orgName, email, password, name);
       navigate('/dashboard');
     } catch (err) {
-      setError(err.response?.data?.error || 'Registration failed. Please try again.');
+      const errorMsg = err.response?.data?.error || 'Registration failed. Please try again.';
+      if (errorMsg.includes('multi-tenant')) {
+        setError('System is in single-tenant mode. No registration required. Please go to the dashboard.');
+      } else {
+        setError(errorMsg);
+      }
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center p-4 bg-zinc-950">
-      <Card className="w-full max-w-md border-zinc-800 bg-zinc-900/50 backdrop-blur-xl">
+    <div 
+      className="flex min-h-screen items-center justify-center p-4 bg-zinc-950 bg-cover bg-center bg-no-repeat"
+      style={{ backgroundImage: 'url(/auth-bg.png)' }}
+    >
+      <Card className="w-full max-w-md border-zinc-800 bg-zinc-950/80 backdrop-blur-2xl shadow-2xl">
         <CardHeader className="space-y-3 text-center">
           <div className="mx-auto bg-zinc-800 p-3 rounded-xl border border-zinc-700/50 shadow-sm">
             <Scan className="w-8 h-8 text-zinc-100" />
