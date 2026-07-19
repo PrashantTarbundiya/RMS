@@ -2,10 +2,7 @@ import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
 import { Building2, Eye, EyeOff, Scan, UserPlus, ShieldAlert } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import ApertureReticle from '../components/ApertureReticle';
 
 export default function RegisterPage() {
   const { register } = useAuth();
@@ -46,89 +43,84 @@ export default function RegisterPage() {
   };
 
   return (
-    <div 
-      className="flex min-h-screen items-center justify-center p-4 bg-zinc-950 bg-cover bg-center bg-no-repeat"
-      style={{ backgroundImage: 'url(/auth-bg.png)' }}
-    >
-      <Card className="w-full max-w-md border-zinc-800 bg-zinc-950/80 backdrop-blur-2xl shadow-2xl">
-        <CardHeader className="space-y-3 text-center">
-          <div className="mx-auto bg-zinc-800 p-3 rounded-xl border border-zinc-700/50 shadow-sm">
-            <Scan className="w-8 h-8 text-zinc-100" />
+    <div className="flex min-h-screen items-center justify-center p-4 bg-[#010102]">
+      <div className="w-full max-w-md card-linear shadow-2xl">
+        <div className="space-y-4 text-center mb-6">
+          <ApertureReticle active={true} className="mx-auto w-14 h-14 flex items-center justify-center" status="loading">
+            <Scan className="w-6 h-6 text-[#5E6AD2]" />
+          </ApertureReticle>
+          <div>
+            <h2 className="text-card-title text-ink font-medium tracking-tight">Create Organization</h2>
+            <p className="text-caption text-ink-subtle mt-1">Set up your workforce recognition platform</p>
           </div>
-          <CardTitle className="text-2xl font-semibold tracking-tight text-zinc-100">
-            Create Organization
-          </CardTitle>
-          <CardDescription className="text-zinc-400">
-            Set up your workforce recognition platform
-          </CardDescription>
-        </CardHeader>
+        </div>
         
-        <CardContent>
+        <div>
           {error && (
-            <div className="mb-6 flex items-center gap-2 rounded-lg bg-red-500/10 p-3 text-sm text-red-500 border border-red-500/20">
-              <ShieldAlert className="h-4 w-4" />
-              <p>{error}</p>
+            <div className="mb-4 flex items-center gap-2 rounded-md bg-red-500/10 p-3 text-sm text-[#F87171] border border-red-500/20">
+              <ShieldAlert className="h-4 w-4 shrink-0" />
+              <p className="text-caption">{error}</p>
             </div>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="reg-org" className="flex items-center gap-2 text-zinc-300">
-                <Building2 className="h-4 w-4" /> Organization Name
-              </Label>
-              <Input
+            <div className="flex flex-col gap-1.5">
+              <label htmlFor="reg-org" className="text-caption text-ink-muted font-medium flex items-center gap-2">
+                <Building2 className="h-4 w-4 text-ink-subtle" /> Organization Name
+              </label>
+              <input
                 id="reg-org"
                 type="text"
                 value={orgName}
                 onChange={(e) => setOrgName(e.target.value)}
                 placeholder="Acme Corporation"
-                className="bg-zinc-950/50 border-zinc-800 text-zinc-100 focus-visible:ring-zinc-700"
+                className="input-linear"
                 required
                 autoFocus
               />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="reg-name" className="text-zinc-300">Your Name</Label>
-              <Input
+            <div className="flex flex-col gap-1.5">
+              <label htmlFor="reg-name" className="text-caption text-ink-muted font-medium">Your Name</label>
+              <input
                 id="reg-name"
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="John Doe"
-                className="bg-zinc-950/50 border-zinc-800 text-zinc-100 focus-visible:ring-zinc-700"
+                className="input-linear"
               />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="reg-email" className="text-zinc-300">Admin Email</Label>
-              <Input
+            <div className="flex flex-col gap-1.5">
+              <label htmlFor="reg-email" className="text-caption text-ink-muted font-medium">Admin Email</label>
+              <input
                 id="reg-email"
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="admin@acme.com"
-                className="bg-zinc-950/50 border-zinc-800 text-zinc-100 focus-visible:ring-zinc-700"
+                className="input-linear"
                 required
               />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="reg-password" className="text-zinc-300">Password</Label>
+            <div className="flex flex-col gap-1.5">
+              <label htmlFor="reg-password" className="text-caption text-ink-muted font-medium">Password</label>
               <div className="relative">
-                <Input
+                <input
                   id="reg-password"
                   type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Min. 8 characters"
-                  className="bg-zinc-950/50 border-zinc-800 text-zinc-100 focus-visible:ring-zinc-700 pr-10"
+                  className="input-linear w-full pr-10"
                   required
                   minLength={8}
                 />
                 <button
                   type="button"
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300 transition-colors"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-tertiary hover:text-ink-subtle transition-colors"
                   onClick={() => setShowPassword(!showPassword)}
                 >
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -136,40 +128,40 @@ export default function RegisterPage() {
               </div>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="reg-confirm" className="text-zinc-300">Confirm Password</Label>
-              <Input
+            <div className="flex flex-col gap-1.5">
+              <label htmlFor="reg-confirm" className="text-caption text-ink-muted font-medium">Confirm Password</label>
+              <input
                 id="reg-confirm"
                 type="password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 placeholder="••••••••"
-                className="bg-zinc-950/50 border-zinc-800 text-zinc-100 focus-visible:ring-zinc-700"
+                className="input-linear"
                 required
                 minLength={8}
               />
             </div>
 
-            <Button 
+            <button 
               type="submit" 
-              className="w-full bg-zinc-100 text-zinc-900 hover:bg-zinc-200 mt-2" 
+              className="w-full button-primary mt-2 flex items-center justify-center gap-2" 
               disabled={loading}
             >
               {loading ? (
-                <div className="h-4 w-4 animate-spin rounded-full border-2 border-zinc-900 border-t-transparent" />
+                <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
               ) : (
                 <>
-                  <UserPlus className="mr-2 h-4 w-4" />
-                  Create Organization
+                  <UserPlus className="h-4 w-4" />
+                  <span className="text-button text-white">Create Organization</span>
                 </>
               )}
-            </Button>
+            </button>
           </form>
-        </CardContent>
-        <CardFooter className="flex justify-center text-sm text-zinc-400">
-          <p>Already have an account? <Link to="/login" className="text-zinc-100 hover:underline font-medium">Sign In</Link></p>
-        </CardFooter>
-      </Card>
+        </div>
+        <div className="mt-6 flex justify-center text-caption text-ink-subtle border-t border-hairline pt-4">
+          <p>Already have an account? <Link to="/login" className="text-ink hover:underline font-medium">Sign In</Link></p>
+        </div>
+      </div>
     </div>
   );
 }

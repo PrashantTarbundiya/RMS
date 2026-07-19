@@ -1,10 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Download, Calendar, Filter } from 'lucide-react';
-import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
+
 
 // Mock Data Generator
 const generateMockData = () => {
@@ -101,12 +98,12 @@ export default function AttendancePage() {
   };
 
   return (
-    <motion.div variants={containerVariants} initial="hidden" animate="visible" className="pb-12 max-w-6xl mx-auto space-y-6">
+    <motion.div variants={containerVariants} initial="hidden" animate="visible" className="pb-12 max-w-6xl mx-auto space-y-6 page-container">
       
       <motion.div variants={itemVariants} className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-zinc-100">Attendance Log</h1>
-          <p className="mt-1 text-sm text-zinc-400">Detailed entry and exit records.</p>
+          <h1 className="text-headline font-semibold text-ink font-display">Attendance Log</h1>
+          <p className="mt-1 text-caption text-ink-subtle">Detailed entry and exit records.</p>
         </div>
       </motion.div>
 
@@ -114,81 +111,81 @@ export default function AttendancePage() {
       <motion.div variants={itemVariants} className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-2">
           <div className="relative flex items-center">
-            <Calendar className="w-4 h-4 absolute left-3 text-zinc-500 pointer-events-none" />
-            <Input 
+            <Calendar className="w-4 h-4 absolute left-3 text-ink-tertiary pointer-events-none" />
+            <input 
               type="date"
-              className="pl-9 bg-zinc-950 border-zinc-800 text-zinc-100 min-w-[200px]"
+              className="pl-9 input-linear min-w-[200px]"
               value={dateFilter}
               onChange={(e) => setDateFilter(e.target.value)}
             />
           </div>
           {dateFilter && (
-            <Button variant="ghost" onClick={() => setDateFilter('')} className="text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800">
+            <button onClick={() => setDateFilter('')} className="button-secondary text-caption">
               Clear Filter
-            </Button>
+            </button>
           )}
         </div>
-        <Button variant="secondary" onClick={exportCSV} className="bg-zinc-100 text-zinc-900 hover:bg-zinc-200">
-          <Download className="w-4 h-4 mr-2" /> Export CSV
-        </Button>
+        <button onClick={exportCSV} className="button-primary text-white flex items-center gap-2 h-9 text-caption">
+          <Download className="w-4 h-4 text-white" /> Export CSV
+        </button>
       </motion.div>
 
       {/* Dense Data Table */}
       <motion.div variants={itemVariants}>
-        <Card className="bg-zinc-900/40 border-zinc-800 overflow-hidden">
-          <CardContent className="p-0">
-            {filteredData.length === 0 ? (
-              <div className="text-center py-16 text-zinc-500">
-                No attendance records found for the selected date.
-              </div>
-            ) : (
-              <div className="overflow-x-auto max-h-[600px] scrollbar-thin scrollbar-thumb-zinc-700 scrollbar-track-transparent">
-                <table className="w-full text-left text-sm whitespace-nowrap">
-                  <thead className="sticky top-0 bg-zinc-950/95 backdrop-blur z-10 shadow-sm border-b border-zinc-800">
-                    <tr>
-                      <th className="px-6 py-4 text-zinc-400 font-medium tracking-wide">Employee Name</th>
-                      <th className="px-6 py-4 text-zinc-400 font-medium tracking-wide">Location</th>
-                      <th className="px-6 py-4 text-zinc-400 font-medium tracking-wide">Check-In Time</th>
-                      <th className="px-6 py-4 text-zinc-400 font-medium tracking-wide">Check-Out Time</th>
-                      <th className="px-6 py-4 text-zinc-400 font-medium tracking-wide">Hours Logged</th>
-                      <th className="px-6 py-4 text-zinc-400 font-medium tracking-wide text-right">Status</th>
+        <div className="card-linear p-0 overflow-hidden bg-[#0F1011] border-[#23252A]">
+          {filteredData.length === 0 ? (
+            <div className="text-center py-16 text-ink-subtle text-caption">
+              No attendance records found for the selected date.
+            </div>
+          ) : (
+            <div className="overflow-x-auto max-h-[600px] scrollbar-thin">
+              <table className="w-full text-left text-caption whitespace-nowrap">
+                <thead className="sticky top-0 bg-[#0F1011] border-b border-[#23252A] z-10">
+                  <tr>
+                    <th className="px-6 py-4 text-ink-subtle font-semibold uppercase tracking-wider text-[11px]">Employee Name</th>
+                    <th className="px-6 py-4 text-ink-subtle font-semibold uppercase tracking-wider text-[11px]">Location</th>
+                    <th className="px-6 py-4 text-ink-subtle font-semibold uppercase tracking-wider text-[11px]">Check-In Time</th>
+                    <th className="px-6 py-4 text-ink-subtle font-semibold uppercase tracking-wider text-[11px]">Check-Out Time</th>
+                    <th className="px-6 py-4 text-ink-subtle font-semibold uppercase tracking-wider text-[11px]">Hours Logged</th>
+                    <th className="px-6 py-4 text-ink-subtle font-semibold uppercase tracking-wider text-[11px] text-right">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[#23252A]/50">
+                  {filteredData.map((row, idx) => (
+                    <tr key={idx} className="hover:bg-[#141516]/60 transition-colors group">
+                      <td className="px-6 py-4 font-medium text-ink group-hover:text-[#828FFF] transition-colors">
+                        {row.employeeName.replace(/_/g, ' ')}
+                      </td>
+                      <td className="px-6 py-4 text-ink-muted">{row.gateId.replace(/_/g, ' ')}</td>
+                      <td className="px-6 py-4 text-ink-muted font-mono">
+                        {new Date(row.checkIn).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </td>
+                      <td className="px-6 py-4 text-ink-muted font-mono">
+                        {row.checkOut ? new Date(row.checkOut).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '--:--'}
+                      </td>
+                      <td className="px-6 py-4 text-ink-muted font-mono">
+                        {row.hoursWorked > 0 ? `${row.hoursWorked}h` : '-'}
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <span 
+                          className={`inline-flex px-2.5 py-0.5 rounded-full font-mono text-[10px] font-semibold border ${
+                            getBadgeStatus(row.status) === 'success' ? 'bg-[#27A644]/10 text-[#27A644] border-[#27A644]/20' : 
+                            getBadgeStatus(row.status) === 'warning' ? 'bg-[#FBBF24]/10 text-[#FBBF24] border-[#FBBF24]/20' : 
+                            'bg-[#141516] text-ink-muted border-[#23252A]'
+                          }`}
+                        >
+                          {row.status}
+                        </span>
+                      </td>
                     </tr>
-                  </thead>
-                  <tbody className="divide-y divide-zinc-800/50">
-                    {filteredData.map((row, idx) => (
-                      <tr key={idx} className="hover:bg-zinc-800/30 transition-colors group">
-                        <td className="px-6 py-4 font-medium text-zinc-200 group-hover:text-violet-400 transition-colors">
-                          {row.employeeName.replace(/_/g, ' ')}
-                        </td>
-                        <td className="px-6 py-4 text-zinc-400">{row.gateId.replace(/_/g, ' ')}</td>
-                        <td className="px-6 py-4 text-zinc-400 font-mono">
-                          {new Date(row.checkIn).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                        </td>
-                        <td className="px-6 py-4 text-zinc-400 font-mono">
-                          {row.checkOut ? new Date(row.checkOut).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '--:--'}
-                        </td>
-                        <td className="px-6 py-4 text-zinc-400 font-mono">
-                          {row.hoursWorked > 0 ? `${row.hoursWorked}h` : '-'}
-                        </td>
-                        <td className="px-6 py-4 text-right">
-                          <Badge 
-                            variant={getBadgeStatus(row.status) === 'success' ? 'default' : getBadgeStatus(row.status) === 'warning' ? 'secondary' : 'outline'}
-                            className={getBadgeStatus(row.status) === 'success' ? 'bg-emerald-500/20 text-emerald-500 hover:bg-emerald-500/30 border-transparent' : 
-                                       getBadgeStatus(row.status) === 'warning' ? 'bg-amber-500/20 text-amber-500 hover:bg-amber-500/30 border-transparent' : 
-                                       'text-zinc-500 border-zinc-700'}
-                          >
-                            {row.status}
-                          </Badge>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
       </motion.div>
     </motion.div>
   );
 }
+

@@ -4,13 +4,8 @@ import Modal from '../components/Modal';
 import { useNavigate } from 'react-router-dom';
 import { Camera, Image as ImageIcon, X, UploadCloud, CheckCircle, Video, AlertCircle, Info, Move, Trash2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-
 import { API_BASE } from '../config';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import { Label } from '@/components/ui/label';
+
 
 const FIELD_TO_ANGLE = {
   left_img: 'left',
@@ -279,21 +274,25 @@ export default function UploadPage() {
             handleFile(field, e.dataTransfer.files);
           }
         }}
-        className={`border rounded-xl p-4 transition-colors cursor-pointer flex flex-col justify-between h-full min-h-[180px] ${isActive ? 'border-zinc-500 bg-zinc-800/20' : 'border-zinc-800 bg-zinc-900/40 hover:border-zinc-700'} ${dragActiveField === field ? 'border-violet-500 bg-violet-500/5' : ''}`}
+        className={`border rounded-lg p-4 transition-all cursor-pointer flex flex-col justify-between h-full min-h-[190px] ${
+          isActive ? 'border-[#5E6AD2] bg-[#141516]' : 'border-[#23252A] bg-[#0F1011] hover:border-[#34343A]'
+        } ${dragActiveField === field ? 'border-[#828FFF] bg-[#5E6AD2]/5' : ''}`}
         onClick={() => setActiveField(field)}
       >
         <div>
           <div className="flex justify-between items-center mb-3">
-            <span className={`text-xs font-semibold tracking-wider ${isActive ? 'text-zinc-100' : 'text-zinc-400'}`}>{label}</span>
-            <Badge variant="outline" className="bg-zinc-950 font-mono text-[10px]">{totalFieldPhotos}</Badge>
+            <span className={`text-[11px] font-semibold tracking-wider uppercase ${isActive ? 'text-ink' : 'text-ink-subtle'}`}>{label}</span>
+            <span className="px-2 py-0.5 rounded-full font-mono text-[10px] bg-[#010102] border border-[#23252A] text-ink-muted">{totalFieldPhotos}</span>
           </div>
           
           <div className="relative group mb-3">
-            <label className={`flex flex-col items-center justify-center w-full h-24 border-2 border-dashed rounded-lg transition-colors cursor-pointer ${dragActiveField === field ? 'border-violet-400 bg-violet-500/10' : 'border-zinc-800 hover:bg-zinc-800/50 hover:border-zinc-600'}`}>
+            <label className={`flex flex-col items-center justify-center w-full h-24 border-2 border-dashed rounded-lg transition-colors cursor-pointer ${
+              dragActiveField === field ? 'border-[#828FFF] bg-[#5E6AD2]/10' : 'border-[#23252A] hover:bg-[#141516] hover:border-[#34343A]'
+            }`}>
               <div className="flex flex-col items-center justify-center pt-4 pb-5 text-center">
-                <UploadCloud className={`w-6 h-6 mb-1 ${dragActiveField === field ? 'text-violet-400 animate-pulse' : 'text-zinc-500 group-hover:text-zinc-400'}`} />
-                <p className={`text-[11px] ${dragActiveField === field ? 'text-violet-400 font-semibold' : 'text-zinc-500 group-hover:text-zinc-400'}`}>
-                  {dragActiveField === field ? 'Drop item here!' : 'Click, Paste or Drop'}
+                <UploadCloud className={`w-6 h-6 mb-1 ${dragActiveField === field ? 'text-[#828FFF] animate-pulse' : 'text-ink-tertiary group-hover:text-ink-subtle'}`} />
+                <p className={`text-[11px] ${dragActiveField === field ? 'text-[#828FFF] font-semibold' : 'text-ink-tertiary group-hover:text-ink-subtle'}`}>
+                  {dragActiveField === field ? 'Drop to Add!' : 'Click or Drop file'}
                 </p>
               </div>
               <input type="file" multiple accept="image/*" className="hidden" onChange={e => handleFile(field, e.target.files)} />
@@ -302,7 +301,7 @@ export default function UploadPage() {
         </div>
 
         {totalFieldPhotos > 0 && (
-          <div className="mt-2 flex flex-wrap gap-2 max-h-48 overflow-y-auto pt-2 border-t border-zinc-800/30">
+          <div className="mt-2 flex flex-wrap gap-2 max-h-48 overflow-y-auto pt-2 border-t border-[#23252A]">
             {fieldExistingPhotos.map((photo, idx) => (
               <div 
                 key={`exist-${idx}`} 
@@ -312,12 +311,12 @@ export default function UploadPage() {
                   e.dataTransfer.setData('sourceField', photo.angle);
                   e.dataTransfer.setData('sourceFilename', photo.filename);
                 }}
-                className="relative group w-12 h-12 rounded-md overflow-hidden border border-emerald-500/30 cursor-grab active:cursor-grabbing"
+                className="relative group w-12 h-12 rounded-md overflow-hidden border border-[#27A644]/30 cursor-grab active:cursor-grabbing shrink-0"
               >
                 <img src={`${API_BASE.replace(/\/api$/, '')}${photo.url}?token=${sessionStorage.getItem('rms_access_token') || ''}`} alt={photo.filename} className="w-full h-full object-cover" loading="lazy" />
-                <Badge className="absolute top-0 left-0 bg-emerald-500 text-black text-[7px] py-0 px-1 rounded-none uppercase font-mono tracking-widest font-extrabold scale-75 origin-top-left">Enrolled</Badge>
+                <span className="absolute top-0 left-0 bg-[#27A644]/10 text-[#27A644] border border-[#27A644]/20 text-[7px] py-0 px-1 rounded-none uppercase font-mono tracking-widest font-extrabold scale-75 origin-top-left">Enrolled</span>
                 <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                  <button type="button" onClick={(e) => { e.stopPropagation(); handleDeleteExistingPhoto(photo.angle, photo.filename); }} className="p-1 bg-red-500/20 text-red-500 rounded hover:bg-red-500 hover:text-white transition-colors">
+                  <button type="button" onClick={(e) => { e.stopPropagation(); handleDeleteExistingPhoto(photo.angle, photo.filename); }} className="p-1 bg-[#F87171]/20 text-[#F87171] rounded hover:bg-[#F87171] hover:text-white transition-colors">
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>
                 </div>
@@ -333,12 +332,12 @@ export default function UploadPage() {
                   e.dataTransfer.setData('sourceField', field);
                   e.dataTransfer.setData('sourceIndex', idx.toString());
                 }}
-                className="relative group w-12 h-12 rounded-md overflow-hidden border border-zinc-700 cursor-grab active:cursor-grabbing"
+                className="relative group w-12 h-12 rounded-md overflow-hidden border border-[#23252A] cursor-grab active:cursor-grabbing shrink-0"
               >
                 <img src={URL.createObjectURL(file)} alt="preview" className="w-full h-full object-cover" />
-                <Badge className="absolute top-0 left-0 bg-violet-500 text-white text-[7px] py-0 px-1 rounded-none uppercase font-mono tracking-widest font-extrabold scale-75 origin-top-left">New</Badge>
+                <span className="absolute top-0 left-0 bg-[#5E6AD2]/10 text-[#828FFF] border border-[#5E6AD2]/20 text-[7px] py-0 px-1 rounded-none uppercase font-mono tracking-widest font-extrabold scale-75 origin-top-left">New</span>
                 <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                  <button type="button" onClick={(e) => { e.stopPropagation(); removeFile(field, idx); }} className="p-1 bg-red-500/20 text-red-500 rounded hover:bg-red-500 hover:text-white transition-colors">
+                  <button type="button" onClick={(e) => { e.stopPropagation(); removeFile(field, idx); }} className="p-1 bg-[#F87171]/20 text-[#F87171] rounded hover:bg-[#F87171] hover:text-white transition-colors">
                     <X className="w-3.5 h-3.5" />
                   </button>
                 </div>
@@ -351,27 +350,33 @@ export default function UploadPage() {
   };
 
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="pb-12 max-w-5xl mx-auto space-y-6">
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="pb-12 max-w-5xl mx-auto space-y-6 page-container">
       
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight text-zinc-100">{mode === 'new' ? 'Enroll New Personnel' : 'Update & Retrain Identity'}</h1>
-        <p className="mt-1 text-sm text-zinc-400">
+        <h1 className="text-headline font-semibold text-ink">{mode === 'new' ? 'Enroll New Personnel' : 'Update & Retrain Identity'}</h1>
+        <p className="mt-1 text-caption text-ink-subtle">
           {mode === 'new' ? 'Register a new subject with frontal and side profiles.' : 'Manage existing photos and retrain the model.'}
         </p>
       </div>
 
       <div className="flex gap-2">
-        <Button variant={mode === 'new' ? 'default' : 'outline'} className={mode === 'new' ? 'bg-zinc-100 text-zinc-900' : ''} onClick={() => { setMode('new'); setPersonName(''); setStatus({ type: '', message: '' }); }}>
+        <button 
+          className={mode === 'new' ? 'button-primary text-white' : 'button-secondary'} 
+          onClick={() => { setMode('new'); setPersonName(''); setStatus({ type: '', message: '' }); }}
+        >
           Enroll New
-        </Button>
-        <Button variant={mode === 'update' ? 'default' : 'outline'} className={mode === 'update' ? 'bg-zinc-100 text-zinc-900' : ''} onClick={() => { setMode('update'); setPersonName(''); setStatus({ type: '', message: '' }); }}>
+        </button>
+        <button 
+          className={mode === 'update' ? 'button-primary text-white' : 'button-secondary'} 
+          onClick={() => { setMode('update'); setPersonName(''); setStatus({ type: '', message: '' }); }}
+        >
           Update Existing
-        </Button>
+        </button>
       </div>
 
-      <Card className="bg-zinc-900/40 border-zinc-800">
+      <div className="card-linear">
         <form onSubmit={handleSubmit}>
-          <CardContent className="p-6 space-y-6">
+          <div className="space-y-6">
             
             <AnimatePresence>
               {status.message && (
@@ -382,27 +387,27 @@ export default function UploadPage() {
                   className="overflow-hidden"
                 >
                   <div className={`p-4 rounded-lg flex items-center gap-3 text-sm mb-4 border ${
-                    status.type === 'error' ? 'bg-red-500/10 text-red-500 border-red-500/20' : 
-                    status.type === 'success' ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' : 
-                    'bg-blue-500/10 text-blue-500 border-blue-500/20'
+                    status.type === 'error' ? 'bg-[#F87171]/10 text-[#F87171] border-[#F87171]/20' : 
+                    status.type === 'success' ? 'bg-[#27A644]/10 text-[#27A644] border-[#27A644]/20' : 
+                    'bg-[#5E6AD2]/10 text-[#828FFF] border-[#5E6AD2]/20'
                   }`}>
                     {status.type === 'error' ? <AlertCircle className="w-5 h-5" /> : status.type === 'success' ? <CheckCircle className="w-5 h-5" /> : <Info className="w-5 h-5" />}
-                    {status.message}
+                    <span className="text-caption">{status.message}</span>
                   </div>
                 </motion.div>
               )}
             </AnimatePresence>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <Label htmlFor="person-name" className="text-zinc-300">Subject Identifier</Label>
+              <div className="flex flex-col gap-1.5">
+                <label htmlFor="person-name" className="text-caption text-ink-muted font-medium">Subject Identifier</label>
                 {mode === 'new' ? (
-                  <Input 
+                  <input 
                     id="person-name"
                     value={personName} 
                     onChange={e => setPersonName(e.target.value.replace(/\s+/g, '_'))}
                     placeholder="e.g. John_Doe"
-                    className="bg-zinc-950/50 border-zinc-800 text-zinc-100 focus-visible:ring-zinc-700 font-mono"
+                    className="input-linear font-mono"
                     required 
                   />
                 ) : (
@@ -410,22 +415,22 @@ export default function UploadPage() {
                     id="person-name"
                     value={personName} 
                     onChange={e => setPersonName(e.target.value)}
-                    className="flex h-10 w-full rounded-md border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-700 disabled:cursor-not-allowed disabled:opacity-50 font-mono"
+                    className="input-linear font-mono w-full"
                     required
                   >
-                    <option value="" className="bg-zinc-950 text-zinc-400">-- Select Person --</option>
+                    <option value="" className="bg-[#010102] text-ink-tertiary">-- Select Person --</option>
                     {existingPersons.map(p => (
-                      <option key={p} value={p} className="bg-zinc-950 text-zinc-100">
+                      <option key={p} value={p} className="bg-[#0F1011] text-ink">
                         {p.replace(/_/g, ' ')}
                       </option>
                     ))}
                   </select>
                 )}
-                <p className="text-xs text-zinc-500">Unique ID (no spaces).</p>
+                <p className="text-[11px] text-ink-tertiary">Unique ID (no spaces).</p>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="epochs" className="text-zinc-300">Training Epochs</Label>
+              <div className="flex flex-col gap-1.5">
+                <label htmlFor="epochs" className="text-caption text-ink-muted font-medium">Training Epochs</label>
                 <div className="flex items-center gap-4">
                   <input 
                     id="epochs"
@@ -433,37 +438,37 @@ export default function UploadPage() {
                     min="1" max="20" 
                     value={epochs} 
                     onChange={e => setEpochs(Number(e.target.value))}
-                    className="flex-1 accent-zinc-500"
+                    className="flex-1 accent-[#5E6AD2] h-1.5 bg-[#141516] rounded-lg appearance-none cursor-pointer"
                   />
-                  <span className="font-mono text-zinc-100 bg-zinc-900 px-3 py-1 rounded-md border border-zinc-800 text-sm w-12 text-center">{epochs}</span>
+                  <span className="font-mono text-ink bg-[#141516] px-3 py-1 rounded-md border border-[#23252A] text-sm w-12 text-center">{epochs}</span>
                 </div>
-                <p className="text-xs text-zinc-500">Higher epochs = better accuracy but slower training.</p>
+                <p className="text-[11px] text-ink-tertiary">Higher epochs = better accuracy but slower training.</p>
               </div>
             </div>
 
-            <div className="space-y-4 pt-4 border-t border-zinc-800/50">
+            <div className="space-y-4 pt-4 border-t border-[#23252A]">
               <div className="flex items-center justify-between">
-                <Label className="text-base text-zinc-100">Capture Options</Label>
-                <Button type="button" variant="outline" size="sm" onClick={showWebcam ? stopWebcam : startWebcam} className="text-zinc-400 hover:text-zinc-100">
-                  <Video className="w-4 h-4 mr-2" />
-                  {showWebcam ? 'Stop Camera' : 'Start Camera'}
-                </Button>
+                <label className="text-body font-medium text-ink">Capture Options</label>
+                <button type="button" onClick={showWebcam ? stopWebcam : startWebcam} className="button-secondary flex items-center gap-2">
+                  <Video className="w-4 h-4" />
+                  <span className="text-button">{showWebcam ? 'Stop Camera' : 'Start Camera'}</span>
+                </button>
               </div>
 
               {showWebcam && (
-                <div className="bg-black rounded-xl overflow-hidden border border-zinc-800 shadow-2xl relative">
+                <div className="bg-black rounded-lg overflow-hidden border border-[#23252A] shadow-2xl relative">
                   <video ref={videoRef} autoPlay playsInline muted className="w-full h-auto max-h-[500px] object-cover" />
                   <div className="absolute bottom-4 left-0 right-0 flex justify-center">
-                    <Button type="button" onClick={captureWebcam} className="bg-zinc-100 text-zinc-900 rounded-full h-14 w-14 shadow-lg hover:scale-105 transition-transform p-0 flex items-center justify-center">
-                      <Camera className="w-6 h-6" />
-                    </Button>
+                    <button type="button" onClick={captureWebcam} className="bg-white text-black rounded-full h-12 w-12 shadow-lg hover:scale-105 transition-transform flex items-center justify-center p-0">
+                      <Camera className="w-5 h-5 text-black" />
+                    </button>
                   </div>
                 </div>
               )}
             </div>
 
-            <div className="pt-4 border-t border-zinc-800/50 space-y-4">
-              <Label className="text-base text-zinc-100 mb-2 block">Asset Allocation</Label>
+            <div className="pt-4 border-t border-[#23252A] space-y-4">
+              <label className="text-body font-medium text-ink block">Asset Allocation</label>
               
               {/* Row 1: LEFT, FRONT, RIGHT */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -476,34 +481,36 @@ export default function UploadPage() {
               </div>
             </div>
 
-            <div className="pt-6 border-t border-zinc-800/50 flex items-center justify-between">
-              <div className="text-sm text-zinc-400">
-                Total Files: <span className="font-mono text-zinc-100">{totalAvailablePhotos}</span>
+            <div className="pt-6 border-t border-[#23252A] flex items-center justify-between">
+              <div className="text-caption text-ink-subtle">
+                Total Files: <span className="font-mono text-ink">{totalAvailablePhotos}</span>
               </div>
-              <Button 
+              <button 
                 type="submit" 
                 disabled={isSubmitting || !personName || totalAvailablePhotos === 0}
-                className="bg-zinc-100 text-zinc-900 hover:bg-zinc-200"
+                className="button-primary flex items-center gap-2"
               >
                 {isSubmitting ? (
-                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-zinc-900 border-t-transparent mr-2" />
+                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent mr-1" />
                 ) : (
-                  <UploadCloud className="w-4 h-4 mr-2" />
+                  <UploadCloud className="w-4 h-4" />
                 )}
-                {mode === 'new' ? 'Enroll & Train' : (totalNewImages > 0 ? 'Upload & Retrain' : 'Retrain Only')}
-              </Button>
+                <span className="text-button text-white">
+                  {mode === 'new' ? 'Enroll & Train' : (totalNewImages > 0 ? 'Upload & Retrain' : 'Retrain Only')}
+                </span>
+              </button>
             </div>
 
-          </CardContent>
+          </div>
         </form>
-      </Card>
+      </div>
 
       <Modal isOpen={confirmModal.isOpen} onClose={() => setConfirmModal({ isOpen: false, itemToDelete: null })} title="Delete Photo">
-        <div className="p-4 bg-zinc-950">
-          <p className="text-zinc-300 mb-4">Are you sure you want to delete this photo from the dataset? This cannot be undone.</p>
-          <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={() => setConfirmModal({ isOpen: false, itemToDelete: null })}>Cancel</Button>
-            <Button variant="destructive" onClick={executeDeleteExistingPhoto}>Delete</Button>
+        <div className="p-6 bg-[#191A1B] text-ink space-y-4">
+          <p className="text-caption text-ink-subtle">Are you sure you want to delete this photo from the dataset? This cannot be undone.</p>
+          <div className="flex justify-end gap-2 pt-2">
+            <button className="button-secondary text-caption" onClick={() => setConfirmModal({ isOpen: false, itemToDelete: null })}>Cancel</button>
+            <button className="button-primary bg-[#F87171] hover:bg-red-600 text-white text-caption" onClick={executeDeleteExistingPhoto}>Delete</button>
           </div>
         </div>
       </Modal>

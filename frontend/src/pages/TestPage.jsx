@@ -2,13 +2,9 @@ import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { Camera, Image as ImageIcon, Video, Maximize, Play, X, AlertCircle, ThumbsUp, ThumbsDown, Check, Loader2, UploadCloud } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-
 import { API_BASE } from '../config';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
+import ApertureReticle from '../components/ApertureReticle';
+
 
 import Modal from '../components/Modal';
 
@@ -414,80 +410,73 @@ export default function TestPage() {
       return true;
     };
 
+
     return (
-      <div className="flex flex-col gap-5 bg-zinc-950 p-5 rounded-lg text-sm text-zinc-300">
+      <div className="flex flex-col gap-5 bg-[#0F1011] p-5 rounded-lg text-sm text-ink-muted">
         
         {/* Step 1: Is this a person? */}
         <div className="space-y-2">
-          <Label className="text-zinc-200 font-medium">1. Is this actually a person?</Label>
+          <label className="text-ink font-medium block">1. Is this actually a person?</label>
           <div className="flex gap-3">
-            <Button 
-              variant={isPerson === 'yes' ? 'default' : 'outline'} 
-              size="sm" 
+            <button 
               onClick={() => { setIsPerson('yes'); setIsNameCorrect(null); }}
-              className={`flex-1 h-9 ${isPerson === 'yes' ? 'bg-zinc-100 text-zinc-900' : 'border-zinc-800 text-zinc-400'}`}
+              className={`flex-1 h-9 ${isPerson === 'yes' ? 'button-primary text-white' : 'button-secondary'}`}
             >
               Yes, it is a person
-            </Button>
-            <Button 
-              variant={isPerson === 'no' ? 'destructive' : 'outline'} 
-              size="sm" 
+            </button>
+            <button 
               onClick={() => { setIsPerson('no'); setIsNameCorrect(null); }}
-              className={`flex-1 h-9 ${isPerson === 'no' ? 'bg-red-500 text-white border-red-600' : 'border-zinc-800 text-zinc-400 hover:bg-red-500/10 hover:text-red-400'}`}
+              className={`flex-1 h-9 ${isPerson === 'no' ? 'button-primary bg-[#F87171] hover:bg-red-600 text-white' : 'button-secondary text-[#F87171] hover:bg-[#F87171]/10 hover:border-[#F87171]/30'}`}
             >
               No, false detection
-            </Button>
+            </button>
           </div>
         </div>
 
         {/* Step 2: Is the predicted name correct? */}
         {isPerson === 'yes' && (
           <div className="space-y-2 fade-in">
-            <Label className="text-zinc-200 font-medium">
+            <label className="text-ink font-medium block">
               2. Is the predicted name "{feedbackContext?.predictedName?.replace(/_/g, ' ') || 'Unknown'}" correct?
-            </Label>
+            </label>
             <div className="flex gap-3">
-              <Button 
-                variant={isNameCorrect === 'yes' ? 'default' : 'outline'} 
-                size="sm" 
+              <button 
                 onClick={() => setIsNameCorrect('yes')}
-                className={`flex-1 h-9 ${isNameCorrect === 'yes' ? 'bg-zinc-100 text-zinc-900' : 'border-zinc-800 text-zinc-400'}`}
+                className={`flex-1 h-9 ${isNameCorrect === 'yes' ? 'button-primary text-white' : 'button-secondary'}`}
               >
                 Yes, correct
-              </Button>
-              <Button 
-                variant={isNameCorrect === 'no' ? 'default' : 'outline'} 
-                size="sm" 
+              </button>
+              <button 
                 onClick={() => setIsNameCorrect('no')}
-                className={`flex-1 h-9 ${isNameCorrect === 'no' ? 'bg-zinc-100 text-zinc-900' : 'border-zinc-800 text-zinc-400'}`}
+                className={`flex-1 h-9 ${isNameCorrect === 'no' ? 'button-primary text-white' : 'button-secondary'}`}
               >
                 No, incorrect name
-              </Button>
+              </button>
             </div>
           </div>
         )}
 
         {/* Step 3: Select or Enter Name */}
         {isPerson === 'yes' && isNameCorrect === 'no' && (
-          <div className="space-y-3 fade-in p-4 bg-zinc-900/50 border border-zinc-800 rounded-xl">
-            <Label className="text-zinc-200 font-medium">3. Who is this person?</Label>
+          <div className="space-y-3 fade-in p-4 bg-[#141516] border border-[#23252A] rounded-lg">
+            <label className="text-ink font-medium block">3. Who is this person?</label>
             
             <div className="flex gap-4 text-xs font-mono mb-2">
-              <label className="flex items-center gap-2 cursor-pointer text-zinc-300">
+              <label className="flex items-center gap-2 cursor-pointer text-ink-muted">
                 <input 
                   type="radio" name="identityType" value="existing" 
                   checked={identityType === 'existing'} 
                   onChange={() => setIdentityType('existing')}
-                  className="accent-zinc-100"
+                  className="accent-[#5E6AD2]"
                 />
                 <span>Existing Person</span>
               </label>
-              <label className="flex items-center gap-2 cursor-pointer text-zinc-300">
+              <label className="flex items-center gap-2 cursor-pointer text-ink-muted">
                 <input 
                   type="radio" name="identityType" value="new" 
                   checked={identityType === 'new'} 
                   onChange={() => setIdentityType('new')}
-                  className="accent-zinc-100"
+                  className="accent-[#5E6AD2]"
                 />
                 <span>New Person</span>
               </label>
@@ -497,44 +486,43 @@ export default function TestPage() {
               <select 
                 value={selectedName}
                 onChange={(e) => setSelectedName(e.target.value)}
-                className="w-full p-2.5 rounded-md bg-zinc-900 border border-zinc-800 text-zinc-100 outline-none focus:border-zinc-700 text-sm font-mono"
+                className="input-linear font-mono w-full"
               >
-                <option value="" disabled className="bg-zinc-950 text-zinc-400">Select a person...</option>
+                <option value="" disabled className="bg-[#010102] text-ink-tertiary">Select a person...</option>
                 {personsList.map(p => (
-                  <option key={p} value={p} className="bg-zinc-950 text-zinc-100">{p.replace(/_/g, ' ')}</option>
+                  <option key={p} value={p} className="bg-[#0F1011] text-ink">{p.replace(/_/g, ' ')}</option>
                 ))}
               </select>
             ) : (
               <input 
                 type="text"
-                placeholder="Enter new person's name (e.g. John_Doe)"
+                placeholder="Enter new name (e.g. John_Doe)"
                 value={customName}
                 onChange={(e) => setCustomName(e.target.value.replace(/\s+/g, '_'))}
-                className="w-full p-2.5 rounded-md bg-zinc-950 border border-zinc-800 text-zinc-100 outline-none focus:border-zinc-700 text-sm"
+                className="input-linear w-full"
               />
             )}
           </div>
         )}
 
-        <div className="flex justify-end gap-2 mt-4 pt-4 border-t border-zinc-900">
-          <Button variant="ghost" onClick={() => { setIsFeedbackModalOpen(false); setFeedbackContext(null); }}>
+        <div className="flex justify-end gap-2 mt-4 pt-4 border-t border-[#23252A]">
+          <button className="button-secondary text-caption" onClick={() => { setIsFeedbackModalOpen(false); setFeedbackContext(null); }}>
             Cancel
-          </Button>
-          <Button 
-            variant="default" 
+          </button>
+          <button 
             onClick={handleSubmit} 
             disabled={isSubmitDisabled()} 
-            className="bg-zinc-100 text-zinc-900 hover:bg-zinc-200"
+            className="button-primary text-caption"
           >
             Submit Feedback
-          </Button>
+          </button>
         </div>
       </div>
     );
   };
 
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="pb-12 max-w-7xl mx-auto space-y-6">
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="pb-12 max-w-7xl mx-auto space-y-6 page-container">
       
       <Modal 
         isOpen={isFeedbackModalOpen} 
@@ -545,46 +533,44 @@ export default function TestPage() {
       </Modal>
 
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight text-zinc-100">Live Inference Console</h1>
-        <p className="mt-1 text-sm text-zinc-400">Test face recognition models simultaneously using upload or webcam.</p>
+        <h1 className="text-headline font-semibold text-ink">Live Inference Console</h1>
+        <p className="mt-1 text-caption text-ink-subtle">Test face recognition models simultaneously using upload or webcam.</p>
       </div>
 
       {error && (
-        <Card className="border-red-500/20 bg-red-500/5 shadow-sm">
-          <CardContent className="p-4 flex gap-2 items-center text-red-500">
-            <AlertCircle className="h-5 w-5" />
-            <span className="text-sm font-medium">{error}</span>
-          </CardContent>
-        </Card>
+        <div className="card-linear border-[#F87171]/20 bg-[#F87171]/5 p-4 flex gap-2 items-center text-[#F87171]">
+          <AlertCircle className="h-5 w-5 shrink-0" />
+          <span className="text-caption font-medium">{error}</span>
+        </div>
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 min-h-[500px]">
         
         {/* Input Block */}
-        <Card className="bg-zinc-900/40 border-zinc-800 flex flex-col overflow-hidden">
-          <CardHeader className="flex flex-row items-center justify-between pb-4 border-b border-zinc-800">
-             <CardTitle className="text-base font-medium">Target Image</CardTitle>
+        <div className="card-linear p-0 overflow-hidden flex flex-col bg-[#0F1011] border-[#23252A]">
+          <div className="flex flex-row items-center justify-between py-4 px-6 border-b border-[#23252A] bg-[#0F1011]">
+             <h3 className="text-body font-medium text-ink">Target Image</h3>
              
-             <div className="flex gap-1 p-1 bg-zinc-950 rounded-lg border border-zinc-800">
-                <Button 
-                  variant={mode === 'upload' ? 'secondary' : 'ghost'} 
-                  size="sm"
+             <div className="flex gap-1 p-1 bg-[#010102] rounded-lg border border-[#23252A]">
+                <button 
                   onClick={switchToUpload}
-                  className={`h-7 px-3 text-xs ${mode === 'upload' ? 'bg-zinc-800 text-zinc-100 hover:bg-zinc-700' : 'text-zinc-500 hover:text-zinc-300'}`}
+                  className={`h-7 px-3 text-caption rounded-md transition-all ${
+                    mode === 'upload' ? 'bg-[#141516] text-ink font-medium' : 'text-ink-tertiary hover:text-ink-subtle'
+                  }`}
                 >
-                  <ImageIcon className="w-3.5 h-3.5 mr-1.5" /> Upload
-                </Button>
-                <Button 
-                  variant={mode === 'webcam' ? 'secondary' : 'ghost'}
-                  size="sm"
+                  Upload
+                </button>
+                <button 
                   onClick={switchToWebcam}
-                  className={`h-7 px-3 text-xs ${mode === 'webcam' ? 'bg-zinc-800 text-zinc-100 hover:bg-zinc-700' : 'text-zinc-500 hover:text-zinc-300'}`}
+                  className={`h-7 px-3 text-caption rounded-md transition-all ${
+                    mode === 'webcam' ? 'bg-[#141516] text-ink font-medium' : 'text-ink-tertiary hover:text-ink-subtle'
+                  }`}
                 >
-                  <Video className="w-3.5 h-3.5 mr-1.5" /> Webcam
-                </Button>
+                  Webcam
+                </button>
              </div>
-          </CardHeader>
-          <CardContent className="p-6 flex-1 flex flex-col">
+          </div>
+          <div className="p-6 flex-1 flex flex-col">
 
             <div 
               onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
@@ -599,19 +585,21 @@ export default function TestPage() {
                   } else setError('Please select a valid image file (JPEG, PNG, WebP).');
                 }
               }}
-              className={`flex-1 flex flex-col justify-center items-center bg-zinc-950/50 rounded-xl overflow-hidden relative min-h-[350px] transition-colors border-2 ${isDragActive ? 'border-dashed border-violet-500 bg-violet-500/5' : 'border-solid border-zinc-800'}`}
+              className={`flex-1 flex flex-col justify-center items-center bg-[#010102]/30 rounded-lg overflow-hidden relative min-h-[350px] transition-colors border-2 ${
+                isDragActive ? 'border-dashed border-[#828FFF] bg-[#5E6AD2]/5' : 'border-solid border-[#23252A]'
+              }`}
             >
                 {mode === 'webcam' ? (
                   <div className="w-full h-full flex flex-col items-center justify-center bg-black min-h-[350px] relative">
                     {webcamError ? (
-                      <div className="p-8 text-center">
-                        <AlertCircle className="w-8 h-8 text-red-500 mx-auto mb-4" />
-                        <p className="text-zinc-400 mb-4 text-sm">{webcamError}</p>
-                        <Button variant="secondary" onClick={startWebcam}>Retry Camera</Button>
-                      </div>
+                       <div className="p-8 text-center">
+                         <AlertCircle className="w-8 h-8 text-[#F87171] mx-auto mb-4" />
+                         <p className="text-ink-subtle mb-4 text-caption">{webcamError}</p>
+                         <button className="button-secondary text-caption" onClick={startWebcam}>Retry Camera</button>
+                       </div>
                     ) : (
                       <>
-                        <div className="relative w-full flex-1 flex items-center justify-center overflow-hidden rounded-lg bg-zinc-900/50 border border-zinc-800/50 h-full min-h-[350px]">
+                        <div className="relative w-full flex-1 flex items-center justify-center overflow-hidden rounded-lg bg-[#010102]/20 h-full min-h-[350px]">
                           <video 
                             ref={videoRef} autoPlay playsInline muted 
                             className="max-w-full max-h-full object-contain pointer-events-none"
@@ -630,12 +618,12 @@ export default function TestPage() {
                           />
                           {/* Live Feed Status Badge */}
                           {webcamReady && (
-                            <Badge className="absolute top-3 left-3 bg-red-500/20 text-red-400 border border-red-500/30 font-mono text-[9px] tracking-widest uppercase animate-pulse">
+                            <span className="absolute top-3 left-3 px-2 py-0.5 rounded-full text-[9px] font-mono tracking-wider bg-red-500/10 text-red-500 border border-red-500/20 uppercase animate-pulse">
                               Live Stream Active
-                            </Badge>
+                            </span>
                           )}
                           
-                          {/* Bounding Boxes for Live Webcam */}
+                          {/* Bounding Boxes for Live Webcam (Corner Bracket Style) */}
                           {results && results.faces && previewSize.naturalWidth > 0 && results.faces.map((face, idx) => {
                              const targetElement = videoRef.current;
                              if (!targetElement) return null;
@@ -651,15 +639,21 @@ export default function TestPage() {
                              const displayLabel = useEnsemble ? (face.ensemble?.label || 'Unknown') : (face.predictions?.sota?.label || 'Unknown');
                              const isConfirmed = useEnsemble ? face.ensemble?.is_confirmed === true : (displayConf > 0.8 && displayLabel !== 'Unknown');
                              const spoofed = face.prediction === 'SPOOF DETECTED' || displayLabel === 'SPOOF DETECTED';
-                             const boxColor = spoofed ? '#f59e0b' : (isConfirmed ? '#10b981' : '#ef4444'); // amber-500, emerald-500, or red-500
+                             const boxColor = spoofed ? '#FBBF24' : (isConfirmed ? '#27A644' : '#F87171');
 
                              return (
                                 <div key={idx} className="absolute pointer-events-none" style={{
-                                   border: `2px solid ${boxColor}`,
                                    left: offsetX + (face.bbox.x * scaleX), top: offsetY + (face.bbox.y * scaleY),
                                    width: face.bbox.w * scaleX, height: face.bbox.h * scaleY
                                  }}>
-                                   <div className="absolute -top-6 -left-0.5 px-1.5 py-0.5 text-[10px] font-bold font-mono tracking-widest" style={{ background: boxColor, color: '#000' }}>
+                                   {/* Corners (Aperture Reticle style) */}
+                                   <div className="absolute top-0 left-0 w-3.5 h-3.5 border-t-2 border-l-2 rounded-tl-sm" style={{ borderColor: boxColor }} />
+                                   <div className="absolute top-0 right-0 w-3.5 h-3.5 border-t-2 border-r-2 rounded-tr-sm" style={{ borderColor: boxColor }} />
+                                   <div className="absolute bottom-0 left-0 w-3.5 h-3.5 border-b-2 border-l-2 rounded-bl-sm" style={{ borderColor: boxColor }} />
+                                   <div className="absolute bottom-0 right-0 w-3.5 h-3.5 border-b-2 border-r-2 rounded-br-sm" style={{ borderColor: boxColor }} />
+                                   
+                                   {/* Label */}
+                                   <div className="absolute -top-6 left-0 px-2 py-0.5 text-[9px] font-bold font-mono tracking-widest uppercase text-black" style={{ backgroundColor: boxColor }}>
                                      {spoofed ? 'SPOOF' : (isConfirmed ? displayLabel.replace(/_/g, ' ') : 'UNKNOWN')}
                                    </div>
                                 </div>
@@ -667,127 +661,142 @@ export default function TestPage() {
                           })}
                         </div>
                         {!webcamReady && (
-                          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-zinc-950/80">
-                            <Loader2 className="w-6 h-6 animate-spin text-zinc-500" />
-                            <span className="text-zinc-400 text-sm font-mono tracking-tight">Initializing Camera...</span>
+                          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-[#010102]/85">
+                            <Loader2 className="w-6 h-6 animate-spin text-ink-subtle" />
+                            <span className="text-ink-tertiary text-caption font-mono uppercase tracking-wider">Initializing Camera...</span>
                           </div>
                         )}
                       </>
                     )}
                   </div>
                ) : (
-                   file ? (
-                    <div className="relative w-full h-full flex flex-col items-center justify-center p-2">
-                        <Button 
-                           variant="outline" size="icon"
-                           onClick={() => { setFile(null); setResults(null); }}
-                           className="absolute top-2 right-2 z-10 h-8 w-8 rounded-full bg-zinc-950/80 border-zinc-700 text-zinc-300 hover:text-zinc-100 hover:bg-zinc-800"
-                        ><X className="w-4 h-4" /></Button>
+                    file ? (
+                     <div className="relative w-full h-full flex flex-col items-center justify-center p-2">
+                         <button 
+                            onClick={() => { setFile(null); setResults(null); }}
+                            className="absolute top-2 right-2 z-10 h-7 w-7 rounded-full bg-[#010102]/80 border border-[#23252A] text-ink-subtle hover:text-ink flex items-center justify-center"
+                         >
+                           <X className="w-3.5 h-3.5" />
+                         </button>
 
-                        <div className="relative w-full flex-1 flex items-center justify-center overflow-hidden rounded-lg bg-zinc-900/50 border border-zinc-800/50">
-                          <img 
-                            ref={imgRef} src={URL.createObjectURL(file)} alt="Input" 
-                            className="max-w-full max-h-full object-contain pointer-events-none"
-                            onLoad={(e) => setPreviewSize({ width: e.target.clientWidth, height: e.target.clientHeight, naturalWidth: e.target.naturalWidth, naturalHeight: e.target.naturalHeight })}
-                          />
-                          {/* Bounding Boxes */}
-                          {results && results.faces && previewSize.naturalWidth > 0 && results.faces.map((face, idx) => {
-                             const scaleX = previewSize.width / previewSize.naturalWidth;
-                             const scaleY = previewSize.height / previewSize.naturalHeight;
-                             const imgRenderProps = imgRef.current.getBoundingClientRect();
-                             const containerProps = imgRef.current.parentElement.getBoundingClientRect();
-                             const offsetX = (containerProps.width - imgRenderProps.width) / 2;
-                             const offsetY = (containerProps.height - imgRenderProps.height) / 2;
-                             
-                             const useEnsemble = includeDeepFace;
-                             const displayConf = useEnsemble ? (face.ensemble?.confidence || 0) : (face.predictions?.sota?.confidence || 0);
-                             const displayLabel = useEnsemble ? (face.ensemble?.label || 'Unknown') : (face.predictions?.sota?.label || 'Unknown');
-                             const isConfirmed = useEnsemble ? face.ensemble?.is_confirmed === true : (displayConf > 0.8 && displayLabel !== 'Unknown');
-                             const spoofed = face.prediction === 'SPOOF DETECTED' || displayLabel === 'SPOOF DETECTED';
-                             const boxColor = spoofed ? '#f59e0b' : (isConfirmed ? '#10b981' : '#ef4444'); // amber-500, emerald-500, or red-500
+                         <div className="relative w-full flex-1 flex items-center justify-center overflow-hidden rounded-lg bg-[#010102]/20">
+                           <img 
+                             ref={imgRef} src={URL.createObjectURL(file)} alt="Input" 
+                             className="max-w-full max-h-full object-contain pointer-events-none"
+                             onLoad={(e) => setPreviewSize({ width: e.target.clientWidth, height: e.target.clientHeight, naturalWidth: e.target.naturalWidth, naturalHeight: e.target.naturalHeight })}
+                           />
+                           {/* Bounding Boxes (Corner Bracket Style) */}
+                           {results && results.faces && previewSize.naturalWidth > 0 && results.faces.map((face, idx) => {
+                              const scaleX = previewSize.width / previewSize.naturalWidth;
+                              const scaleY = previewSize.height / previewSize.naturalHeight;
+                              const imgRenderProps = imgRef.current.getBoundingClientRect();
+                              const containerProps = imgRef.current.parentElement.getBoundingClientRect();
+                              const offsetX = (containerProps.width - imgRenderProps.width) / 2;
+                              const offsetY = (containerProps.height - imgRenderProps.height) / 2;
+                              
+                              const useEnsemble = includeDeepFace;
+                              const displayConf = useEnsemble ? (face.ensemble?.confidence || 0) : (face.predictions?.sota?.confidence || 0);
+                              const displayLabel = useEnsemble ? (face.ensemble?.label || 'Unknown') : (face.predictions?.sota?.label || 'Unknown');
+                              const isConfirmed = useEnsemble ? face.ensemble?.is_confirmed === true : (displayConf > 0.8 && displayLabel !== 'Unknown');
+                              const spoofed = face.prediction === 'SPOOF DETECTED' || displayLabel === 'SPOOF DETECTED';
+                              const boxColor = spoofed ? '#FBBF24' : (isConfirmed ? '#27A644' : '#F87171');
 
-                             return (
-                                <div key={idx} className="absolute pointer-events-none" style={{
-                                   border: `2px solid ${boxColor}`,
-                                   left: offsetX + (face.bbox.x * scaleX), top: offsetY + (face.bbox.y * scaleY),
-                                   width: face.bbox.w * scaleX, height: face.bbox.h * scaleY
-                                 }}>
-                                   <div className="absolute -top-6 -left-0.5 px-1.5 py-0.5 text-[10px] font-bold font-mono tracking-widest" style={{ background: boxColor, color: '#000' }}>
-                                     {spoofed ? 'SPOOF' : (isConfirmed ? displayLabel.replace(/_/g, ' ') : 'UNKNOWN')}
-                                   </div>
-                                </div>
-                             );
-                          })}
-                        </div>
-                    </div>
-                  ) : (
-                    <div className="p-8 text-center text-zinc-500 w-full h-full flex flex-col items-center justify-center">
-                       <UploadCloud className="w-10 h-10 mb-4 opacity-50 text-zinc-400" />
-                       <p className="text-sm">Drag and drop, paste, or click to upload</p>
-                       <input type="file" accept="image/jpeg,image/png,image/webp" id="test-upload" className="hidden" onChange={handleFileChange} />
-                       <label htmlFor="test-upload" className="mt-6 cursor-pointer">
-                          <span className="bg-zinc-900 border border-zinc-700 text-zinc-300 hover:bg-zinc-800 px-4 py-2 rounded-md font-medium text-sm transition-colors shadow-sm inline-block">Browse Files</span>
-                       </label>
-                    </div>
-                  )
-               )}
+                              return (
+                                 <div key={idx} className="absolute pointer-events-none" style={{
+                                    left: offsetX + (face.bbox.x * scaleX), top: offsetY + (face.bbox.y * scaleY),
+                                    width: face.bbox.w * scaleX, height: face.bbox.h * scaleY
+                                  }}>
+                                    {/* Corners (Aperture Reticle style) */}
+                                    <div className="absolute top-0 left-0 w-3.5 h-3.5 border-t-2 border-l-2 rounded-tl-sm" style={{ borderColor: boxColor }} />
+                                    <div className="absolute top-0 right-0 w-3.5 h-3.5 border-t-2 border-r-2 rounded-tr-sm" style={{ borderColor: boxColor }} />
+                                    <div className="absolute bottom-0 left-0 w-3.5 h-3.5 border-b-2 border-l-2 rounded-bl-sm" style={{ borderColor: boxColor }} />
+                                    <div className="absolute bottom-0 right-0 w-3.5 h-3.5 border-b-2 border-r-2 rounded-br-sm" style={{ borderColor: boxColor }} />
+                                    
+                                    {/* Label */}
+                                    <div className="absolute -top-6 left-0 px-2 py-0.5 text-[9px] font-bold font-mono tracking-widest uppercase text-black" style={{ backgroundColor: boxColor }}>
+                                      {spoofed ? 'SPOOF' : (isConfirmed ? displayLabel.replace(/_/g, ' ') : 'UNKNOWN')}
+                                    </div>
+                                 </div>
+                              );
+                           })}
+                         </div>
+                     </div>
+                   ) : (
+                     <div className="p-8 text-center text-ink-subtle w-full h-full flex flex-col items-center justify-center">
+                        <UploadCloud className="w-10 h-10 mb-4 opacity-50 text-ink-tertiary" />
+                        <p className="text-caption mb-6">Drag and drop image, paste, or click to browse</p>
+                        <input type="file" accept="image/jpeg,image/png,image/webp" id="test-upload" className="hidden" onChange={handleFileChange} />
+                        <label htmlFor="test-upload" className="cursor-pointer">
+                           <span className="button-secondary">Browse Files</span>
+                        </label>
+                     </div>
+                   )
+                )}
             </div>
 
             <div className="mt-6">
                {mode === 'upload' ? (
-                 <Button 
-                   className="w-full bg-zinc-100 text-zinc-900 hover:bg-zinc-200 text-sm h-11"
+                 <button 
+                   className="w-full button-primary flex items-center justify-center gap-2 h-10"
                    onClick={runPrediction} 
                    disabled={!file || loading}
                  >
-                    {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Play className="w-4 h-4 mr-2" />}
-                    {loading ? 'Processing Identity...' : 'Execute Inference'}
-                 </Button>
+                    {loading ? <Loader2 className="w-4 h-4 animate-spin text-white" /> : <Play className="w-4 h-4 text-white" />}
+                    <span className="text-button text-white">{loading ? 'Processing Identity...' : 'Execute Inference'}</span>
+                 </button>
                ) : (
-                 <Button 
-                   className="w-full bg-zinc-100 text-zinc-900 hover:bg-zinc-200 text-sm h-11"
+                 <button 
+                   className="w-full button-primary flex items-center justify-center gap-2 h-10"
                    onClick={captureAndPredict} 
                    disabled={!webcamReady || loading}
                  >
-                    {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Camera className="w-4 h-4 mr-2" />}
-                    {loading ? 'Capturing & Testing...' : 'Capture & Run Inference'}
-                 </Button>
+                    {loading ? <Loader2 className="w-4 h-4 animate-spin text-white" /> : <Camera className="w-4 h-4 text-white" />}
+                    <span className="text-button text-white">{loading ? 'Capturing & Testing...' : 'Capture & Run Inference'}</span>
+                 </button>
                )}
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
         {/* Results Block */}
-        <Card className="bg-zinc-900/40 border-zinc-800 flex flex-col">
-          <CardHeader className="flex flex-row items-center justify-between pb-4 border-b border-zinc-800">
-            <CardTitle className="text-base font-medium">Telemetry & Results</CardTitle>
-          </CardHeader>
-          <CardContent className="p-6 flex-1 flex flex-col">
+        <div className="card-linear p-0 overflow-hidden flex flex-col bg-[#0F1011] border-[#23252A]">
+          <div className="py-4 px-6 border-b border-[#23252A] bg-[#0F1011]">
+            <h3 className="text-body font-medium text-ink">Telemetry & Results</h3>
+          </div>
+          <div className="p-6 flex-1 flex flex-col">
             
             {isDeepFaceEnabled && (
-              <div className="flex gap-4 p-3 bg-zinc-950/50 rounded-lg border border-zinc-800 mb-6">
-                <div className="flex items-center space-x-2">
-                  <Switch id="sota" checked={true} disabled />
-                  <Label htmlFor="sota" className="text-xs font-mono text-zinc-400">MobileNetV2</Label>
+              <div className="flex gap-6 p-4 bg-[#010102]/40 rounded-lg border border-[#23252A] mb-6 items-center">
+                <div className="flex items-center gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full bg-[#5E6AD2]" />
+                  <span className="text-caption font-mono text-ink-subtle">MobileNetV2: Active</span>
                 </div>
-                <div className="flex items-center space-x-2">
-                  <Switch id="df" checked={includeDeepFace} onCheckedChange={setIncludeDeepFace} />
-                  <Label htmlFor="df" className="text-xs font-mono text-zinc-100 cursor-pointer">DeepFace / Ensemble</Label>
+                <div className="flex items-center gap-3">
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input 
+                      type="checkbox" 
+                      className="sr-only peer" 
+                      checked={includeDeepFace} 
+                      onChange={e => setIncludeDeepFace(e.target.checked)} 
+                    />
+                    <div className="w-8 h-4 bg-[#141516] rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-ink-muted after:rounded-full after:h-3 after:w-3.5 after:transition-all peer-checked:bg-[#5E6AD2] border border-[#23252A]"></div>
+                    <span className="ml-2 text-caption font-mono text-ink">DeepFace / Ensemble</span>
+                  </label>
                 </div>
               </div>
             )}
             
             <div className="flex-1 overflow-y-auto">
               {loading ? (
-                 <div className="flex flex-col items-center justify-center h-full text-zinc-500 py-20">
-                    <Loader2 className="w-8 h-8 animate-spin" />
-                    <p className="mt-4 font-mono text-xs tracking-wider uppercase">Analyzing spatial data...</p>
+                 <div className="flex flex-col items-center justify-center h-full text-ink-subtle py-20">
+                    <Loader2 className="w-8 h-8 animate-spin text-[#5E6AD2]" />
+                    <p className="mt-4 font-mono text-caption uppercase tracking-wider">Analyzing spatial data...</p>
                  </div>
               ) : results ? (
                  results.faces && results.faces.length > 0 ? (
-                   <div className="space-y-4">
+                    <div className="space-y-4">
                       {results.message && (
-                        <div className="text-emerald-500 font-mono text-xs mb-2 border-l-2 border-emerald-500 pl-2">
+                        <div className="text-[#27A644] font-mono text-caption mb-4 border-l-2 border-[#27A644] pl-3">
                           [SYS] {results.message}
                         </div>
                       )}
@@ -801,20 +810,21 @@ export default function TestPage() {
                          
                          const spoofed = displayLabel === 'SPOOF DETECTED';
                          
-                         const statusColor = spoofed ? 'text-amber-500' : (isConfirmed ? 'text-emerald-500' : 'text-red-500');
-                         const statusBorder = spoofed ? 'border-amber-500/30' : (isConfirmed ? 'border-emerald-500/30' : 'border-red-500/30');
-                         const statusBg = spoofed ? 'bg-amber-500/5' : (isConfirmed ? 'bg-emerald-500/5' : 'bg-red-500/5');
+                         const statusColor = spoofed ? 'text-[#FBBF24]' : (isConfirmed ? 'text-[#27A644]' : 'text-[#F87171]');
+                         const statusBorder = spoofed ? 'border-[#FBBF24]/30' : (isConfirmed ? 'border-[#27A644]/30' : 'border-[#F87171]/30');
+                         const statusBg = spoofed ? 'bg-[#FBBF24]/5' : (isConfirmed ? 'bg-[#27A644]/5' : 'bg-[#F87171]/5');
+                         const flashClass = isConfirmed ? 'confirmed-flash' : 'error-flash';
 
                          return (
-                          <div className="bg-zinc-950/50 border border-zinc-800 rounded-xl p-5 shadow-sm relative overflow-hidden" key={i}>
-                             <div className={`absolute top-0 left-0 w-1 h-full ${isConfirmed ? 'bg-emerald-500' : (spoofed ? 'bg-amber-500' : 'bg-red-500')}`} />
+                          <div className={`bg-[#010102]/30 border border-[#23252A] rounded-lg p-5 relative overflow-hidden ${flashClass}`} key={i}>
+                             <div className={`absolute top-0 left-0 w-1 h-full ${isConfirmed ? 'bg-[#27A644]' : (spoofed ? 'bg-[#FBBF24]' : 'bg-[#F87171]')}`} />
                              
-                             <h3 className="m-0 mb-4 text-xs font-semibold text-zinc-500 font-mono tracking-wider">TARGET {i + 1}</h3>
+                             <h3 className="m-0 mb-4 text-caption font-semibold text-ink-subtle font-mono tracking-wider">TARGET {i + 1}</h3>
                              
                              <div className={`p-4 rounded-lg border ${statusBorder} ${statusBg}`}>
                                <div className="flex justify-between items-start">
                                  <div>
-                                   <div className="text-[10px] font-mono tracking-wider text-zinc-500 mb-1 uppercase">
+                                   <div className="text-[10px] font-mono tracking-wider text-ink-subtle mb-1 uppercase">
                                      {spoofed ? 'LIVENESS FAILED' : (isConfirmed ? 'IDENTITY CONFIRMED' : 'NO MATCH FOUND')}
                                    </div>
                                    <div className={`text-xl font-medium tracking-tight ${statusColor}`}>
@@ -823,25 +833,25 @@ export default function TestPage() {
                                  </div>
                                </div>
 
-                               <div className="flex justify-between items-center mt-4 pt-4 border-t border-zinc-800/50">
-                                 <div className="text-[10px] text-zinc-500 font-mono tracking-wider uppercase">
+                               <div className="flex justify-between items-center mt-4 pt-4 border-t border-[#23252A]/50">
+                                 <div className="text-[10px] text-ink-subtle font-mono tracking-wider uppercase">
                                    MTHD: {displayMethod} | CONF: {(displayConf * 100).toFixed(1)}%
                                  </div>
                                  
                                  {face.prediction_id && !spoofed && (
                                    <div className="flex gap-1.5">
                                       {feedbackState[face.prediction_id] === 'success' ? (
-                                        <Badge variant="outline" className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20 text-[10px] px-2 font-mono">
-                                          <Check className="w-3 h-3 mr-1" /> Logged
-                                        </Badge>
+                                        <span className="px-2 py-0.5 rounded-full text-[10px] font-mono bg-[#27A644]/10 text-[#27A644] border border-[#27A644]/20 flex items-center gap-1">
+                                          <Check className="w-3 h-3" /> Logged
+                                        </span>
                                       ) : (
                                         <>
-                                          <Button variant="ghost" size="icon" className="h-7 w-7 text-emerald-500 hover:text-emerald-400 hover:bg-emerald-500/10 rounded" onClick={() => submitFeedback(face.prediction_id, true, displayLabel)} title="Correct Detection">
+                                          <button className="button-secondary h-7 w-7 p-0 flex items-center justify-center text-[#27A644] hover:bg-[#27A644]/10" onClick={() => submitFeedback(face.prediction_id, true, displayLabel)} title="Correct Detection">
                                             <ThumbsUp className="w-3.5 h-3.5" />
-                                          </Button>
-                                          <Button variant="ghost" size="icon" className="h-7 w-7 text-red-500 hover:text-red-400 hover:bg-red-500/10 rounded" onClick={() => submitFeedback(face.prediction_id, false, displayLabel)} title="Incorrect Detection">
+                                          </button>
+                                          <button className="button-secondary h-7 w-7 p-0 flex items-center justify-center text-[#F87171] hover:bg-[#F87171]/10" onClick={() => submitFeedback(face.prediction_id, false, displayLabel)} title="Incorrect Detection">
                                             <ThumbsDown className="w-3.5 h-3.5" />
-                                          </Button>
+                                          </button>
                                         </>
                                       )}
                                    </div>
@@ -849,36 +859,36 @@ export default function TestPage() {
                                </div>
                              </div>
 
-                             <div className="mt-4 flex flex-col gap-2 p-3 bg-zinc-900/50 rounded-lg border border-zinc-800">
-                                <div className="flex justify-between text-[11px] font-mono">
-                                   <span className="text-zinc-500">MobileNetV2</span>
-                                   <span className="text-zinc-300">{face.predictions?.sota?.label} ({(face.predictions?.sota?.confidence * 100).toFixed(1)}%)</span>
-                                </div>
-                                {includeDeepFace && face.predictions?.deepface && (
-                                  <div className="flex justify-between text-[11px] font-mono border-t border-zinc-800/50 pt-2">
-                                     <span className="text-zinc-500">Facenet512</span>
-                                     <span className="text-zinc-300">{face.predictions.deepface.label} ({(face.predictions.deepface.confidence * 100).toFixed(1)}%)</span>
-                                  </div>
-                                )}
+                             <div className="mt-4 flex flex-col gap-2 p-3 bg-[#0F1011] rounded-lg border border-[#23252A]">
+                                 <div className="flex justify-between text-[11px] font-mono">
+                                    <span className="text-ink-tertiary">MobileNetV2</span>
+                                    <span className="text-ink-muted">{face.predictions?.sota?.label} ({(face.predictions?.sota?.confidence * 100).toFixed(1)}%)</span>
+                                 </div>
+                                 {includeDeepFace && face.predictions?.deepface && (
+                                   <div className="flex justify-between text-[11px] font-mono border-t border-[#23252A]/50 pt-2">
+                                      <span className="text-ink-tertiary">Facenet512</span>
+                                      <span className="text-ink-muted">{face.predictions.deepface.label} ({(face.predictions.deepface.confidence * 100).toFixed(1)}%)</span>
+                                   </div>
+                                 )}
                              </div>
                           </div>
-                         );
-                      })}
-                   </div>
-                 ) : (
-                   <div className="text-center py-20 text-zinc-500">
-                      <Maximize className="w-10 h-10 mx-auto mb-4 opacity-50" />
-                      <p className="text-sm">No faces detected in the provided frame.</p>
-                   </div>
-                 )
+                          );
+                       })}
+                    </div>
+                  ) : (
+                    <div className="text-center py-20 text-ink-tertiary">
+                       <Maximize className="w-10 h-10 mx-auto mb-4 opacity-50" />
+                       <p className="text-caption">No faces detected in the provided frame.</p>
+                    </div>
+                  )
               ) : (
-                 <div className="text-center py-20 text-zinc-500">
-                    <p className="text-sm font-mono tracking-tight">Inference output will appear here.</p>
+                 <div className="text-center py-20 text-ink-tertiary">
+                    <p className="text-caption font-mono tracking-tight">Inference output will appear here.</p>
                  </div>
               )}
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
         
       </div>
     </motion.div>

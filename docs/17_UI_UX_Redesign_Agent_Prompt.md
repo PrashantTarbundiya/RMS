@@ -24,44 +24,82 @@ This is an **enterprise security/attendance console**, not a marketing site or c
 
 ---
 
-## 2. Design Tokens (final — implement exactly, don't reinterpret)
+## 2. Design Tokens — Sourced Directly From Linear's Design System (single reference, do not blend with any other system)
+
+This project standardizes on **Linear's actual design tokens** as the single source of truth — not an approximation, not a blend with any other reference. Linear was chosen because its whole discipline (near-black canvas, one restrained lavender-blue accent, hairline-bordered dense panels, software-craft documentation feel) is built for exactly what this product needs: a dense console someone scans for hours, not a marketing page. Implement these exactly.
 
 ### Color
 ```css
 :root {
-  /* Base */
-  --bg-void: #0B0E1A;        /* deep space-navy, NOT flat black */
-  --bg-surface: #12162A;     /* card/panel base */
-  --bg-elevated: #1B2140;    /* modals, dropdowns, hover surfaces */
-  --border-subtle: #262C4D;
+  /* Canvas & surfaces */
+  --canvas: #010102;          /* deepest base — the whole app sits on this, not flat #000 */
+  --surface-1: #0F1011;       /* primary card/panel */
+  --surface-2: #141516;       /* nested/secondary panel */
+  --surface-3: #18191A;       /* elevated (dropdowns) */
+  --surface-4: #191A1B;       /* modals */
 
-  /* Accent — used deliberately, not as a wash */
-  --accent-indigo: #5B5FEF;  /* primary actions, active nav, focus rings */
-  --accent-violet: #8B5CF6;  /* secondary accent — reserve for the signature element only, §3 */
+  /* Borders */
+  --hairline: #23252A;
+  --hairline-strong: #34343A;
+  --hairline-tertiary: #3E3E44;
 
-  /* Semantic — these ARE the product's core language (CONFIRMED / NOT FOUND) */
-  --confirm-green: #34D399;
-  --alert-crimson: #F87171;
-  --warn-amber: #FBBF24;
+  /* Accent — the ONE chromatic color, used deliberately, never decoratively */
+  --accent-primary: #5E6AD2;       /* Linear's signature lavender-blue */
+  --accent-hover: #828FFF;
+  --accent-focus: #5E69D1;
+  --brand-secure: #7A7FAD;         /* muted accent variant — good fit for "verified/secure" states given the name */
 
   /* Text */
-  --text-primary: #EDEFFA;
-  --text-muted: #8890B5;
-  --text-faint: #565D82;
+  --ink: #F7F8F8;
+  --ink-muted: #D0D6E0;
+  --ink-subtle: #8A8F98;
+  --ink-tertiary: #62666D;
+
+  /* Semantic (this product's core language: CONFIRMED / NOT FOUND) */
+  --success: #27A644;
+  --alert-crimson: #F87171;   /* not in source system — nearest semantic red, kept for NOT FOUND state */
+  --warn-amber: #FBBF24;      /* not in source system — kept for warning states */
 }
 ```
-Rule: `--accent-violet` is reserved for the scan/reticle motif and primary chart highlights — it does not appear on generic buttons or backgrounds. If you find yourself reaching for a blue-to-violet gradient as a card background, stop — that's the cliché this brief exists to avoid. Gradients are allowed only inside the reticle/scan motif itself (§3).
+Rule: `--accent-primary` appears on the brand mark, focus rings, primary CTAs, and the reticle motif (§3) — never as a background wash or gradient fill. This is Linear's own discipline, stated directly in its system: the accent is reserved for a few intentional moments, not decoration. If an agent starts filling card backgrounds or large surfaces with the accent color, that's a deviation — flag it.
 
 ### Typography
-- **Display (headings, KPI numbers):** Space Grotesk — geometric, technical, not the soft rounded sans every AI dashboard uses.
-- **Body (UI text, labels):** Inter — neutral, legible at small sizes on a wall-mounted screen.
-- **Utility/Data (timestamps, employee IDs, confidence scores, prediction IDs):** JetBrains Mono — monospace makes tabular data (timestamps, IDs) actually scannable, and reinforces "this is a precise instrument," not a toy.
+- **Display (headings, KPI numbers):** Linear Display (SF Pro Display fallback), weight 500–600, with the negative tracking values below — this is what gives Linear's dense screens their "quietly luxurious" feel instead of looking cramped.
+- **Body (UI text, labels):** Linear Text (system sans fallback: `-apple-system, "Segoe UI", sans-serif`).
+- **Utility/Data (timestamps, employee IDs, confidence scores, prediction IDs):** Linear Mono, 13px — same rationale as before: tabular data reads as precise, not decorative.
 
-Type scale: define as CSS variables (`--text-xs` through `--text-4xl`) using a 1.25 ratio, set once in `index.css`, referenced everywhere — no inline font-sizes anywhere in the codebase.
+```css
+--text-display-lg: 56px/1.10, weight 600, tracking -1.8px;   /* page-level heros, rare */
+--text-display-md: 40px/1.15, weight 600, tracking -1.0px;   /* section headers */
+--text-headline:   28px/1.20, weight 600, tracking -0.6px;   /* card/page titles */
+--text-card-title: 22px/1.25, weight 500, tracking -0.4px;
+--text-subhead:    20px/1.40, weight 400, tracking -0.2px;
+--text-body-lg:    18px/1.50, weight 400, tracking -0.1px;
+--text-body:       16px/1.50, weight 400, tracking -0.05px;  /* default UI text */
+--text-body-sm:    14px/1.50, weight 400, tracking 0;
+--text-caption:    12px/1.40, weight 400, tracking 0;
+--text-button:     14px/1.20, weight 500, tracking 0;
+--text-eyebrow:    13px/1.30, weight 500, tracking 0.4px;
+--text-mono:       13px/1.50, weight 400, tracking 0;
+```
+Set once in `index.css` as variables, referenced everywhere — no inline font-sizes anywhere in the codebase.
 
-### Spacing & Radius
-- 8px base spacing scale (`--space-1: 4px` through `--space-8: 64px`).
-- Radius: `--radius-sm: 6px` (inputs, small buttons), `--radius-md: 10px` (cards), `--radius-lg: 16px` (modals). No fully-rounded pill buttons except status badges — pills read as consumer-app, not console.
+### Spacing & Radius (Linear's actual scale)
+```css
+--space-xxs: 4px;  --space-xs: 8px;   --space-sm: 12px;  --space-md: 16px;
+--space-lg: 24px;  --space-xl: 32px;  --space-xxl: 48px; --space-section: 96px;
+
+--radius-xs: 4px;  --radius-sm: 6px;  --radius-md: 8px;  --radius-lg: 12px;
+--radius-xl: 16px; --radius-xxl: 24px; --radius-pill: 9999px;
+```
+Pills are reserved for status badges and filter tabs only (this matches Linear's own `pricing-tab-selected` usage) — not for general buttons, which use `--radius-md`.
+
+### Component Tokens (directly from source — implement these shapes)
+- `button-primary`: bg `--accent-primary`, text white, `--radius-md`, padding `8px 14px`, hover → `--accent-hover`, pressed → `--accent-focus`.
+- `button-secondary`: bg `--surface-1`, text `--ink`, same radius/padding.
+- `card` (feature/data card): bg `--surface-1`, `--radius-lg`, padding `24px`, border `1px solid var(--hairline)`.
+- `text-input`: bg `--surface-1`, `--radius-md`, padding `8px 12px`.
+- Screenshot/preview panels (repurpose for camera/video feed containers): bg `--surface-1`, `--radius-xl`, padding `24px`.
 
 ---
 
@@ -75,7 +113,7 @@ This is the one memorable, deliberately bold element — everything else stays q
 - **Empty states:** an open reticle frame with brackets slightly apart, with copy like "No one's checked in yet today" — implies "waiting to detect," which is literally true of the system.
 - **Live capture UI (Test page, camera modal):** the actual bounding box overlay, styled with this same bracket language, so the product UI and the marketing/dashboard UI feel like one coherent system rather than two different designers' work.
 
-This is the one place `--accent-violet` and gradients are used freely. Nowhere else.
+This is the one place `--accent-primary` is allowed to appear as a soft gradient (indigo → lavender-hover, i.e. `--accent-primary` → `--accent-hover`) rather than a flat fill. Nowhere else in the product does a gradient appear — that restraint is the entire point of Linear's system, and the thing most "blue/purple AI SaaS" UIs get wrong.
 
 ---
 
@@ -91,7 +129,7 @@ Orchestrated, not scattered. Respect `prefers-reduced-motion` globally — wrap 
 | NOT FOUND result | Reticle frame stays open/loose, crimson pulse, no bounce — visually distinct rhythm from CONFIRMED, not just a color swap. |
 | Live Attendance grid | New check-in cards slide in from the top with a brief highlight-glow that fades over 2s, so admins visually catch new arrivals without a jarring re-render. |
 | Feedback correction (marking a prediction wrong) | Modal slides up with spring physics; on submit, the corrected card visibly "re-sorts" into its right place rather than just vanishing — reinforces that the correction did something real. |
-| Table row hover | Background lightens to `--bg-elevated`, no shadow/scale — restraint matters in dense data tables. |
+| Table row hover | Background lightens to `--surface-2`, no shadow/scale — restraint matters in dense data tables. |
 | Toasts | Enter from bottom-right, auto-dismiss with a visible countdown bar, never stack more than 3 — older ones collapse into "+2 more." |
 | Nav active state | Left border accent bar (indigo) grows in from top, not a full background fill — quieter, more console-like. |
 

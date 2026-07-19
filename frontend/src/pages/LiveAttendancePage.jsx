@@ -1,9 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Radio, Clock, LogIn, User } from 'lucide-react';
-import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+
 
 // Mock Live Data Generator
 const generateLiveMockData = () => {
@@ -94,20 +92,20 @@ export default function LiveAttendancePage() {
   };
 
   return (
-    <motion.div variants={containerVariants} initial="hidden" animate="visible" className="pb-12 space-y-6">
+    <motion.div variants={containerVariants} initial="hidden" animate="visible" className="pb-12 space-y-6 page-container">
       <div className="flex justify-between items-start flex-wrap gap-4 mb-6">
         <div>
-          <h1 className="m-0 text-2xl font-semibold tracking-tight text-zinc-100 flex items-center gap-3">
-            Live Operations <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+          <h1 className="m-0 text-headline font-semibold text-ink font-display flex items-center gap-3">
+            Live Operations <span className="w-2.5 h-2.5 rounded-full bg-[#27A644] animate-pulse" />
           </h1>
-          <p className="mt-1 text-zinc-400 text-sm">Real-time telemetry of personnel on premises.</p>
+          <p className="mt-1 text-caption text-ink-subtle">Real-time telemetry of personnel on premises.</p>
         </div>
-        <Button 
-          variant="outline" 
+        <button 
           onClick={() => { setLiveData(generateLiveMockData()); setNow(new Date()); }}
+          className="button-secondary text-caption flex items-center gap-2"
         >
-          <Radio className="mr-2 h-4 w-4" /> Force Refresh
-        </Button>
+          <Radio className="h-4 w-4" /> Force Refresh
+        </button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
@@ -124,45 +122,43 @@ export default function LiveAttendancePage() {
                 animate="visible"
                 exit="exit"
               >
-                <Card className={`relative overflow-hidden bg-zinc-900/40 border-zinc-800 transition-colors hover:bg-zinc-800/40 ${isRecent ? 'ring-1 ring-emerald-500/50' : ''}`}>
+                <div className={`relative overflow-hidden card-linear p-5 hover:bg-[#141516]/60 transition-colors ${isRecent ? 'ring-1 ring-[#27A644]/50' : ''}`}>
                   {isRecent && (
-                    <div className="absolute top-0 inset-x-0 h-[1px] bg-gradient-to-r from-transparent via-emerald-500 to-transparent opacity-50" />
+                    <div className="absolute top-0 inset-x-0 h-[1px] bg-gradient-to-r from-transparent via-[#27A644] to-transparent opacity-50" />
                   )}
-                  <CardContent className="p-5">
-                    <div className="flex items-start justify-between mb-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-zinc-800 flex items-center justify-center font-mono font-medium text-zinc-300 border border-zinc-700/50 shadow-sm">
-                          {getInitials(person.employeeName)}
-                        </div>
-                        <div>
-                          <div className="font-mono font-medium text-zinc-100 text-sm">
-                            {person.employeeName}
-                          </div>
-                          <div className="text-xs text-zinc-500 flex items-center gap-1 mt-0.5">
-                            <LogIn className="w-3 h-3" /> {new Date(person.checkIn).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
-                          </div>
-                        </div>
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-[#141516] flex items-center justify-center font-mono font-medium text-ink-subtle border border-[#23252A] shadow-sm">
+                        {getInitials(person.employeeName)}
                       </div>
-                      <Badge variant="outline" className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20 text-[10px] px-1.5 py-0">
-                        {person.status}
-                      </Badge>
-                    </div>
-                    
-                    <div className="pt-3 mt-3 border-t border-zinc-800/50 grid grid-cols-2 gap-2 text-xs">
                       <div>
-                        <div className="text-zinc-500 mb-0.5 uppercase tracking-wider text-[10px]">Gate ID</div>
-                        <div className="text-zinc-300 font-mono">{person.gateId}</div>
-                      </div>
-                      <div className="text-right">
-                        <div className="text-zinc-500 mb-0.5 uppercase tracking-wider text-[10px]">Duration</div>
-                        <div className="text-zinc-300 font-mono flex items-center justify-end gap-1">
-                          <Clock className="w-3 h-3 text-zinc-500" />
-                          {formatDuration(person.checkIn, now)}
+                        <div className="font-mono font-medium text-ink text-sm">
+                          {person.employeeName.replace(/_/g, ' ')}
+                        </div>
+                        <div className="text-xs text-ink-tertiary flex items-center gap-1 mt-0.5">
+                          <LogIn className="w-3 h-3 text-ink-tertiary" /> {new Date(person.checkIn).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
                         </div>
                       </div>
                     </div>
-                  </CardContent>
-                </Card>
+                    <span className="inline-flex px-1.5 py-0.5 rounded font-mono text-[9px] font-semibold bg-[#27A644]/10 text-[#27A644] border border-[#27A644]/20">
+                      {person.status}
+                    </span>
+                  </div>
+                  
+                  <div className="pt-3 mt-3 border-t border-[#23252A]/50 grid grid-cols-2 gap-2 text-xs">
+                    <div>
+                      <div className="text-ink-tertiary mb-0.5 uppercase tracking-wider text-[10px]">Gate ID</div>
+                      <div className="text-ink-subtle font-mono">{person.gateId.replace(/_/g, ' ')}</div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-ink-tertiary mb-0.5 uppercase tracking-wider text-[10px]">Duration</div>
+                      <div className="text-ink-subtle font-mono flex items-center justify-end gap-1">
+                        <Clock className="w-3 h-3 text-ink-tertiary" />
+                        {formatDuration(person.checkIn, now)}
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </motion.div>
             );
           })}
@@ -170,9 +166,9 @@ export default function LiveAttendancePage() {
       </div>
 
       {liveData.length === 0 && (
-        <div className="text-center py-20 text-zinc-500 border border-dashed border-zinc-800 rounded-xl bg-zinc-900/20">
-          <User className="mx-auto h-8 w-8 mb-3 opacity-50" />
-          <p className="text-sm">No personnel currently detected on site.</p>
+        <div className="text-center py-20 text-ink-subtle border border-dashed border-[#23252A] rounded-xl bg-[#0F1011]/20">
+          <User className="mx-auto h-8 w-8 mb-3 opacity-50 text-ink-tertiary" />
+          <p className="text-caption">No personnel currently detected on site.</p>
         </div>
       )}
     </motion.div>

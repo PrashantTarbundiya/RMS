@@ -2,11 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { Terminal, CheckCircle, Download, Activity, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-
 import { API_BASE } from '../config';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+
 
 export default function TrainingPage() {
   const [logs, setLogs] = useState([]);
@@ -75,10 +72,10 @@ export default function TrainingPage() {
   const { dfPercent, sotaPercent } = extractProgress();
 
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="pb-12 max-w-5xl mx-auto space-y-6">
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="pb-12 max-w-5xl mx-auto space-y-6 page-container">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight text-zinc-100">Model Refinement</h1>
-        <p className="mt-1 text-sm text-zinc-400">
+        <h1 className="text-headline font-semibold text-ink font-display">Model Refinement</h1>
+        <p className="mt-1 text-caption text-ink-subtle">
           DeepFace embeddings are processed instantly. SOTA MobileNetV2 fine-tuning runs asynchronously in the background.
         </p>
       </div>
@@ -91,83 +88,73 @@ export default function TrainingPage() {
       <AnimatePresence>
         {(!isTraining && sotaPercent === 100) && (
           <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
-            <Card className="bg-emerald-500/10 border-emerald-500/20 shadow-sm">
-              <CardContent className="p-6">
+            <div className="card-linear border-[#27A644]/20 bg-[#27A644]/5">
+              <div className="p-6">
                 <div className="flex items-center gap-3 mb-6">
-                  <CheckCircle className="w-6 h-6 text-emerald-500" />
+                  <CheckCircle className="w-6 h-6 text-[#27A644]" />
                   <div>
-                    <h3 className="m-0 text-emerald-500 text-lg font-medium">Training Complete</h3>
-                    <p className="m-0 mt-1 text-zinc-400 text-sm">All models have been successfully updated.</p>
+                    <h3 className="m-0 text-[#27A644] text-lg font-medium">Training Complete</h3>
+                    <p className="m-0 mt-1 text-ink-subtle text-caption">All models have been successfully updated.</p>
                   </div>
                 </div>
                 
                 <div className="grid gap-4">
-                  <div className="p-4 bg-zinc-950/50 rounded-lg border border-zinc-800/50">
-                    <h4 className="m-0 mb-3 text-sm flex items-center gap-2 text-zinc-300">
-                      <Terminal className="w-4 h-4" /> Core Models
+                  <div className="p-4 bg-black/30 rounded-lg border border-[#23252A]">
+                    <h4 className="m-0 mb-3 text-sm flex items-center gap-2 text-ink-subtle font-semibold uppercase tracking-wider text-[11px]">
+                      <Terminal className="w-4 h-4 text-ink-tertiary" /> Core Models
                     </h4>
                     <div className="flex gap-2 flex-wrap">
-                      <Button asChild variant="secondary" size="sm" className="bg-zinc-100 text-zinc-900 hover:bg-zinc-200">
-                        <a href={`${API_BASE}/download-file?name=encodings.pickle`}>
-                          <Download className="w-4 h-4 mr-2" /> encodings.pickle
-                        </a>
-                      </Button>
-                      <Button asChild variant="secondary" size="sm" className="bg-zinc-100 text-zinc-900 hover:bg-zinc-200">
-                        <a href={`${API_BASE}/download-file?name=best_mobile_sideface.pth`}>
-                          <Download className="w-4 h-4 mr-2" /> best_mobile_sideface.pth
-                        </a>
-                      </Button>
+                      <a href={`${API_BASE}/download-file?name=encodings.pickle`} className="button-primary text-white text-caption flex items-center gap-2 h-9">
+                        <Download className="w-4 h-4 text-white" /> encodings.pickle
+                      </a>
+                      <a href={`${API_BASE}/download-file?name=best_mobile_sideface.pth`} className="button-primary text-white text-caption flex items-center gap-2 h-9">
+                        <Download className="w-4 h-4 text-white" /> best_mobile_sideface.pth
+                      </a>
                     </div>
                   </div>
 
-                  <div className="p-4 bg-zinc-950/50 rounded-lg border border-zinc-800/50">
-                    <h4 className="m-0 mb-3 text-sm flex items-center gap-2 text-zinc-300">
-                      <Activity className="w-4 h-4" /> Edge Exports (ONNX)
+                  <div className="p-4 bg-black/30 rounded-lg border border-[#23252A]">
+                    <h4 className="m-0 mb-3 text-sm flex items-center gap-2 text-ink-subtle font-semibold uppercase tracking-wider text-[11px]">
+                      <Activity className="w-4 h-4 text-ink-tertiary" /> Edge Exports (ONNX)
                     </h4>
                     <div className="flex gap-2 flex-wrap">
-                      <Button asChild variant="outline" size="sm" className="bg-zinc-950 border-zinc-800 text-zinc-300 hover:bg-zinc-800 hover:text-zinc-100">
-                        <a href={`${API_BASE}/download-file?name=sideface_mobile.onnx`}>
-                          <Download className="w-4 h-4 mr-2" /> sideface_mobile.onnx
-                        </a>
-                      </Button>
-                      <Button asChild variant="outline" size="sm" className="bg-zinc-950 border-zinc-800 text-zinc-300 hover:bg-zinc-800 hover:text-zinc-100">
-                        <a href={`${API_BASE}/download-file?name=facenet512.onnx`}>
-                          <Download className="w-4 h-4 mr-2" /> facenet512.onnx
-                        </a>
-                      </Button>
+                      <a href={`${API_BASE}/download-file?name=sideface_mobile.onnx`} className="button-secondary text-caption flex items-center gap-2 h-9">
+                        <Download className="w-4 h-4" /> sideface_mobile.onnx
+                      </a>
+                      <a href={`${API_BASE}/download-file?name=facenet512.onnx`} className="button-secondary text-caption flex items-center gap-2 h-9">
+                        <Download className="w-4 h-4" /> facenet512.onnx
+                      </a>
                     </div>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      <Card className="bg-zinc-900/40 border-zinc-800">
-        <CardContent className="p-6">
-          <div className="flex items-center gap-2 border-b border-zinc-800 pb-3 mb-4">
-            <Terminal className="w-4 h-4 text-zinc-400" />
-            <h3 className="m-0 text-base font-mono text-zinc-300">Terminal Output</h3>
-          </div>
-          
-          <div className="bg-black/50 rounded-lg p-4 font-mono text-xs text-zinc-400 h-[400px] overflow-y-auto border border-zinc-800/50">
-            {logs.length === 0 ? (
-              <div className="opacity-50 flex items-center justify-center h-full gap-2">
-                <Loader2 className="w-4 h-4 animate-spin" /> Waiting for training telemetry...
+      <div className="card-linear p-6">
+        <div className="flex items-center gap-2 border-b border-[#23252A] pb-3 mb-4">
+          <Terminal className="w-4 h-4 text-ink-tertiary" />
+          <h3 className="m-0 text-body font-mono text-ink-subtle">Terminal Output</h3>
+        </div>
+        
+        <div className="bg-black/50 rounded-lg p-4 font-mono text-xs text-ink-subtle h-[400px] overflow-y-auto border border-[#23252A]/50">
+          {logs.length === 0 ? (
+            <div className="opacity-50 flex items-center justify-center h-full gap-2">
+              <Loader2 className="w-4 h-4 animate-spin text-[#5E6AD2]" /> Waiting for training telemetry...
+            </div>
+          ) : (
+            logs.map((log, i) => (
+              <div key={i} className="py-1 border-b border-white/5 flex">
+                <span className="text-ink-muted mr-3 w-10 shrink-0 select-none">{String(i + 1).padStart(4, '0')}</span>
+                <span className="break-all text-ink">{log}</span>
               </div>
-            ) : (
-              logs.map((log, i) => (
-                <div key={i} className="py-1 border-b border-white/5 flex">
-                  <span className="text-zinc-600 mr-3 w-10 shrink-0 select-none">{String(i + 1).padStart(4, '0')}</span>
-                  <span className="break-all">{log}</span>
-                </div>
-              ))
-            )}
-            <div ref={logsEndRef} />
-          </div>
-        </CardContent>
-      </Card>
+            ))
+          )}
+          <div ref={logsEndRef} />
+        </div>
+      </div>
     </motion.div>
   );
 }
@@ -177,33 +164,38 @@ function ModelProgressCard({ title, subtitle, percent, isTraining }) {
   let statusText = percent === 0 ? 'Pending' : (isTraining || percent < 100) ? 'Training' : 'Complete';
 
   return (
-    <Card className="bg-zinc-900/40 border-zinc-800 flex flex-col justify-between">
-      <CardContent className="p-6 flex flex-col h-full justify-between gap-6">
+    <div className="card-linear p-6 flex flex-col justify-between h-full bg-[#0F1011] border-[#23252A]">
+      <div className="flex flex-col h-full justify-between gap-6">
         <div className="flex justify-between items-start">
           <div>
-            <h3 className="m-0 text-lg font-medium text-zinc-100">{title}</h3>
-            <p className="m-0 mt-1 text-sm text-zinc-500">{subtitle}</p>
+            <h3 className="m-0 text-body font-semibold text-ink font-display">{title}</h3>
+            <p className="m-0 mt-1 text-caption text-ink-subtle">{subtitle}</p>
           </div>
-          <Badge variant={status === 'success' ? 'default' : status === 'progress' ? 'secondary' : 'outline'} 
-                 className={status === 'success' ? 'bg-emerald-500 hover:bg-emerald-600 text-white' : status === 'progress' ? 'bg-violet-500/20 text-violet-400 hover:bg-violet-500/30' : 'text-zinc-500 border-zinc-700'}>
+          <span 
+            className={`inline-flex px-2 py-0.5 rounded font-mono text-[9px] font-semibold border uppercase tracking-wider ${
+              status === 'success' ? 'bg-[#27A644]/10 text-[#27A644] border-[#27A644]/20' : 
+              status === 'progress' ? 'bg-[#5E6AD2]/10 text-[#828FFF] border-[#5E6AD2]/20 animate-pulse' : 
+              'bg-[#141516] text-ink-muted border-[#23252A]'
+            }`}
+          >
             {statusText}
-          </Badge>
+          </span>
         </div>
         
         <div>
-          <div className="flex justify-between mb-2 text-sm text-zinc-300 font-mono">
+          <div className="flex justify-between mb-2 text-xs text-ink-subtle font-mono">
             <span>{percent}%</span>
           </div>
-          <div className="h-1.5 bg-zinc-800 rounded-full overflow-hidden">
+          <div className="h-1.5 bg-[#141516] rounded-full overflow-hidden border border-[#23252A]">
             <motion.div 
               initial={{ width: 0 }}
               animate={{ width: `${percent}%` }}
               transition={{ type: 'tween', duration: 0.5 }}
-              className={`h-full ${status === 'success' ? 'bg-emerald-500' : 'bg-violet-500'}`}
+              className={`h-full ${status === 'success' ? 'bg-[#27A644]' : 'bg-[#5E6AD2]'}`}
             />
           </div>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }

@@ -7,29 +7,7 @@ import {
   AlertTriangle, Trash2, Edit2, Check, X, RefreshCw 
 } from 'lucide-react';
 import { API_BASE } from '../config';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog"
+import ApertureReticle from '../components/ApertureReticle';
 
 export default function DashboardPage() {
   const { apiClient } = useAuth();
@@ -113,24 +91,24 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center py-20 text-zinc-500">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-zinc-500 border-t-transparent" />
-        <p className="mt-4 text-sm font-mono tracking-tight">Loading System Data...</p>
+      <div className="flex flex-col items-center justify-center py-20 text-ink-subtle">
+        <ApertureReticle active={true} className="w-10 h-10 flex items-center justify-center" status="loading" />
+        <p className="mt-4 text-mono text-caption uppercase tracking-wider">Loading System Data...</p>
       </div>
     );
   }
 
   if (error || !stats) {
     return (
-      <div className="p-6">
-        <Card className="border-red-500/20 bg-red-500/5 text-center p-6 shadow-sm">
-          <AlertTriangle className="mx-auto mb-3 h-8 w-8 text-red-500" />
-          <h2 className="text-lg font-medium text-red-500 mb-2">System Offline</h2>
-          <p className="text-red-500/80 mb-4">{error}</p>
-          <Button variant="outline" className="border-red-500/20 text-red-500 hover:bg-red-500/10" onClick={() => { setLoading(true); fetchDashboardData(); }}>
+      <div className="max-w-md mx-auto py-12">
+        <div className="card-linear border-[#F87171]/20 bg-[#F87171]/5 text-center p-8">
+          <AlertTriangle className="mx-auto mb-3 h-8 w-8 text-[#F87171]" />
+          <h2 className="text-card-title text-[#F87171] mb-2">System Offline</h2>
+          <p className="text-caption text-ink-subtle mb-6">{error}</p>
+          <button className="button-secondary text-ink hover:text-white" onClick={() => { setLoading(true); fetchDashboardData(); }}>
             Retry Connection
-          </Button>
-        </Card>
+          </button>
+        </div>
       </div>
     );
   }
@@ -141,40 +119,51 @@ export default function DashboardPage() {
 
   const containerVariants = {
     hidden: { opacity: 0 },
-    visible: { opacity: 1, transition: { staggerChildren: 0.1 } }
+    visible: { opacity: 1, transition: { staggerChildren: 0.05 } }
   };
   const itemVariants = {
-    hidden: { opacity: 0, y: 10 },
+    hidden: { opacity: 0, y: 8 },
     visible: { opacity: 1, y: 0 }
   };
 
   return (
-    <motion.div variants={containerVariants} initial="hidden" animate="visible" className="pb-12 space-y-6">
+    <motion.div variants={containerVariants} initial="hidden" animate="visible" className="page-container pb-12 space-y-6">
       
       {/* Header */}
       <motion.div variants={itemVariants} className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-zinc-100">System Dashboard</h1>
-          <p className="text-zinc-400 text-sm mt-1">Real-time telemetry and management.</p>
+          <h1 className="text-headline text-ink font-semibold">System Dashboard</h1>
+          <p className="text-ink-subtle text-caption mt-1">Real-time telemetry and management console.</p>
         </div>
-        <Button variant="outline" size="sm" onClick={() => { setLoading(true); fetchDashboardData(); }}>
-          <RefreshCw className="mr-2 h-4 w-4" /> Refresh
-        </Button>
+        <button className="button-secondary flex items-center gap-2" onClick={() => { setLoading(true); fetchDashboardData(); }}>
+          <RefreshCw className="h-4 w-4" />
+          <span className="text-button">Refresh</span>
+        </button>
       </motion.div>
 
       {/* System Status Line (Calm) */}
-      <motion.div variants={itemVariants} className="flex flex-wrap gap-4 p-3 bg-zinc-900/50 border border-zinc-800 rounded-lg items-center text-sm">
+      <motion.div variants={itemVariants} className="flex flex-wrap gap-6 p-4 bg-[#0F1011] border border-[#23252A] rounded-lg items-center text-caption text-ink-muted">
         <div className="flex items-center gap-2">
-          <span className="text-zinc-400">Status:</span> 
-          {requires_retrain ? <Badge variant="destructive" className="bg-amber-500/20 text-amber-500 hover:bg-amber-500/30">Retraining Required</Badge> : <Badge variant="outline" className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20">Operational</Badge>}
+          <span className="text-ink-subtle">Status:</span> 
+          {requires_retrain ? (
+            <span className="flex items-center gap-1.5 text-amber-500 font-medium">
+              <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+              Retraining Required
+            </span>
+          ) : (
+            <span className="flex items-center gap-1.5 text-emerald-500 font-medium">
+              <span className="w-2 h-2 rounded-full bg-emerald-500" />
+              Operational
+            </span>
+          )}
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-zinc-400">DeepFace:</span>
-          {models_loaded.deepface ? <span className="text-emerald-500 font-medium">Loaded</span> : <span className="text-red-500 font-medium">Offline</span>}
+          <span className="text-ink-subtle">DeepFace:</span>
+          {models_loaded.deepface ? <span className="text-emerald-500 font-medium">Loaded</span> : <span className="text-ink-tertiary">Offline</span>}
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-zinc-400">SOTA:</span>
-          {models_loaded.sota ? <span className="text-emerald-500 font-medium">Loaded</span> : <span className="text-red-500 font-medium">Offline</span>}
+          <span className="text-ink-subtle">SOTA:</span>
+          {models_loaded.sota ? <span className="text-emerald-500 font-medium">Loaded</span> : <span className="text-ink-tertiary">Offline</span>}
         </div>
       </motion.div>
 
@@ -183,43 +172,43 @@ export default function DashboardPage() {
         <KpiCard icon={<Users className="h-5 w-5"/>} label="Total Enrolled" value={total_people} />
         <KpiCard icon={<ImageIcon className="h-5 w-5"/>} label="Faces Processed" value={total_photos} />
         <KpiCard icon={<Clock className="h-5 w-5"/>} label="Scan Events" value={total_predictions} />
-        <KpiCard icon={<CheckCircle className="h-5 w-5"/>} label="Accuracy Rate" value={`${successRate}%`} color="text-emerald-500" />
+        <KpiCard icon={<CheckCircle className="h-5 w-5"/>} label="Accuracy Rate" value={`${successRate}%`} highlight={true} />
       </motion.div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         
         {/* Person Management Table */}
-        <Card className="bg-zinc-900/40 border-zinc-800 overflow-hidden flex flex-col">
-          <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between py-4 px-6 border-b border-zinc-800 gap-3">
-            <CardTitle className="text-base font-medium">Enrollment Roster</CardTitle>
+        <div className="card-linear p-0 overflow-hidden flex flex-col">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between py-4 px-6 border-b border-[#23252A] gap-3 bg-[#0F1011]">
+            <h3 className="text-body font-medium text-ink">Enrollment Roster</h3>
             <div className="flex items-center gap-2">
-              <Input 
-                placeholder="Search person..." 
+              <input 
+                placeholder="Search roster..." 
                 value={searchTerm} 
                 onChange={e => setSearchTerm(e.target.value)} 
-                className="h-8 w-40 bg-zinc-950/60 border-zinc-800 text-xs text-zinc-200 placeholder:text-zinc-600 focus:border-zinc-700 outline-none"
+                className="input-linear h-8 w-44 text-caption placeholder:text-ink-tertiary"
               />
-              <Link to="/upload">
-                <Button variant="outline" size="sm" className="h-8 text-xs">Add Person</Button>
+              <Link to="/upload" className="button-primary h-8 py-0 flex items-center justify-center">
+                <span className="text-button text-white">Add Person</span>
               </Link>
             </div>
-          </CardHeader>
+          </div>
           <div className="overflow-x-auto max-h-[400px] relative">
-            <Table>
-              <TableHeader className="bg-zinc-900/80 sticky top-0 z-10 backdrop-blur-sm">
-                <TableRow className="border-zinc-800 hover:bg-transparent">
-                  <TableHead className="text-zinc-400">Identifier</TableHead>
-                  <TableHead className="text-zinc-400">Samples</TableHead>
-                  <TableHead className="text-right"></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="border-b border-[#23252A] bg-[#141516]/50">
+                  <th className="py-3 px-6 text-caption text-ink-subtle font-medium">Identifier</th>
+                  <th className="py-3 px-6 text-caption text-ink-subtle font-medium">Samples</th>
+                  <th className="py-3 px-6 text-right"></th>
+                </tr>
+              </thead>
+              <tbody>
                 {Object.keys(photos_per_person).filter(name => name.toLowerCase().includes(searchTerm.toLowerCase())).length === 0 ? (
-                  <TableRow className="hover:bg-transparent">
-                    <TableCell colSpan={3} className="text-center py-8 text-zinc-500 border-none">
+                  <tr>
+                    <td colSpan={3} className="text-center py-12 text-caption text-ink-tertiary">
                       {Object.keys(photos_per_person).length === 0 ? "No personnel enrolled." : "No matching personnel found."}
-                    </TableCell>
-                  </TableRow>
+                    </td>
+                  </tr>
                 ) : (
                   Object.keys(photos_per_person)
                     .filter(name => name.toLowerCase().includes(searchTerm.toLowerCase()))
@@ -228,128 +217,153 @@ export default function DashboardPage() {
                       const isDeleting = deletingPerson === name;
                       
                       return (
-                        <TableRow key={name} className="border-zinc-800/50 hover:bg-zinc-800/20">
-                          <TableCell className="font-mono text-sm">
+                        <tr key={name} className="border-b border-[#23252A]/50 hover:bg-[#141516]/30 transition-colors">
+                          <td className="py-3 px-6 text-mono text-ink">
                             {isEditing ? (
                               <div className="flex items-center gap-2">
-                                <Input 
+                                <input 
                                   value={newName} 
                                   onChange={e => setNewName(e.target.value.replace(/\s+/g, '_'))}
-                                  className="h-8 py-1 px-2 text-xs bg-zinc-950 border-zinc-700"
+                                  className="input-linear h-8 py-1 px-2 text-caption"
                                   autoFocus
                                 />
-                                <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => handleRename(name)} disabled={isActionLoading}><Check className="h-4 w-4"/></Button>
-                                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEditingPerson(null)}><X className="h-4 w-4"/></Button>
+                                <button className="button-secondary h-8 w-8 p-0 flex items-center justify-center" onClick={() => handleRename(name)} disabled={isActionLoading}><Check className="h-4 w-4 text-[#27A644]"/></button>
+                                <button className="button-secondary h-8 w-8 p-0 flex items-center justify-center" onClick={() => setEditingPerson(null)}><X className="h-4 w-4 text-[#F87171]"/></button>
                               </div>
                             ) : (
-                              <span className="text-zinc-200">{name}</span>
+                              <span>{name}</span>
                             )}
-                          </TableCell>
-                          <TableCell className="text-zinc-400">
-                            {photos_per_person[name]}
-                          </TableCell>
-                          <TableCell className="text-right">
+                          </td>
+                          <td className="py-3 px-6 text-caption text-ink-muted">
+                            {photos_per_person[name]} files
+                          </td>
+                          <td className="py-3 px-6 text-right">
                             {isDeleting ? (
                               <div className="inline-flex items-center gap-2">
-                                <span className="text-red-500 text-xs font-medium">Confirm?</span>
-                                <Button variant="destructive" size="sm" className="h-8" onClick={() => handleDelete(name)} disabled={isActionLoading}>Delete</Button>
-                                <Button variant="ghost" size="sm" className="h-8" onClick={() => setDeletingPerson(null)}>Cancel</Button>
+                                <span className="text-[#F87171] text-caption font-medium">Purge profile?</span>
+                                <button className="button-primary bg-[#F87171] hover:bg-red-600 text-white h-7 py-0 px-3 text-caption" onClick={() => handleDelete(name)} disabled={isActionLoading}>Purge</button>
+                                <button className="button-secondary h-7 py-0 px-3 text-caption" onClick={() => setDeletingPerson(null)}>Cancel</button>
                               </div>
                             ) : (
-                              <div className="inline-flex gap-1">
-                                <Button variant="ghost" size="icon" className="h-8 w-8 text-zinc-400 hover:text-zinc-100" onClick={() => { setEditingPerson(name); setNewName(name); }}>
+                              <div className="inline-flex gap-1.5">
+                                <button className="button-secondary h-8 w-8 p-0 flex items-center justify-center text-ink-subtle hover:text-ink" onClick={() => { setEditingPerson(name); setNewName(name); }}>
                                   <Edit2 className="h-4 w-4" />
-                                </Button>
-                                <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500 hover:bg-red-500/10 hover:text-red-400" onClick={() => setDeletingPerson(name)}>
+                                </button>
+                                <button className="button-secondary h-8 w-8 p-0 flex items-center justify-center text-[#F87171] hover:bg-[#F87171]/10 hover:border-[#F87171]/30" onClick={() => setDeletingPerson(name)}>
                                   <Trash2 className="h-4 w-4" />
-                                </Button>
+                                </button>
                               </div>
                             )}
-                          </TableCell>
-                        </TableRow>
+                          </td>
+                        </tr>
                       )
                     })
                 )}
-              </TableBody>
-            </Table>
+              </tbody>
+            </table>
           </div>
-        </Card>
+        </div>
 
         {/* Recent Telemetry */}
-        <Card className="bg-zinc-900/40 border-zinc-800 overflow-hidden flex flex-col">
-          <CardHeader className="flex flex-row items-center justify-between py-4 px-6 border-b border-zinc-800">
-            <CardTitle className="text-base font-medium">Recent Activity</CardTitle>
+        <div className="card-linear p-0 overflow-hidden flex flex-col">
+          <div className="flex flex-row items-center justify-between py-4 px-6 border-b border-[#23252A] bg-[#0F1011]">
+            <h3 className="text-body font-medium text-ink">Recent Activity</h3>
             {history.length > 0 && (
-              <AlertDialog open={isClearHistoryModalOpen} onOpenChange={setIsClearHistoryModalOpen}>
-                <AlertDialogTrigger asChild>
-                  <Button variant="ghost" size="sm" className="h-8 text-zinc-400 hover:text-zinc-100">Clear</Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent className="bg-zinc-950 border-zinc-800 text-zinc-100">
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Clear Telemetry Log</AlertDialogTitle>
-                    <AlertDialogDescription className="text-zinc-400">
-                      Are you sure you want to purge all recognition telemetry logs? This cannot be undone.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel className="bg-transparent text-zinc-300 border-zinc-700 hover:bg-zinc-800 hover:text-zinc-100">Cancel</AlertDialogCancel>
-                    <AlertDialogAction onClick={executeClearHistory} className="bg-red-500 text-white hover:bg-red-600">Confirm Clear</AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
+              <button 
+                onClick={() => setIsClearHistoryModalOpen(true)}
+                className="button-secondary h-8 py-0 text-caption text-ink-subtle hover:text-ink"
+              >
+                Clear Log
+              </button>
             )}
-          </CardHeader>
+          </div>
           <div className="overflow-x-auto max-h-[400px] relative">
-            <Table>
-              <TableHeader className="bg-zinc-900/80 sticky top-0 z-10 backdrop-blur-sm">
-                <TableRow className="border-zinc-800 hover:bg-transparent">
-                  <TableHead className="text-zinc-400">Timestamp</TableHead>
-                  <TableHead className="text-zinc-400">Event</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="border-b border-[#23252A] bg-[#141516]/50">
+                  <th className="py-3 px-6 text-caption text-ink-subtle font-medium">Timestamp</th>
+                  <th className="py-3 px-6 text-caption text-ink-subtle font-medium">Verification Status</th>
+                </tr>
+              </thead>
+              <tbody>
                 {history.slice(0, 20).map((entry, idx) => (
-                  <TableRow key={idx} className="border-zinc-800/50 hover:bg-zinc-800/20">
-                    <TableCell className="text-zinc-500 font-mono text-xs whitespace-nowrap">
+                  <tr key={idx} className="border-b border-[#23252A]/50 hover:bg-[#141516]/30 transition-colors">
+                    <td className="py-3 px-6 text-mono text-caption text-ink-tertiary whitespace-nowrap">
                       {new Date(entry.timestamp).toLocaleTimeString()}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Badge variant="outline" className={entry.status === 'error' ? 'bg-red-500/10 text-red-500 border-red-500/20' : 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20'}>
-                          {entry.status === 'error' ? 'NOT FOUND' : 'CONFIRMED'}
-                        </Badge>
-                        <span className="font-mono text-xs text-zinc-300">{entry.label}</span>
+                    </td>
+                    <td className="py-3 px-6">
+                      <div className="flex items-center gap-3">
+                        {entry.status === 'error' ? (
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-medium font-mono uppercase tracking-wider bg-[#F87171]/10 text-[#F87171] border border-[#F87171]/20">
+                            NOT FOUND
+                          </span>
+                        ) : (
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-medium font-mono uppercase tracking-wider bg-[#27A644]/10 text-[#27A644] border border-[#27A644]/20">
+                            CONFIRMED
+                          </span>
+                        )}
+                        <span className="text-mono text-caption text-ink-muted">{entry.label}</span>
                       </div>
-                    </TableCell>
-                  </TableRow>
+                    </td>
+                  </tr>
                 ))}
                 {history.length === 0 && (
-                  <TableRow className="hover:bg-transparent">
-                    <TableCell colSpan={2} className="text-center py-8 text-zinc-500 border-none">
-                      No recent activity.
-                    </TableCell>
-                  </TableRow>
+                  <tr>
+                    <td colSpan={2} className="text-center py-12 text-caption text-ink-tertiary">
+                      No recent scan history.
+                    </td>
+                  </tr>
                 )}
-              </TableBody>
-            </Table>
+              </tbody>
+            </table>
           </div>
-        </Card>
+        </div>
       </div>
+
+      {/* Clear History Confirmation Modal */}
+      {isClearHistoryModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#010102]/80 backdrop-blur-sm">
+          <div className="w-full max-w-sm card-linear bg-[#191A1B] border-[#23252A] p-6 space-y-4">
+            <div>
+              <h4 className="text-body font-semibold text-ink">Clear Telemetry Logs</h4>
+              <p className="text-caption text-ink-subtle mt-1">
+                Are you sure you want to purge all recognition telemetry logs? This cannot be undone.
+              </p>
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <button 
+                onClick={() => setIsClearHistoryModalOpen(false)}
+                className="button-secondary text-caption py-1 px-3"
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={executeClearHistory}
+                className="button-primary bg-[#F87171] hover:bg-red-600 text-white text-caption py-1 px-3"
+              >
+                Purge All
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </motion.div>
   );
 }
 
-function KpiCard({ icon, label, value, color = 'text-zinc-100' }) {
+function KpiCard({ icon, label, value, highlight = false }) {
   return (
-    <Card className="bg-zinc-900/40 border-zinc-800 p-4 flex items-start gap-4">
-      <div className="text-zinc-500 mt-1">
-        {icon}
+    <ApertureReticle active={true} className="w-full" status="default">
+      <div className="bg-[#0F1011] border border-[#23252A] rounded-lg p-5 flex items-start gap-4 h-full">
+        <div className="text-ink-tertiary mt-1 shrink-0">
+          {icon}
+        </div>
+        <div>
+          <div className="text-caption text-ink-subtle uppercase tracking-wider font-medium">{label}</div>
+          <div className={`text-headline text-mono font-medium mt-1 ${highlight ? 'text-[#828FFF]' : 'text-ink'}`}>{value}</div>
+        </div>
       </div>
-      <div>
-        <div className="text-xs text-zinc-400 uppercase tracking-wider font-medium">{label}</div>
-        <div className={`text-2xl font-mono font-medium mt-1 ${color}`}>{value}</div>
-      </div>
-    </Card>
+    </ApertureReticle>
   );
 }

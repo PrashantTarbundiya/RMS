@@ -21,8 +21,8 @@ export function Navbar() {
       {/* Desktop Header */}
       <div className="sidebar-header">
         <Link to="/" className="brand">
-          <div className="w-8 h-8 rounded-full border border-zinc-700 flex items-center justify-center mr-3 bg-zinc-800">
-            <span className="font-mono text-zinc-300 font-bold">R</span>
+          <div className="w-8 h-8 rounded-md border border-border flex items-center justify-center mr-3 bg-card">
+            <span className="font-mono text-primary font-bold">R</span>
           </div>
           <div className="brand-text">
             <h1>RMS Console</h1>
@@ -63,8 +63,8 @@ export function Navbar() {
 
       <style>{`
         .ui-sidebar {
-          background: var(--bg-surface);
-          border-right: 1px solid var(--border-subtle);
+          background: var(--surface-1);
+          border-right: 1px solid var(--hairline);
           display: flex;
           flex-direction: column;
           width: 100%;
@@ -72,47 +72,43 @@ export function Navbar() {
         }
 
         .sidebar-header {
-          padding: var(--space-4) var(--space-5);
-          border-bottom: 1px solid var(--border-subtle);
+          padding: var(--space-md) var(--space-lg);
+          border-bottom: 1px solid var(--hairline);
         }
 
         .brand {
           display: flex;
           align-items: center;
-          gap: var(--space-3);
+          gap: var(--space-sm);
           text-decoration: none;
         }
 
-        .brand-mark {
-          width: 24px;
-          height: 24px;
-          background: var(--text-primary);
-        }
-
         .brand-text h1 {
-          font-size: var(--text-sm);
+          font-size: 14px;
+          font-weight: 600;
+          letter-spacing: -0.2px;
           margin: 0;
-          color: var(--text-primary);
+          color: var(--ink);
         }
 
         .user-org {
           display: flex;
           align-items: center;
-          gap: var(--space-2);
+          gap: var(--space-xs);
           margin-top: 4px;
         }
 
         .org-name {
-          font-size: var(--text-xs);
-          color: var(--text-muted);
+          font-size: 11px;
+          color: var(--ink-subtle);
         }
 
         .role-badge {
-          font-size: 10px;
+          font-size: 9px;
           padding: 2px 6px;
-          background: rgba(91, 95, 239, 0.1);
-          color: var(--accent-indigo);
-          border-radius: 4px;
+          background: rgba(94, 106, 210, 0.1);
+          color: var(--accent-primary);
+          border-radius: var(--radius-xs);
           text-transform: uppercase;
           font-family: var(--font-mono);
           font-weight: 500;
@@ -122,31 +118,31 @@ export function Navbar() {
           flex: 1;
           display: flex;
           flex-direction: column;
-          padding: var(--space-4) 0;
+          padding: var(--space-md) 0;
           overflow-y: auto;
         }
 
         .sidebar-link {
           display: flex;
           align-items: center;
-          gap: var(--space-3);
-          padding: var(--space-3) var(--space-5);
-          color: var(--text-muted);
+          gap: var(--space-sm);
+          padding: var(--space-sm) var(--space-lg);
+          color: var(--ink-muted);
           text-decoration: none;
-          font-size: var(--text-sm);
+          font-size: 14px;
           font-weight: 500;
           position: relative;
-          transition: color var(--duration) var(--ease), background var(--duration) var(--ease);
+          transition: all 0.2s ease;
         }
 
         .sidebar-link:hover {
-          color: var(--text-primary);
-          background: rgba(255, 255, 255, 0.02);
+          color: var(--ink);
+          background: var(--surface-2);
         }
 
         .sidebar-link.active {
-          color: var(--text-primary);
-          background: var(--bg-elevated);
+          color: var(--ink);
+          background: var(--surface-2);
         }
 
         /* Left border accent bar (indigo) grows in from top */
@@ -157,10 +153,10 @@ export function Navbar() {
           top: 0;
           bottom: 0;
           width: 3px;
-          background: var(--accent-indigo);
+          background: var(--accent-primary);
           transform: scaleY(0);
           transform-origin: top;
-          transition: transform var(--duration) var(--ease);
+          transition: transform 0.2s ease;
         }
 
         .sidebar-link.active::before {
@@ -169,34 +165,36 @@ export function Navbar() {
 
         .link-icon {
           opacity: 0.7;
+          color: var(--ink-subtle);
         }
+        .sidebar-link:hover .link-icon,
         .sidebar-link.active .link-icon {
           opacity: 1;
-          color: var(--accent-indigo);
+          color: var(--accent-primary);
         }
 
         .sidebar-footer {
-          padding: var(--space-4) var(--space-5);
-          border-top: 1px solid var(--border-subtle);
+          padding: var(--space-md) var(--space-lg);
+          border-top: 1px solid var(--hairline);
         }
 
         .logout-btn {
           display: flex;
           align-items: center;
-          gap: var(--space-3);
+          gap: var(--space-sm);
           background: transparent;
           border: none;
-          color: var(--text-muted);
-          font-size: var(--text-sm);
+          color: var(--ink-subtle);
+          font-size: 14px;
           font-weight: 500;
           cursor: pointer;
           width: 100%;
           text-align: left;
-          padding: var(--space-2) 0;
-          transition: color var(--duration) var(--ease);
+          padding: var(--space-xs) 0;
+          transition: color 0.2s ease;
         }
         .logout-btn:hover {
-          color: var(--text-primary);
+          color: var(--ink);
         }
 
         /* Mobile overrides (bottom tabs) */
@@ -209,8 +207,9 @@ export function Navbar() {
             right: 0;
             height: 60px;
             border-right: none;
-            border-top: 1px solid var(--border-subtle);
+            border-top: 1px solid var(--hairline);
             padding: 0;
+            background: var(--surface-1);
           }
           .sidebar-header, .sidebar-footer {
             display: none;
@@ -226,12 +225,13 @@ export function Navbar() {
           .sidebar-link {
             flex-direction: column;
             gap: 4px;
-            padding: var(--space-2);
+            padding: var(--space-xs);
             justify-content: center;
             flex: 1;
+            font-size: 10px;
           }
           .link-label {
-            font-size: 10px;
+            font-size: 9px;
           }
           .sidebar-link::before {
             left: 0;

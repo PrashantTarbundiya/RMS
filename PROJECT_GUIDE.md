@@ -2,159 +2,101 @@
 
 ## What is This Project?
 
-**RMS Face AI** is a face recognition system that uses **3 AI models working together** (ensemble) to identify people. It has:
-- A **web dashboard** (React) to manage people, train models, and test recognition
-- A **Python backend** (Flask) that runs the AI models
-- A **mobile app** (React Native/Expo) for on-device face detection
+**RMS Face AI** is a production-ready, modular face recognition system designed to identify individuals from frontal and profile side views (up to 90° rotation). The system combines deep learning vision backbones (SOTA MobileNetV2) and deep metric embeddings (DeepFace/Facenet512) into a unified ensemble voting layer.
+
+The project consists of three main systems:
+- A **Premium React Web Dashboard** (Vite + CSS) for identity enrollment, model training control, and real-time inference testing.
+- An **Enterprise Flask API Server** (Python 3.12) featuring modular multi-tenant database adapters (PostgreSQL) or single-tenant local file storage fallbacks.
+- An **On-device Mobile App** (React Native/Expo) for portable biometric scanning.
 
 ---
 
-## How Face Recognition Works (Simple Explanation)
+## Technical Specifications & Features
 
-### The 3 Models
+### 1. Hybrid Ensemble Architecture
+The system supports dual inference pipelines that vote on identity classifications:
+* **SOTA MobileNetV2:** Fine-tuned on local training classes. The vision model understands facial orientation features and is optimized for speed and generalization.
+* **DeepFace (Facenet512):** Generates a 512-dimension spatial embedding vector per face. A K-Nearest Neighbors (KNN) classifier with cosine distance evaluates matches against enrolled class centroids.
+* **Global Model Selection:** DeepFace/Ensemble settings can be disabled entirely in Settings. When disabled, the server bypasses embedding computation, saves memory, and relies strictly on SOTA MobileNetV2.
 
-| Model | What it does | How it works | Strengths |
-|-------|-------------|-------------|-----------|
-| **DeepFace (Facenet512)** | Creates a "fingerprint" of each face | Converts each face photo into a 512-number vector (embedding). To recognize someone, it compares the test photo's vector to all stored vectors using cosine distance | Best with few images. No training needed — just add more photos |
-| **SOTA MobileNetV2** | Uses Google's pre-trained vision model | Starts with a model pre-trained on 1M+ images (ImageNet), then fine-tunes on your faces. Only the last layers are retrained | Best generalization — the ImageNet backbone already "understands" what faces look like |
+### 2. Multi-View Landmarked Alignment
+RMS captures left-profile, frontal, and right-profile views during enrollment. During video stream ingestion, MediaPipe evaluates head rotation keypoints:
+* Faces rotated up to 30° are evaluated against frontal embeddings.
+* Faces rotated between 30° to 90° are mapped against left or right profile vectors, enabling side-face identification.
 
-### Ensemble Voting
+### 3. Integrated Asset Allocation Layout
+The **Enrollment & Update** interface is organized into profile-centric row grids:
+* **Row 1 (LEFT, FRONT, RIGHT):** Displays category dropzones side-by-side.
+* **Row 2 (EXTRA FILES):** Positioned directly below Row 1 for bulk/additional uploads.
+* **Inline Photo Grids:** Already-enrolled database photos are grouped directly inside their respective Left, Front, or Right folders with green `Enrolled` badges, alongside new local uploads with violet `New` badges.
+* **Drag-and-Drop Relocation:** Relocate any photo (`Enrolled` or `New`) between categories by dragging it. Dropping an enrolled photo updates the file on disk via `/api/persons/<name>/photos/move` and hot-reloads models.
 
-When you test a photo, all 3 models make their prediction independently. Then the **ensemble voter** combines them:
+### 4. Real-time Video Telemetry & Bounding Boxes
+* The Webcam test console continuously polls frame captures (every 1.5 seconds) in the background.
+* Scaled bounding boxes are overlayed on top of the live `<video>` element with name labels ("SPOOF", "UNKNOWN", or the recognized name).
+* Supports **Capture & Run Inference** to draw the current video frame on a canvas, halt the video feed, and execute static inference.
 
-```
-SOTA MobileNet: "Vatsal" (86% confident)     weight: 0.60
-DeepFace:       "Vatsal" (72% confident)     weight: 0.40
-
-→ Weighted vote: "Vatsal" with ~85% confidence ✅
-```
-
-If models disagree, the one with higher weight (DeepFace) has more influence. If the combined confidence is below 25%, it shows "Unknown".
+### 5. Operator Feedback & Custom Relabeling
+If the models make a mistake, operators can trigger a structured 3-step feedback form:
+1. Confirm if a human face is present (filter out false detections).
+2. Confirm if the predicted classification label is correct.
+3. Select an existing person from a dropdown or type a custom name to dynamically append/relabel the face data.
 
 ---
 
-## Project Folder Structure
+## Folder Structure
 
 ```
 RMS/
-├── backend/                     # Python Flask API server
-│   ├── server.py                # Main API server (all endpoints)
-│   ├── model.py                 # DeepFace embedding generation + CLAHE preprocessing
-│   ├── inference.py             # KNN matching logic for DeepFace
-│   ├── ensemble.py              # Combines 3 model predictions into final result
-│   ├── add_person_utils.py      # Training pipeline: adds person to all 3 models
-│   ├── face_detection.py        # MediaPipe face detector (detects face angle)
-│   ├── clean_dataset.py         # Crops faces from raw images
-│   ├── soft_biometrics.py       # Extra face measurements (nose ratio, eye spacing)
-│   ├── dataset_setup.py         # Webcam capture tool for collecting training photos
-│   ├── download_dataset.py      # Downloads LFW dataset for pre-training
-│   ├── retrain_all.py           # One-click retrain all models with max accuracy
-│   ├── benchmark_models.py      # Tests model accuracy on your dataset
-│   ├── data/
-│   │   ├── encodings.pickle     # DeepFace embeddings database
-│   │   ├── recognition_history.json  # Log of past predictions
-│   │   ├── class_centroids.json      # Average embeddings per person
-│   │   └── label_map.json            # Person name ↔ index mapping
+├── backend/                     # Python Flask API Server
+│   ├── server.py                # Main Flask application and blueprints
+│   ├── middleware.py            # JWT auth, tenant isolation, and CORS handling
+│   ├── model.py                 # DeepFace vector generation and preprocessing
+│   ├── inference.py             # KNN matching and cosine distance voting
+│   ├── ensemble.py              # Combined model result voter
+│   ├── face_detection.py        # MediaPipe BlazeFace alignment & pose logic
+│   ├── add_person_utils.py      # Multi-view fast enrollment triggers
 │   ├── models/
-
 │   │   └── sota_finetune/
-│   │       ├── finetune.py           # MobileNetV2 architecture + training
-│   │       ├── best_mobile_sideface.pth  # Trained SOTA weights
-│   │       └── mobile_classes.txt    # List of known people for SOTA
+│   │       ├── finetune.py      # MobileNetV2 architecture fine-tuning
+│   │       └── mobile_classes.txt # Known personnel indices
 │   └── venv/                    # Python virtual environment
 │
-├── frontend/                    # React web dashboard (Vite)
+├── frontend/                    # Vite + React Web Application
 │   ├── src/
 │   │   ├── pages/
-│   │   │   ├── DashboardPage.jsx     # Overview: people count, model status
-│   │   │   ├── UploadPage.jsx        # Add new person with photos
-│   │   │   ├── TestPage.jsx          # Test recognition on images/webcam
-│   │   │   ├── TrainingPage.jsx      # Monitor training progress
-│   │   │   ├── ManagePersonPage.jsx  # Edit/delete person photos
-│   │   │   └── ModelsPage.jsx        # Export/reset models
-│   │   └── config.js            # API URL configuration
-│   ├── .env                     # Local API URL
-│   └── .env.production          # Production API URL (Render)
+│   │   │   ├── DashboardPage.jsx # Roster search, model health, and stats
+│   │   │   ├── UploadPage.jsx   # Row-based drag-and-drop enrollment page
+│   │   │   ├── TestPage.jsx     # Live webcam bounding boxes and feedback
+│   │   │   ├── ModelsPage.jsx   # DeepFace settings switches and thresholds
+│   │   │   └── ProfilePage.jsx  # Account settings and storage infrastructure logs
+│   │   ├── context/
+│   │   │   └── AuthContext.jsx  # JWT token storage and API clients
+│   │   └── config.js            # Axios endpoint settings
+│   ├── index.css                # Base Tailwind-compatible utilities
+│   └── dist/                    # Minified production bundle
 │
-├── mobile/                      # React Native Expo app
-│   ├── App.js                   # Main mobile app
-│   └── src/                     # Mobile screens and components
+├── mobile/                      # React Native Expo Mobile App
 │
-├── dataset/                     # Raw uploaded photos (unprocessed)
-├── dataset_cleaned/             # Face-cropped training images
-│   ├── PersonName/
-│   │   ├── frontal/             # Front-facing photos
-│   │   ├── left/                # Left profile photos
-│   │   └── right/               # Right profile photos
-│
-├── requirements.txt             # Python dependencies
-├── DEPLOY.md                    # Deployment guide (Vercel + Render)
-├── render.yaml                  # Render deployment config
-└── start.bat                    # One-click startup script
+├── dataset/                     # Raw uploads (unprocessed)
+└── dataset_cleaned/             # Cropped and aligned training images
+    └── PersonName/
+        ├── frontal/             # Front-facing photos
+        ├── left/                # Left-profile photos
+        ├── right/               # Right-profile photos
+        └── extra/               # Unsorted bulk photos
 ```
 
 ---
 
-## How to Use the System
+## Local Configuration Reference
 
-### Adding a New Person
-1. Go to **Upload** page in the web dashboard
-2. Enter the person's name
-3. Upload photos: front, left profile, right profile (more = better accuracy)
-4. Click "Upload" — training starts automatically
-5. Wait for training to complete (watch the **Training** page for progress)
-
-### Testing Recognition
-1. Go to **Test** page
-2. Upload a photo or use your webcam
-3. The system shows:
-   - Face bounding box
-   - Individual model predictions (SOTA, DeepFace)
-   - Final ensemble result with confidence %
-
-### Retraining for Better Accuracy
-```bash
-cd backend
-.\\venv\\Scripts\\activate
-python retrain_all.py
-```
-This retrains all 3 models with more epochs for maximum accuracy.
-
----
-
-## How to Deploy (100% Free)
-
-### Frontend → Vercel (Free)
-1. Go to [vercel.com](https://vercel.com) → Sign up free
-2. Click "Add New Project" → Import your GitHub repo
-3. Set **Root Directory** to `frontend`
-4. Add environment variable: `VITE_API_URL` = `https://YOUR-BACKEND.onrender.com/api`
-5. Click Deploy
-
-### Backend → Render (Free)
-1. Go to [render.com](https://render.com) → Sign up free
-2. Click "New Web Service" → Connect your GitHub repo
-3. Settings:
-   - **Build Command**: `pip install -r requirements.txt`
-   - **Start Command**: `cd backend && gunicorn server:app --bind 0.0.0.0:$PORT --timeout 300 --workers 1`
-   - **Instance Type**: Free
-4. Add environment variables:
-   - `LAZY_LOAD_MODELS` = `true`
-   - `FRONTEND_URL` = `https://YOUR-APP.vercel.app`
-5. Click "Create Web Service"
-
-### After Both Are Deployed
-- Update Render's `FRONTEND_URL` with your actual Vercel URL
-- Update Vercel's `VITE_API_URL` with your actual Render URL
-- Both will auto-redeploy
-
-> **Note**: Render free tier sleeps after 15 min of inactivity. First request takes ~30-60s to wake up.
-
----
-
-## Key Configuration Values
-
-| Setting | File | Current Value | What it does |
+| Parameter | Configuration File | Description |
+|-----------|--------------------|-------------|
+| `DEPLOYMENT_MODE` | `backend/.env` | `local` (single-tenant SQLite/files) or `cloud` (multi-tenant PostgreSQL) |
+| `LAZY_LOAD_MODELS` | `backend/.env` | If `true`, models load on the first API request to save start RAM |
+| `MAX_DISTANCE` | `backend/inference.py` | Max cosine distance threshold (default: 0.55) to accept match |
+| `MIN_CONFIDENCE_THRESHOLD` | `backend/ensemble.py` | Final voting confidence threshold. Lower shows "UNKNOWN" |
 |---------|------|--------------|--------------|
 | `NUM_AUGMENTS` | `model.py` | 5 | How many augmented variants per training image |
 | `KNN_K` | `inference.py` | 5 | Number of nearest neighbors for DeepFace voting |

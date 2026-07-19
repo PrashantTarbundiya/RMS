@@ -1,29 +1,33 @@
 # Web Dashboard UI Documentation
 
 ## Aesthetic & Design System
-The Web Dashboard employs a **Premium AI SaaS Glassmorphism** aesthetic. This design is intentionally chosen to project high-end enterprise reliability while remaining futuristic and highly engaging.
+The Web Dashboard employs a **Premium Linear Dark** aesthetic. This design is intentionally chosen to project high-end enterprise reliability, minimalist layout, and precision control.
 
 ### Core Palette
-- **Primary Glow**: Deep Space Violet (`#8B5CF6`)
-- **Accent Glow**: Neon Cyan (`#06B6D4`)
-- **Backgrounds**: Slate Dark (`#020617` to `#0F172A`)
-- **Cards**: Frosted glass (`backdrop-filter: blur(24px)`)
+- **Base Canvas**: Solid deep dark (#010102)
+- **Primary Accent**: Linear Purple (#5E6AD2 / #828FFF)
+- **Success State**: Emerald Green (#27A644)
+- **Border Dividers**: Clean dark gray (#23252A)
+- **Cards**: Border gradients (.card-linear) with solid dark background (#0F1011)
 
 ### Key Components
-1. **Sidebar Navigation**: The dashboard utilizes a left-aligned, sticky sidebar navigation system on desktop screens. This provides a scalable structure for enterprise tools. On mobile devices, it smoothly collapses into a bottom navigation bar.
-2. **Glass Panels**: All analytical data is presented on floating glass panels. These panels feature interactive hover states with `cyan` drop-shadows to ensure the UI feels responsive and alive.
-3. **Ambient Lighting**: The background features massive radial gradient orbs that shift subtly, emulating the processing power of the underlying AI.
+1. **Sidebar Navigation**: The dashboard utilizes a left-aligned, sticky sidebar navigation system on desktop screens. This provides a scalable structure for enterprise tools.
+2. **Linear Cards**: All analytical data is presented on clean dark panels featuring thin border accents and premium subtle hover indicators.
+3. **Webcam Controls**: Fully integrated webcam capture widgets across the roster creation, management, and testing flows.
+4. **Bounding Bracket Reticles**: Live test video feed overlays render target indicators as absolute corner-brackets matching the premium console style.
 
 ## Screen Breakdown
 
 ### Dashboard (`/dashboard`)
 - **KPI Grid**: Displays high-level metrics including Registered People, Cleaned Photos, Total Predictions, and Success Rate.
-- **Visual Analytics**: Interactive bar charts for dataset distribution.
-- **Recognition History**: A detailed log table of the latest API requests, showcasing exactly which model (DeepFace or MobileNet) confirmed the identity, complete with confidence scores and timestamps.
+- **Visual Analytics**: Interactive dataset distribution and recognition frequency logs.
+- **Recognition History**: A detailed log table of the latest API requests, showcasing exactly which model (DeepFace or MobileNet) confirmed the identity.
 
 ### Test & Scan (`/test`)
-- **Live Interface**: Users can test the API by dragging and dropping an image, pasting from their clipboard, or utilizing their webcam directly from the browser.
-- **Results**: Employs GitHub-style alerts and badges to present binary outcomes: either `CONFIRMED` or `NOT FOUND`.
+- **Live Interface**: Users can test the API by dragging and dropping an image, pasting from clipboard, or capturing directly from webcam.
+- **Liveness Detection Overlay**: Feedback badges show liveness confirmation with animated glowing states.
 
-### Management (`/upload`, `/training`, `/models`)
-- Streamlined interfaces for dataset curation, executing manual ensemble retraining, and monitoring the live status of the loaded AI models in RAM.
+### Management (`/upload`, `/manage-person`, `/training`, `/models`)
+- **Roster & Uploads**: Row-based category drop boxes (ordered Left, Frontal, Right, Extra) supporting HTML5 file drag-and-drop, clipboard pasting, and custom "Enrolled" / "New" image tag designations.
+- **Retraining Output**: Live terminal output streams showing PyTorch MobileNetV2 epoch progress.
+

@@ -19,10 +19,11 @@ The frontend is a React Single Page Application (SPA) built with Vite. It serves
 ```
 
 ## Styling & Theme
-The application utilizes a **Premium Glassmorphism** design language. Instead of relying on a heavy utility framework like Tailwind, the app uses vanilla CSS in `index.css`.
-- **CSS Variables:** Define all brand colors, gradient stops, and spacing tokens (e.g., `--bg-primary`, `--accent-blue`).
-- **Glass Effects:** Heavily utilizes `backdrop-filter: blur(12px)` and semi-transparent `rgba()` backgrounds for modals and cards to give a futuristic, floating UI feel.
-- **Animations:** Employs `framer-motion` for page transitions, list re-ordering, and micro-interactions (hover states, modal spring animations).
+The application utilizes a **Premium Linear Dark** design language.
+- **CSS Variables:** Define all brand colors, gradient stops, and spacing tokens (e.g., `--background: #010102`, `--border`, `--primary: #5E6AD2`) in `src/index.css`.
+- **Border Gradients:** Heavily utilizes the `.card-linear` layout pattern, clean borders, and dark backgrounds for a premium console feel.
+- **Animations:** Employs `framer-motion` for page transitions, camera feedback, and drag-and-drop allocations.
+
 
 ## State Management & Routing
 - **Routing:** Handled via `react-router-dom`. `main.jsx` wraps the application in a `<BrowserRouter>`.
