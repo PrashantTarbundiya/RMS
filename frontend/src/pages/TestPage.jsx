@@ -22,6 +22,17 @@ export default function TestPage() {
   const [feedbackState, setFeedbackState] = useState({}); // track feedback status per prediction_id
   const [personsList, setPersonsList] = useState([]);
   const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
+  const [showConfidence, setShowConfidence] = useState(() => {
+    return localStorage.getItem('showConfidence') !== 'false';
+  });
+
+  useEffect(() => {
+    const handleStorageChange = () => {
+      setShowConfidence(localStorage.getItem('showConfidence') !== 'false');
+    };
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
   const [feedbackContext, setFeedbackContext] = useState(null);
   const [feedbackIsPerson, setFeedbackIsPerson] = useState(null);
   const [feedbackIsNameCorrect, setFeedbackIsNameCorrect] = useState(null);
@@ -344,7 +355,7 @@ export default function TestPage() {
       return;
     }
     try {
-      await apiClient.post(`${API_BASE}/predict/feedback`, { prediction_id: predictionId, is_correct: isCorrect, correct_name: '' });
+      await apiClient.post(`${API_BASE}/predict/feedback`, { prediction_id: predictionId, is_correct: isCorrect, correct_name: predictedName });
       setFeedbackState(prev => ({ ...prev, [predictionId]: 'success' }));
     } catch (err) {
       setFeedbackState(prev => ({ ...prev, [predictionId]: 'error' }));
@@ -674,7 +685,7 @@ export default function TestPage() {
                              
                               const displayConf = face.predictions?.sota?.confidence || 0;
                               const displayLabel = face.predictions?.sota?.label || 'Unknown';
-                              const isConfirmed = (displayConf > 0.8 && displayLabel !== 'Unknown');
+                              const isConfirmed = (displayConf > 0.6 && displayLabel !== 'Unknown');
                              const spoofed = face.prediction === 'SPOOF DETECTED' || displayLabel === 'SPOOF DETECTED';
                              const boxColor = spoofed ? '#FBBF24' : (isConfirmed ? '#27A644' : '#F87171');
 
@@ -842,7 +853,7 @@ export default function TestPage() {
                       {results.faces.map((face, i) => {
                          const displayLabel = face.predictions?.sota?.label;
                          const displayConf = (face.predictions?.sota?.confidence || 0);
-                         const isConfirmed = (displayConf > 0.8 && displayLabel !== 'Unknown');
+                         const isConfirmed = (displayConf > 0.6 && displayLabel !== 'Unknown');
                          
                          const spoofed = displayLabel === 'SPOOF DETECTED';
                          
@@ -871,7 +882,7 @@ export default function TestPage() {
 
                                <div className="flex justify-between items-center mt-4 pt-4 border-t border-[#23252A]/50">
                                  <div className="text-[10px] text-ink-subtle font-mono tracking-wider uppercase">
-                                   MTHD: SOTA Base | CONF: {(displayConf * 100).toFixed(1)}%
+                                   MTHD: SOTA Base {showConfidence && `| CONF: ${(displayConf * 100).toFixed(1)}%`}
                                  </div>
                                  
                                  {face.prediction_id && !spoofed && (
@@ -898,7 +909,7 @@ export default function TestPage() {
                              <div className="mt-4 flex flex-col gap-2 p-3 bg-[#0F1011] rounded-lg border border-[#23252A]">
                                  <div className="flex justify-between text-[11px] font-mono">
                                     <span className="text-ink-tertiary">MobileNetV2</span>
-                                    <span className="text-ink-muted">{face.predictions?.sota?.label} ({(face.predictions?.sota?.confidence * 100).toFixed(1)}%)</span>
+                                    <span className="text-ink-muted">{face.predictions?.sota?.label} {showConfidence && `(${(face.predictions?.sota?.confidence * 100).toFixed(1)}%)`}</span>
                                  </div>
                              </div>
                           </div>

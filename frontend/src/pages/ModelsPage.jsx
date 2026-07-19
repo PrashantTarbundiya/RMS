@@ -20,10 +20,20 @@ export default function ModelsPage() {
     return localStorage.getItem('enableDeepFace') !== 'false';
   });
 
+  const [showConfidence, setShowConfidence] = useState(() => {
+    return localStorage.getItem('showConfidence') !== 'false';
+  });
+
   const handleToggleDeepFace = (checked) => {
     setEnableDeepFace(checked);
     localStorage.setItem('enableDeepFace', checked ? 'true' : 'false');
     // dispatch a custom event to notify other pages immediately if needed
+    window.dispatchEvent(new Event('storage'));
+  };
+
+  const handleToggleConfidence = (checked) => {
+    setShowConfidence(checked);
+    localStorage.setItem('showConfidence', checked ? 'true' : 'false');
     window.dispatchEvent(new Event('storage'));
   };
 
@@ -158,6 +168,23 @@ export default function ModelsPage() {
                   className="sr-only peer" 
                   checked={enableDeepFace} 
                   onChange={e => handleToggleDeepFace(e.target.checked)} 
+                />
+                <div className="w-9 h-5 bg-[#141516] rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[4px] after:left-[3px] after:bg-ink-muted after:rounded-full after:h-3 after:w-3.5 after:transition-all peer-checked:bg-[#5E6AD2] border border-[#23252A]"></div>
+              </label>
+            </div>
+
+            <div className="flex items-center justify-between p-4 bg-[#010102]/60 border border-[#23252A] rounded-lg mb-6">
+              <div>
+                <label htmlFor="confidence-toggle" className="text-caption font-medium text-ink cursor-pointer">Show Confidence Percentages</label>
+                <p className="text-[11px] text-ink-tertiary mt-1">Display exact model confidence scores in the UI. Turn off for cleaner presentations.</p>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input 
+                  id="confidence-toggle"
+                  type="checkbox" 
+                  className="sr-only peer" 
+                  checked={showConfidence} 
+                  onChange={e => handleToggleConfidence(e.target.checked)} 
                 />
                 <div className="w-9 h-5 bg-[#141516] rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[4px] after:left-[3px] after:bg-ink-muted after:rounded-full after:h-3 after:w-3.5 after:transition-all peer-checked:bg-[#5E6AD2] border border-[#23252A]"></div>
               </label>
