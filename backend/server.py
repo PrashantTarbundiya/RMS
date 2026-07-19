@@ -1319,16 +1319,6 @@ def predict(org_id):
             from liveness import evaluate_liveness
             is_live, liveness_score, liveness_reason = evaluate_liveness(face_roi_cv)
             
-            if not is_live:
-                results.append({
-                    'bbox': {'x': x, 'y': y, 'w': w, 'h': h},
-                    'prediction': 'SPOOF DETECTED',
-                    'confidence': 0.0,
-                    'is_confirmed': False,
-                    'details': {'liveness_reason': liveness_reason, 'liveness_score': liveness_score}
-                })
-                continue # Skip this face
-            
             # Predict SOTA (guarded — won't crash if model/classes are empty)
             sota_label, sota_conf_val = '[UNTRAINED]', 0.0
             sota_model = org_models.get('sota_model')
@@ -1893,6 +1883,9 @@ def delete_person_photo(name, angle, filename):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+import threading
+photo_move_lock = threading.Lock()
+
 @app.route('/api/persons/<name>/photos/move', methods=['POST'])
 @require_auth
 @require_role('org_admin')
@@ -1916,35 +1909,59 @@ def move_person_photo(name):
     os.makedirs(cleaned_target_dir, exist_ok=True)
     os.makedirs(raw_target_dir, exist_ok=True)
     
-    # Generate clean name with sequential index in the target folder
-    existing = [f for f in os.listdir(cleaned_target_dir) if f.lower().endswith(('.jpg', '.jpeg', '.png', '.webp', '.bmp'))]
-    new_index = len(existing) + 1
-    new_filename = f"{name}_{target_angle}_{new_index:03d}.jpg"
-    
-    cleaned_target = os.path.join(cleaned_target_dir, new_filename)
-    raw_target = os.path.join(raw_target_dir, new_filename)
-    
-    moved = False
-    try:
-        if os.path.exists(cleaned_source):
-            os.rename(cleaned_source, cleaned_target)
-            moved = True
-        if os.path.exists(raw_source):
-            os.rename(raw_source, raw_target)
-            
-        if not moved:
-            return jsonify({'error': 'Source file not found'}), 404
-            
-        # Rebuild DeepFace embeddings since the photo moved
-        rebuild_person_embeddings(name)
-        reload_models()
+    with photo_move_lock:
+        new_index = 1
+        moved = False
+        new_filename = ""
         
+        while True:
+            new_filename = f"{name}_{target_angle}_{new_index:03d}.jpg"
+            cleaned_target = os.path.join(cleaned_target_dir, new_filename)
+            raw_target = os.path.join(raw_target_dir, new_filename)
+            
+            try:
+                # Only attempt move if source exists
+                if not os.path.exists(cleaned_source):
+                    return jsonify({'error': 'Source file not found'}), 404
+                    
+                # In Python 3.3+, os.rename on Windows raises FileExistsError if dst exists.
+                # However, to be absolutely safe across all platforms without overwriting,
+                # we check existence first, and also catch errors.
+                if os.path.exists(cleaned_target) or os.path.exists(raw_target):
+                    new_index += 1
+                    continue
+                    
+                os.rename(cleaned_source, cleaned_target)
+                moved = True
+                
+                # Now try to move raw (if it exists)
+                if os.path.exists(raw_source):
+                    if not os.path.exists(raw_target):
+                        os.rename(raw_source, raw_target)
+                break # Success!
+                
+            except FileExistsError:
+                new_index += 1
+                continue
+            except OSError as e:
+                # WinError 183 is "Cannot create a file when that file already exists"
+                if getattr(e, 'winerror', None) == 183 or e.errno == 17:
+                    new_index += 1
+                    continue
+                else:
+                    return jsonify({'error': str(e)}), 500
+                    
+        # Rebuild DeepFace embeddings since the photo moved
+        try:
+            rebuild_person_embeddings(name)
+            reload_models()
+        except Exception as e:
+            pass # Non-critical if rebuild fails immediately
+            
         return jsonify({
             'message': f"Moved photo to {target_angle} as '{new_filename}'",
             'new_filename': new_filename
         })
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
 
 @app.route('/api/persons/<name>/retrain', methods=['POST'])
 @require_auth

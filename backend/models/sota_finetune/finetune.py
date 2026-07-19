@@ -35,10 +35,13 @@ class SafeImageFolder(Dataset):
             subdir_path = os.path.join(root, d)
             class_samples = []
             try:
-                for filename in os.listdir(subdir_path):
-                    file_path = os.path.join(subdir_path, filename)
-                    if os.path.isfile(file_path) and filename.lower().endswith(valid_exts):
-                        class_samples.append(file_path)
+                # Walk recursively to find images inside angle subfolders
+                # (e.g., person_name/frontal/*.jpg, person_name/left/*.jpg)
+                for dirpath, dirnames, filenames in os.walk(subdir_path):
+                    for filename in filenames:
+                        file_path = os.path.join(dirpath, filename)
+                        if filename.lower().endswith(valid_exts):
+                            class_samples.append(file_path)
             except Exception:
                 continue
             

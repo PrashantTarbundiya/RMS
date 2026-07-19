@@ -19,25 +19,7 @@ export default function TestPage() {
   const [webcamError, setWebcamError] = useState('');
   const [webcamReady, setWebcamReady] = useState(false);
   const [isDragActive, setIsDragActive] = useState(false);
-  const [isDeepFaceEnabled, setIsDeepFaceEnabled] = useState(() => {
-    return localStorage.getItem('enableDeepFace') !== 'false';
-  });
-  const [includeDeepFace, setIncludeDeepFace] = useState(() => {
-    return localStorage.getItem('enableDeepFace') !== 'false';
-  });
   const [feedbackState, setFeedbackState] = useState({}); // track feedback status per prediction_id
-
-  useEffect(() => {
-    const handleStorageChange = () => {
-      const enabled = localStorage.getItem('enableDeepFace') !== 'false';
-      setIsDeepFaceEnabled(enabled);
-      if (!enabled) {
-        setIncludeDeepFace(false);
-      }
-    };
-    window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
-  }, []);
   const [personsList, setPersonsList] = useState([]);
   const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
   const [feedbackContext, setFeedbackContext] = useState(null);
@@ -690,10 +672,9 @@ export default function TestPage() {
                              const offsetX = (containerProps.width - imgRenderProps.width) / 2;
                              const offsetY = (containerProps.height - imgRenderProps.height) / 2;
                              
-                             const useEnsemble = includeDeepFace;
-                             const displayConf = useEnsemble ? (face.ensemble?.confidence || 0) : (face.predictions?.sota?.confidence || 0);
-                             const displayLabel = useEnsemble ? (face.ensemble?.label || 'Unknown') : (face.predictions?.sota?.label || 'Unknown');
-                             const isConfirmed = useEnsemble ? face.ensemble?.is_confirmed === true : (displayConf > 0.8 && displayLabel !== 'Unknown');
+                              const displayConf = face.predictions?.sota?.confidence || 0;
+                              const displayLabel = face.predictions?.sota?.label || 'Unknown';
+                              const isConfirmed = (displayConf > 0.8 && displayLabel !== 'Unknown');
                              const spoofed = face.prediction === 'SPOOF DETECTED' || displayLabel === 'SPOOF DETECTED';
                              const boxColor = spoofed ? '#FBBF24' : (isConfirmed ? '#27A644' : '#F87171');
 
@@ -743,6 +724,8 @@ export default function TestPage() {
                            />
                            {/* Bounding Boxes (Corner Bracket Style) */}
                            {results && results.faces && previewSize.naturalWidth > 0 && results.faces.map((face, idx) => {
+                              if (!imgRef.current || !imgRef.current.parentElement) return null;
+                              
                               const scaleX = previewSize.width / previewSize.naturalWidth;
                               const scaleY = previewSize.height / previewSize.naturalHeight;
                               const imgRenderProps = imgRef.current.getBoundingClientRect();
@@ -750,10 +733,9 @@ export default function TestPage() {
                               const offsetX = (containerProps.width - imgRenderProps.width) / 2;
                               const offsetY = (containerProps.height - imgRenderProps.height) / 2;
                               
-                              const useEnsemble = includeDeepFace;
-                              const displayConf = useEnsemble ? (face.ensemble?.confidence || 0) : (face.predictions?.sota?.confidence || 0);
-                              const displayLabel = useEnsemble ? (face.ensemble?.label || 'Unknown') : (face.predictions?.sota?.label || 'Unknown');
-                              const isConfirmed = useEnsemble ? face.ensemble?.is_confirmed === true : (displayConf > 0.8 && displayLabel !== 'Unknown');
+                              const displayConf = face.predictions?.sota?.confidence || 0;
+                              const displayLabel = face.predictions?.sota?.label || 'Unknown';
+                              const isConfirmed = displayConf > 0.8 && displayLabel !== 'Unknown';
                               const spoofed = face.prediction === 'SPOOF DETECTED' || displayLabel === 'SPOOF DETECTED';
                               const boxColor = spoofed ? '#FBBF24' : (isConfirmed ? '#27A644' : '#F87171');
 
@@ -821,26 +803,12 @@ export default function TestPage() {
           </div>
           <div className="p-6 flex-1 flex flex-col">
             
-            {isDeepFaceEnabled && (
-              <div className="flex gap-6 p-4 bg-[#010102]/40 rounded-lg border border-[#23252A] mb-6 items-center">
+            <div className="flex gap-6 p-4 bg-[#010102]/40 rounded-lg border border-[#23252A] mb-6 items-center">
                 <div className="flex items-center gap-2">
                   <span className="w-2.5 h-2.5 rounded-full bg-[#5E6AD2]" />
                   <span className="text-caption font-mono text-ink-subtle">MobileNetV2: Active</span>
                 </div>
-                <div className="flex items-center gap-3">
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input 
-                      type="checkbox" 
-                      className="sr-only peer" 
-                      checked={includeDeepFace} 
-                      onChange={e => setIncludeDeepFace(e.target.checked)} 
-                    />
-                    <div className="w-8 h-4 bg-[#141516] rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-ink-muted after:rounded-full after:h-3 after:w-3.5 after:transition-all peer-checked:bg-[#5E6AD2] border border-[#23252A]"></div>
-                    <span className="ml-2 text-caption font-mono text-ink">DeepFace / Ensemble</span>
-                  </label>
-                </div>
-              </div>
-            )}
+            </div>
             
             <div className="flex-1 overflow-y-auto">
               {loading ? (
@@ -872,11 +840,9 @@ export default function TestPage() {
                       )}
                       
                       {results.faces.map((face, i) => {
-                         const useEnsemble = includeDeepFace;
-                         const displayLabel = useEnsemble ? face.ensemble?.label : face.predictions?.sota?.label;
-                         const displayConf = useEnsemble ? (face.ensemble?.confidence || 0) : (face.predictions?.sota?.confidence || 0);
-                         const displayMethod = useEnsemble ? (face.ensemble?.method || 'N/A') : "SOTA Base";
-                         const isConfirmed = useEnsemble ? face.ensemble?.is_confirmed === true : (displayConf > 0.8 && displayLabel !== 'Unknown');
+                         const displayLabel = face.predictions?.sota?.label;
+                         const displayConf = (face.predictions?.sota?.confidence || 0);
+                         const isConfirmed = (displayConf > 0.8 && displayLabel !== 'Unknown');
                          
                          const spoofed = displayLabel === 'SPOOF DETECTED';
                          
@@ -905,7 +871,7 @@ export default function TestPage() {
 
                                <div className="flex justify-between items-center mt-4 pt-4 border-t border-[#23252A]/50">
                                  <div className="text-[10px] text-ink-subtle font-mono tracking-wider uppercase">
-                                   MTHD: {displayMethod} | CONF: {(displayConf * 100).toFixed(1)}%
+                                   MTHD: SOTA Base | CONF: {(displayConf * 100).toFixed(1)}%
                                  </div>
                                  
                                  {face.prediction_id && !spoofed && (
@@ -934,12 +900,6 @@ export default function TestPage() {
                                     <span className="text-ink-tertiary">MobileNetV2</span>
                                     <span className="text-ink-muted">{face.predictions?.sota?.label} ({(face.predictions?.sota?.confidence * 100).toFixed(1)}%)</span>
                                  </div>
-                                 {includeDeepFace && face.predictions?.deepface && (
-                                   <div className="flex justify-between text-[11px] font-mono border-t border-[#23252A]/50 pt-2">
-                                      <span className="text-ink-tertiary">Facenet512</span>
-                                      <span className="text-ink-muted">{face.predictions.deepface.label} ({(face.predictions.deepface.confidence * 100).toFixed(1)}%)</span>
-                                   </div>
-                                 )}
                              </div>
                           </div>
                           );

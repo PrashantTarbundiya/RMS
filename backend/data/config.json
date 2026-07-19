@@ -1,1 +1,4 @@
-{"CONFIRM_THRESHOLD": 0.55}
+{
+    "CONFIRM_THRESHOLD": 0.35,
+    "ENABLE_DEEPFACE": false
+}

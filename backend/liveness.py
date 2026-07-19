@@ -4,7 +4,7 @@ import logging
 
 logger = logging.getLogger('rms-liveness')
 
-def evaluate_liveness(face_roi_bgr, threshold=100.0):
+def evaluate_liveness(face_roi_bgr, threshold=30.0):
     """
     Evaluates the liveness of a face ROI (Region of Interest) using texture and blur analysis.
     This is a lightweight heuristic approach suitable for edge devices.
@@ -36,7 +36,7 @@ def evaluate_liveness(face_roi_bgr, threshold=100.0):
         if laplacian_var < threshold:
             is_live = False
             reason = f"Failed blur test (Variance: {laplacian_var:.2f} < {threshold})"
-        elif bright_ratio > 0.05:  # more than 5% of face is blown out (common with screen glare)
+        elif bright_ratio > 0.10:  # more than 10% of face is blown out (common with screen glare)
             is_live = False
             reason = f"Failed glare test (Bright Ratio: {bright_ratio:.2%})"
             
