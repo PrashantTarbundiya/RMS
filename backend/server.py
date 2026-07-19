@@ -1,5 +1,6 @@
 import sys
 import os
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'  # Suppress TF warnings
 import time
 import socket
 import threading
@@ -19,7 +20,6 @@ BACKEND_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = os.path.dirname(BACKEND_DIR)
 sys.path.insert(0, BACKEND_DIR)
 
-from add_person_utils import add_person_to_all_models
 from models.sota_finetune.finetune import build_mobile_model, export_to_onnx
 from model import apply_clahe, get_embedding, get_embedding_tta
 from inference import find_match_knn
