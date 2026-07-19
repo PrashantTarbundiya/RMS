@@ -71,8 +71,8 @@ function AnimatedRoutes() {
   return (
     <AnimatePresence mode="wait">
       <Routes location={location} key={location.pathname}>
-        {/* Auth/Public routes (guest only) */}
-        <Route path="/" element={<GuestRoute><PageWrapper><LandingPage /></PageWrapper></GuestRoute>} />
+        {/* Auth/Public routes */}
+        <Route path="/" element={<PageWrapper><LandingPage /></PageWrapper>} />
         <Route path="/login" element={<GuestRoute><PageWrapper><LoginPage /></PageWrapper></GuestRoute>} />
         <Route path="/register" element={<GuestRoute><PageWrapper><RegisterPage /></PageWrapper></GuestRoute>} />
 
@@ -114,13 +114,13 @@ function PageWrapper({ children }) {
 function AppContent() {
   const location = useLocation();
   const { isAuthenticated, isMultiTenant } = useAuth();
-  const isAuthPage = ['/login', '/register'].includes(location.pathname);
-  const showNavbar = !isAuthPage && (isAuthenticated || isMultiTenant === false);
+  const isOuterPage = ['/login', '/register', '/'].includes(location.pathname);
+  const showNavbar = !isOuterPage && (isAuthenticated || isMultiTenant === false);
 
   return (
     <div className="app-container">
       {showNavbar && <Navbar />}
-      <main className="main-content">
+      <main className={showNavbar ? "main-content" : "main-content-fullscreen"}>
         <AnimatedRoutes />
       </main>
     </div>

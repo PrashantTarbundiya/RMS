@@ -148,6 +148,12 @@
   min-height: 100vh;
 }
 
+.main-content-fullscreen {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 100vh;
+}
+
 .page-container {
   max-width: 1200px;
   margin: 0 auto;

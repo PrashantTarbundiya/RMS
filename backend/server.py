@@ -676,6 +676,11 @@ def reload_org_models(org_id=None):
     }
     _models_loaded = True
     logger.info("Models reloaded globally.")
+
+def reload_models(org_id=None):
+    if org_id is None:
+        org_id = get_current_org_id()
+    reload_org_models(org_id)
 # ────────────────────────────────────────────────────────────────────────
 
 # Models are now lazy-loaded per organization (ensure_org_models_loaded)

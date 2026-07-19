@@ -12,6 +12,24 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 
+const FIELD_TO_ANGLE = {
+  left_img: 'left',
+  front_img: 'frontal',
+  right_img: 'right',
+  extra_files: 'extra'
+};
+
+const ANGLE_TO_FIELD = {
+  left: 'left_img',
+  frontal: 'front_img',
+  right: 'right_img',
+  extra: 'extra_files',
+  left_img: 'left_img',
+  front_img: 'front_img',
+  right_img: 'right_img',
+  extra_files: 'extra_files'
+};
+
 export default function UploadPage() {
   const { apiClient } = useAuth();
   const navigate = useNavigate();
@@ -34,6 +52,7 @@ export default function UploadPage() {
   const [status, setStatus] = useState({ type: '', message: '' });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [activeField, setActiveField] = useState('front_img');
+  const [dragActiveField, setDragActiveField] = useState(null);
 
   const totalNewImages = images.front_img.length + images.left_img.length + images.right_img.length + images.extra_files.length;
   const totalAvailablePhotos = totalNewImages + existingPhotos.length;
@@ -141,17 +160,26 @@ export default function UploadPage() {
     return () => window.removeEventListener('paste', handlePaste);
   }, [activeField]);
 
-  const handleMoveExistingPhoto = async (sourceAngle, targetAngle, filename) => {
+  const handleMoveExistingPhoto = async (sourceAngle, targetField, filename) => {
+    const targetAngle = FIELD_TO_ANGLE[targetField] || targetField;
     try {
       setStatus({ type: 'info', message: 'Moving photo...' });
-      const res = await apiClient.post(`${API_BASE}/persons/${personName}/photos/move`, { source_angle: sourceAngle, target_angle: targetAngle, filename });
+      const res = await apiClient.post(`${API_BASE}/persons/${personName}/photos/move`, { 
+        source_angle: sourceAngle, 
+        target_angle: targetAngle, 
+        filename 
+      });
       setExistingPhotos(prev => {
         const filtered = prev.filter(p => !(p.angle === sourceAngle && p.filename === filename));
-        return [...filtered, { angle: targetAngle, filename: res.data.new_filename, url: `/api/persons/${personName}/photos/${targetAngle}/${res.data.new_filename}` }];
+        return [...filtered, { 
+          angle: targetAngle, 
+          filename: res.data.new_filename, 
+          url: `/api/persons/${personName}/photos/${targetAngle}/${res.data.new_filename}` 
+        }];
       });
       setStatus({ type: 'success', message: 'Photo moved successfully.' });
     } catch (err) {
-      setStatus({ type: 'error', message: 'Failed to move photo.' });
+      setStatus({ type: 'error', message: err.response?.data?.error || 'Failed to move photo.' });
     }
   };
 
@@ -222,6 +250,106 @@ export default function UploadPage() {
     }
   };
 
+  const renderCategoryCard = (field) => {
+    const label = field.replace('_img', '').replace('_', ' ').toUpperCase();
+    const isActive = activeField === field;
+    
+    const fieldExistingPhotos = existingPhotos.filter(p => (ANGLE_TO_FIELD[p.angle] || p.angle) === field);
+    const fieldLocalImages = images[field];
+    const totalFieldPhotos = fieldExistingPhotos.length + fieldLocalImages.length;
+
+    return (
+      <div 
+        key={field} 
+        onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
+        onDragEnter={(e) => { e.preventDefault(); e.stopPropagation(); setDragActiveField(field); }}
+        onDragLeave={(e) => { e.preventDefault(); e.stopPropagation(); setDragActiveField(null); }}
+        onDrop={(e) => {
+          e.preventDefault(); e.stopPropagation(); setDragActiveField(null);
+          const sourceType = e.dataTransfer.getData('sourceType');
+          if (sourceType === 'local') {
+            const sourceField = e.dataTransfer.getData('sourceField');
+            const sourceIndex = parseInt(e.dataTransfer.getData('sourceIndex'), 10);
+            handleMoveLocalFile(sourceField, field, sourceIndex);
+          } else if (sourceType === 'existing') {
+            const sourceField = e.dataTransfer.getData('sourceField');
+            const sourceFilename = e.dataTransfer.getData('sourceFilename');
+            handleMoveExistingPhoto(sourceField, field, sourceFilename);
+          } else if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+            handleFile(field, e.dataTransfer.files);
+          }
+        }}
+        className={`border rounded-xl p-4 transition-colors cursor-pointer flex flex-col justify-between h-full min-h-[180px] ${isActive ? 'border-zinc-500 bg-zinc-800/20' : 'border-zinc-800 bg-zinc-900/40 hover:border-zinc-700'} ${dragActiveField === field ? 'border-violet-500 bg-violet-500/5' : ''}`}
+        onClick={() => setActiveField(field)}
+      >
+        <div>
+          <div className="flex justify-between items-center mb-3">
+            <span className={`text-xs font-semibold tracking-wider ${isActive ? 'text-zinc-100' : 'text-zinc-400'}`}>{label}</span>
+            <Badge variant="outline" className="bg-zinc-950 font-mono text-[10px]">{totalFieldPhotos}</Badge>
+          </div>
+          
+          <div className="relative group mb-3">
+            <label className={`flex flex-col items-center justify-center w-full h-24 border-2 border-dashed rounded-lg transition-colors cursor-pointer ${dragActiveField === field ? 'border-violet-400 bg-violet-500/10' : 'border-zinc-800 hover:bg-zinc-800/50 hover:border-zinc-600'}`}>
+              <div className="flex flex-col items-center justify-center pt-4 pb-5 text-center">
+                <UploadCloud className={`w-6 h-6 mb-1 ${dragActiveField === field ? 'text-violet-400 animate-pulse' : 'text-zinc-500 group-hover:text-zinc-400'}`} />
+                <p className={`text-[11px] ${dragActiveField === field ? 'text-violet-400 font-semibold' : 'text-zinc-500 group-hover:text-zinc-400'}`}>
+                  {dragActiveField === field ? 'Drop item here!' : 'Click, Paste or Drop'}
+                </p>
+              </div>
+              <input type="file" multiple accept="image/*" className="hidden" onChange={e => handleFile(field, e.target.files)} />
+            </label>
+          </div>
+        </div>
+
+        {totalFieldPhotos > 0 && (
+          <div className="mt-2 flex flex-wrap gap-2 max-h-48 overflow-y-auto pt-2 border-t border-zinc-800/30">
+            {fieldExistingPhotos.map((photo, idx) => (
+              <div 
+                key={`exist-${idx}`} 
+                draggable={true}
+                onDragStart={(e) => {
+                  e.dataTransfer.setData('sourceType', 'existing');
+                  e.dataTransfer.setData('sourceField', photo.angle);
+                  e.dataTransfer.setData('sourceFilename', photo.filename);
+                }}
+                className="relative group w-12 h-12 rounded-md overflow-hidden border border-emerald-500/30 cursor-grab active:cursor-grabbing"
+              >
+                <img src={`${API_BASE.replace(/\/api$/, '')}${photo.url}?token=${sessionStorage.getItem('rms_access_token') || ''}`} alt={photo.filename} className="w-full h-full object-cover" loading="lazy" />
+                <Badge className="absolute top-0 left-0 bg-emerald-500 text-black text-[7px] py-0 px-1 rounded-none uppercase font-mono tracking-widest font-extrabold scale-75 origin-top-left">Enrolled</Badge>
+                <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                  <button type="button" onClick={(e) => { e.stopPropagation(); handleDeleteExistingPhoto(photo.angle, photo.filename); }} className="p-1 bg-red-500/20 text-red-500 rounded hover:bg-red-500 hover:text-white transition-colors">
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+            ))}
+
+            {fieldLocalImages.map((file, idx) => (
+              <div 
+                key={`local-${idx}`} 
+                draggable={true}
+                onDragStart={(e) => {
+                  e.dataTransfer.setData('sourceType', 'local');
+                  e.dataTransfer.setData('sourceField', field);
+                  e.dataTransfer.setData('sourceIndex', idx.toString());
+                }}
+                className="relative group w-12 h-12 rounded-md overflow-hidden border border-zinc-700 cursor-grab active:cursor-grabbing"
+              >
+                <img src={URL.createObjectURL(file)} alt="preview" className="w-full h-full object-cover" />
+                <Badge className="absolute top-0 left-0 bg-violet-500 text-white text-[7px] py-0 px-1 rounded-none uppercase font-mono tracking-widest font-extrabold scale-75 origin-top-left">New</Badge>
+                <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                  <button type="button" onClick={(e) => { e.stopPropagation(); removeFile(field, idx); }} className="p-1 bg-red-500/20 text-red-500 rounded hover:bg-red-500 hover:text-white transition-colors">
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  };
+
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="pb-12 max-w-5xl mx-auto space-y-6">
       
@@ -282,11 +410,15 @@ export default function UploadPage() {
                     id="person-name"
                     value={personName} 
                     onChange={e => setPersonName(e.target.value)}
-                    className="flex h-10 w-full rounded-md border border-zinc-800 bg-zinc-950/50 px-3 py-2 text-sm text-zinc-100 ring-offset-zinc-950 file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-zinc-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-700 disabled:cursor-not-allowed disabled:opacity-50 font-mono"
+                    className="flex h-10 w-full rounded-md border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-700 disabled:cursor-not-allowed disabled:opacity-50 font-mono"
                     required
                   >
-                    <option value="">-- Select Person --</option>
-                    {existingPersons.map(p => <option key={p} value={p}>{p}</option>)}
+                    <option value="" className="bg-zinc-950 text-zinc-400">-- Select Person --</option>
+                    {existingPersons.map(p => (
+                      <option key={p} value={p} className="bg-zinc-950 text-zinc-100">
+                        {p.replace(/_/g, ' ')}
+                      </option>
+                    ))}
                   </select>
                 )}
                 <p className="text-xs text-zinc-500">Unique ID (no spaces).</p>
@@ -330,85 +462,19 @@ export default function UploadPage() {
               )}
             </div>
 
-            <div className="pt-4 border-t border-zinc-800/50">
-              <Label className="text-base text-zinc-100 mb-4 block">Asset Allocation</Label>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                {['front_img', 'left_img', 'right_img', 'extra_files'].map(field => {
-                  const label = field.replace('_img', '').replace('_', ' ').toUpperCase();
-                  const isActive = activeField === field;
-                  return (
-                    <div 
-                      key={field} 
-                      className={`border rounded-xl p-4 transition-colors cursor-pointer ${isActive ? 'border-zinc-500 bg-zinc-800/20' : 'border-zinc-800 bg-zinc-900/40 hover:border-zinc-700'}`}
-                      onClick={() => setActiveField(field)}
-                    >
-                      <div className="flex justify-between items-center mb-3">
-                        <span className={`text-xs font-semibold tracking-wider ${isActive ? 'text-zinc-100' : 'text-zinc-400'}`}>{label}</span>
-                        <Badge variant="outline" className="bg-zinc-950 font-mono text-[10px]">{images[field].length}</Badge>
-                      </div>
-                      
-                      <div className="relative group">
-                        <label className="flex flex-col items-center justify-center w-full h-24 border-2 border-dashed border-zinc-800 rounded-lg hover:bg-zinc-800/50 hover:border-zinc-600 transition-colors cursor-pointer">
-                          <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                            <UploadCloud className="w-6 h-6 mb-2 text-zinc-500 group-hover:text-zinc-400" />
-                            <p className="text-xs text-zinc-500 group-hover:text-zinc-400">Click or Paste</p>
-                          </div>
-                          <input type="file" multiple accept="image/*" className="hidden" onChange={e => handleFile(field, e.target.files)} />
-                        </label>
-                      </div>
-
-                      <div className="mt-3 flex flex-wrap gap-2 max-h-32 overflow-y-auto">
-                        {images[field].map((file, idx) => (
-                          <div key={idx} className="relative group w-12 h-12 rounded-md overflow-hidden border border-zinc-700">
-                            <img src={URL.createObjectURL(file)} alt="preview" className="w-full h-full object-cover" />
-                            <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1">
-                              <button type="button" onClick={(e) => { e.stopPropagation(); removeFile(field, idx); }} className="text-red-400 hover:text-red-300">
-                                <X className="w-3 h-3" />
-                              </button>
-                              <div className="flex gap-1">
-                                {['front_img', 'left_img', 'right_img', 'extra_files'].filter(f => f !== field).map(f => (
-                                  <button key={f} type="button" onClick={(e) => { e.stopPropagation(); handleMoveLocalFile(field, f, idx); }} title={`Move to ${f}`} className="text-zinc-300 hover:text-zinc-100">
-                                    <Move className="w-3 h-3" />
-                                  </button>
-                                ))}
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )
-                })}
+            <div className="pt-4 border-t border-zinc-800/50 space-y-4">
+              <Label className="text-base text-zinc-100 mb-2 block">Asset Allocation</Label>
+              
+              {/* Row 1: LEFT, FRONT, RIGHT */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {['left_img', 'front_img', 'right_img'].map(field => renderCategoryCard(field))}
+              </div>
+              
+              {/* Row 2: EXTRA FILES */}
+              <div className="grid grid-cols-1 gap-4">
+                {['extra_files'].map(field => renderCategoryCard(field))}
               </div>
             </div>
-
-            {mode === 'update' && existingPhotos.length > 0 && (
-              <div className="pt-6 border-t border-zinc-800/50">
-                <Label className="text-base text-zinc-100 mb-4 block">Existing Assets ({existingPhotos.length})</Label>
-                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
-                  {existingPhotos.map((photo, idx) => (
-                    <div key={idx} className="relative group rounded-lg overflow-hidden border border-zinc-800 aspect-square">
-                      <img src={`${API_BASE}${photo.url}`} alt={photo.filename} className="w-full h-full object-cover" loading="lazy" />
-                      <div className="absolute top-1 left-1 bg-black/80 px-1.5 py-0.5 rounded text-[10px] font-mono text-zinc-300 uppercase">
-                        {photo.angle.replace('_img', '')}
-                      </div>
-                      <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2">
-                        <button type="button" onClick={() => handleDeleteExistingPhoto(photo.angle, photo.filename)} className="p-1.5 bg-red-500/20 text-red-500 rounded hover:bg-red-500 hover:text-white transition-colors">
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                        <div className="flex gap-1">
-                          {['front_img', 'left_img', 'right_img', 'extra_files'].filter(a => a !== photo.angle).map(targetAngle => (
-                            <button key={targetAngle} type="button" onClick={() => handleMoveExistingPhoto(photo.angle, targetAngle, photo.filename)} className="p-1 bg-zinc-800 text-zinc-300 rounded hover:bg-zinc-700 transition-colors" title={`Move to ${targetAngle.replace('_img', '')}`}>
-                              <Move className="w-3 h-3" />
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
 
             <div className="pt-6 border-t border-zinc-800/50 flex items-center justify-between">
               <div className="text-sm text-zinc-400">

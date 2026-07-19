@@ -7,7 +7,6 @@ export function Navbar() {
   const { user, logout } = useAuth();
   
   const navItems = [
-    { to: '/', label: 'Home', icon: Home, end: true },
     { to: '/dashboard', label: 'Dashboard', icon: Activity },
     { to: '/attendance', label: 'Attendance', icon: ClipboardList, end: true },
     { to: '/attendance/live', label: 'Live Site', icon: Radio },

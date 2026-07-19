@@ -73,12 +73,16 @@ def require_auth(f):
             }
             return f(*args, **kwargs)
 
-        # Extract token from Authorization header
+        # Extract token from Authorization header or query parameter
+        token = None
         auth_header = request.headers.get('Authorization', '')
-        if not auth_header.startswith('Bearer '):
-            return jsonify({'error': 'Missing or invalid Authorization header. Expected: Bearer <token>'}), 401
+        if auth_header.startswith('Bearer '):
+            token = auth_header[7:]
+        else:
+            token = request.args.get('token')
 
-        token = auth_header[7:]  # Strip "Bearer "
+        if not token:
+            return jsonify({'error': 'Missing or invalid authentication token. Expected Bearer header or token query parameter.'}), 401
 
         # Decode and validate
         from auth import decode_token

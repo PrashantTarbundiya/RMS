@@ -249,6 +249,61 @@ export default function TestPage() {
     }
   }, [webcamReady, stopWebcam]);
 
+  const captureAndPredict = useCallback(() => {
+    if (!videoRef.current || !webcamReady) return;
+    try {
+      setLoading(true);
+      setError('');
+      setResults(null);
+
+      const canvas = document.createElement('canvas');
+      canvas.width = videoRef.current.videoWidth || 640;
+      canvas.height = videoRef.current.videoHeight || 480;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(videoRef.current, 0, 0);
+      
+      canvas.toBlob(async (blob) => {
+        if (blob) {
+          const capturedFile = new File([blob], 'webcam_capture.jpg', { type: 'image/jpeg' });
+          setFile(capturedFile);
+          setMode('upload');
+          stopWebcam();
+
+          const formData = new FormData();
+          formData.append('image', capturedFile);
+          try {
+            const res = await apiClient.post(`${API_BASE}/predict`, formData, {
+              headers: { 'Content-Type': 'multipart/form-data' },
+              timeout: 30000,
+            });
+            setResults(res.data);
+            
+            setTimeout(() => {
+              if (imgRef.current) {
+                setPreviewSize({
+                  width: imgRef.current.clientWidth,
+                  height: imgRef.current.clientHeight,
+                  naturalWidth: imgRef.current.naturalWidth,
+                  naturalHeight: imgRef.current.naturalHeight
+                });
+              }
+            }, 100);
+          } catch (err) {
+            setError(err.response?.data?.error || 'Failed to run prediction');
+          } finally {
+            setLoading(false);
+          }
+        } else {
+          setLoading(false);
+          setError('Failed to generate image blob.');
+        }
+      }, 'image/jpeg', 0.90);
+    } catch (err) {
+      setLoading(false);
+      setError('Failed to capture photo: ' + err.message);
+    }
+  }, [webcamReady, stopWebcam, apiClient]);
+
   const switchToUpload = useCallback(() => {
     stopWebcam();
     setMode('upload');
@@ -442,11 +497,11 @@ export default function TestPage() {
               <select 
                 value={selectedName}
                 onChange={(e) => setSelectedName(e.target.value)}
-                className="w-full p-2.5 rounded-md bg-zinc-950 border border-zinc-800 text-zinc-100 outline-none focus:border-zinc-700 text-sm"
+                className="w-full p-2.5 rounded-md bg-zinc-900 border border-zinc-800 text-zinc-100 outline-none focus:border-zinc-700 text-sm font-mono"
               >
-                <option value="" disabled>Select a person...</option>
+                <option value="" disabled className="bg-zinc-950 text-zinc-400">Select a person...</option>
                 {personsList.map(p => (
-                  <option key={p} value={p}>{p.replace(/_/g, ' ')}</option>
+                  <option key={p} value={p} className="bg-zinc-950 text-zinc-100">{p.replace(/_/g, ' ')}</option>
                 ))}
               </select>
             ) : (
@@ -679,14 +734,25 @@ export default function TestPage() {
             </div>
 
             <div className="mt-6">
-              <Button 
-                className="w-full bg-zinc-100 text-zinc-900 hover:bg-zinc-200 text-sm h-11"
-                onClick={runPrediction} 
-                disabled={!file || loading}
-              >
-                 {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Play className="w-4 h-4 mr-2" />}
-                 {loading ? 'Processing Identity...' : 'Execute Inference'}
-              </Button>
+               {mode === 'upload' ? (
+                 <Button 
+                   className="w-full bg-zinc-100 text-zinc-900 hover:bg-zinc-200 text-sm h-11"
+                   onClick={runPrediction} 
+                   disabled={!file || loading}
+                 >
+                    {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Play className="w-4 h-4 mr-2" />}
+                    {loading ? 'Processing Identity...' : 'Execute Inference'}
+                 </Button>
+               ) : (
+                 <Button 
+                   className="w-full bg-zinc-100 text-zinc-900 hover:bg-zinc-200 text-sm h-11"
+                   onClick={captureAndPredict} 
+                   disabled={!webcamReady || loading}
+                 >
+                    {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Camera className="w-4 h-4 mr-2" />}
+                    {loading ? 'Capturing & Testing...' : 'Capture & Run Inference'}
+                 </Button>
+               )}
             </div>
           </CardContent>
         </Card>
