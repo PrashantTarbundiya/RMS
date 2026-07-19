@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -33,6 +35,80 @@
     --ring: 240 4.9% 83.9%;
 
     --radius: 0.5rem;
+
+    /* ── Core Design System Variables ── */
+    --accent-violet: #8B5CF6;
+    --accent-violet-glow: rgba(139, 92, 246, 0.3);
+    --accent-cyan: #06B6D4;
+    --accent-cyan-glow: rgba(6, 182, 212, 0.4);
+    --accent-indigo: #6366f1;
+
+    /* ── Surfaces ── */
+    --bg-body: #020617;
+    --bg-surface: rgba(15, 23, 42, 0.65);
+    --bg-card: rgba(30, 41, 59, 0.5);
+    --bg-card-hover: rgba(51, 65, 85, 0.6);
+    --bg-elevated: rgba(15, 23, 42, 0.8);
+    --bg-input: rgba(2, 6, 23, 0.7);
+
+    /* ── Semantic Colors ── */
+    --confirm-green: #10B981;
+    --success-bg: rgba(16, 185, 129, 0.1);
+    --warning: #F59E0B;
+    --warning-bg: rgba(245, 158, 11, 0.1);
+    --error: #EF4444;
+    --error-bg: rgba(239, 68, 68, 0.1);
+
+    /* ── Text ── */
+    --text-primary: #F8FAFC;
+    --text-secondary: #94A3B8;
+    --text-tertiary: #64748B;
+    --text-muted: #475569;
+
+    /* ── Borders ── */
+    --border-subtle: rgba(255, 255, 255, 0.08);
+    --border-hover: rgba(139, 92, 246, 0.4);
+
+    /* ── Gradients ── */
+    --gradient-primary: linear-gradient(135deg, #8B5CF6, #06B6D4);
+    --gradient-body: linear-gradient(180deg, #020617 0%, #0F172A 100%);
+    --gradient-card: linear-gradient(135deg, rgba(139, 92, 246, 0.03), rgba(6, 182, 212, 0.03));
+    --gradient-shine: linear-gradient(135deg, rgba(255,255,255,0.08) 0%, transparent 60%);
+
+    /* ── Shadows ── */
+    --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.4);
+    --shadow-md: 0 8px 16px rgba(0, 0, 0, 0.4);
+    --shadow-lg: 0 16px 32px rgba(0, 0, 0, 0.5);
+    --shadow-glow: 0 0 30px var(--accent-violet-glow);
+    --shadow-cyan: 0 0 20px var(--accent-cyan-glow);
+
+    /* ── Spacing & Sizes ── */
+    --radius-full: 9999px;
+    --radius-xl: 20px;
+    --radius-lg: 16px;
+    --radius-md: 12px;
+    --radius-sm: 8px;
+    --radius-xs: 4px;
+
+    --space-1: 0.25rem;
+    --space-2: 0.5rem;
+    --space-3: 0.75rem;
+    --space-4: 1rem;
+    --space-5: 1.25rem;
+    --space-6: 1.5rem;
+    --space-8: 2rem;
+    --space-12: 3rem;
+
+    --text-2xs: 0.65rem;
+    --text-xs: 0.75rem;
+    --text-sm: 0.875rem;
+    --text-base: 1rem;
+    --text-lg: 1.125rem;
+    --text-xl: 1.25rem;
+    --text-2xl: 1.5rem;
+    --text-3xl: 1.875rem;
+
+    --font-mono: 'JetBrains Mono', monospace;
   }
 }
 
@@ -41,12 +117,39 @@
     @apply border-border;
   }
   body {
-    @apply bg-background text-foreground;
+    background-color: var(--bg-body);
+    background-image: var(--gradient-body);
+    color: var(--text-primary);
+    font-family: 'Inter', sans-serif;
     font-feature-settings: "rlig" 1, "calt" 1;
+    min-height: 100vh;
+    margin: 0;
+    overflow-x: hidden;
   }
 }
 
-/* Page transitions / layouts can stay basic */
+/* ── Global Layout Containers ── */
+.app-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+@media (min-width: 768px) {
+  .app-container {
+    flex-direction: row;
+  }
+}
+
+.main-content {
+  flex: 1;
+  padding: 2rem;
+  overflow-y: auto;
+  min-height: 100vh;
+}
+
 .page-container {
-  @apply max-w-7xl mx-auto w-full;
+  max-width: 1200px;
+  margin: 0 auto;
+  width: 100%;
 }

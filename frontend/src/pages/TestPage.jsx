@@ -377,10 +377,11 @@ export default function TestPage() {
                              const offsetY = (containerProps.height - imgRenderProps.height) / 2;
                              
                              const useEnsemble = includeDeepFace;
-                             const displayConf = useEnsemble ? face.ensemble.confidence : face.predictions?.sota?.confidence;
-                             const displayLabel = useEnsemble ? face.ensemble.label : face.predictions?.sota?.label;
-                             const isConfirmed = useEnsemble ? face.ensemble.is_confirmed === true : (displayConf > 0.8 && displayLabel !== 'Unknown');
-                             const boxColor = isConfirmed ? '#10b981' : '#ef4444'; // emerald-500 or red-500
+                             const displayConf = useEnsemble ? (face.ensemble?.confidence || 0) : (face.predictions?.sota?.confidence || 0);
+                             const displayLabel = useEnsemble ? (face.ensemble?.label || 'Unknown') : (face.predictions?.sota?.label || 'Unknown');
+                             const isConfirmed = useEnsemble ? face.ensemble?.is_confirmed === true : (displayConf > 0.8 && displayLabel !== 'Unknown');
+                             const spoofed = face.prediction === 'SPOOF DETECTED' || displayLabel === 'SPOOF DETECTED';
+                             const boxColor = spoofed ? '#f59e0b' : (isConfirmed ? '#10b981' : '#ef4444'); // amber-500, emerald-500, or red-500
 
                              return (
                                 <div key={idx} className="absolute pointer-events-none" style={{

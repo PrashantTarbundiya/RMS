@@ -225,7 +225,19 @@ def auth_register():
     Creates: Organization + User (org_admin) + Subscription (trial) + storage dirs.
     """
     if not is_db_available():
-        return jsonify({'error': 'Registration requires multi-tenant mode (DATABASE_URL must be set).'}), 400
+        # Single-tenant mode bypass: auto-succeed with local admin credentials
+        return jsonify({
+            'user': {
+                'id': None,
+                'email': 'local@admin',
+                'name': 'Local Admin',
+                'role': 'org_admin',
+                'org_id': None,
+                'org_name': 'Local Instance',
+            },
+            'access_token': 'single-tenant-token',
+            'refresh_token': 'single-tenant-token'
+        }), 200
 
     data = request.get_json()
     if not data:
@@ -322,7 +334,19 @@ def auth_register():
 def auth_login():
     """Authenticate a user and return JWT tokens."""
     if not is_db_available():
-        return jsonify({'error': 'Login requires multi-tenant mode.'}), 400
+        # Single-tenant mode bypass: auto-succeed with local admin credentials
+        return jsonify({
+            'user': {
+                'id': None,
+                'email': 'local@admin',
+                'name': 'Local Admin',
+                'role': 'org_admin',
+                'org_id': None,
+                'org_name': 'Local Instance',
+            },
+            'access_token': 'single-tenant-token',
+            'refresh_token': 'single-tenant-token'
+        }), 200
 
     data = request.get_json()
     if not data:
@@ -1344,9 +1368,9 @@ def feedback_stats():
 @require_auth
 @inject_org_id
 def get_dashboard_stats(org_id=None):
-    from org_storage import get_dataset_cleaned_path, get_recognition_history_path
+    from org_storage import get_dataset_cleaned_dir, get_recognition_history_path
     
-    dataset_cleaned_dir = get_dataset_cleaned_path(org_id)
+    dataset_cleaned_dir = get_dataset_cleaned_dir(org_id)
     
     expected_classes = []
     if os.path.exists(dataset_cleaned_dir):
@@ -1367,7 +1391,7 @@ def get_dashboard_stats(org_id=None):
         photos_per_person[p] = count
         total_photos += count
         
-    org_models = get_models_for_org(org_id)
+    org_models = ensure_org_models_loaded(org_id)
     sota_loaded_state = org_models.get('sota_loaded', False)
     sota_classes_state = org_models.get('sota_classes', [])
     deepface_encodings = org_models.get('deepface_encodings')

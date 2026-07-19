@@ -31,6 +31,7 @@ _GLOBAL_DATA_DIR = os.path.join(BACKEND_DIR, 'data')
 _GLOBAL_ENCODINGS_PATH = os.path.join(_GLOBAL_DATA_DIR, 'encodings.pickle')
 _GLOBAL_FEEDBACK_LOG_PATH = os.path.join(_GLOBAL_DATA_DIR, 'feedback_log.json')
 _GLOBAL_CONFIG_PATH = os.path.join(_GLOBAL_DATA_DIR, 'config.json')
+_GLOBAL_RECOGNITION_HISTORY_PATH = os.path.join(_GLOBAL_DATA_DIR, 'recognition_history.json')
 
 # Global fallback paths for SOTA models
 _GLOBAL_SOTA_DIR = os.path.join(BACKEND_DIR, 'models', 'sota_finetune')
@@ -85,6 +86,15 @@ def get_config_path(org_id=None):
     org_dir = _get_org_data_dir(org_id)
     os.makedirs(org_dir, exist_ok=True)
     return os.path.join(org_dir, 'config.json')
+
+
+def get_recognition_history_path(org_id=None):
+    """Get path to the org's recognition_history.json."""
+    if org_id is None:
+        return _GLOBAL_RECOGNITION_HISTORY_PATH
+    org_dir = _get_org_data_dir(org_id)
+    os.makedirs(org_dir, exist_ok=True)
+    return os.path.join(org_dir, 'recognition_history.json')
 
 
 def get_dataset_cleaned_dir(org_id=None):

@@ -71,7 +71,7 @@ export function AuthProvider({ children }) {
 
   // ─── Check if backend is running in multi-tenant mode ────────────────
   useEffect(() => {
-    const checkMode = async () => {
+    const checkMode = async (retries = 5) => {
       try {
         // Try to hit /api/auth/me without a token
         // In single-tenant mode, @require_auth is a no-op and returns the local admin
@@ -88,6 +88,10 @@ export function AuthProvider({ children }) {
         if (err.response?.status === 401) {
           // Multi-tenant mode — need real auth
           setIsMultiTenant(true);
+        } else if (!err.response && retries > 0) {
+          // Network error (connection refused / backend starting up), retry in 2s
+          setTimeout(() => checkMode(retries - 1), 2000);
+          return; // don't continue to sessionStorage check yet
         }
       }
 
@@ -133,7 +137,7 @@ export function AuthProvider({ children }) {
     setAccessToken(access_token);
     setRefreshToken(refresh_token);
     setUser(userData);
-    setIsMultiTenant(true);
+    setIsMultiTenant(userData.org_id !== null);
 
     sessionStorage.setItem('rms_access_token', access_token);
     sessionStorage.setItem('rms_refresh_token', refresh_token);
@@ -153,7 +157,7 @@ export function AuthProvider({ children }) {
     setAccessToken(access_token);
     setRefreshToken(refresh_token);
     setUser(userData);
-    setIsMultiTenant(true);
+    setIsMultiTenant(userData.org_id !== null);
 
     sessionStorage.setItem('rms_access_token', access_token);
     sessionStorage.setItem('rms_refresh_token', refresh_token);
