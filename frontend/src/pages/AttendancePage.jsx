@@ -42,10 +42,15 @@ const generateMockData = () => {
 export default function AttendancePage() {
   const [data, setData] = useState([]);
   const [dateFilter, setDateFilter] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // In production, this would fetch from /api/attendance
-    setData(generateMockData());
+    // Simulate API fetch delay to present the premium skeleton loader
+    const timer = setTimeout(() => {
+      setData(generateMockData());
+      setIsLoading(false);
+    }, 800);
+    return () => clearTimeout(timer);
   }, []);
 
   const filteredData = data.filter(record => {
@@ -97,6 +102,41 @@ export default function AttendancePage() {
     visible: { y: 0, opacity: 1 }
   };
 
+  if (isLoading) {
+    return (
+      <div className="pb-12 max-w-6xl mx-auto space-y-6 page-container">
+        {/* Header Shimmer */}
+        <div className="space-y-2">
+          <div className="w-48 h-6 shimmer" />
+          <div className="w-64 h-3.5 shimmer" />
+        </div>
+
+        {/* Controls Shimmer */}
+        <div className="flex justify-between items-center">
+          <div className="w-56 h-10 shimmer" />
+          <div className="w-32 h-9 shimmer" />
+        </div>
+
+        {/* Table Shimmer */}
+        <div className="card-linear p-0 overflow-hidden bg-[#0F1011] border-[#23252A]">
+          <div className="h-12 w-full shimmer mb-2" />
+          <div className="p-6 space-y-4">
+            {[1, 2, 3, 4, 5].map(i => (
+              <div key={i} className="flex justify-between items-center py-2 border-b border-[#23252A]/50">
+                <div className="w-32 h-4 shimmer" />
+                <div className="w-24 h-4 shimmer" />
+                <div className="w-16 h-4 shimmer" />
+                <div className="w-16 h-4 shimmer" />
+                <div className="w-16 h-4 shimmer" />
+                <div className="w-16 h-5 rounded-full shimmer" />
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <motion.div variants={containerVariants} initial="hidden" animate="visible" className="pb-12 max-w-6xl mx-auto space-y-6 page-container">
       
@@ -110,25 +150,27 @@ export default function AttendancePage() {
       {/* Controls */}
       <motion.div variants={itemVariants} className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-2">
-          <div className="relative flex items-center">
-            <Calendar className="w-4 h-4 absolute left-3 text-ink-tertiary pointer-events-none" />
+          <div className="flex items-center gap-2 input-linear min-w-[220px] h-10 py-0 px-3">
+            <Calendar className="w-4 h-4 text-ink-tertiary shrink-0 pointer-events-none" />
             <input 
               type="date"
-              className="pl-9 input-linear min-w-[200px]"
+              className="bg-transparent border-none text-ink text-caption font-mono w-full focus:outline-none focus:ring-0 p-0"
               value={dateFilter}
               onChange={(e) => setDateFilter(e.target.value)}
+              style={{ colorScheme: 'dark' }}
             />
           </div>
           {dateFilter && (
-            <button onClick={() => setDateFilter('')} className="button-secondary text-caption">
+            <button onClick={() => setDateFilter('')} className="button-secondary text-caption py-1.5 px-3">
               Clear Filter
             </button>
           )}
         </div>
-        <button onClick={exportCSV} className="button-primary text-white flex items-center gap-2 h-9 text-caption">
+        <button onClick={exportCSV} className="button-primary text-white flex items-center gap-2 h-9 text-caption py-1.5 px-4">
           <Download className="w-4 h-4 text-white" /> Export CSV
         </button>
       </motion.div>
+
 
       {/* Dense Data Table */}
       <motion.div variants={itemVariants}>

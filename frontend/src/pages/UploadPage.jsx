@@ -33,6 +33,8 @@ export default function UploadPage() {
   const [existingPersons, setExistingPersons] = useState([]);
   const [personName, setPersonName] = useState('');
   const [existingPhotos, setExistingPhotos] = useState([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showDropdown, setShowDropdown] = useState(false);
   
   const [images, setImages] = useState({
     front_img: [], left_img: [], right_img: [], extra_files: []
@@ -157,26 +159,46 @@ export default function UploadPage() {
 
   const handleMoveExistingPhoto = async (sourceAngle, targetField, filename) => {
     const targetAngle = FIELD_TO_ANGLE[targetField] || targetField;
+    if (sourceAngle === targetAngle) return;
+
+    const originalPhotos = [...existingPhotos];
+
+    // Optimistically move the photo in the UI state instantly
+    setExistingPhotos(prev => {
+      const filtered = prev.filter(p => !(p.angle === sourceAngle && p.filename === filename));
+      return [...filtered, { 
+        angle: targetAngle, 
+        filename: filename, 
+        url: `/api/persons/${personName}/photos/${targetAngle}/${filename}` 
+      }];
+    });
+
     try {
-      setStatus({ type: 'info', message: 'Moving photo...' });
       const res = await apiClient.post(`${API_BASE}/persons/${personName}/photos/move`, { 
         source_angle: sourceAngle, 
         target_angle: targetAngle, 
         filename 
       });
       setExistingPhotos(prev => {
-        const filtered = prev.filter(p => !(p.angle === sourceAngle && p.filename === filename));
-        return [...filtered, { 
-          angle: targetAngle, 
-          filename: res.data.new_filename, 
-          url: `/api/persons/${personName}/photos/${targetAngle}/${res.data.new_filename}` 
-        }];
+        return prev.map(p => {
+          if (p.angle === targetAngle && p.filename === filename) {
+            return {
+              ...p,
+              filename: res.data.new_filename,
+              url: `/api/persons/${personName}/photos/${targetAngle}/${res.data.new_filename}`
+            };
+          }
+          return p;
+        });
       });
       setStatus({ type: 'success', message: 'Photo moved successfully.' });
     } catch (err) {
+      // Revert back to original state on API failure
+      setExistingPhotos(originalPhotos);
       setStatus({ type: 'error', message: err.response?.data?.error || 'Failed to move photo.' });
     }
   };
+
 
   const handleDeleteExistingPhoto = (angle, filename) => {
     setConfirmModal({ isOpen: true, itemToDelete: { angle, filename } });
@@ -362,13 +384,13 @@ export default function UploadPage() {
       <div className="flex gap-2">
         <button 
           className={mode === 'new' ? 'button-primary text-white' : 'button-secondary'} 
-          onClick={() => { setMode('new'); setPersonName(''); setStatus({ type: '', message: '' }); }}
+          onClick={() => { setMode('new'); setPersonName(''); setSearchQuery(''); setStatus({ type: '', message: '' }); }}
         >
           Enroll New
         </button>
         <button 
           className={mode === 'update' ? 'button-primary text-white' : 'button-secondary'} 
-          onClick={() => { setMode('update'); setPersonName(''); setStatus({ type: '', message: '' }); }}
+          onClick={() => { setMode('update'); setPersonName(''); setSearchQuery(''); setStatus({ type: '', message: '' }); }}
         >
           Update Existing
         </button>
@@ -411,20 +433,46 @@ export default function UploadPage() {
                     required 
                   />
                 ) : (
-                  <select 
-                    id="person-name"
-                    value={personName} 
-                    onChange={e => setPersonName(e.target.value)}
-                    className="input-linear font-mono w-full"
-                    required
-                  >
-                    <option value="" className="bg-[#010102] text-ink-tertiary">-- Select Person --</option>
-                    {existingPersons.map(p => (
-                      <option key={p} value={p} className="bg-[#0F1011] text-ink">
-                        {p.replace(/_/g, ' ')}
-                      </option>
-                    ))}
-                  </select>
+                  <div className="relative">
+                    <input 
+                      id="person-name"
+                      type="text"
+                      placeholder="Type name to search..."
+                      value={searchQuery}
+                      onChange={(e) => {
+                        setSearchQuery(e.target.value);
+                        setPersonName('');
+                        setShowDropdown(true);
+                      }}
+                      onFocus={() => setShowDropdown(true)}
+                      onBlur={() => setTimeout(() => setShowDropdown(false), 200)}
+                      className="input-linear w-full h-10 px-3 text-caption font-mono"
+                      required={!personName}
+                    />
+                    {showDropdown && (
+                      <div className="absolute top-full left-0 right-0 mt-1 max-h-40 overflow-y-auto bg-[#0F1011] border border-[#23252A] rounded-md z-50 shadow-xl scrollbar-thin">
+                        {existingPersons
+                          .filter(p => p.toLowerCase().includes(searchQuery.toLowerCase()))
+                          .map(p => (
+                            <button
+                              key={p}
+                              type="button"
+                              onClick={() => {
+                                setPersonName(p);
+                                setSearchQuery(p.replace(/_/g, ' '));
+                                setShowDropdown(false);
+                              }}
+                              className="w-full text-left px-3 py-2 text-caption text-ink-muted hover:bg-[#5E6AD2]/10 hover:text-ink transition-colors font-mono border-b border-[#23252A]/30 last:border-b-0"
+                            >
+                              {p.replace(/_/g, ' ')}
+                            </button>
+                          ))}
+                        {existingPersons.filter(p => p.toLowerCase().includes(searchQuery.toLowerCase())).length === 0 && (
+                          <div className="px-3 py-2 text-caption text-ink-tertiary">No matching registered people</div>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 )}
                 <p className="text-[11px] text-ink-tertiary">Unique ID (no spaces).</p>
               </div>

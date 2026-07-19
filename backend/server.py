@@ -123,7 +123,7 @@ else:
 @app.route('/api/sync', methods=['POST'])
 def receive_sync():
     """Cloud API endpoint to receive AttendanceLog from edge appliances."""
-    from database.db import get_session
+    from database.db import get_db_session
     from database.models import AttendanceLog
     from datetime import datetime
     
@@ -134,7 +134,7 @@ def receive_sync():
         return jsonify({'message': 'No logs provided'}), 200
         
     try:
-        with get_session() as session:
+        with get_db_session() as session:
             for log_data in logs:
                 existing = session.query(AttendanceLog).filter_by(id=log_data['id']).first()
                 if not existing:
@@ -1601,6 +1601,9 @@ def rename_person(old_name):
 
 def rebuild_person_embeddings(name):
     """Rebuilds DeepFace embeddings for a single person from their cleaned images."""
+    from config_utils import load_config
+    if not load_config().get("ENABLE_DEEPFACE", False):
+        return
     if not os.path.exists(DEEPFACE_MODEL_PATH):
         return
     try:

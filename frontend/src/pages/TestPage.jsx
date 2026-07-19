@@ -41,6 +41,13 @@ export default function TestPage() {
   const [personsList, setPersonsList] = useState([]);
   const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
   const [feedbackContext, setFeedbackContext] = useState(null);
+  const [feedbackIsPerson, setFeedbackIsPerson] = useState(null);
+  const [feedbackIsNameCorrect, setFeedbackIsNameCorrect] = useState(null);
+  const [feedbackIdentityType, setFeedbackIdentityType] = useState('existing');
+  const [feedbackSelectedName, setFeedbackSelectedName] = useState('');
+  const [feedbackCustomName, setFeedbackCustomName] = useState('');
+  const [feedbackSearchQuery, setFeedbackSearchQuery] = useState('');
+  const [feedbackShowDropdown, setFeedbackShowDropdown] = useState(false);
   
   const videoRef = useRef(null);
   const imgRef = useRef(null);
@@ -183,7 +190,7 @@ export default function TestPage() {
         timeout: 5000,
       });
       
-      if (mode === 'webcam') {
+      if (mode === 'webcam' && videoRef.current) {
         setResults(res.data);
         setPreviewSize({
           width: videoRef.current.clientWidth,
@@ -344,6 +351,13 @@ export default function TestPage() {
   const submitFeedback = async (predictionId, isCorrect, predictedName) => {
     if (!isCorrect) {
       setFeedbackContext({ predictionId, isCorrect, predictedName });
+      setFeedbackIsPerson(null);
+      setFeedbackIsNameCorrect(null);
+      setFeedbackIdentityType('existing');
+      setFeedbackSelectedName('');
+      setFeedbackCustomName('');
+      setFeedbackSearchQuery('');
+      setFeedbackShowDropdown(false);
       setIsFeedbackModalOpen(true);
       return;
     }
@@ -376,143 +390,185 @@ export default function TestPage() {
     setFeedbackContext(null);
   };
 
-  const FeedbackModalContent = () => {
-    const [isPerson, setIsPerson] = useState(null); // null, 'yes', 'no'
-    const [isNameCorrect, setIsNameCorrect] = useState(null); // null, 'yes', 'no'
-    const [identityType, setIdentityType] = useState('existing'); // 'existing' or 'new'
-    const [selectedName, setSelectedName] = useState('');
-    const [customName, setCustomName] = useState('');
+  const renderFeedbackModalContent = () => {
+    const isPredictedUnknown = !feedbackContext?.predictedName || feedbackContext.predictedName.toLowerCase() === 'unknown';
 
     const handleSubmit = () => {
-      if (isPerson === 'no') {
+      if (feedbackIsPerson === 'no') {
         confirmFeedback('FALSE_DETECTION');
-      } else if (isPerson === 'yes') {
-        if (isNameCorrect === 'yes') {
-          confirmFeedback(feedbackContext.predictedName);
-        } else if (isNameCorrect === 'no') {
-          const finalName = identityType === 'existing' ? selectedName : customName.trim().replace(/\s+/g, '_');
+      } else if (feedbackIsPerson === 'yes') {
+        if (isPredictedUnknown) {
+          const finalName = feedbackIdentityType === 'existing' ? feedbackSelectedName : feedbackCustomName.trim().replace(/\s+/g, '_');
           if (finalName) {
             confirmFeedback(finalName);
+          }
+        } else {
+          if (feedbackIsNameCorrect === 'yes') {
+            confirmFeedback(feedbackContext.predictedName);
+          } else if (feedbackIsNameCorrect === 'no') {
+            const finalName = feedbackIdentityType === 'existing' ? feedbackSelectedName : feedbackCustomName.trim().replace(/\s+/g, '_');
+            if (finalName) {
+              confirmFeedback(finalName);
+            }
           }
         }
       }
     };
 
     const isSubmitDisabled = () => {
-      if (isPerson === null) return true;
-      if (isPerson === 'no') return false;
-      if (isNameCorrect === null) return true;
-      if (isNameCorrect === 'yes') return false;
-      if (isNameCorrect === 'no') {
-        if (identityType === 'existing') return !selectedName;
-        if (identityType === 'new') return !customName.trim();
+      if (feedbackIsPerson === null) return true;
+      if (feedbackIsPerson === 'no') return false;
+      if (isPredictedUnknown) {
+        if (feedbackIdentityType === 'existing') return !feedbackSelectedName;
+        if (feedbackIdentityType === 'new') return !feedbackCustomName.trim();
+      } else {
+        if (feedbackIsNameCorrect === null) return true;
+        if (feedbackIsNameCorrect === 'yes') return false;
+        if (feedbackIsNameCorrect === 'no') {
+          if (feedbackIdentityType === 'existing') return !feedbackSelectedName;
+          if (feedbackIdentityType === 'new') return !feedbackCustomName.trim();
+        }
       }
       return true;
     };
 
-
     return (
       <div className="flex flex-col gap-5 bg-[#0F1011] p-5 rounded-lg text-sm text-ink-muted">
         
-        {/* Step 1: Is this a person? */}
+        {/* Step 1: Is this actually a person's face? */}
         <div className="space-y-2">
-          <label className="text-ink font-medium block">1. Is this actually a person?</label>
+          <label className="text-ink font-medium block">1. Was a person's face detected?</label>
           <div className="flex gap-3">
             <button 
-              onClick={() => { setIsPerson('yes'); setIsNameCorrect(null); }}
-              className={`flex-1 h-9 ${isPerson === 'yes' ? 'button-primary text-white' : 'button-secondary'}`}
+              type="button"
+              onClick={() => { setFeedbackIsPerson('yes'); setFeedbackIsNameCorrect(null); }}
+              className={`flex-1 h-9 ${feedbackIsPerson === 'yes' ? 'button-primary text-white font-medium' : 'button-secondary'}`}
             >
-              Yes, it is a person
+              Yes, face detected
             </button>
             <button 
-              onClick={() => { setIsPerson('no'); setIsNameCorrect(null); }}
-              className={`flex-1 h-9 ${isPerson === 'no' ? 'button-primary bg-[#F87171] hover:bg-red-600 text-white' : 'button-secondary text-[#F87171] hover:bg-[#F87171]/10 hover:border-[#F87171]/30'}`}
+              type="button"
+              onClick={() => { setFeedbackIsPerson('no'); setFeedbackIsNameCorrect(null); }}
+              className={`flex-1 h-9 ${feedbackIsPerson === 'no' ? 'button-primary bg-[#F87171] hover:bg-red-600 text-white font-medium' : 'button-secondary text-[#F87171] hover:bg-[#F87171]/10 hover:border-[#F87171]/30'}`}
             >
               No, false detection
             </button>
           </div>
         </div>
 
-        {/* Step 2: Is the predicted name correct? */}
-        {isPerson === 'yes' && (
+        {/* Step 2: Is the predicted name correct? (Skip if Unknown) */}
+        {feedbackIsPerson === 'yes' && !isPredictedUnknown && (
           <div className="space-y-2 fade-in">
             <label className="text-ink font-medium block">
-              2. Is the predicted name "{feedbackContext?.predictedName?.replace(/_/g, ' ') || 'Unknown'}" correct?
+              2. Is this person actually "{feedbackContext?.predictedName?.replace(/_/g, ' ')}"?
             </label>
             <div className="flex gap-3">
               <button 
-                onClick={() => setIsNameCorrect('yes')}
-                className={`flex-1 h-9 ${isNameCorrect === 'yes' ? 'button-primary text-white' : 'button-secondary'}`}
+                type="button"
+                onClick={() => setFeedbackIsNameCorrect('yes')}
+                className={`flex-1 h-9 ${feedbackIsNameCorrect === 'yes' ? 'button-primary text-white font-medium' : 'button-secondary'}`}
               >
-                Yes, correct
+                Yes
               </button>
               <button 
-                onClick={() => setIsNameCorrect('no')}
-                className={`flex-1 h-9 ${isNameCorrect === 'no' ? 'button-primary text-white' : 'button-secondary'}`}
+                type="button"
+                onClick={() => setFeedbackIsNameCorrect('no')}
+                className={`flex-1 h-9 ${feedbackIsNameCorrect === 'no' ? 'button-primary text-white font-medium' : 'button-secondary'}`}
               >
-                No, incorrect name
+                No, wrong person
               </button>
             </div>
           </div>
         )}
 
-        {/* Step 3: Select or Enter Name */}
-        {isPerson === 'yes' && isNameCorrect === 'no' && (
-          <div className="space-y-3 fade-in p-4 bg-[#141516] border border-[#23252A] rounded-lg">
-            <label className="text-ink font-medium block">3. Who is this person?</label>
+        {/* Step 3: Who is this person? (Shown if wrong person OR if prediction was Unknown) */}
+        {feedbackIsPerson === 'yes' && (isPredictedUnknown || feedbackIsNameCorrect === 'no') && (
+          <div className="space-y-3 fade-in p-4 bg-[#141516] border border-[#23252A] rounded-lg relative">
+            <label className="text-ink font-medium block">
+              {isPredictedUnknown ? '2. Who is this person?' : '3. Correct Identity'}
+            </label>
             
             <div className="flex gap-4 text-xs font-mono mb-2">
               <label className="flex items-center gap-2 cursor-pointer text-ink-muted">
                 <input 
-                  type="radio" name="identityType" value="existing" 
-                  checked={identityType === 'existing'} 
-                  onChange={() => setIdentityType('existing')}
+                  type="radio" name="feedbackIdentityType" value="existing" 
+                  checked={feedbackIdentityType === 'existing'} 
+                  onChange={() => setFeedbackIdentityType('existing')}
                   className="accent-[#5E6AD2]"
                 />
                 <span>Existing Person</span>
               </label>
               <label className="flex items-center gap-2 cursor-pointer text-ink-muted">
                 <input 
-                  type="radio" name="identityType" value="new" 
-                  checked={identityType === 'new'} 
-                  onChange={() => setIdentityType('new')}
+                  type="radio" name="feedbackIdentityType" value="new" 
+                  checked={feedbackIdentityType === 'new'} 
+                  onChange={() => setFeedbackIdentityType('new')}
                   className="accent-[#5E6AD2]"
                 />
                 <span>New Person</span>
               </label>
             </div>
 
-            {identityType === 'existing' ? (
-              <select 
-                value={selectedName}
-                onChange={(e) => setSelectedName(e.target.value)}
-                className="input-linear font-mono w-full"
-              >
-                <option value="" disabled className="bg-[#010102] text-ink-tertiary">Select a person...</option>
-                {personsList.map(p => (
-                  <option key={p} value={p} className="bg-[#0F1011] text-ink">{p.replace(/_/g, ' ')}</option>
-                ))}
-              </select>
+            {feedbackIdentityType === 'existing' ? (
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="Type name to search..."
+                  value={feedbackSearchQuery}
+                  onChange={(e) => {
+                    setFeedbackSearchQuery(e.target.value);
+                    setFeedbackSelectedName(''); // Reset selection when user types
+                    setFeedbackShowDropdown(true);
+                  }}
+                  onFocus={() => setFeedbackShowDropdown(true)}
+                  onBlur={() => setTimeout(() => setFeedbackShowDropdown(false), 200)}
+                  className="input-linear w-full h-10 px-3 text-caption font-mono"
+                />
+                {feedbackShowDropdown && (
+                  <div className="absolute top-full left-0 right-0 mt-1 max-h-40 overflow-y-auto bg-[#0F1011] border border-[#23252A] rounded-md z-50 shadow-xl scrollbar-thin">
+                    {personsList
+                      .filter(p => p.toLowerCase().includes(feedbackSearchQuery.toLowerCase()))
+                      .map(p => (
+                        <button
+                          key={p}
+                          type="button"
+                          onClick={() => {
+                            setFeedbackSelectedName(p);
+                            setFeedbackSearchQuery(p.replace(/_/g, ' '));
+                            setFeedbackShowDropdown(false);
+                          }}
+                          className="w-full text-left px-3 py-2 text-caption text-ink-muted hover:bg-[#5E6AD2]/10 hover:text-ink transition-colors font-mono border-b border-[#23252A]/30 last:border-b-0"
+                        >
+                          {p.replace(/_/g, ' ')}
+                        </button>
+                      ))}
+                    {personsList.filter(p => p.toLowerCase().includes(feedbackSearchQuery.toLowerCase())).length === 0 && (
+                      <div className="px-3 py-2 text-caption text-ink-tertiary">No matching registered people</div>
+                    )}
+                  </div>
+                )}
+              </div>
             ) : (
               <input 
                 type="text"
                 placeholder="Enter new name (e.g. John_Doe)"
-                value={customName}
-                onChange={(e) => setCustomName(e.target.value.replace(/\s+/g, '_'))}
-                className="input-linear w-full"
+                value={feedbackCustomName}
+                onChange={(e) => setFeedbackCustomName(e.target.value.replace(/\s+/g, '_'))}
+                className="input-linear w-full h-10 px-3 text-caption"
               />
             )}
           </div>
         )}
 
         <div className="flex justify-end gap-2 mt-4 pt-4 border-t border-[#23252A]">
-          <button className="button-secondary text-caption" onClick={() => { setIsFeedbackModalOpen(false); setFeedbackContext(null); }}>
+          <button type="button" className="button-secondary text-caption py-1.5 px-4 h-9" onClick={() => { setIsFeedbackModalOpen(false); setFeedbackContext(null); }}>
             Cancel
           </button>
           <button 
+            type="button"
             onClick={handleSubmit} 
             disabled={isSubmitDisabled()} 
-            className="button-primary text-caption"
+            className="button-primary text-caption py-1.5 px-4 h-9"
           >
             Submit Feedback
           </button>
@@ -529,7 +585,7 @@ export default function TestPage() {
         onClose={() => { setIsFeedbackModalOpen(false); setFeedbackContext(null); }}
         title="Correct the Prediction"
       >
-        <FeedbackModalContent />
+        {renderFeedbackModalContent()}
       </Modal>
 
       <div>
@@ -788,10 +844,24 @@ export default function TestPage() {
             
             <div className="flex-1 overflow-y-auto">
               {loading ? (
-                 <div className="flex flex-col items-center justify-center h-full text-ink-subtle py-20">
-                    <Loader2 className="w-8 h-8 animate-spin text-[#5E6AD2]" />
-                    <p className="mt-4 font-mono text-caption uppercase tracking-wider">Analyzing spatial data...</p>
+                 <div className="space-y-4">
+                    <div className="w-48 h-4.5 shimmer mb-4" />
+                    <div className="bg-[#010102]/30 border border-[#23252A] rounded-lg p-5 space-y-4">
+                       <div className="w-20 h-4 shimmer" />
+                       <div className="w-full h-24 border border-[#23252A] rounded-md bg-[#0F1011] p-4 space-y-2">
+                          <div className="w-24 h-3 shimmer" />
+                          <div className="w-40 h-6 shimmer" />
+                       </div>
+                       <div className="flex justify-between items-center pt-2">
+                          <div className="w-32 h-4 shimmer" />
+                          <div className="flex gap-2">
+                             <div className="w-9 h-9 rounded shimmer" />
+                             <div className="w-9 h-9 rounded shimmer" />
+                          </div>
+                       </div>
+                    </div>
                  </div>
+
               ) : results ? (
                  results.faces && results.faces.length > 0 ? (
                     <div className="space-y-4">
@@ -846,11 +916,11 @@ export default function TestPage() {
                                         </span>
                                       ) : (
                                         <>
-                                          <button className="button-secondary h-7 w-7 p-0 flex items-center justify-center text-[#27A644] hover:bg-[#27A644]/10" onClick={() => submitFeedback(face.prediction_id, true, displayLabel)} title="Correct Detection">
-                                            <ThumbsUp className="w-3.5 h-3.5" />
+                                          <button className="button-icon text-[#27A644] hover:bg-[#27A644]/10" onClick={() => submitFeedback(face.prediction_id, true, displayLabel)} title="Correct Detection">
+                                            <ThumbsUp className="w-4 h-4" />
                                           </button>
-                                          <button className="button-secondary h-7 w-7 p-0 flex items-center justify-center text-[#F87171] hover:bg-[#F87171]/10" onClick={() => submitFeedback(face.prediction_id, false, displayLabel)} title="Incorrect Detection">
-                                            <ThumbsDown className="w-3.5 h-3.5" />
+                                          <button className="button-icon text-[#F87171] hover:bg-[#F87171]/10" onClick={() => submitFeedback(face.prediction_id, false, displayLabel)} title="Incorrect Detection">
+                                            <ThumbsDown className="w-4 h-4" />
                                           </button>
                                         </>
                                       )}

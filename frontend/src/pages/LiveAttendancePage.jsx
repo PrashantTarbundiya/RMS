@@ -43,10 +43,14 @@ const formatDuration = (checkInStr, now) => {
 export default function LiveAttendancePage() {
   const [liveData, setLiveData] = useState([]);
   const [now, setNow] = useState(new Date());
+  const [isLoading, setIsLoading] = useState(true);
 
   // Poll mock data every 15 seconds to simulate someone checking in/out
   useEffect(() => {
     setLiveData(generateLiveMockData());
+    const delayTimer = setTimeout(() => {
+      setIsLoading(false);
+    }, 800);
     
     const dataInterval = setInterval(() => {
       // Simulate a new person checking in by pushing to front
@@ -60,7 +64,10 @@ export default function LiveAttendancePage() {
       });
     }, 15000);
     
-    return () => clearInterval(dataInterval);
+    return () => {
+      clearTimeout(delayTimer);
+      clearInterval(dataInterval);
+    };
   }, []);
 
   // Update current time every minute for duration formatting
@@ -90,6 +97,35 @@ export default function LiveAttendancePage() {
     },
     exit: { opacity: 0, scale: 0.9, transition: { duration: 0.2 } }
   };
+
+  if (isLoading) {
+    return (
+      <div className="pb-12 space-y-6 page-container">
+        <div className="flex justify-between items-start flex-wrap gap-4 mb-6">
+          <div className="space-y-2">
+            <div className="w-56 h-6 shimmer" />
+            <div className="w-72 h-3.5 shimmer" />
+          </div>
+          <div className="w-32 h-9 shimmer" />
+        </div>
+
+        {/* Live Roster Cards Shimmer */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {[1, 2, 3, 4].map(i => (
+            <div key={i} className="card-linear p-6 rounded-xl flex items-center gap-4 bg-[#0F1011] border-[#23252A]">
+              <div className="w-12 h-12 rounded-full shimmer shrink-0" />
+              <div className="space-y-2 flex-1">
+                <div className="w-24 h-4.5 shimmer" />
+                <div className="w-16 h-3 shimmer" />
+                <div className="w-20 h-3 shimmer" />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
 
   return (
     <motion.div variants={containerVariants} initial="hidden" animate="visible" className="pb-12 space-y-6 page-container">

@@ -20,7 +20,8 @@ CONFIG_PATH = os.path.join(BACKEND_DIR, 'data', 'config.json')
 _config_lock = threading.Lock()
 
 DEFAULT_CONFIG = {
-    "CONFIRM_THRESHOLD": 0.55
+    "CONFIRM_THRESHOLD": 0.55,
+    "ENABLE_DEEPFACE": False
 }
 
 

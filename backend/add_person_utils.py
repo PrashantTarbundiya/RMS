@@ -597,12 +597,15 @@ def add_person_fast(person_name, image_data_list, dataset_dir=None, encodings_pa
     else:
         status_parts.append(f"📁 Retraining on existing dataset for {person_name}.\n")
 
-    # 3. Update DeepFace (instant — no retrain) if we added new images
-    if saved_cleaned_paths:
+    # 3. Update DeepFace (instant — no retrain) if we added new images and DeepFace is enabled
+    from config_utils import load_config
+    if saved_cleaned_paths and load_config().get("ENABLE_DEEPFACE", False):
         try:
             new_encs, new_names, num_added = update_deepface_model(person_name, saved_cleaned_paths, encodings_path=encodings_path)
             status_parts.append(f"✅ **DeepFace**: Added {num_added} embeddings (total: {len(new_encs)})")
         except Exception as e:
             status_parts.append(f"⚠️ **DeepFace**: Error — {e}")
+    elif saved_cleaned_paths:
+        status_parts.append("ℹ️ **DeepFace**: Model is disabled in settings. Skipping embedding generation.")
 
     return "\n\n".join(status_parts)

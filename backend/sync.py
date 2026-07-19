@@ -2,7 +2,7 @@ import time
 import os
 import requests
 import logging
-from database.db import get_session
+from database.db import get_db_session
 from database.models import AttendanceLog
 import threading
 
@@ -21,7 +21,7 @@ def sync_logs():
     # Needs to poll periodically
     while True:
         try:
-            with get_session() as session:
+            with get_db_session() as session:
                 unsynced = session.query(AttendanceLog).filter_by(synced=False).all()
                 
                 if unsynced:

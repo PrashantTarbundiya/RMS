@@ -140,15 +140,46 @@ export default function ManagePersonPage() {
   };
 
   const handleMoveExistingPhoto = async (sourceAngle, targetAngle, filename) => {
+    if (sourceAngle === targetAngle) return;
+
+    const originalPhotos = [...photos];
+
+    // Optimistically move the photo in the UI state instantly
+    setPhotos(prev => {
+      const filtered = prev.filter(p => !(p.angle === sourceAngle && p.filename === filename));
+      return [...filtered, {
+        angle: targetAngle,
+        filename: filename,
+        url: `/api/persons/${originalName}/photos/${targetAngle}/${filename}`
+      }];
+    });
+
     try {
-      setStatus({ type: 'info', message: 'Moving photo...' });
-      await apiClient.post(`${API_BASE}/persons/${originalName}/photos/move`, { source_angle: sourceAngle, target_angle: targetAngle, filename });
+      const res = await apiClient.post(`${API_BASE}/persons/${originalName}/photos/move`, { 
+        source_angle: sourceAngle, 
+        target_angle: targetAngle, 
+        filename 
+      });
+      setPhotos(prev => {
+        return prev.map(p => {
+          if (p.angle === targetAngle && p.filename === filename) {
+            return {
+              ...p,
+              filename: res.data.new_filename,
+              url: `/api/persons/${originalName}/photos/${targetAngle}/${res.data.new_filename}`
+            };
+          }
+          return p;
+        });
+      });
       setStatus({ type: 'success', message: `Moved photo to ${targetAngle}.` });
-      fetchPhotos();
     } catch (err) {
+      // Revert on error
+      setPhotos(originalPhotos);
       setStatus({ type: 'error', message: err.response?.data?.error || 'Failed to move photo.' });
     }
   };
+
 
   const handleMoveLocalFile = (sourceField, targetField, index) => {
     if (sourceField === targetField) return;
@@ -213,21 +244,109 @@ export default function ManagePersonPage() {
 
   if (isLoading) {
     return (
-      <div className="flex justify-center py-16">
-        <RotateCw className="animate-spin w-8 h-8 text-[#5E6AD2]" />
+      <div className="pb-12 max-w-5xl mx-auto space-y-6 page-container">
+        {/* Back and Header Shimmer */}
+        <div className="flex items-center gap-4 mb-6">
+          <div className="w-8 h-8 rounded-full shimmer shrink-0" />
+          <div className="space-y-2">
+            <div className="w-48 h-6 shimmer" />
+            <div className="w-72 h-3.5 shimmer" />
+          </div>
+        </div>
+
+        {/* Profile Card Shimmer */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-6 bg-[#0F1011] border border-[#23252A] rounded-xl mb-6">
+          <div className="flex items-center gap-4">
+            <div className="w-16 h-16 rounded-full shimmer shrink-0" />
+            <div className="space-y-2">
+              <div className="w-32 h-5 shimmer" />
+              <div className="flex gap-2">
+                <div className="w-16 h-4 shimmer" />
+                <div className="w-24 h-4 shimmer" />
+              </div>
+            </div>
+          </div>
+          <div className="w-36 h-9 shimmer" />
+        </div>
+
+        {/* Forms & Inputs Shimmer */}
+        <div className="card-linear space-y-6">
+          <div className="flex flex-wrap gap-4 mb-6">
+            <div className="flex-2 min-w-[250px] space-y-2">
+              <div className="w-20 h-4 shimmer" />
+              <div className="w-full h-10 shimmer" />
+            </div>
+            <div className="flex-1 min-w-[150px] space-y-2">
+              <div className="w-20 h-4 shimmer" />
+              <div className="w-full h-10 shimmer" />
+            </div>
+          </div>
+
+          {/* Dropbox Grids Shimmer */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            {[1, 2, 3].map(i => (
+              <div key={i} className="min-h-[190px] rounded-lg p-4 border border-[#23252A] bg-[#0F1011] space-y-4">
+                <div className="flex justify-between items-center">
+                  <div className="w-20 h-4 shimmer" />
+                  <div className="w-8 h-4 shimmer" />
+                </div>
+                <div className="h-24 w-full border border-dashed border-[#23252A] rounded-lg flex items-center justify-center">
+                  <div className="w-24 h-6 shimmer" />
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="w-full h-10 shimmer mt-8" />
+        </div>
       </div>
     );
   }
 
+  const frontalPhoto = photos.find(p => p.angle === 'frontal');
+
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="pb-12 max-w-5xl mx-auto space-y-6 page-container">
-      <div className="flex items-center gap-4 mb-6">
-        <Link to="/" className="text-ink-subtle hover:text-ink transition-colors">
+      
+      {/* Header and Back Link */}
+      <div className="flex items-center gap-4 mb-4">
+        <Link to="/dashboard" className="text-ink-subtle hover:text-ink transition-colors">
           <ArrowLeft className="w-6 h-6" />
         </Link>
         <div>
-          <h1 className="text-headline font-semibold text-ink font-display">Edit Enrolled Profile</h1>
-          <p className="mt-1 text-caption text-ink-subtle">Manage photos and retrain the model for {originalName}.</p>
+          <h1 className="text-headline font-semibold text-ink font-display m-0">Employee Console</h1>
+          <p className="mt-1 text-caption text-ink-subtle m-0">Configure biometric registration profiles and train individual classifiers.</p>
+        </div>
+      </div>
+
+      {/* Premium Profile Card */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-6 bg-[#0F1011] border border-[#23252A] rounded-xl">
+        <div className="flex items-center gap-4">
+          <div className="w-16 h-16 rounded-full border border-[#23252A] flex items-center justify-center bg-[#010102] overflow-hidden shrink-0">
+            {frontalPhoto ? (
+              <img src={`${API_BASE}/persons/${originalName}/photos/frontal/${frontalPhoto.filename}`} alt="Avatar" className="w-full h-full object-cover" />
+            ) : (
+              <User className="w-8 h-8 text-ink-subtle" />
+            )}
+          </div>
+          <div>
+            <h2 className="text-card-title font-semibold text-ink font-display m-0">{originalName.replace(/_/g, ' ')}</h2>
+            <div className="flex flex-wrap gap-2 mt-1.5 items-center">
+              <span className="px-2.5 py-0.5 rounded text-[10px] font-mono font-medium bg-[#27A644]/10 text-[#27A644] border border-[#27A644]/20 uppercase">Active / Enrolled</span>
+              <span className="text-[12px] text-ink-tertiary font-mono">Reference Photos: {photos.length}</span>
+            </div>
+          </div>
+        </div>
+        <div className="flex gap-2">
+          <button 
+            type="button"
+            onClick={() => { setEpochs(10); handleUpdate({ preventDefault: () => {} }); }}
+            disabled={isSubmitting}
+            className="button-primary flex items-center gap-2 h-9 py-1 px-4 text-caption"
+          >
+            <RotateCw className={`w-3.5 h-3.5 ${isSubmitting ? 'animate-spin' : ''}`} />
+            <span>Refine Face AI Model</span>
+          </button>
         </div>
       </div>
 
@@ -253,6 +372,7 @@ export default function ManagePersonPage() {
                 </motion.div>
               )}
             </AnimatePresence>
+
 
             <div className="flex flex-wrap gap-4 mb-6">
               <div className="flex-2 min-w-[250px] flex flex-col gap-1.5">

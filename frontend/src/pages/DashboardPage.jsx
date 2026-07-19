@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { 
   Users, Image as ImageIcon, BarChart3, Clock, CheckCircle, 
-  AlertTriangle, Trash2, Edit2, Check, X, RefreshCw 
+  AlertTriangle, Trash2, Edit2, Check, X, RefreshCw, User 
 } from 'lucide-react';
 import { API_BASE } from '../config';
 import ApertureReticle from '../components/ApertureReticle';
@@ -91,12 +91,71 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center py-20 text-ink-subtle">
-        <ApertureReticle active={true} className="w-10 h-10 flex items-center justify-center" status="loading" />
-        <p className="mt-4 text-mono text-caption uppercase tracking-wider">Loading System Data...</p>
+      <div className="page-container pb-12 space-y-6">
+        {/* Header Shimmer */}
+        <div className="flex justify-between items-center">
+          <div className="space-y-2">
+            <div className="w-48 h-6 shimmer" />
+            <div className="w-64 h-3.5 shimmer" />
+          </div>
+          <div className="w-24 h-9 shimmer" />
+        </div>
+
+        {/* KPI Grid Shimmer */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {[1, 2, 3, 4].map(i => (
+            <div key={i} className="card-linear space-y-3 p-6">
+              <div className="flex justify-between items-center">
+                <div className="w-24 h-4 shimmer" />
+                <div className="w-5 h-5 rounded-full shimmer" />
+              </div>
+              <div className="w-16 h-7 shimmer" />
+            </div>
+          ))}
+        </div>
+
+        {/* Roster & Telemetry Shimmer */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Enrollment Roster Card */}
+          <div className="card-linear p-0 flex flex-col">
+            <div className="flex justify-between items-center p-6 border-b border-[#23252A]">
+              <div className="w-32 h-5 shimmer" />
+              <div className="w-32 h-9 shimmer" />
+            </div>
+            <div className="p-6 space-y-4">
+              {[1, 2, 3, 4].map(i => (
+                <div key={i} className="flex justify-between items-center py-2 border-b border-[#23252A]/50">
+                  <div className="w-36 h-4 shimmer" />
+                  <div className="w-16 h-4 shimmer" />
+                  <div className="flex gap-2">
+                    <div className="w-8 h-8 rounded shimmer" />
+                    <div className="w-8 h-8 rounded shimmer" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Recent Activity Card */}
+          <div className="card-linear p-0 flex flex-col">
+            <div className="flex justify-between items-center p-6 border-b border-[#23252A]">
+              <div className="w-32 h-5 shimmer" />
+              <div className="w-20 h-8 shimmer" />
+            </div>
+            <div className="p-6 space-y-4">
+              {[1, 2, 3, 4].map(i => (
+                <div key={i} className="flex justify-between items-center py-2 border-b border-[#23252A]/50">
+                  <div className="w-24 h-4 shimmer" />
+                  <div className="w-48 h-4 shimmer" />
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
+
 
   if (error || !stats) {
     return (
@@ -227,11 +286,17 @@ export default function DashboardPage() {
                                   className="input-linear h-8 py-1 px-2 text-caption"
                                   autoFocus
                                 />
-                                <button className="button-secondary h-8 w-8 p-0 flex items-center justify-center" onClick={() => handleRename(name)} disabled={isActionLoading}><Check className="h-4 w-4 text-[#27A644]"/></button>
-                                <button className="button-secondary h-8 w-8 p-0 flex items-center justify-center" onClick={() => setEditingPerson(null)}><X className="h-4 w-4 text-[#F87171]"/></button>
+                                <button className="button-icon" onClick={() => handleRename(name)} disabled={isActionLoading}><Check className="h-4 w-4 text-[#27A644]"/></button>
+                                <button className="button-icon" onClick={() => setEditingPerson(null)}><X className="h-4 w-4 text-[#F87171]"/></button>
                               </div>
                             ) : (
-                              <span>{name}</span>
+                              <Link 
+                                to={`/persons/edit/${name}`} 
+                                className="hover:text-[#828FFF] hover:underline transition-all font-medium"
+                                title="Manage Biometric Profile"
+                              >
+                                {name.replace(/_/g, ' ')}
+                              </Link>
                             )}
                           </td>
                           <td className="py-3 px-6 text-caption text-ink-muted">
@@ -239,20 +304,23 @@ export default function DashboardPage() {
                           </td>
                           <td className="py-3 px-6 text-right">
                             {isDeleting ? (
-                              <div className="inline-flex items-center gap-2">
-                                <span className="text-[#F87171] text-caption font-medium">Purge profile?</span>
-                                <button className="button-primary bg-[#F87171] hover:bg-red-600 text-white h-7 py-0 px-3 text-caption" onClick={() => handleDelete(name)} disabled={isActionLoading}>Purge</button>
-                                <button className="button-secondary h-7 py-0 px-3 text-caption" onClick={() => setDeletingPerson(null)}>Cancel</button>
-                              </div>
+                               <div className="inline-flex items-center gap-2">
+                                 <span className="text-[#F87171] text-caption font-medium">Purge profile?</span>
+                                 <button className="button-primary bg-[#F87171] hover:bg-red-600 text-white h-7 py-0 px-3 text-caption" onClick={() => handleDelete(name)} disabled={isActionLoading}>Purge</button>
+                                 <button className="button-secondary h-7 py-0 px-3 text-caption" onClick={() => setDeletingPerson(null)}>Cancel</button>
+                               </div>
                             ) : (
-                              <div className="inline-flex gap-1.5">
-                                <button className="button-secondary h-8 w-8 p-0 flex items-center justify-center text-ink-subtle hover:text-ink" onClick={() => { setEditingPerson(name); setNewName(name); }}>
-                                  <Edit2 className="h-4 w-4" />
-                                </button>
-                                <button className="button-secondary h-8 w-8 p-0 flex items-center justify-center text-[#F87171] hover:bg-[#F87171]/10 hover:border-[#F87171]/30" onClick={() => setDeletingPerson(name)}>
-                                  <Trash2 className="h-4 w-4" />
-                                </button>
-                              </div>
+                               <div className="inline-flex gap-1.5">
+                                 <Link to={`/persons/edit/${name}`} className="button-icon text-ink-subtle hover:text-[#828FFF]" title="Manage Profile">
+                                   <User className="h-4 w-4" />
+                                 </Link>
+                                 <button className="button-icon text-ink-subtle hover:text-ink" onClick={() => { setEditingPerson(name); setNewName(name); }} title="Rename Inline">
+                                   <Edit2 className="h-4 w-4" />
+                                 </button>
+                                 <button className="button-icon text-[#F87171] hover:bg-[#F87171]/10 hover:border-[#F87171]/30" onClick={() => setDeletingPerson(name)} title="Purge Roster Profile">
+                                   <Trash2 className="h-4 w-4" />
+                                 </button>
+                               </div>
                             )}
                           </td>
                         </tr>

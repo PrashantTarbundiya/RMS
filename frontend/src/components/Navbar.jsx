@@ -1,10 +1,23 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { NavLink, Link } from 'react-router-dom';
-import { Activity, Box, Video, Home, Upload, ClipboardList, Radio, Settings, LogOut, Users, User } from 'lucide-react';
+import { Activity, Box, Video, Home, Upload, ClipboardList, Radio, Settings, LogOut, Users, User, Menu, X } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export function Navbar() {
   const { user, logout } = useAuth();
+  const [isCollapsed, setIsCollapsed] = useState(() => {
+    return localStorage.getItem('sidebar-collapsed') === 'true';
+  });
+  const [isMobileOpen, setIsMobileOpen] = useState(false);
+
+  const toggleSidebar = () => {
+    setIsCollapsed(prev => {
+      const next = !prev;
+      localStorage.setItem('sidebar-collapsed', String(next));
+      return next;
+    });
+  };
   
   const navItems = [
     { to: '/dashboard', label: 'Dashboard', icon: Activity },
@@ -17,247 +30,310 @@ export function Navbar() {
   ];
 
   return (
-    <nav className="ui-sidebar">
-      {/* Desktop Header */}
-      <div className="sidebar-header">
-        <Link to="/" className="brand">
-          <div className="w-8 h-8 rounded-md border border-border flex items-center justify-center mr-3 bg-card">
-            <span className="font-mono text-primary font-bold">R</span>
-          </div>
-          <div className="brand-text">
-            <h1>RMS Console</h1>
-            {user && (
-              <div className="user-org">
-                <span className="org-name">{user.org_name || 'System Admin'}</span>
-                <span className="role-badge">{user.role || 'Admin'}</span>
-              </div>
-            )}
-          </div>
-        </Link>
-      </div>
-
-      {/* Navigation Links */}
-      <div className="sidebar-nav">
-        {navItems.map((item) => (
-          <NavLink 
-            key={item.to} 
-            to={item.to} 
-            end={item.end}
-            className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}
+    <>
+      {/* Mobile Top Header (Visible only on mobile/small screens) */}
+      <div className="mobile-header md:hidden">
+        <div className="flex items-center justify-between w-full px-5 h-14 bg-[#0F1011] border-b border-[#23252A] fixed top-0 left-0 right-0 z-40">
+          <Link to="/dashboard" className="brand flex items-center gap-2">
+            <div className="w-7 h-7 rounded-md border border-border flex items-center justify-center bg-[#010102] shrink-0">
+              <span className="font-mono text-primary font-bold text-xs">R</span>
+            </div>
+            <span className="text-ink font-semibold tracking-tight text-sm font-display">RMS Console</span>
+          </Link>
+          <button 
+            onClick={() => setIsMobileOpen(true)}
+            className="text-ink-subtle hover:text-ink p-1.5 rounded-md hover:bg-surface-2 transition-colors cursor-pointer"
           >
-            <item.icon size={18} className="link-icon" />
-            <span className="link-label">{item.label}</span>
-          </NavLink>
-        ))}
-      </div>
-
-      {/* Footer Actions */}
-      <div className="sidebar-footer">
-        {user && (
-          <button onClick={logout} className="logout-btn">
-            <LogOut size={18} />
-            <span>Sign Out</span>
+            <Menu size={20} />
           </button>
-        )}
+        </div>
+        {/* Spacer to push page content down */}
+        <div className="h-14 w-full" />
       </div>
 
-      <style>{`
-        .ui-sidebar {
-          background: var(--surface-1);
-          border-right: 1px solid var(--hairline);
-          display: flex;
-          flex-direction: column;
-          width: 100%;
-          z-index: 100;
-        }
+      {/* Slide-over Mobile Drawer Navigation */}
+      <AnimatePresence>
+        {isMobileOpen && (
+          <div className="fixed inset-0 z-50 md:hidden flex">
+            {/* Backdrop */}
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsMobileOpen(false)}
+              className="fixed inset-0 bg-black/60 backdrop-blur-sm"
+            />
 
-        .sidebar-header {
-          padding: var(--space-md) var(--space-lg);
-          border-bottom: 1px solid var(--hairline);
-        }
+            {/* Sliding Drawer */}
+            <motion.div 
+              initial={{ x: '-100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '-100%' }}
+              transition={{ type: 'spring', damping: 25, stiffness: 220 }}
+              className="relative w-4/5 max-w-xs bg-[#0F1011] h-full border-r border-[#23252A] flex flex-col z-10 p-5 shadow-2xl"
+            >
+              {/* Drawer Header */}
+              <div className="flex items-center justify-between pb-4 border-b border-[#23252A] mb-4">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-md border border-border flex items-center justify-center bg-[#010102]">
+                    <span className="font-mono text-primary font-bold text-sm">R</span>
+                  </div>
+                  <div className="brand-text">
+                    <span className="text-ink font-semibold tracking-tight text-xs font-display">RMS Console</span>
+                    {user && <span className="block text-[10px] text-ink-subtle font-mono truncate max-w-[120px]">{user.org_name}</span>}
+                  </div>
+                </div>
+                <button 
+                  onClick={() => setIsMobileOpen(false)}
+                  className="text-ink-subtle hover:text-ink p-1.5 rounded-md hover:bg-surface-2 transition-colors"
+                >
+                  <X size={18} />
+                </button>
+              </div>
 
-        .brand {
-          display: flex;
-          align-items: center;
-          gap: var(--space-sm);
-          text-decoration: none;
-        }
+              {/* Navigation Links */}
+              <div className="flex-1 flex flex-col gap-1 overflow-y-auto">
+                {navItems.map((item) => (
+                  <NavLink 
+                    key={item.to} 
+                    to={item.to} 
+                    end={item.end}
+                    onClick={() => setIsMobileOpen(false)}
+                    className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}
+                  >
+                    <item.icon size={18} className="link-icon" />
+                    <span className="link-label">{item.label}</span>
+                  </NavLink>
+                ))}
+              </div>
 
-        .brand-text h1 {
-          font-size: 14px;
-          font-weight: 600;
-          letter-spacing: -0.2px;
-          margin: 0;
-          color: var(--ink);
-        }
+              {/* Sign Out Action */}
+              <div className="pt-4 border-t border-[#23252A] mt-auto">
+                {user && (
+                  <button onClick={() => { logout(); setIsMobileOpen(false); }} className="logout-btn">
+                    <LogOut size={18} />
+                    <span>Sign Out</span>
+                  </button>
+                )}
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
-        .user-org {
-          display: flex;
-          align-items: center;
-          gap: var(--space-xs);
-          margin-top: 4px;
-        }
+      {/* Desktop Sidebar (Hidden on mobile) */}
+      <nav className={`ui-sidebar ${isCollapsed ? 'collapsed' : ''} hidden md:flex`}>
+        {/* Desktop Header */}
+        <div className="sidebar-header">
+          <div className="flex items-center justify-between w-full gap-2">
+            {!isCollapsed ? (
+              <Link to="/dashboard" className="brand flex-1 min-w-0">
+                <div className="w-8 h-8 rounded-md border border-border flex items-center justify-center mr-2 bg-card shrink-0">
+                  <span className="font-mono text-primary font-bold">R</span>
+                </div>
+                <div className="brand-text truncate">
+                  <h1 className="truncate">RMS Console</h1>
+                  {user && (
+                    <div className="user-org">
+                      <span className="org-name truncate max-w-[120px] block">{user.org_name || 'System Admin'}</span>
+                    </div>
+                  )}
+                </div>
+              </Link>
+            ) : (
+              <Link to="/dashboard" className="brand justify-center mx-auto">
+                <div className="w-8 h-8 rounded-md border border-border flex items-center justify-center bg-card shrink-0">
+                  <span className="font-mono text-primary font-bold">R</span>
+                </div>
+              </Link>
+            )}
+            <button 
+              onClick={toggleSidebar} 
+              className="text-ink-subtle hover:text-ink p-1.5 rounded-md hover:bg-surface-2 transition-colors cursor-pointer hidden md:block shrink-0"
+              title={isCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
+            >
+              <Menu size={18} />
+            </button>
+          </div>
+        </div>
 
-        .org-name {
-          font-size: 11px;
-          color: var(--ink-subtle);
-        }
+        {/* Navigation Links */}
+        <div className="sidebar-nav">
+          {navItems.map((item) => (
+            <NavLink 
+              key={item.to} 
+              to={item.to} 
+              end={item.end}
+              className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''} ${isCollapsed ? 'collapsed-link' : ''}`}
+              title={isCollapsed ? item.label : undefined}
+            >
+              <item.icon size={18} className="link-icon" />
+              {!isCollapsed && <span className="link-label">{item.label}</span>}
+            </NavLink>
+          ))}
+        </div>
 
-        .role-badge {
-          font-size: 9px;
-          padding: 2px 6px;
-          background: rgba(94, 106, 210, 0.1);
-          color: var(--accent-primary);
-          border-radius: var(--radius-xs);
-          text-transform: uppercase;
-          font-family: var(--font-mono);
-          font-weight: 500;
-        }
+        {/* Footer Actions */}
+        <div className="sidebar-footer">
+          {user && (
+            <button onClick={logout} className={`logout-btn ${isCollapsed ? 'justify-center' : ''}`} title={isCollapsed ? "Sign Out" : undefined}>
+              <LogOut size={18} />
+              {!isCollapsed && <span>Sign Out</span>}
+            </button>
+          )}
+        </div>
 
-        .sidebar-nav {
-          flex: 1;
-          display: flex;
-          flex-direction: column;
-          padding: var(--space-md) 0;
-          overflow-y: auto;
-        }
-
-        .sidebar-link {
-          display: flex;
-          align-items: center;
-          gap: var(--space-sm);
-          padding: var(--space-sm) var(--space-lg);
-          color: var(--ink-muted);
-          text-decoration: none;
-          font-size: 14px;
-          font-weight: 500;
-          position: relative;
-          transition: all 0.2s ease;
-        }
-
-        .sidebar-link:hover {
-          color: var(--ink);
-          background: var(--surface-2);
-        }
-
-        .sidebar-link.active {
-          color: var(--ink);
-          background: var(--surface-2);
-        }
-
-        /* Left border accent bar (indigo) grows in from top */
-        .sidebar-link::before {
-          content: '';
-          position: absolute;
-          left: 0;
-          top: 0;
-          bottom: 0;
-          width: 3px;
-          background: var(--accent-primary);
-          transform: scaleY(0);
-          transform-origin: top;
-          transition: transform 0.2s ease;
-        }
-
-        .sidebar-link.active::before {
-          transform: scaleY(1);
-        }
-
-        .link-icon {
-          opacity: 0.7;
-          color: var(--ink-subtle);
-        }
-        .sidebar-link:hover .link-icon,
-        .sidebar-link.active .link-icon {
-          opacity: 1;
-          color: var(--accent-primary);
-        }
-
-        .sidebar-footer {
-          padding: var(--space-md) var(--space-lg);
-          border-top: 1px solid var(--hairline);
-        }
-
-        .logout-btn {
-          display: flex;
-          align-items: center;
-          gap: var(--space-sm);
-          background: transparent;
-          border: none;
-          color: var(--ink-subtle);
-          font-size: 14px;
-          font-weight: 500;
-          cursor: pointer;
-          width: 100%;
-          text-align: left;
-          padding: var(--space-xs) 0;
-          transition: color 0.2s ease;
-        }
-        .logout-btn:hover {
-          color: var(--ink);
-        }
-
-        /* Mobile overrides (bottom tabs) */
-        @media (max-width: 767px) {
+        <style>{`
           .ui-sidebar {
-            flex-direction: row;
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            height: 60px;
-            border-right: none;
-            border-top: 1px solid var(--hairline);
-            padding: 0;
             background: var(--surface-1);
-          }
-          .sidebar-header, .sidebar-footer {
-            display: none;
-          }
-          .sidebar-nav {
-            flex-direction: row;
-            padding: 0;
-            overflow-x: auto;
-            align-items: center;
-            justify-content: space-around;
-            width: 100%;
-          }
-          .sidebar-link {
+            border-right: 1px solid var(--hairline);
+            display: flex;
             flex-direction: column;
-            gap: 4px;
-            padding: var(--space-xs);
-            justify-content: center;
+            width: 100%;
+            z-index: 100;
+            transition: width 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+          }
+
+          .sidebar-header {
+            padding: var(--space-md) var(--space-lg);
+            border-bottom: 1px solid var(--hairline);
+            display: flex;
+            align-items: center;
+          }
+
+          .brand {
+            display: flex;
+            align-items: center;
+            text-decoration: none;
+          }
+
+          .brand-text h1 {
+            font-size: 14px;
+            font-weight: 600;
+            letter-spacing: -0.2px;
+            margin: 0;
+            color: var(--ink);
+          }
+
+          .user-org {
+            display: flex;
+            align-items: center;
+            gap: var(--space-xs);
+            margin-top: 4px;
+          }
+
+          .org-name {
+            font-size: 11px;
+            color: var(--ink-subtle);
+          }
+
+          .sidebar-nav {
             flex: 1;
-            font-size: 10px;
+            display: flex;
+            flex-direction: column;
+            padding: var(--space-md) 0;
+            overflow-y: auto;
           }
-          .link-label {
-            font-size: 9px;
+
+          .sidebar-link {
+            display: flex;
+            align-items: center;
+            gap: var(--space-sm);
+            padding: var(--space-sm) var(--space-lg);
+            color: var(--ink-muted);
+            text-decoration: none;
+            font-size: 15px;
+            font-weight: 500;
+            position: relative;
+            transition: all 0.2s ease;
           }
+
+          .sidebar-link:hover {
+            color: var(--ink);
+            background: var(--surface-2);
+          }
+
+          .sidebar-link.active {
+            color: var(--ink);
+            background: var(--surface-2);
+          }
+
           .sidebar-link::before {
+            content: '';
+            position: absolute;
             left: 0;
             top: 0;
-            right: 0;
-            bottom: auto;
-            width: 100%;
-            height: 2px;
-            transform: scaleX(0);
-            transform-origin: left;
+            bottom: 0;
+            width: 3px;
+            background: var(--accent-primary);
+            transform: scaleY(0);
+            transform-origin: top;
+            transition: transform 0.2s ease;
           }
-          .sidebar-link.active::before {
-            transform: scaleX(1);
-          }
-        }
 
-        /* Desktop specific */
-        @media (min-width: 768px) {
-          .ui-sidebar {
-            width: 260px;
-            height: 100vh;
-            position: sticky;
-            top: 0;
+          .sidebar-link.active::before {
+            transform: scaleY(1);
           }
-        }
-      `}</style>
-    </nav>
+
+          .link-icon {
+            opacity: 0.7;
+            color: var(--ink-subtle);
+          }
+          .sidebar-link:hover .link-icon,
+          .sidebar-link.active .link-icon {
+            opacity: 1;
+            color: var(--accent-primary);
+          }
+
+          .sidebar-footer {
+            padding: var(--space-md) var(--space-lg);
+            border-top: 1px solid var(--hairline);
+          }
+
+          .logout-btn {
+            display: flex;
+            align-items: center;
+            gap: var(--space-sm);
+            background: transparent;
+            border: none;
+            color: var(--ink-subtle);
+            font-size: 15px;
+            font-weight: 500;
+            cursor: pointer;
+            width: 100%;
+            text-align: left;
+            padding: var(--space-xs) 0;
+            transition: color 0.2s ease;
+          }
+          .logout-btn:hover {
+            color: var(--ink);
+          }
+
+          /* Desktop specific overrides */
+          @media (min-width: 768px) {
+            .ui-sidebar {
+              width: ${isCollapsed ? '72px' : '260px'};
+              height: 100vh;
+              position: sticky;
+              top: 0;
+            }
+            .sidebar-link.collapsed-link {
+              padding: var(--space-sm) 0;
+              justify-content: center;
+              gap: 0;
+            }
+            .sidebar-header {
+              padding: var(--space-md) ${isCollapsed ? '0' : 'var(--space-lg)'};
+              justify-content: center;
+            }
+            .sidebar-footer {
+              padding: var(--space-md) ${isCollapsed ? '0' : 'var(--space-lg)'};
+            }
+          }
+        `}</style>
+      </nav>
+    </>
   );
 }
+
+

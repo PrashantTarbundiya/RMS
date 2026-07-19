@@ -46,7 +46,7 @@ export default function LandingPage() {
       
       {/* Premium Header */}
       <header className="sticky top-0 z-50 w-full border-b border-[#23252A] bg-[#010102]/80 backdrop-blur-md">
-        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+        <div className="w-full px-6 md:px-12 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-full border border-[#23252A] flex items-center justify-center bg-[#0F1011]">
               <span className="font-mono text-ink font-bold text-sm">R</span>
@@ -81,7 +81,7 @@ export default function LandingPage() {
       </header>
 
       {/* Main content wrapper */}
-      <main className="flex-1 max-w-7xl mx-auto w-full px-6 py-12 space-y-24">
+      <main className="flex-1 w-full px-6 md:px-12 py-12 space-y-24">
         
         {/* Hero Section */}
         <motion.section 

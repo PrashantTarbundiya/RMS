@@ -114,55 +114,55 @@
   letter-spacing: -1.0px;
 }
 .text-headline {
-  font-size: 28px;
+  font-size: 30px;
   line-height: 1.20;
   font-weight: 600;
   letter-spacing: -0.6px;
 }
 .text-card-title {
-  font-size: 22px;
+  font-size: 24px;
   line-height: 1.25;
   font-weight: 500;
   letter-spacing: -0.4px;
 }
 .text-subhead {
-  font-size: 20px;
+  font-size: 21px;
   line-height: 1.40;
   font-weight: 400;
   letter-spacing: -0.2px;
 }
 .text-body-lg {
-  font-size: 18px;
+  font-size: 19px;
   line-height: 1.50;
   font-weight: 400;
   letter-spacing: -0.1px;
 }
 .text-body {
-  font-size: 16px;
+  font-size: 17px;
   line-height: 1.50;
   font-weight: 400;
   letter-spacing: -0.05px;
 }
 .text-body-sm {
-  font-size: 14px;
+  font-size: 15px;
   line-height: 1.50;
   font-weight: 400;
   letter-spacing: 0px;
 }
 .text-caption {
-  font-size: 12px;
+  font-size: 13px;
   line-height: 1.40;
   font-weight: 400;
   letter-spacing: 0px;
 }
 .text-button {
-  font-size: 14px;
+  font-size: 15px;
   line-height: 1.20;
   font-weight: 500;
   letter-spacing: 0px;
 }
 .text-eyebrow {
-  font-size: 13px;
+  font-size: 14px;
   line-height: 1.30;
   font-weight: 500;
   letter-spacing: 0.4px;
@@ -170,7 +170,7 @@
 }
 .text-mono {
   font-family: var(--font-mono);
-  font-size: 13px;
+  font-size: 14px;
   line-height: 1.50;
   font-weight: 400;
   letter-spacing: 0px;
@@ -248,9 +248,9 @@
   background-color: var(--surface-1);
   border: 1px solid var(--hairline);
   border-radius: var(--radius-md);
-  padding: 8px 12px;
+  padding: 10px 14px;
   color: var(--ink);
-  font-size: 14px;
+  font-size: 15px;
   transition: all 0.2s ease;
 }
 .input-linear:focus {
@@ -263,9 +263,9 @@
   background-color: var(--accent-primary);
   color: #FFFFFF;
   border-radius: var(--radius-md);
-  padding: 8px 14px;
+  padding: 10px 16px;
   font-weight: 500;
-  font-size: 14px;
+  font-size: 15px;
   transition: all 0.2s ease;
 }
 .button-primary:hover {
@@ -285,9 +285,9 @@
   color: var(--ink);
   border: 1px solid var(--hairline);
   border-radius: var(--radius-md);
-  padding: 8px 14px;
+  padding: 10px 16px;
   font-weight: 500;
-  font-size: 14px;
+  font-size: 15px;
   transition: all 0.2s ease;
 }
 .button-secondary:hover {
@@ -297,6 +297,30 @@
 .button-secondary:active {
   transform: scale(0.97);
 }
+
+/* Dedicated icon button class to prevent large paddings from shrinking icons */
+.button-icon {
+  background-color: var(--surface-1);
+  color: var(--ink);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-md);
+  width: 36px;
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  padding: 0 !important;
+}
+.button-icon:hover {
+  border-color: var(--hairline-strong);
+  background-color: var(--surface-2);
+}
+.button-icon:active {
+  transform: scale(0.93);
+}
+
 
 .card-linear {
   background-color: var(--surface-1);
@@ -323,3 +347,16 @@
 .error-flash {
   animation: error-pulse 0.4s ease-out;
 }
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.shimmer {
+  background: linear-gradient(90deg, #0F1011 25%, #1C1D1E 50%, #0F1011 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: var(--radius-sm);
+}
+

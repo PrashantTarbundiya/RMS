@@ -50,22 +50,24 @@ EMBEDDING_DIM = 512
 
 
 # ======================== MODEL WARM-UP ========================
-# Load the Facenet512 model ONCE at module level.
-# This is THE critical optimization — avoids ~20s TF reload per call.
-print("[INFO] Warming up Facenet512 model (one-time load)...")
-_warmup_start = time.time()
-try:
-    _dummy = np.zeros((160, 160, 3), dtype=np.uint8)
-    DeepFace.represent(
-        img_path=_dummy,
-        model_name=MODEL_NAME,
-        enforce_detection=False,
-        detector_backend='skip',
-        align=False
-    )
-    print(f"[INFO] Facenet512 ready in {time.time() - _warmup_start:.1f}s")
-except Exception as e:
-    print(f"[WARNING] Facenet512 warm-up failed: {e}")
+from config_utils import load_config
+if load_config().get("ENABLE_DEEPFACE", False):
+    print("[INFO] Warming up Facenet512 model (one-time load)...")
+    _warmup_start = time.time()
+    try:
+        _dummy = np.zeros((160, 160, 3), dtype=np.uint8)
+        DeepFace.represent(
+            img_path=_dummy,
+            model_name=MODEL_NAME,
+            enforce_detection=False,
+            detector_backend='skip',
+            align=False
+        )
+        print(f"[INFO] Facenet512 ready in {time.time() - _warmup_start:.1f}s")
+    except Exception as e:
+        print(f"[WARNING] Facenet512 warm-up failed: {e}")
+else:
+    print("[INFO] DeepFace / Facenet512 is disabled in settings. Skipping warm-up.")
 # ===============================================================
 
 
@@ -165,6 +167,9 @@ def get_embedding(face_crop):
 
     Returns a list[float] (512-d) or None on failure.
     """
+    from config_utils import load_config
+    if not load_config().get("ENABLE_DEEPFACE", False):
+        return None
     try:
         embedding_objs = DeepFace.represent(
             img_path=face_crop,
@@ -192,15 +197,11 @@ def get_embedding_tta(face_crop):
     Test-Time Augmentation: Generate multiple embeddings from different
     views of the same face and average them for more robust matching.
 
-    Generates 5 embeddings:
-      1. Original
-      2. Horizontally flipped
-      3. Slight brightness boost
-      4. Double CLAHE (extra normalization)
-      5. Center crop (90%)
-
     Returns averaged L2-normalized embedding or None.
     """
+    from config_utils import load_config
+    if not load_config().get("ENABLE_DEEPFACE", False):
+        return None
     if face_crop is None or face_crop.size == 0:
         return None
 
