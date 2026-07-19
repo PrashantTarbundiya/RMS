@@ -569,6 +569,97 @@ training_status = {
     'current_epoch': '',
 }
 
+import queue
+import uuid
+local_training_queue = queue.Queue()
+local_training_history = []  # List of jobs with: id, person_name, status, logs, timestamp
+training_thread = None
+training_thread_lock = threading.Lock()
+
+def process_local_training_queue():
+    import sys
+    from add_person_utils import update_sota_model
+    
+    while not local_training_queue.empty():
+        job = local_training_queue.get()
+        job_id = job['id']
+        person_name = job['person_name']
+        epochs = job['epochs']
+        org_id = job['org_id']
+        
+        # Find the job in history to update status
+        history_job = next((j for j in local_training_history if j['id'] == job_id), None)
+        if history_job:
+            history_job['status'] = 'Running'
+            history_job['logs'].append(f"[{datetime.datetime.now().strftime('%H:%M:%S')}] Starting local training thread.")
+            
+        def log_callback(text):
+            cleaned = text.strip()
+            if cleaned:
+                training_status['logs'].append(cleaned)
+                if len(training_status['logs']) > 150:
+                    training_status['logs'] = training_status['logs'][-150:]
+                if history_job:
+                    history_job['logs'].append(f"[{datetime.datetime.now().strftime('%H:%M:%S')}] {cleaned}")
+        
+        old_stdout = sys.stdout
+        sys.stdout = ThreadSafeStringWriter(log_callback)
+        try:
+            training_status['is_training'] = True
+            training_status['progress'] = 10
+            training_status['logs'] = [
+                "SOTA MobileNetV2: Fine-tuning started",
+                f"[INFO] Starting SOTA MobileNetV2 fine-tuning for {person_name} on local thread..."
+            ]
+            
+            org_dataset_dir = get_dataset_cleaned_dir(org_id)
+            update_sota_model(person_name, dataset_dir=org_dataset_dir, num_epochs=epochs, org_id=org_id)
+            
+            training_status['progress'] = 100
+            training_status['logs'].append("Saved updated model: best_mobile_sideface")
+            training_status['logs'].append(f"[SUCCESS] Model refinement complete for {person_name}!")
+            reload_org_models(org_id)
+            
+            if history_job:
+                history_job['status'] = 'Success'
+                history_job['logs'].append(f"[{datetime.datetime.now().strftime('%H:%M:%S')}] Training succeeded.")
+        except Exception as thread_err:
+            logger.error(f"Queue training error for {person_name}: {thread_err}")
+            training_status['logs'].append(f"[ERROR] Fine-tuning failed: {thread_err}")
+            if history_job:
+                history_job['status'] = 'Failed'
+                history_job['logs'].append(f"[{datetime.datetime.now().strftime('%H:%M:%S')}] Training failed: {thread_err}")
+        finally:
+            sys.stdout = old_stdout
+            training_status['is_training'] = False
+            local_training_queue.task_done()
+
+def enqueue_local_training(person_name, epochs, org_id):
+    job_id = str(uuid.uuid4())[:8]
+    job = {
+        'id': job_id,
+        'person_name': person_name,
+        'epochs': epochs,
+        'org_id': org_id,
+        'status': 'Pending',
+        'timestamp': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+        'logs': [f"[{datetime.datetime.now().strftime('%H:%M:%S')}] Job added to training queue."]
+    }
+    local_training_history.append(job)
+    if len(local_training_history) > 50:
+        local_training_history.pop(0)
+        
+    local_training_queue.put(job)
+    
+    global training_thread
+    with training_thread_lock:
+        if training_thread is None or not training_thread.is_alive():
+            training_thread = threading.Thread(target=process_local_training_queue)
+            training_thread.daemon = True
+            training_thread.start()
+            
+    return job_id
+
 # ─── Image Optimization Helper ─────────────────────────────────────────
 def optimize_image(pil_img):
     """Resize images larger than MAX_IMAGE_DIMENSION to save disk space and RAM."""
@@ -740,10 +831,10 @@ def upload_person(org_id):
         return error_response
 
     try:
-        epochs = int(request.form.get('epochs', 5))
+        epochs = int(request.form.get('epochs', 15))
         epochs = max(1, min(epochs, 50))  # Clamp to 1-50
     except ValueError:
-        epochs = 5
+        epochs = 15
 
     # Read uploaded files with validation
     front_imgs = request.files.getlist('front_img')
@@ -802,9 +893,6 @@ def upload_person(org_id):
     if not image_data_list:
         return jsonify({'error': 'No valid images provided'}), 400
 
-    if training_status['is_training']:
-        return jsonify({'error': 'A model refinement is currently running in the background. Please wait for it to finish.'}), 409
-
     org_dataset_dir = get_dataset_cleaned_dir(org_id)
     org_encodings_path = get_encodings_path(org_id)
 
@@ -856,50 +944,18 @@ def upload_person(org_id):
         except Exception:
             pass
 
-        import threading
-        import sys
-        from add_person_utils import update_sota_model
-        
-        def log_callback(text):
-            training_status['logs'].append(text.strip())
-            if len(training_status['logs']) > 100:
-                training_status['logs'] = training_status['logs'][-100:]
-                
-        def run_thread_train():
-            old_stdout = sys.stdout
-            sys.stdout = ThreadSafeStringWriter(log_callback)
-            try:
-                training_status['is_training'] = True
-                training_status['progress'] = 10
-                training_status['logs'] = [
-                    "SOTA MobileNetV2: Fine-tuning started",
-                    "[INFO] Starting SOTA MobileNetV2 fine-tuning on local thread..."
-                ]
-                
-                org_dataset_dir = get_dataset_cleaned_dir(org_id)
-                update_sota_model(person_name, dataset_dir=org_dataset_dir, num_epochs=epochs, org_id=org_id)
-                
-                training_status['progress'] = 100
-                training_status['logs'].append("Saved updated model: best_mobile_sideface")
-                training_status['logs'].append("[SUCCESS] Model refinement complete!")
-                reload_org_models(org_id)
-            except Exception as thread_err:
-                logger.error(f"Thread training error: {thread_err}")
-                training_status['logs'].append(f"[ERROR] Fine-tuning failed: {thread_err}")
-            finally:
-                sys.stdout = old_stdout
-                training_status['is_training'] = False
-                
-        t = threading.Thread(target=run_thread_train)
-        t.daemon = True
-        t.start()
+        enqueue_local_training(person_name, epochs, org_id)
 
     msg = f'Person enrolled and searchable now. Model refinement running in background.'
     if rejected_count > 0:
         msg += f' ({rejected_count} file(s) rejected/failed)'
     return jsonify({'message': msg})
 
-# run_sota_finetune_pipeline has been moved to Celery tasks.py
+@app.route('/api/train/queue', methods=['GET'])
+@require_auth
+def get_training_queue():
+    """Returns the list of training jobs (Pending, Running, Completed, Failed)."""
+    return jsonify(local_training_history)
 
 @app.route('/api/train/status', methods=['GET'])
 @require_auth
@@ -1906,33 +1962,40 @@ def trigger_person_retrain(name, org_id):
         
     try:
         data = request.get_json() or {}
-        epochs = int(data.get('epochs', 5))
+        epochs = int(data.get('epochs', 15))
         epochs = max(1, min(epochs, 50))
     except ValueError:
-        epochs = 5
+        epochs = 15
 
-    import redis
-    try:
-        r = redis.Redis(host='localhost', port=6379, db=0)
-        # Verify no active training is happening for this org
-        task_id = r.get(f"retrain_task_{org_id}")
-        if task_id:
-            from tasks import celery_app
-            task = celery_app.AsyncResult(task_id.decode('utf-8'))
-            if task.state in ('PENDING', 'STARTING', 'TRAINING'):
-                return jsonify({'error': 'A model refinement is currently running in the background. Please wait for it to finish.'}), 409
-    except Exception as e:
-        logger.warning(f"Failed to check Redis for active tasks: {e}")
+    use_celery = (deployment_mode != 'local')
+    if use_celery:
+        # Start training in background Celery task
+        try:
+            import redis
+            r = redis.Redis(host='localhost', port=6379, db=0)
+        except Exception:
+            r = None
+            
+        try:
+            from tasks import retrain_model_task
+            task = retrain_model_task.delay(name, epochs, org_id)
+            if r:
+                r.set(f"retrain_task_{org_id}", task.id)
+                r.set(f"retrain_task_{org_id}_last_log_idx", 0)
+        except Exception as celery_err:
+            logger.warning(f"Celery dispatch failed, falling back to local queue: {celery_err}")
+            use_celery = False
 
-    # Start training in background Celery task
-    from tasks import retrain_model_task
-    task = retrain_model_task.delay(name, epochs, org_id)
-    
-    try:
-        r.set(f"retrain_task_{org_id}", task.id)
-        r.set(f"retrain_task_{org_id}_last_log_idx", 0)
-    except Exception as e:
-        pass
+    if not use_celery:
+        # Local mode: clear stale Celery task in Redis and use sequential local thread queue
+        try:
+            import redis
+            r = redis.Redis(host='localhost', port=6379, db=0)
+            r.delete(f"retrain_task_{org_id}")
+        except Exception:
+            pass
+            
+        enqueue_local_training(name, epochs, org_id)
 
     return jsonify({'message': f"Retraining started for '{name}'."})
 

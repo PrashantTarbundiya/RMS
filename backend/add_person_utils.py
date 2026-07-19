@@ -332,21 +332,34 @@ def update_sota_model(person_name, dataset_dir=None,
     else:
         old_classes.append(person_name)
 
-    # Data transforms (matches upgraded sota_finetune/finetune.py)
-    train_transform = transforms.Compose([
-        transforms.Resize((256, 256)),
-        transforms.RandomCrop(224),
-        transforms.RandomHorizontalFlip(p=0.5),
-        transforms.RandomRotation(20),
-        transforms.RandomPerspective(distortion_scale=0.15, p=0.3),
-        transforms.ColorJitter(brightness=0.4, contrast=0.4, saturation=0.3, hue=0.05),
-        transforms.RandomAffine(degrees=0, translate=(0.1, 0.1), scale=(0.9, 1.1)),
-        transforms.RandomGrayscale(p=0.1),
-        transforms.GaussianBlur(kernel_size=3, sigma=(0.1, 1.5)),
-        transforms.ToTensor(),
-        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
-        transforms.RandomErasing(p=0.2, scale=(0.02, 0.15)),
-    ])
+    # Data transforms (optimized for speed on CPU)
+    if device.type == "cpu":
+        train_transform = transforms.Compose([
+            transforms.Resize((256, 256)),
+            transforms.RandomCrop(224),
+            transforms.RandomHorizontalFlip(p=0.5),
+            transforms.RandomRotation(15),
+            transforms.ColorJitter(brightness=0.3, contrast=0.3, saturation=0.3),
+            transforms.RandomAffine(degrees=0, translate=(0.1, 0.1), scale=(0.9, 1.1)),
+            transforms.ToTensor(),
+            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+            transforms.RandomErasing(p=0.1, scale=(0.02, 0.1)),
+        ])
+    else:
+        train_transform = transforms.Compose([
+            transforms.Resize((256, 256)),
+            transforms.RandomCrop(224),
+            transforms.RandomHorizontalFlip(p=0.5),
+            transforms.RandomRotation(20),
+            transforms.RandomPerspective(distortion_scale=0.15, p=0.3),
+            transforms.ColorJitter(brightness=0.4, contrast=0.4, saturation=0.3, hue=0.05),
+            transforms.RandomAffine(degrees=0, translate=(0.1, 0.1), scale=(0.9, 1.1)),
+            transforms.RandomGrayscale(p=0.1),
+            transforms.GaussianBlur(kernel_size=3, sigma=(0.1, 1.5)),
+            transforms.ToTensor(),
+            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+            transforms.RandomErasing(p=0.2, scale=(0.02, 0.15)),
+        ])
 
     # Load dataset
     try:
@@ -361,14 +374,6 @@ def update_sota_model(person_name, dataset_dir=None,
 
     # Build new model
     model = build_mobile_model(num_classes=actual_num_classes).to(device)
-
-    # If on CPU, freeze backbone to make training 10x-15x faster!
-    if device.type == "cpu":
-        print("   [INFO] CPU detected: freezing backbone features to accelerate training.")
-        for param in model.parameters():
-            param.requires_grad = False
-        for param in model.classifier.parameters():
-            param.requires_grad = True
 
     # Try to load old weights
     if os.path.exists(model_path):

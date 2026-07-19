@@ -20,7 +20,7 @@ export default function ManagePersonPage() {
   const [status, setStatus] = useState({ type: '', message: '' });
   
   const [confirmModal, setConfirmModal] = useState({ isOpen: false, itemToDelete: null });
-  const [epochs, setEpochs] = useState(10);
+  const [epochs, setEpochs] = useState(15);
   const [activeField, setActiveField] = useState('front_img');
   
   const [images, setImages] = useState({

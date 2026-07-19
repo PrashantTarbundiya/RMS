@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { NavLink, Link } from 'react-router-dom';
-import { Activity, Box, Video, Home, Upload, ClipboardList, Radio, Settings, LogOut, Users, User, Menu, X } from 'lucide-react';
+import { Activity, Box, Video, Home, Upload, ClipboardList, Radio, Settings, LogOut, Users, User, Menu, X, Terminal } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -25,6 +25,7 @@ export function Navbar() {
     { to: '/attendance/live', label: 'Live Site', icon: Radio },
     { to: '/upload', label: 'Upload', icon: Upload },
     { to: '/test', label: 'Test Camera', icon: Video },
+    { to: '/logs', label: 'Live Logs', icon: Terminal },
     { to: '/profile', label: 'Profile', icon: User },
     { to: '/models', label: 'Settings', icon: Settings },
   ];

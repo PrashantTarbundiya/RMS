@@ -15,6 +15,7 @@ import SupportPage from './pages/SupportPage'
 import AttendancePage from './pages/AttendancePage'
 import LiveAttendancePage from './pages/LiveAttendancePage'
 import ProfilePage from './pages/ProfilePage'
+import LogsPage from './pages/LogsPage'
 import { AnimatePresence, motion } from 'framer-motion'
 
 /**
@@ -85,6 +86,7 @@ function AnimatedRoutes() {
         <Route path="/test" element={<ProtectedRoute><PageWrapper><TestPage /></PageWrapper></ProtectedRoute>} />
         <Route path="/training" element={<ProtectedRoute><PageWrapper><TrainingPage /></PageWrapper></ProtectedRoute>} />
         <Route path="/models" element={<ProtectedRoute><PageWrapper><ModelsPage /></PageWrapper></ProtectedRoute>} />
+        <Route path="/logs" element={<ProtectedRoute><PageWrapper><LogsPage /></PageWrapper></ProtectedRoute>} />
         <Route path="/support" element={<ProtectedRoute><PageWrapper><SupportPage /></PageWrapper></ProtectedRoute>} />
         <Route path="/profile" element={<ProtectedRoute><PageWrapper><ProfilePage /></PageWrapper></ProtectedRoute>} />
         <Route path="*" element={<Navigate to="/" replace />} />

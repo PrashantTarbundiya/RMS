@@ -43,7 +43,7 @@ export default function UploadPage() {
   const [confirmModal, setConfirmModal] = useState({ isOpen: false, itemToDelete: null });
   const [epochs, setEpochs] = useState(() => {
     const saved = sessionStorage.getItem('upload_epochs');
-    return saved ? parseInt(saved, 10) : 5;
+    return saved ? parseInt(saved, 10) : 15;
   });
   const [showWebcam, setShowWebcam] = useState(false);
   const videoRef = useRef(null);

@@ -12,27 +12,58 @@ import numpy as np
 # ==============================================================================
 class SafeImageFolder(Dataset):
     """
-    A wrapper around ImageFolder that gracefully skips missing or corrupt files.
+    A wrapper around ImageFolder that gracefully skips missing or corrupt files,
+    ignores non-class directories (like 'orgs'), and filters empty folders.
     """
     def __init__(self, root, transform=None):
-        self.dataset = datasets.ImageFolder(root=root)
         self.transform = transform
-        self.classes = self.dataset.classes
-        self.class_to_idx = self.dataset.class_to_idx
+        self.classes = []
+        self.samples = []
         
-        # Filter out files that don't exist on disk
-        valid_samples = []
-        skipped = 0
-        for path, label in self.dataset.samples:
-            if os.path.exists(path):
-                valid_samples.append((path, label))
+        if not os.path.exists(root):
+            return
+            
+        valid_exts = ('.jpg', '.jpeg', '.png', '.ppm', '.bmp', '.pgm', '.tif', '.tiff', '.webp')
+        
+        subdirs = sorted([d for d in os.listdir(root) if os.path.isdir(os.path.join(root, d))])
+        
+        class_to_idx = {}
+        for d in subdirs:
+            if d.lower() in ('orgs', 'logs', 'temp', 'tmp') or d.startswith('.'):
+                continue
+                
+            subdir_path = os.path.join(root, d)
+            class_samples = []
+            try:
+                for filename in os.listdir(subdir_path):
+                    file_path = os.path.join(subdir_path, filename)
+                    if os.path.isfile(file_path) and filename.lower().endswith(valid_exts):
+                        class_samples.append(file_path)
+            except Exception:
+                continue
+            
+            if class_samples:
+                class_idx = len(self.classes)
+                self.classes.append(d)
+                class_to_idx[d] = class_idx
+                for path in class_samples:
+                    self.samples.append((path, class_idx))
+                    
+        self.class_to_idx = class_to_idx
+        
+        from collections import defaultdict
+        grouped = defaultdict(list)
+        for path, label in self.samples:
+            grouped[label].append((path, label))
+            
+        limited_samples = []
+        for label, samples in grouped.items():
+            if len(samples) > 100:
+                limited_samples.extend(samples[:100])
             else:
-                skipped += 1
-        
-        if skipped > 0:
-            print(f"[Warning] Skipped {skipped} missing/broken file(s) from dataset.")
-        
-        self.samples = valid_samples
+                limited_samples.extend(samples)
+                
+        self.samples = limited_samples
         
     def __len__(self):
         return len(self.samples)
