@@ -1,7 +1,13 @@
 import React from 'react';
 import { View, StyleSheet, Platform } from 'react-native';
-import { BlurView } from 'expo-blur';
 import { COLORS, BORDER_RADIUS } from '../theme';
+
+let BlurView;
+try {
+  BlurView = require('expo-blur').BlurView;
+} catch (e) {
+  BlurView = null;
+}
 
 /**
  * Reusable Glassmorphism primitive component for RMS Mobile.
@@ -20,7 +26,7 @@ export default function GlassView({
 }) {
   const isAndroid = Platform.OS === 'android';
 
-  if (isAndroid) {
+  if (isAndroid || !BlurView) {
     return (
       <View
         style={[

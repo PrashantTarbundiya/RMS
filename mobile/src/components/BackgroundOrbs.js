@@ -1,15 +1,33 @@
 import React from 'react';
-import { View, StyleSheet, Dimensions } from 'react-native';
-import Svg, { Defs, RadialGradient, Stop, Rect } from 'react-native-svg';
+import { View, StyleSheet } from 'react-native';
 import { COLORS } from '../theme';
 
-const { width, height } = Dimensions.get('window');
+let Svg, Defs, RadialGradient, Stop, Rect;
+try {
+  const svgModule = require('react-native-svg');
+  Svg = svgModule.default || svgModule.Svg;
+  Defs = svgModule.Defs;
+  RadialGradient = svgModule.RadialGradient;
+  Stop = svgModule.Stop;
+  Rect = svgModule.Rect;
+} catch (e) {
+  Svg = null;
+}
 
 /**
  * Ambient Glowing Background Orbs with true soft SVG Radial Gradient falloff.
  * Fixes Bug #4 (hard-edged background circles).
  */
 export default function BackgroundOrbs() {
+  if (!Svg || !RadialGradient) {
+    return (
+      <View style={StyleSheet.absoluteFill} pointerEvents="none">
+        <View style={styles.topRightOrbFallback} />
+        <View style={styles.bottomLeftOrbFallback} />
+      </View>
+    );
+  }
+
   return (
     <View style={StyleSheet.absoluteFill} pointerEvents="none">
       {/* Top Right Purple Ambient Glow */}
@@ -57,5 +75,23 @@ const styles = StyleSheet.create({
     left: -120,
     width: 400,
     height: 400,
+  },
+  topRightOrbFallback: {
+    position: 'absolute',
+    top: -100,
+    right: -100,
+    width: 300,
+    height: 300,
+    borderRadius: 150,
+    backgroundColor: 'rgba(130, 143, 255, 0.12)',
+  },
+  bottomLeftOrbFallback: {
+    position: 'absolute',
+    bottom: -120,
+    left: -120,
+    width: 350,
+    height: 350,
+    borderRadius: 175,
+    backgroundColor: 'rgba(94, 106, 210, 0.10)',
   },
 });
