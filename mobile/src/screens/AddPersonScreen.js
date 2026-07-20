@@ -10,7 +10,7 @@ import * as ImagePicker from 'expo-image-picker';
 
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { COLORS, SPACING, FONT_SIZES, BORDER_RADIUS, APPLE_GLASS_STYLE } from '../theme';
-import { uploadPerson, pingServer } from '../services/api';
+import { uploadPerson, checkHealth } from '../services/api';
 
 export default function AddPersonScreen() {
   const route = useNavigation().getState().routes.find(r => r.name === 'AddPerson');
@@ -56,8 +56,11 @@ export default function AddPersonScreen() {
     if (!name) { showStatus('error', 'Enter a subject name.'); return; }
     if (images.length === 0) { showStatus('error', 'Add at least one photo.'); return; }
 
-    const online = await pingServer();
-    if (!online) { showStatus('error', 'Server offline. Check Settings.'); return; }
+    try {
+      await checkHealth();
+    } catch {
+      showStatus('error', 'Server offline. Check Settings.'); return;
+    }
 
     setUploading(true);
     showStatus('info', 'Uploading ' + images.length + ' photos...');

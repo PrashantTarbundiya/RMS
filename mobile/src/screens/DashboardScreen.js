@@ -5,7 +5,7 @@ import {
 import { Text, ActivityIndicator, Button } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { COLORS, SPACING, FONT_SIZES, BORDER_RADIUS, APPLE_GLASS_STYLE } from '../theme';
-import { getDashboard, clearHistory, pingServer } from '../services/api';
+import { getDashboardStats, clearHistory, checkHealth } from '../services/api';
 
 const { width } = Dimensions.get('window');
 
@@ -23,10 +23,10 @@ export default function DashboardScreen({ navigation }) {
 
   const loadData = useCallback(async () => {
     try {
-      const online = await pingServer();
+      const online = await checkHealth();
       setServerOnline(online);
       if (online) {
-        const dashboardData = await getDashboard();
+        const dashboardData = await getDashboardStats();
         setData(dashboardData);
         setHistory(dashboardData.recent_history || []);
         setError(null);

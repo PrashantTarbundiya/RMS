@@ -1,64 +1,64 @@
 // ═════════════════════════════════════════════════════════════════════════
-// RMS FACE AI — BRIGHT & VIBRANT UI
+// RMS FACE AI — SLEEK DARK MODE UI
 // ═════════════════════════════════════════════════════════════════════════
 
-import { MD3LightTheme } from 'react-native-paper';
+import { MD3DarkTheme } from 'react-native-paper';
 
 export const COLORS = {
-  // ── Bright & Clean Base ──
-  bgPrimary: '#F2F2F7',               // Apple System Gray 6 (Light)
-  bgSecondary: '#FFFFFF',             // Pure White
-  bgCard: '#FFFFFF',                  // Solid White Card
-  bgCardHover: '#F2F2F7',
-  bgElevated: 'rgba(255, 255, 255, 0.90)',
-  bgInput: '#E5E5EA',                 // System Gray 5
+  // ── Sleek Dark Base ──
+  bgPrimary: '#010102',               
+  bgSecondary: '#0F1011',             
+  bgCard: '#0F1011',                  
+  bgCardHover: '#141516',
+  bgElevated: 'rgba(15, 16, 17, 0.90)',
+  bgInput: '#141516',                 
 
   // ── Vibrant Accent Colors ──
-  appleBlue: '#007AFF',               // Bright System Blue
-  appleGreen: '#34C759',              // Bright System Green
-  appleRed: '#FF3B30',                // Bright System Red
-  applePurple: '#AF52DE',             // Bright System Purple
-  appleOrange: '#FF9500',             // Bright System Orange
-  appleCyan: '#32ADE6',               // Bright System Cyan
-  appleIndigo: '#5856D6',             // Bright System Indigo
+  appleBlue: '#5E6AD2',               // SOTA MobileNetV2 Primary Accent
+  appleGreen: '#27A644',              // Success / Confirmed
+  appleRed: '#F87171',                // Error / Failed
+  applePurple: '#828FFF',             // Secondary / Muted SOTA
+  appleOrange: '#FBBF24',             // Warning / Spoof
+  appleCyan: '#32ADE6',               
+  appleIndigo: '#5856D6',             
 
   // Core System Aliases
-  primary: '#007AFF',
-  primaryLight: '#5AC8FA',
-  primaryDark: '#0056B3',
-  primaryContainer: 'rgba(0, 122, 255, 0.12)',
-  onPrimaryContainer: '#004080',
+  primary: '#5E6AD2',
+  primaryLight: '#828FFF',
+  primaryDark: '#4A54AB',
+  primaryContainer: 'rgba(94, 106, 210, 0.12)',
+  onPrimaryContainer: '#D0D5FF',
 
-  // ── High Contrast Typography ──
-  textPrimary: '#000000',                               // High Contrast Black
-  textSecondary: '#3C3C43',                             // System Gray (Secondary)
-  textTertiary: 'rgba(60, 60, 67, 0.6)',                // System Gray (Tertiary)
-  textMuted: 'rgba(60, 60, 67, 0.3)',                   // System Gray (Quaternary)
+  // ── Typography ──
+  textPrimary: '#FFFFFF',                               // High Contrast Ink
+  textSecondary: '#A0A3AB',                             // Ink Subdued
+  textTertiary: '#737780',                              // Ink Tertiary
+  textMuted: 'rgba(255, 255, 255, 0.2)',                // Ink Muted
 
   // ── Status Mapping ──
-  success: '#34C759',
-  successContainer: 'rgba(52, 199, 89, 0.15)',
-  error: '#FF3B30',
-  errorContainer: 'rgba(255, 59, 48, 0.15)',
-  warning: '#FF9500',
-  warningContainer: 'rgba(255, 149, 0, 0.15)',
-  info: '#32ADE6',
-  infoContainer: 'rgba(50, 173, 230, 0.15)',
+  success: '#27A644',
+  successContainer: 'rgba(39, 166, 68, 0.15)',
+  error: '#F87171',
+  errorContainer: 'rgba(248, 113, 113, 0.15)',
+  warning: '#FBBF24',
+  warningContainer: 'rgba(251, 191, 36, 0.15)',
+  info: '#5E6AD2',
+  infoContainer: 'rgba(94, 106, 210, 0.15)',
 
-  // ── Soft Borders ──
-  border: '#E5E5EA',
-  borderSpecularTop: '#FFFFFF',
-  borderSpecularLeft: '#FFFFFF',
-  borderSpecularRight: '#E5E5EA',
-  borderSpecularBottom: '#D1D1D6',
+  // ── Sharp Borders ──
+  border: '#23252A',
+  borderSpecularTop: '#23252A',
+  borderSpecularLeft: '#23252A',
+  borderSpecularRight: '#141516',
+  borderSpecularBottom: '#0F1011',
 
   // ── Vibrant Gradients ──
-  gradientPrimary: ['#007AFF', '#5856D6'],
-  gradientAppleBlue: ['#007AFF', '#5AC8FA'],
-  gradientAppleGreen: ['#34C759', '#30D158'],
-  gradientApplePurple: ['#AF52DE', '#5856D6'],
-  gradientAppleOrange: ['#FF9500', '#FF3B30'],
-  gradientHero: ['rgba(0, 122, 255, 0.08)', 'rgba(88, 86, 214, 0.05)', 'rgba(255, 255, 255, 1)'],
+  gradientPrimary: ['#5E6AD2', '#828FFF'],
+  gradientAppleBlue: ['#5E6AD2', '#828FFF'],
+  gradientAppleGreen: ['#27A644', '#34C759'],
+  gradientApplePurple: ['#828FFF', '#5856D6'],
+  gradientAppleOrange: ['#FBBF24', '#F87171'],
+  gradientHero: ['rgba(94, 106, 210, 0.08)', 'rgba(88, 86, 214, 0.05)', '#010102'],
 };
 
 export const SPACING = {
@@ -81,39 +81,34 @@ export const FONT_SIZES = {
 };
 
 export const BORDER_RADIUS = {
-  sm: 14,
-  md: 20,
-  lg: 26,
-  xl: 38,
+  sm: 8,
+  md: 12,
+  lg: 16,
+  xl: 24,
   full: 999,
 };
 
 export const APPLE_GLASS_STYLE = {
-  backgroundColor: '#FFFFFF',
-  borderRadius: BORDER_RADIUS.lg,
+  backgroundColor: '#0F1011',
+  borderRadius: BORDER_RADIUS.md,
   borderWidth: 1,
-  borderColor: '#E5E5EA',
-  borderTopColor: '#FFFFFF',
-  borderLeftColor: '#FFFFFF',
-  shadowColor: '#000000',
-  shadowOffset: { width: 0, height: 4 },
-  shadowOpacity: 0.08,
-  shadowRadius: 16,
-  elevation: 4,
+  borderColor: '#23252A',
+  // Remove shadows for flat sleek look
+  elevation: 0,
 };
 
 export const paperTheme = {
-  ...MD3LightTheme,
-  dark: false,
-  roundness: 20,
+  ...MD3DarkTheme,
+  dark: true,
+  roundness: 12,
   colors: {
-    ...MD3LightTheme.colors,
+    ...MD3DarkTheme.colors,
     primary: COLORS.appleBlue,
     primaryContainer: COLORS.primaryContainer,
     onPrimaryContainer: COLORS.onPrimaryContainer,
     secondary: COLORS.applePurple,
     surface: COLORS.bgSecondary,
-    surfaceVariant: '#F2F2F7',
+    surfaceVariant: '#141516',
     background: COLORS.bgPrimary,
     error: COLORS.appleRed,
     errorContainer: COLORS.errorContainer,
@@ -124,13 +119,13 @@ export const paperTheme = {
 };
 
 export const navigationTheme = {
-  dark: false,
+  dark: true,
   colors: {
     primary: COLORS.appleBlue,
     background: COLORS.bgPrimary,
-    card: '#FFFFFF',
+    card: '#0F1011',
     text: COLORS.textPrimary,
-    border: '#E5E5EA',
+    border: '#23252A',
     notification: COLORS.appleRed,
   },
 };
@@ -138,3 +133,4 @@ export const navigationTheme = {
 export const API_CONFIG = {
   BASE_URL: 'http://10.21.26.170:5000/api',
 };
+

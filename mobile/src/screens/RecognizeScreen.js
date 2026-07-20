@@ -8,7 +8,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { COLORS, SPACING, FONT_SIZES, BORDER_RADIUS, APPLE_GLASS_STYLE } from '../theme';
-import { predict, pingServer } from '../services/api';
+import { predictImage, checkHealth, submitFeedback } from '../services/api';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -17,6 +17,7 @@ export default function RecognizeScreen() {
   const [results, setResults] = useState(null);
   const [loading, setLoading] = useState(false);
   const [serverOnline, setServerOnline] = useState(null);
+  const [feedbackState, setFeedbackState] = useState({}); // track feedback per prediction_id
 
   const navigation = useNavigation();
   const route = useNavigation().getState().routes.find(r => r.name === 'Recognize');
@@ -36,7 +37,12 @@ export default function RecognizeScreen() {
   }, [route?.params?.capturedImage]);
 
   async function checkServer() {
-    try { setServerOnline(await pingServer()); } catch { setServerOnline(false); }
+    try { 
+      await checkHealth(); 
+      setServerOnline(true); 
+    } catch { 
+      setServerOnline(false); 
+    }
   }
 
   function openCamera() {
@@ -52,6 +58,7 @@ export default function RecognizeScreen() {
       if (!result.canceled && result.assets[0]) {
         setImageUri(result.assets[0].uri);
         setResults(null);
+        setFeedbackState({});
         if (Platform.OS === 'web') stopWebCamera();
       }
     } catch (err) { alert('Gallery Error: ' + err.message); }
@@ -61,13 +68,14 @@ export default function RecognizeScreen() {
     if (!imageUri) return;
     setLoading(true);
     setResults(null);
+    setFeedbackState({});
     try {
       let predictUri = imageUri;
       if (Platform.OS === 'web' && imageUri.startsWith('data:image')) {
         const response = await fetch(imageUri);
         predictUri = URL.createObjectURL(await response.blob());
       }
-      setResults(await predict(predictUri));
+      setResults(await predictImage(predictUri));
     } catch (err) { alert('Recognition Failed: ' + err.message); }
     finally { setLoading(false); }
   }
@@ -75,17 +83,30 @@ export default function RecognizeScreen() {
   function clearImage() {
     setImageUri(null);
     setResults(null);
+    setFeedbackState({});
+  }
+
+  async function handleFeedback(predictionId, isCorrect, predictedLabel) {
+    try {
+      await submitFeedback(predictionId, isCorrect, isCorrect ? predictedLabel : '');
+      setFeedbackState(prev => ({ ...prev, [predictionId]: 'logged' }));
+    } catch (err) {
+      alert('Failed to submit feedback');
+    }
   }
 
   // Removed inline camera access checking since it's now in CameraCaptureScreen
 
-  // Determine ensemble result for prominent display
-  const topResult = results?.faces?.[0]?.ensemble;
-  const isConfirmed = topResult && topResult.is_confirmed === true;
+  // Determine primary result for prominent display (using SOTA)
+  const topResult = results?.faces?.[0]?.predictions?.sota;
+  // If the label is SPOOF DETECTED, we don't confirm. If confidence > 0.6 and not unknown, confirmed.
+  const displayLabel = topResult?.label || 'Unknown';
+  const displayConf = topResult?.confidence || 0;
+  const isSpoofed = displayLabel === 'SPOOF DETECTED';
+  const isConfirmed = (!isSpoofed && displayConf > 0.6 && displayLabel !== 'Unknown');
 
   return (
     <View style={{ flex: 1, backgroundColor: COLORS.bgPrimary }}>
-      <View style={styles.appleWallpaperOrbPurple} />
 
       <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
         {/* Server Status */}
@@ -111,10 +132,10 @@ export default function RecognizeScreen() {
               </TouchableOpacity>
               {/* Overlay result badge on image */}
               {topResult && (
-                <View style={[styles.resultOverlayBadge, { backgroundColor: isConfirmed ? 'rgba(48, 209, 88, 0.90)' : 'rgba(255, 69, 58, 0.85)' }]}>
-                  <MaterialCommunityIcons name={isConfirmed ? 'check-circle' : 'close-circle'} size={18} color="#FFF" />
+                <View style={[styles.resultOverlayBadge, { backgroundColor: isSpoofed ? 'rgba(251, 191, 36, 0.90)' : isConfirmed ? 'rgba(39, 166, 68, 0.90)' : 'rgba(248, 113, 113, 0.85)' }]}>
+                  <MaterialCommunityIcons name={isSpoofed ? 'alert-circle' : isConfirmed ? 'check-circle' : 'close-circle'} size={18} color="#FFF" />
                   <Text style={styles.resultOverlayText}>
-                    {isConfirmed ? `CONFIRMED: ${topResult.label.replace(/_/g, ' ')}` : 'NOT FOUND'}
+                    {isSpoofed ? 'SPOOF DETECTED' : isConfirmed ? `CONFIRMED: ${displayLabel.replace(/_/g, ' ')}` : 'NOT FOUND'}
                   </Text>
                 </View>
               )}
@@ -180,34 +201,56 @@ export default function RecognizeScreen() {
         {/* Detailed Results */}
         {results && results.faces && results.faces.map((face, i) => (
           <View key={i} style={styles.resultCard}>
-            {/* Ensemble Hero — Binary Result */}
-            {face.ensemble && (() => {
-              const confirmed = face.ensemble.is_confirmed === true;
-              return (
-              <View style={[styles.ensembleBox, {
-                backgroundColor: confirmed ? 'rgba(48, 209, 88, 0.12)' : 'rgba(255, 69, 58, 0.12)',
-                borderColor: confirmed ? 'rgba(48, 209, 88, 0.30)' : 'rgba(255, 69, 58, 0.30)',
-              }]}>
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.ensembleLabel}>{confirmed ? 'IDENTITY CONFIRMED' : 'NOT FOUND'}</Text>
-                    <Text style={[styles.ensembleName, !confirmed && { color: COLORS.appleRed }]}>
-                      {confirmed ? face.ensemble.label.replace(/_/g, ' ') : 'Unknown Person'}
-                    </Text>
-                  </View>
-                  <View style={[styles.confCircle, { borderColor: confirmed ? COLORS.appleGreen : COLORS.appleRed }]}>
-                    <MaterialCommunityIcons
-                      name={confirmed ? 'check-bold' : 'close-thick'}
-                      size={24}
-                      color={confirmed ? COLORS.appleGreen : COLORS.appleRed}
-                    />
-                  </View>
-                </View>
-                <Text style={styles.ensembleMeta}>
-                  {face.ensemble.method} · Status: {face.ensemble.confidence_level?.toUpperCase() || 'N/A'}
-                </Text>
-              </View>
-              );
+            {/* Primary Result Box */}
+            {face.predictions?.sota && (() => {
+               const spoofed = face.predictions.sota.label === 'SPOOF DETECTED';
+               const confirmed = (!spoofed && face.predictions.sota.confidence > 0.6 && face.predictions.sota.label !== 'Unknown');
+               
+               let boxBg = confirmed ? 'rgba(39, 166, 68, 0.12)' : 'rgba(248, 113, 113, 0.12)';
+               let boxBorder = confirmed ? 'rgba(39, 166, 68, 0.30)' : 'rgba(248, 113, 113, 0.30)';
+               let iconColor = confirmed ? COLORS.appleGreen : COLORS.appleRed;
+               let iconName = confirmed ? 'check-bold' : 'close-thick';
+
+               if (spoofed) {
+                 boxBg = 'rgba(251, 191, 36, 0.12)';
+                 boxBorder = 'rgba(251, 191, 36, 0.30)';
+                 iconColor = COLORS.appleOrange;
+                 iconName = 'alert-octagon';
+               }
+
+               return (
+               <View style={[styles.ensembleBox, { backgroundColor: boxBg, borderColor: boxBorder }]}>
+                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                   <View style={{ flex: 1 }}>
+                     <Text style={styles.ensembleLabel}>{spoofed ? 'LIVENESS FAILED' : confirmed ? 'IDENTITY CONFIRMED' : 'NO MATCH FOUND'}</Text>
+                     <Text style={[styles.ensembleName, { color: iconColor }]}>
+                       {face.predictions.sota.label.replace(/_/g, ' ')}
+                     </Text>
+                   </View>
+                   <View style={[styles.confCircle, { borderColor: iconColor }]}>
+                     <MaterialCommunityIcons name={iconName} size={24} color={iconColor} />
+                   </View>
+                 </View>
+
+                 {/* Feedback Section */}
+                 {face.prediction_id && !spoofed && (
+                   <View style={styles.feedbackRow}>
+                     {feedbackState[face.prediction_id] === 'logged' ? (
+                       <Text style={styles.feedbackLoggedText}>✓ Feedback Logged</Text>
+                     ) : (
+                       <>
+                         <TouchableOpacity onPress={() => handleFeedback(face.prediction_id, true, face.predictions.sota.label)} style={styles.feedbackBtn}>
+                           <MaterialCommunityIcons name="thumb-up-outline" size={16} color={COLORS.appleGreen} />
+                         </TouchableOpacity>
+                         <TouchableOpacity onPress={() => handleFeedback(face.prediction_id, false, face.predictions.sota.label)} style={styles.feedbackBtn}>
+                           <MaterialCommunityIcons name="thumb-down-outline" size={16} color={COLORS.appleRed} />
+                         </TouchableOpacity>
+                       </>
+                     )}
+                   </View>
+                 )}
+               </View>
+               );
             })()}
 
             {/* Model Breakdown */}
@@ -217,12 +260,6 @@ export default function RecognizeScreen() {
               icon="cellphone-cog"
               label={face.predictions.sota.label}
               confidence={face.predictions.sota.confidence}
-            />
-            <PredictionRow
-              model="DeepFace (Facenet512)"
-              icon="brain"
-              label={face.predictions.deepface.label}
-              confidence={face.predictions.deepface.confidence}
             />
           </View>
         ))}
@@ -367,4 +404,7 @@ const styles = StyleSheet.create({
   barBg: { height: 6, backgroundColor: 'rgba(255, 255, 255, 0.08)', borderRadius: 3, overflow: 'hidden', marginBottom: 2 },
   barFill: { height: '100%', borderRadius: 3 },
   predConf: { fontSize: 10, textAlign: 'right', fontWeight: '700' },
+  feedbackRow: { flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', gap: 12, marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: 'rgba(255, 255, 255, 0.05)' },
+  feedbackBtn: { padding: 6, backgroundColor: 'rgba(255, 255, 255, 0.05)', borderRadius: 8 },
+  feedbackLoggedText: { fontSize: 11, color: COLORS.appleGreen, fontWeight: '600' },
 });

@@ -106,6 +106,11 @@ export async function getDashboardStats() {
   return response.data;
 }
 
+export async function clearHistory() {
+  const response = await api.delete('/history');
+  return response.data;
+}
+
 export async function predictImage(imageUri, config = {}) {
   const formData = new FormData();
   const fileObj = await getFileObject(imageUri, 'capture.jpg');

@@ -5,7 +5,7 @@ import {
 import { Text, TextInput, Snackbar } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { COLORS, SPACING, FONT_SIZES, BORDER_RADIUS, APPLE_GLASS_STYLE } from '../theme';
-import { setServerUrl, getServerUrl, pingServer } from '../services/api';
+import { setServerUrl, getServerUrl, checkHealth } from '../services/api';
 
 export default function SettingsScreen() {
   const [serverUrl, setServerUrlState] = useState('');
@@ -37,7 +37,8 @@ export default function SettingsScreen() {
     const startTime = Date.now();
 
     try {
-      const online = await pingServer();
+      const response = await checkHealth();
+      const online = !!response;
       const elapsed = Date.now() - startTime;
       setResponseTime(elapsed);
       if (online) {
@@ -168,7 +169,7 @@ export default function SettingsScreen() {
           <View style={styles.divider} />
           <AboutRow icon="tag-outline" label="Version" value="1.0.0" />
           <View style={styles.divider} />
-          <AboutRow icon="brain" label="Models" value="DeepFace + MobileNetV2" />
+          <AboutRow icon="brain" label="Models" value="MobileNetV2" />
           <View style={styles.divider} />
           <AboutRow icon="react" label="Frontend" value="Expo SDK 54 + React Native" />
           <View style={styles.divider} />

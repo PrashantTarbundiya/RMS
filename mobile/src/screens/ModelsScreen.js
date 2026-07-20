@@ -5,7 +5,7 @@ import {
 import { Text, ActivityIndicator, IconButton, Snackbar } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { COLORS, SPACING, FONT_SIZES, BORDER_RADIUS, APPLE_GLASS_STYLE } from '../theme';
-import { getPersons, exportOnnx, resetModels, downloadModelFile, pingServer } from '../services/api';
+import { getPersons, exportOnnx, resetModels, checkHealth } from '../services/api';
 import CustomDialog from '../components/CustomDialog';
 
 export default function ModelsScreen({ navigation }) {
@@ -29,7 +29,7 @@ export default function ModelsScreen({ navigation }) {
   async function refresh() {
     setLoading(true);
     try {
-      const online = await pingServer();
+      const online = await checkHealth();
       setServerOnline(online);
       if (online) {
         const p = await getPersons();
