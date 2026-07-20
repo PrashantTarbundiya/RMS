@@ -45,6 +45,12 @@ export const COLORS = {
   info: '#5E6AD2',
   infoContainer: 'rgba(94, 106, 210, 0.15)',
 
+  // ── Glass Design Tokens ──
+  glassOverlayDark: 'rgba(15, 16, 17, 0.65)',
+  glassCardBg: 'rgba(15, 16, 17, 0.55)',
+  glassBorder: 'rgba(255, 255, 255, 0.08)',
+  glassHighlight: 'rgba(255, 255, 255, 0.04)',
+  
   // ── Sharp Borders ──
   border: '#23252A',
   borderSpecularTop: '#23252A',
@@ -88,12 +94,14 @@ export const BORDER_RADIUS = {
   full: 999,
 };
 
+export const TAB_BAR_HEIGHT = 64;
+
 export const APPLE_GLASS_STYLE = {
-  backgroundColor: '#0F1011',
-  borderRadius: BORDER_RADIUS.md,
+  backgroundColor: 'rgba(15, 16, 17, 0.65)',
+  borderRadius: BORDER_RADIUS.lg,
   borderWidth: 1,
-  borderColor: '#23252A',
-  // Remove shadows for flat sleek look
+  borderColor: 'rgba(255, 255, 255, 0.08)',
+  overflow: 'hidden',
   elevation: 0,
 };
 

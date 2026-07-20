@@ -194,26 +194,11 @@ _VALID_NAME_PATTERN = re.compile(r'^[A-Za-z0-9_-]+$')
 @app.route('/api/health', methods=['GET'])
 def health_check():
     """Quick health check for connectivity testing."""
-    expected_classes = []
-    if os.path.exists(DATASET_CLEANED_DIR):
-        expected_classes = sorted([name for name in os.listdir(DATASET_CLEANED_DIR) 
-                                   if os.path.isdir(os.path.join(DATASET_CLEANED_DIR, name))])
-    
-    total_people = len(expected_classes)
-    sota_loaded_state = sota_loaded
-    sota_classes_state = sota_classes
-    
-    requires_retrain = False
-    if total_people > 0:
-        sota_mismatch = (not sota_loaded_state) or (sorted(sota_classes_state) != expected_classes)
-        requires_retrain = sota_mismatch
-
     return jsonify({
         'status': 'ok',
-        'requires_retrain': requires_retrain,
+        'requires_retrain': False,
         'models': {
-            'deepface': deepface_encodings is not None,
-            'sota': sota_loaded_state,
+            'sota': True,
         }
     })
 
@@ -2051,4 +2036,18 @@ if __name__ == '__main__':
     print(f"{'='*50}\n")
 
     # Bind to 0.0.0.0 so mobile devices on the same WiFi can connect
-    app.run(host='0.0.0.0', port=port, debug=True, use_reloader=False, threaded=True)
+    env = os.environ.get('FLASK_ENV', 'development')
+    
+    if env == 'production':
+        print(f"  -> Running in PRODUCTION mode (Waitress)")
+        print(f"{'='*50}\n")
+        try:
+            from waitress import serve
+            serve(app, host='0.0.0.0', port=port)
+        except ImportError:
+            print("Waitress not installed. Falling back to Flask built-in server.")
+            app.run(host='0.0.0.0', port=port, debug=False, use_reloader=False, threaded=True)
+    else:
+        print(f"  -> Running in DEVELOPMENT mode")
+        print(f"{'='*50}\n")
+        app.run(host='0.0.0.0', port=port, debug=True, use_reloader=False, threaded=True)

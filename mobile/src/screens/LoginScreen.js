@@ -3,7 +3,7 @@ import { View, StyleSheet, KeyboardAvoidingView, Platform, ScrollView } from 're
 import { Text, TextInput, Button, Surface, useTheme } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { COLORS, BORDER_RADIUS } from '../theme';
+import { COLORS, BORDER_RADIUS, APPLE_GLASS_STYLE } from '../theme';
 import { useAuth } from '../context/AuthContext';
 import CustomDialog from '../components/CustomDialog';
 
@@ -155,17 +155,12 @@ const styles = StyleSheet.create({
     color: COLORS.textSecondary,
   },
   card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: BORDER_RADIUS.lg,
+    ...APPLE_GLASS_STYLE,
     padding: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
   },
   input: {
     marginBottom: 16,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: COLORS.bgInput,
   },
   loginButton: {
     marginTop: 8,

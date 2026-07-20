@@ -6,6 +6,8 @@ import { Text, ActivityIndicator, Button } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { COLORS, SPACING, FONT_SIZES, BORDER_RADIUS, APPLE_GLASS_STYLE } from '../theme';
 import { getDashboardStats, clearHistory, checkHealth } from '../services/api';
+import GlassView from '../components/GlassView';
+import BackgroundOrbs from '../components/BackgroundOrbs';
 
 const { width } = Dimensions.get('window');
 
@@ -34,7 +36,6 @@ export default function DashboardScreen({ navigation }) {
         setError('Server offline. Start Flask API and check Settings.');
       }
     } catch (err) {
-      console.warn(err);
       setError('Connection failed. Check WiFi and server IP in Settings.');
     } finally {
       setLoading(false);
@@ -57,8 +58,7 @@ export default function DashboardScreen({ navigation }) {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <View style={styles.appleWallpaperOrbPurple} />
-        <View style={styles.appleWallpaperOrbIndigo} />
+        <BackgroundOrbs />
         <ActivityIndicator size="large" color={COLORS.appleBlue} animating />
         <Text style={styles.loadingText}>Connecting to Neural Matrix...</Text>
       </View>
@@ -68,13 +68,13 @@ export default function DashboardScreen({ navigation }) {
   if (error || !data) {
     return (
       <View style={{ flex: 1, backgroundColor: COLORS.bgPrimary }}>
-        <View style={styles.orbEmerald} />
+        <BackgroundOrbs />
         <ScrollView
           style={styles.container}
           contentContainerStyle={styles.centerContent}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={COLORS.appleBlue} />}
         >
-          <View style={[styles.appleGlassCard, { alignItems: 'center', gap: 12 }]}>
+          <GlassView style={[styles.appleGlassCard, { alignItems: 'center', gap: 12, padding: SPACING.lg }]}>
             <MaterialCommunityIcons name="wifi-strength-off-outline" size={48} color={COLORS.appleRed} />
             <Text style={styles.errorTitle}>Server Unreachable</Text>
             <Text style={styles.errorText}>{error || 'Could not connect to Flask API server'}</Text>
@@ -86,7 +86,7 @@ export default function DashboardScreen({ navigation }) {
               <MaterialCommunityIcons name="cog-outline" size={16} color={COLORS.appleBlue} />
               <Text style={{ color: COLORS.appleBlue, fontWeight: '600', fontSize: 13 }}>Open Settings</Text>
             </TouchableOpacity>
-          </View>
+          </GlassView>
         </ScrollView>
       </View>
     );
@@ -98,9 +98,7 @@ export default function DashboardScreen({ navigation }) {
 
   return (
     <View style={{ flex: 1, backgroundColor: COLORS.bgPrimary }}>
-      <View style={styles.orbEmerald} />
-      <View style={styles.orbCyan} />
-      <View style={styles.orbWhite} />
+      <BackgroundOrbs />
 
       <ScrollView
         style={styles.container}
@@ -325,7 +323,7 @@ function ModelStatusCard({ name, subtitle, icon, loaded }) {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  scrollContent: { padding: SPACING.md },
+  scrollContent: { padding: SPACING.md, paddingBottom: 100 },
   loadingContainer: {
     flex: 1, backgroundColor: COLORS.bgPrimary,
     justifyContent: 'center', alignItems: 'center', gap: 16,

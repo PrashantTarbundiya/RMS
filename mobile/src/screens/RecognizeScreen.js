@@ -9,6 +9,8 @@ import { CameraView, useCameraPermissions } from 'expo-camera';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { COLORS, SPACING, FONT_SIZES, BORDER_RADIUS, APPLE_GLASS_STYLE } from '../theme';
 import { predictImage, checkHealth, submitFeedback } from '../services/api';
+import GlassView from '../components/GlassView';
+import BackgroundOrbs from '../components/BackgroundOrbs';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -107,6 +109,7 @@ export default function RecognizeScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: COLORS.bgPrimary }}>
+      <BackgroundOrbs />
 
       <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
         {/* Server Status */}

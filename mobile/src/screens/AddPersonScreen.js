@@ -11,6 +11,8 @@ import * as ImagePicker from 'expo-image-picker';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { COLORS, SPACING, FONT_SIZES, BORDER_RADIUS, APPLE_GLASS_STYLE } from '../theme';
 import { uploadPerson, checkHealth } from '../services/api';
+import GlassView from '../components/GlassView';
+import BackgroundOrbs from '../components/BackgroundOrbs';
 
 export default function AddPersonScreen() {
   const route = useNavigation().getState().routes.find(r => r.name === 'AddPerson');
@@ -88,7 +90,7 @@ export default function AddPersonScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: COLORS.bgPrimary }}>
-      <View style={styles.appleWallpaperOrbPurple} />
+      <BackgroundOrbs />
 
       <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
         {/* Progress Steps */}
@@ -197,7 +199,12 @@ export default function AddPersonScreen() {
         <TouchableOpacity
           onPress={handleSubmit}
           disabled={!readyToSubmit}
-          style={[styles.submitBtn, !readyToSubmit && { opacity: 0.35 }]}
+          style={[
+            styles.submitBtn,
+            readyToSubmit
+              ? { backgroundColor: COLORS.appleBlue, opacity: 1.0 }
+              : { backgroundColor: 'rgba(255, 255, 255, 0.08)', borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.12)' }
+          ]}
         >
           {uploading ? (
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
@@ -206,8 +213,14 @@ export default function AddPersonScreen() {
             </View>
           ) : (
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-              <MaterialCommunityIcons name="cloud-upload-outline" size={20} color="#FFF" />
-              <Text style={styles.submitBtnText}>Upload & Train ({images.length} photos)</Text>
+              <MaterialCommunityIcons
+                name="cloud-upload-outline"
+                size={20}
+                color={readyToSubmit ? '#FFF' : COLORS.textTertiary}
+              />
+              <Text style={[styles.submitBtnText, { color: readyToSubmit ? '#FFF' : COLORS.textTertiary }]}>
+                Upload & Train ({images.length} photos)
+              </Text>
             </View>
           )}
         </TouchableOpacity>
@@ -262,7 +275,7 @@ function StepBadge({ num, label, active, done }) {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  scrollContent: { padding: SPACING.md },
+  scrollContent: { padding: SPACING.md, paddingBottom: 100 },
   appleWallpaperOrbPurple: {
     position: 'absolute', top: 50, right: -100,
     width: 260, height: 260, borderRadius: 130,

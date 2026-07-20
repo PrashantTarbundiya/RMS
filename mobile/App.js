@@ -3,12 +3,18 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { StatusBar } from 'expo-status-bar';
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, LogBox } from 'react-native';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { PaperProvider } from 'react-native-paper';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { COLORS, paperTheme, navigationTheme, FONT_SIZES, BORDER_RADIUS } from './src/theme';
+
+LogBox.ignoreLogs([
+  'props.pointerEvents is deprecated',
+  'Animated: `useNativeDriver` is not supported',
+  'shadow* style props are deprecated',
+]);
 
 import DashboardScreen from './src/screens/DashboardScreen';
 import RecognizeScreen from './src/screens/RecognizeScreen';
@@ -40,12 +46,12 @@ function TabIcon({ routeName, focused }) {
   return (
     <View style={styles.tabIconWrapper}>
       {focused && (
-        <View style={styles.appleLiquidSelectionCapsule} />
+        <View style={styles.tabActiveGlow} />
       )}
       <MaterialCommunityIcons
         name={iconName}
-        size={focused ? 22 : 20}
-        color={focused ? '#FFFFFF' : COLORS.textTertiary}
+        size={22}
+        color={focused ? COLORS.appleBlue : COLORS.textSecondary}
       />
     </View>
   );
@@ -59,42 +65,40 @@ function MainTabs() {
       screenOptions={({ route }) => ({
         headerShown: true,
         headerStyle: {
-          backgroundColor: 'rgba(255, 255, 255, 0.95)',
-          borderBottomColor: '#E5E5EA',
+          backgroundColor: COLORS.bgPrimary,
+          borderBottomColor: COLORS.border,
           borderBottomWidth: 1,
           elevation: 0,
           shadowOpacity: 0,
         },
         headerTitleStyle: {
           color: COLORS.textPrimary,
-          fontWeight: '700',
+          fontWeight: '600',
           fontSize: FONT_SIZES.md,
-          letterSpacing: 0.5,
+          letterSpacing: 0.3,
         },
         tabBarStyle: {
           position: 'absolute',
           bottom: Math.max(insets.bottom, 12),
-          left: 20,
-          right: 20,
-          backgroundColor: 'rgba(255, 255, 255, 0.95)',
+          left: 16,
+          right: 16,
+          backgroundColor: 'rgba(15, 16, 17, 0.75)',
           borderRadius: BORDER_RADIUS.xl,
           borderWidth: 1,
-          borderColor: '#E5E5EA',
-          borderTopColor: '#FFFFFF',
-          borderLeftColor: '#FFFFFF',
+          borderColor: COLORS.glassBorder,
           height: 64,
-          paddingBottom: 6,
-          paddingTop: 6,
-          elevation: 10,
+          paddingBottom: 8,
+          paddingTop: 8,
+          elevation: 0,
           shadowColor: '#000000',
-          shadowOffset: { width: 0, height: 4 },
-          shadowOpacity: 0.1,
+          shadowOffset: { width: 0, height: 8 },
+          shadowOpacity: 0.4,
           shadowRadius: 16,
         },
         tabBarActiveTintColor: COLORS.appleBlue,
-        tabBarInactiveTintColor: COLORS.textTertiary,
+        tabBarInactiveTintColor: COLORS.textSecondary,
         tabBarLabelStyle: {
-          fontSize: 9,
+          fontSize: 10,
           fontWeight: '600',
           letterSpacing: 0.2,
           marginTop: 2,
@@ -171,8 +175,8 @@ function AppContent() {
 
   if (loading) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-        <StatusBar style="dark" />
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.bgPrimary }}>
+        <StatusBar style="light" />
       </View>
     );
   }
@@ -182,7 +186,7 @@ function AppContent() {
 
   return (
     <NavigationContainer theme={navigationTheme}>
-      <StatusBar style="dark" />
+      <StatusBar style="light" />
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         {requireLogin ? (
           <Stack.Screen name="Login" component={LoginScreen} />
@@ -217,15 +221,17 @@ const styles = StyleSheet.create({
   tabIconWrapper: {
     alignItems: 'center',
     justifyContent: 'center',
-    width: 44,
+    width: 40,
     height: 28,
+    position: 'relative',
   },
-  appleLiquidSelectionCapsule: {
+  tabActiveGlow: {
     position: 'absolute',
-    width: 44,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: COLORS.appleBlue,
-    borderWidth: 0,
+    width: 36,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: 'rgba(94, 106, 210, 0.22)',
+    borderWidth: 1,
+    borderColor: 'rgba(94, 106, 210, 0.35)',
   },
 });

@@ -6,6 +6,7 @@ import { Text, TextInput, Snackbar } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { COLORS, SPACING, FONT_SIZES, BORDER_RADIUS, APPLE_GLASS_STYLE } from '../theme';
 import { setServerUrl, getServerUrl, checkHealth } from '../services/api';
+import BackgroundOrbs from '../components/BackgroundOrbs';
 
 export default function SettingsScreen() {
   const [serverUrl, setServerUrlState] = useState('');
@@ -56,7 +57,7 @@ export default function SettingsScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: COLORS.bgPrimary }}>
-      <View style={styles.appleWallpaperOrbPurple} />
+      <BackgroundOrbs />
 
       <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
         {/* Server Connection Card */}
@@ -244,7 +245,7 @@ function StepItem({ num, text, isLast }) {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  scrollContent: { padding: SPACING.md },
+  scrollContent: { padding: SPACING.md, paddingBottom: 100 },
   appleWallpaperOrbPurple: {
     position: 'absolute', top: -50, left: -50,
     width: 240, height: 240, borderRadius: 120,

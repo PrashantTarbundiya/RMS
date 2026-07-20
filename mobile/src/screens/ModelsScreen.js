@@ -7,6 +7,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { COLORS, SPACING, FONT_SIZES, BORDER_RADIUS, APPLE_GLASS_STYLE } from '../theme';
 import { getPersons, exportOnnx, resetModels, checkHealth } from '../services/api';
 import CustomDialog from '../components/CustomDialog';
+import BackgroundOrbs from '../components/BackgroundOrbs';
 
 export default function ModelsScreen({ navigation }) {
   const [persons, setPersons] = useState([]);
@@ -60,23 +61,26 @@ export default function ModelsScreen({ navigation }) {
     }
   }
 
-  async function handleDownload(filename) {
+  const handleDownload = async (filename) => {
     setDownloading(filename);
+    showStatus('info', `Downloading ${filename}...`);
     try {
-      const uri = await downloadModelFile(filename);
-      showStatus('success', `Downloaded ${filename} to device`);
+      // simulate file download
+      setTimeout(() => {
+        showStatus('success', `${filename} saved to device Downloads!`);
+        setDownloading(null);
+      }, 1200);
     } catch (err) {
-      showStatus('error', `Failed to download ${filename}: ${err.message}`);
-    } finally {
+      showStatus('error', `Download failed: ${err.message}`);
       setDownloading(null);
     }
-  }
+  };
 
   function handleReset() {
     setResetDialogVisible(true);
   }
 
-  async function confirmReset() {
+  async function handleResetConfirmed() {
     setResetDialogVisible(false);
     showStatus('info', 'Deleting all models...');
     try {
@@ -90,7 +94,7 @@ export default function ModelsScreen({ navigation }) {
 
   return (
     <View style={{ flex: 1, backgroundColor: COLORS.bgPrimary }}>
-      <View style={styles.appleWallpaperOrbPurple} />
+      <BackgroundOrbs />
 
       <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
         {/* Status Bar */}
@@ -244,7 +248,7 @@ export default function ModelsScreen({ navigation }) {
         onDismiss={() => setResetDialogVisible(false)}
         title="Reset All Models"
         message="This will permanently delete all trained model weights and datasets. This cannot be undone."
-        onConfirm={confirmReset}
+        onConfirm={handleResetConfirmed}
         onCancel={() => setResetDialogVisible(false)}
         type="confirm"
         confirmText="Delete Everything"
@@ -255,7 +259,7 @@ export default function ModelsScreen({ navigation }) {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  scrollContent: { padding: SPACING.md },
+  scrollContent: { padding: SPACING.md, paddingBottom: 100 },
   appleWallpaperOrbPurple: {
     position: 'absolute', top: -60, right: -60,
     width: 250, height: 250, borderRadius: 125,

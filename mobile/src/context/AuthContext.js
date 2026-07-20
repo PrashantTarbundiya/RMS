@@ -62,7 +62,8 @@ export function AuthProvider({ children }) {
         if (err.response?.status === 401) {
           setIsMultiTenant(true);
         } else {
-            console.error('Error checking multi-tenant mode:', err.message);
+            console.warn('Network error checking multi-tenant mode:', err.message);
+            setIsMultiTenant(false); // Default to single tenant if offline
         }
       }
 
