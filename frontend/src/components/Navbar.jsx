@@ -35,7 +35,7 @@ export function Navbar() {
       {/* Mobile Top Header (Visible only on mobile/small screens) */}
       <div className="mobile-header md:hidden">
         <div className="flex items-center justify-between w-full px-5 h-14 bg-[#0F1011] border-b border-[#23252A] fixed top-0 left-0 right-0 z-40">
-          <Link to="/dashboard" className="brand flex items-center gap-2">
+          <Link to="/" className="brand flex items-center gap-2">
             <div className="w-7 h-7 rounded-md border border-border flex items-center justify-center bg-[#010102] shrink-0">
               <span className="font-mono text-primary font-bold text-xs">R</span>
             </div>
@@ -128,7 +128,7 @@ export function Navbar() {
         <div className="sidebar-header">
           <div className="flex items-center justify-between w-full gap-2">
             {!isCollapsed ? (
-              <Link to="/dashboard" className="brand flex-1 min-w-0">
+              <Link to="/" className="brand flex-1 min-w-0">
                 <div className="w-8 h-8 rounded-md border border-border flex items-center justify-center mr-2 bg-card shrink-0">
                   <span className="font-mono text-primary font-bold">R</span>
                 </div>
@@ -142,7 +142,7 @@ export function Navbar() {
                 </div>
               </Link>
             ) : (
-              <Link to="/dashboard" className="brand justify-center mx-auto">
+              <Link to="/" className="brand justify-center mx-auto">
                 <div className="w-8 h-8 rounded-md border border-border flex items-center justify-center bg-card shrink-0">
                   <span className="font-mono text-primary font-bold">R</span>
                 </div>
