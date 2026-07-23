@@ -52,7 +52,14 @@ const itemVariants = {
 
 export default function BentoGrid() {
   return (
-    <section id="features" className="landing-section scroll-mt-20">
+    <section id="features" className="landing-section landing-section-bg scroll-mt-20">
+      {/* Background image */}
+      <div
+        className="landing-section-bg-image"
+        style={{ backgroundImage: 'url(/bg-features.png)' }}
+        aria-hidden="true"
+      />
+      <div className="landing-section-bg-overlay" aria-hidden="true" />
       <motion.div
         initial="hidden"
         whileInView="visible"
@@ -86,7 +93,7 @@ export default function BentoGrid() {
               variants={itemVariants}
               whileHover={{ y: -6, borderColor: 'var(--hairline-strong)' }}
               transition={{ type: 'spring', stiffness: 300, damping: 25 }}
-              className="bento-hero-card"
+              className="bento-hero-card liquid-glass"
             >
               <div className="bento-badge">{card.badge}</div>
               <div className="bento-hero-icon">
@@ -106,7 +113,7 @@ export default function BentoGrid() {
               variants={itemVariants}
               whileHover={{ y: -4, borderColor: 'var(--hairline-strong)' }}
               transition={{ type: 'spring', stiffness: 300, damping: 25 }}
-              className="bento-support-card"
+              className="bento-support-card liquid-glass-subtle"
             >
               <div className="bento-support-icon">
                 <card.icon className="w-4 h-4" />

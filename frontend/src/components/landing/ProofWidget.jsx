@@ -115,7 +115,7 @@ export default function ProofWidget() {
         </div>
 
         <motion.div
-          className="proof-terminal"
+          className="proof-terminal liquid-glass-strong"
           initial={{ opacity: 0, y: 40, scale: 0.97 }}
           whileInView={{ opacity: 1, y: 0, scale: 1 }}
           viewport={{ once: true, margin: '-60px' }}

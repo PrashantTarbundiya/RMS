@@ -8,13 +8,20 @@ export default function FinalCta() {
   const { isAuthenticated } = useAuth();
 
   return (
-    <section className="landing-section">
+    <section className="landing-section landing-section-bg">
+      {/* Background image */}
+      <div
+        className="landing-section-bg-image"
+        style={{ backgroundImage: 'url(/bg-cta.png)' }}
+        aria-hidden="true"
+      />
+      <div className="landing-section-bg-overlay" aria-hidden="true" />
       <motion.div
         initial={{ opacity: 0, y: 30 }}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true }}
         transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-        className="final-cta-container"
+        className="final-cta-container liquid-glass-strong relative z-10"
       >
         {/* Ambient glow */}
         <div className="final-cta-glow" aria-hidden="true" />

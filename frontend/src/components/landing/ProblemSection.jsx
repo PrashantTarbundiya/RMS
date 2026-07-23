@@ -74,7 +74,7 @@ export default function ProblemSection() {
               variants={itemVariants}
               whileHover={{ y: -6, borderColor: 'var(--hairline-strong)' }}
               transition={{ type: 'spring', stiffness: 300, damping: 25 }}
-              className="problem-beat-card"
+              className="problem-beat-card liquid-glass"
             >
               <div className="problem-beat-icon">
                 <beat.icon className="w-5 h-5" />

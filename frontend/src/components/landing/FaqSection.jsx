@@ -25,8 +25,15 @@ export default function FaqSection() {
   const [activeIndex, setActiveIndex] = useState(null);
 
   return (
-    <section id="faq" className="landing-section scroll-mt-20">
-      <div className="max-w-3xl mx-auto">
+    <section id="faq" className="landing-section landing-section-bg scroll-mt-20">
+      {/* Background image */}
+      <div
+        className="landing-section-bg-image"
+        style={{ backgroundImage: 'url(/bg-faq.png)' }}
+        aria-hidden="true"
+      />
+      <div className="landing-section-bg-overlay" aria-hidden="true" />
+      <div className="max-w-3xl mx-auto relative z-10">
         <div className="text-center mb-12">
           <p className="text-eyebrow text-[#828FFF] mb-3">FAQ</p>
           <h2 className="text-headline text-ink font-display">
@@ -38,7 +45,7 @@ export default function FaqSection() {
           {faqs.map((faq, i) => {
             const isOpen = activeIndex === i;
             return (
-              <div key={i} className={`faq-item ${isOpen ? 'faq-item-open' : ''}`}>
+              <div key={i} className={`faq-item liquid-glass-subtle ${isOpen ? 'faq-item-open' : ''}`}>
                 <button
                   onClick={() => setActiveIndex(isOpen ? null : i)}
                   className="faq-trigger"

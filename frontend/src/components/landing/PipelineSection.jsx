@@ -148,7 +148,7 @@ export default function PipelineSection() {
               </div>
 
               {/* Card */}
-              <div className="pipeline-card">
+              <div className="pipeline-card liquid-glass">
                 <div className="pipeline-card-num">{step.num}</div>
                 <div className="pipeline-card-icon">
                   <step.icon className="w-5 h-5" />

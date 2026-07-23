@@ -59,7 +59,7 @@ export default function SovereigntySection() {
       <div className="landing-section-bg-overlay" aria-hidden="true" />
 
       <motion.div
-        className="sovereignty-container relative z-10"
+        className="sovereignty-container liquid-glass-strong relative z-10"
         initial={{ opacity: 0, y: 40 }}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true, margin: '-60px' }}

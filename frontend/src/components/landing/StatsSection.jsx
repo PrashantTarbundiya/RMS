@@ -54,7 +54,7 @@ function CountUpStat({ target, suffix, label, detail, shouldAnimate }) {
   return (
     <motion.div
       ref={ref}
-      className="stat-card"
+      className="stat-card liquid-glass"
       initial={{ opacity: 0, y: 30, scale: 0.95 }}
       whileInView={{ opacity: 1, y: 0, scale: 1 }}
       viewport={{ once: true }}
