@@ -368,6 +368,101 @@ def system_upload_update():
     }), 200 if success else 500
 
 
+# ─── Billing & Subscription Endpoints ────────────────────────────────
+
+@app.route('/api/stripe/webhook', methods=['POST'])
+def stripe_webhook():
+    """
+    Stripe webhook receiver. Processes subscription events to update
+    the local subscriptions table automatically.
+    No auth decorator — Stripe authenticates via signature verification.
+    """
+    from billing import handle_stripe_webhook
+
+    payload = request.get_data(as_text=True)
+    sig_header = request.headers.get('Stripe-Signature', '')
+
+    success, message, status_code = handle_stripe_webhook(payload, sig_header)
+    return jsonify({'message': message}), status_code
+
+
+@app.route('/api/subscription/info', methods=['GET'])
+@require_auth
+@inject_org_id
+def subscription_info(org_id):
+    """
+    Returns current subscription details: plan tier, limits, usage counts.
+    Used by the frontend to show usage bars and upgrade prompts.
+    """
+    from billing import get_subscription_info
+    return jsonify(get_subscription_info(org_id))
+
+
+@app.route('/api/license/status', methods=['GET'])
+@require_auth
+def license_status():
+    """
+    Returns license status for local-mode installs.
+    Used by the frontend to show license warnings/banners.
+    """
+    from license import get_license_status
+    return jsonify(get_license_status())
+
+
+# ─── Camera Provisioning Endpoint ────────────────────────────────────
+
+@app.route('/api/cameras', methods=['POST'])
+@require_auth
+@require_role('org_admin')
+@inject_org_id
+def provision_camera(org_id):
+    """
+    Register a new camera/kiosk and generate its API key.
+    Enforces max_cameras subscription limit.
+    """
+    from billing import check_camera_limit
+    import secrets
+    from database.db import get_db_session, is_db_available
+    from database.models import Camera
+
+    if not is_db_available():
+        return jsonify({'error': 'Camera provisioning requires database mode.'}), 400
+
+    # Check camera limit
+    allowed, error_response = check_camera_limit(org_id)
+    if not allowed:
+        return error_response
+
+    data = request.get_json() or {}
+    camera_name = data.get('name', '').strip()
+    location = data.get('location', '').strip()
+
+    if not camera_name:
+        return jsonify({'error': 'Camera name is required.'}), 400
+
+    # Generate a secure API key
+    api_key = f"rms_cam_{secrets.token_urlsafe(32)}"
+
+    with get_db_session() as session:
+        camera = Camera(
+            org_id=org_id,
+            name=camera_name,
+            location=location or None,
+            api_key=api_key,
+            is_active=True,
+        )
+        session.add(camera)
+        session.commit()
+
+        return jsonify({
+            'id': camera.id,
+            'name': camera.name,
+            'location': camera.location,
+            'api_key': api_key,
+            'message': f'Camera "{camera_name}" provisioned successfully.',
+        }), 201
+
+
 # ─── Authentication Endpoints ─────────────────────────────────────────
 @app.route('/api/auth/register', methods=['POST'])
 def auth_register():
