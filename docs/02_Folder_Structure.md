@@ -1,88 +1,190 @@
 # 02 Folder Structure
 
-This document recursively explains the purpose, responsibility, and important files within every directory of the RMS Face AI repository.
+This document explains the purpose, responsibility, and important files within every directory of the RMS Face AI repository.
 
 ## Root Directory (`/`)
-**Purpose:** Acts as the entry point for the orchestrator, containerization scripts, and global configurations.
-**Responsibility:** Ensures all disparate parts of the system (backend, frontend, mobile) can be launched, built, or deployed coherently.
-- `start.bat`: The primary bootstrap script for Windows local development. It detects Python and Node, installs dependencies automatically, and launches the Flask and Vite servers concurrently.
+**Purpose:** Entry point for orchestration, containerization, and global configuration.
+
+- `start.bat`: Automated bootstrap script for Windows. Detects Python/Node, installs dependencies, and launches Flask + Vite servers concurrently.
+- `docker-compose.yml`: Container orchestration for production deployments.
 - `requirements.txt`: Global Python dependency list.
-- `render.yaml`: Infrastructure-as-code configuration for deploying the system to the Render cloud platform.
+- `render.yaml`: Infrastructure-as-code for Render.com cloud deployment.
+- `DEPLOY.md`: Step-by-step deployment guide for Vercel (frontend) + Render (backend).
+- `PROJECT_GUIDE.md`: Comprehensive technical reference for the entire project.
+- `README.md`: Quick start guide and feature overview.
 
 ---
 
 ## `/backend`
-**Purpose:** The core intelligence layer of the application.
-**Responsibility:** Houses the Flask API, the image processing pipelines, the machine learning models, and dataset management scripts.
-**How it interacts:** Accepts HTTP POST requests from `/frontend` and `/mobile`, processes images, and reads/writes to `/dataset_cleaned`.
+**Purpose:** The core intelligence and security layer of the application.
+**Responsibility:** Houses the Flask API, authentication system, ML pipelines, database models, and multi-tenant data management.
+
+### Core Server Files
+- `server.py`: The Flask entry point. Defines all REST routes, handles file uploads, manages CORS, rate limiting, and returns JSON. Registers Blueprints for modular route organization.
+- `middleware.py`: Security enforcement layer with decorators:
+  - `@require_auth`: JWT Bearer token validation for human users.
+  - `@require_api_key`: API key validation for edge cameras.
+  - `@require_api_key_or_auth`: Dual-auth for hybrid endpoints (e.g., `/api/predict`).
+  - `@require_role(*roles)`: RBAC role hierarchy enforcement.
+  - `@inject_org_id`: Multi-tenant organization isolation.
+- `auth.py`: JWT token creation/validation (HS256), bcrypt password hashing/verification. Manages access tokens (15min) and refresh tokens (7 days).
+
+### AI & ML Files
+- `face_detection.py`: MediaPipe BlazeFace deep learning face detector with landmark-based pose estimation (frontal, left profile, right profile classification).
+- `inference.py`: KNN vector matching, cosine distance calculations, CLAHE preprocessing, and Test-Time Augmentation (TTA) embedding generation.
+- `ensemble.py`: Prediction voter combining DeepFace KNN and MobileNetV2 outputs through a 4-gate confirmation pipeline.
+- `model.py`: DeepFace FaceNet512 embedding extraction, augmentation pipeline, and vector storage management.
+- `liveness.py`: Anti-spoofing checks evaluating edge density (Laplacian variance), color variance, and texture patterns.
+- `soft_biometrics.py`: Geometric facial measurements (Nose-Eye Offset, Eye Compression ratios) for supplementary verification.
+
+### Business Logic Files
+- `employees.py`: Flask Blueprint for Employee CRUD operations via SQLAlchemy.
+- `feedback_learner.py`: Human-in-the-loop correction system. Processes feedback, moves images between dataset folders, and re-indexes embeddings.
+- `add_person_utils.py`: Multi-view fast enrollment with zero-shot KNN indexing and background SOTA retraining triggers.
+- `org_storage.py`: Per-organization file path resolution for multi-tenant data isolation. Routes to `data/orgs/{org_id}/` in multi-tenant mode or global `data/` in single-tenant mode.
+- `config_utils.py`: Dynamic runtime configuration management (thresholds, model toggles).
+- `sync.py`: Edge-cloud attendance log synchronization utilities.
+- `billing.py`: Subscription plan limit enforcement and usage tracking.
+- `license.py` / `generate_license.py`: License key generation and validation.
+
+### Training & Dataset Scripts
+- `retrain_all.py`: Full retraining pipeline — regenerates encodings and fine-tunes MobileNetV2.
+- `clean_dataset.py`: Dataset normalization and cleanup utilities.
+- `dataset_setup.py`: Initial dataset directory structure creation.
+- `download_dataset.py`: External dataset download utilities.
+- `benchmark_models.py`: Model accuracy benchmarking and performance metrics.
+
+### `/backend/database`
+**Purpose:** SQLAlchemy ORM layer for PostgreSQL multi-tenant database.
+- `__init__.py`: Package initialization with conditional database availability checks.
+- `db.py`: Database engine initialization, session management (`get_db_session()` context manager), and `is_db_available()` utility.
+- `models.py`: SQLAlchemy ORM models for all 8 tables: `Organization`, `User`, `Employee`, `Camera`, `AttendanceLog`, `FeedbackLog`, `Subscription`, `ConsentRecord`.
 
 ### `/backend/models`
-**Purpose:** Stores PyTorch model definitions and saved state dictionaries (`.pth`).
-**Important Files:** 
-- `/sota_finetune/finetune.py`: Contains the actual MobileNetV2 PyTorch architecture definition, the custom classification head, and the training loop logic.
+**Purpose:** PyTorch model definitions and saved weights.
+- `sota_finetune/finetune.py`: MobileNetV2 architecture definition, custom classification head, and training loop.
+- `sota_finetune/best_mobile_sideface.pth`: Trained model weights.
+- `sota_finetune/mobile_classes.txt`: Known personnel class indices.
+
+### `/backend/migrations`
+**Purpose:** Alembic database migration scripts for schema versioning.
+- `versions/`: Individual migration files for PostgreSQL schema changes.
+- `env.py`: Alembic environment configuration.
+
+### `/backend/routes`
+**Purpose:** Flask Blueprint route modules for modular API organization.
+- `analytics.py`: Analytics and reporting endpoints.
 
 ### `/backend/data`
-**Purpose:** Serves as the lightweight, local JSON/Pickle database.
-**Important Files:**
-- `config.json`: Stores the admin-configurable `CONFIRM_THRESHOLD` used to determine binary True/False identity matching.
-- `recognition_history.json`: Flat-file database appending every live detection event.
-- `encodings.pickle`: The compiled FaceNet512 high-dimensional vector index used by K-Nearest Neighbors for instant identity resolution.
+**Purpose:** Lightweight local data storage (single-tenant mode fallback).
+- `config.json`: Runtime-editable application thresholds.
+- `recognition_history.json`: Flat-file detection event ledger.
+- `encodings.pickle`: FaceNet512 embedding index for KNN matching.
+- `orgs/{org_id}/`: Per-organization isolated data directories (multi-tenant mode).
 
-### `/backend/` (Root Files)
-- `server.py`: The Flask entry point. Defines all REST routes, handles file uploads, manages CORS, and returns JSON.
-- `inference.py`: Extracts OpenCV bounding boxes, crops faces, and invokes the ML models.
-- `ensemble.py`: Averages predictions between FaceNet and MobileNetV2.
-- `feedback_learner.py`: Handles corrections submitted by users, moves images into the correct folders, and deletes false positives.
-- `haarcascade_frontalface_default.xml`: The pre-trained OpenCV cascade classifier used for rapid structural face detection.
+### Configuration Files
+- `.env`: Environment variables (DATABASE_URL, JWT_SECRET_KEY, DEPLOYMENT_MODE, etc.).
+- `.env.example`: Template with all available environment variables documented.
+- `Dockerfile`: Container image definition for cloud deployment.
+- `Procfile`: Heroku/Render process definition.
+- `gunicorn.conf.py`: Production WSGI server configuration.
+- `alembic.ini`: Alembic migration tool configuration.
 
 ---
 
 ## `/frontend`
-**Purpose:** The Web Dashboard interface.
-**Responsibility:** Provides HR, admins, and users a visual interface to monitor live attendance, enroll new personnel, and view system health.
-**How it interacts:** Makes Axios REST calls to `localhost:5000` (the backend).
+**Purpose:** The Web Dashboard and Landing Page interface.
+**Responsibility:** Provides administrators a visual interface for authentication, attendance monitoring, personnel enrollment, model management, and system configuration.
 
 ### `/frontend/src/pages`
-**Purpose:** React route components.
-- `DashboardPage.jsx`: The main overview with KPI metrics.
-- `LiveAttendancePage.jsx`: A grid view showing "who is currently on site" with auto-refreshing elapsed timers.
-- `AttendancePage.jsx`: A tabular view of historical check-ins with CSV export capabilities.
-- `TestPage.jsx`: The testing interface featuring the custom Feedback Modal to correct false detections.
+**Purpose:** React route components (14 pages).
+- `LandingPage.jsx`: Marketing landing page with scroll-driven storytelling animations, glassmorphism effects, and AI-generated background images.
+- `LoginPage.jsx`: JWT authentication login form.
+- `RegisterPage.jsx`: Organization registration and initial admin account creation.
+- `DashboardPage.jsx`: Main overview with KPI metrics, roster search, model health, and system status.
+- `AttendancePage.jsx`: Tabular historical attendance view with filtering and CSV export.
+- `LiveAttendancePage.jsx`: Real-time grid showing currently on-site employees with elapsed timers.
+- `TestPage.jsx`: Live Inference Console with webcam bounding boxes, Capture & Run Inference, and the structured Feedback Modal for ML corrections.
+- `UploadPage.jsx`: Multi-view drag-and-drop enrollment interface with Left/Front/Right/Extra category slots.
+- `ManagePersonPage.jsx`: Administrative view of all registered identities with photo management.
+- `TrainingPage.jsx`: MobileNetV2 retraining control panel with real-time SSE progress.
+- `ModelsPage.jsx`: AI model configuration — DeepFace toggle, threshold adjustments, ensemble settings.
+- `LogsPage.jsx`: System logs and recognition history viewer.
+- `ProfilePage.jsx`: User account settings and storage infrastructure information.
+- `SupportPage.jsx`: Help documentation and support resources.
 
 ### `/frontend/src/components`
 **Purpose:** Reusable UI components.
-- `Navbar.jsx`: The main navigation sidebar (desktop) and bottom tab (mobile viewport). 
+- `Navbar.jsx`: Responsive navigation sidebar (desktop) with scroll-aware mobile capsule navbar.
+- `Modal.jsx`: Reusable modal dialog component.
+- `ApertureReticle.jsx`: Animated SVG reticle overlay for face detection visualization.
+
+### `/frontend/src/components/landing`
+**Purpose:** Landing page section components (9 components).
+- `HeroReticleCanvas.jsx`: Animated SVG reticle grid for the hero section.
+- `ProblemSection.jsx`: Problem statement narrative with scroll animations.
+- `PipelineSection.jsx`: AI pipeline visualization with scroll-driven connecting lines.
+- `ProofWidget.jsx`: Typewriter terminal demonstrating live inference.
+- `BentoGrid.jsx`: Hierarchical feature showcase in bento card layout.
+- `SovereigntySection.jsx`: Data sovereignty and air-gap deployment diagram.
+- `StatsSection.jsx`: Animated count-up statistics.
+- `FaqSection.jsx`: Spring-animated FAQ accordion.
+- `FinalCta.jsx`: Final call-to-action with portal gateway background.
+
+### `/frontend/src/components/ui`
+**Purpose:** Primitive UI building blocks.
+
+### `/frontend/src/context`
+**Purpose:** React Context providers.
+- `AuthContext.jsx`: JWT token storage, automatic refresh, and authenticated API client factory.
 
 ### `/frontend/` (Root & Config Files)
-- `vite.config.js`: Configuration for the Vite bundler.
-- `src/index.css`: The global stylesheet defining the "Premium AI SaaS Glassmorphism" theme (CSS variables, backdrop-filters, gradients).
+- `vite.config.js`: Vite bundler configuration.
+- `src/config.js`: Centralized API URL configuration.
+- `src/index.css`: Global design system with CSS variables, glassmorphism utilities, liquid glass effects, and responsive breakpoints.
+- `src/main.jsx`: React DOM mount point and Router configuration.
 
 ---
 
 ## `/mobile`
-**Purpose:** The Expo React Native application.
-**Responsibility:** Provides a physical, portable camera interface for security personnel to scan individuals on the move.
-**How it interacts:** Communicates over the local network to the backend API (`http://<LOCAL_IP>:5000`).
+**Purpose:** The Expo React Native mobile application.
+**Responsibility:** Portable camera interface for security personnel to scan individuals on the move.
 
 ### `/mobile/src/screens`
-**Purpose:** React Navigation stack and tab screens.
-- `CameraCaptureScreen.js`: A dedicated modal screen isolating the `expo-camera` component. Ensures the camera viewfinder never clashes with bottom navigation tabs.
-- `RecognizeScreen.js`: Takes the captured photo, submits it via `api.js`, and displays the Confirmed/Not Found UI.
-- `DashboardScreen.js`: A mobile-optimized view of the system health.
+- `LoginScreen.js`: Mobile authentication screen.
+- `DashboardScreen.js`: Mobile-optimized system health dashboard.
+- `RecognizeScreen.js`: Photo capture and binary identity verification display.
+- `AddPersonScreen.js`: Mobile enrollment flow.
+- `CameraCaptureScreen.js`: Isolated full-screen camera modal.
+- `ModelsScreen.js`: Model configuration screen.
 
 ### `/mobile/src/services`
-**Purpose:** Business logic and external communication.
-- `api.js`: Handles network requests, handles base64-to-blob conversions for the Expo Web Simulator, and dynamically injects `.jpg` extensions to satisfy backend security filters.
+- `api.js`: Network request handling with dynamic IP resolution, base64-to-blob conversions, and timeout management.
+
+### `/mobile/src/components`
+- `BackgroundOrbs.js`: Animated gradient orb backgrounds for liquid glass UI.
+
+### `/mobile/` (Root Files)
+- `App.js`: Entry point and Navigation Container.
+- `src/theme.js`: Centralized styling variables and liquid glass color palette.
+- `app.json`: Expo configuration with camera permissions.
 
 ---
 
 ## `/dataset` & `/dataset_cleaned`
-**Purpose:** Structural image storage.
-**Responsibility:** Holds raw uploaded photos (`/dataset`) and the tightly cropped, normalized face arrays used for ML training (`/dataset_cleaned`).
-**Expected Future Files:** As users are enrolled, this directory will dynamically generate folders named after the employee (e.g., `/dataset_cleaned/John_Doe/001.jpg`).
+**Purpose:** Structural image storage for ML training.
+- `/dataset`: Raw uploaded photos (unprocessed).
+- `/dataset_cleaned`: Cropped, normalized face arrays organized by identity.
+  - `PersonName/frontal/`: Front-facing photos.
+  - `PersonName/left/`: Left-profile photos.
+  - `PersonName/right/`: Right-profile photos.
+  - `PersonName/extra/`: Unsorted bulk photos.
 
 ---
 
 ## `/docs`
 **Purpose:** Enterprise technical documentation.
-**Responsibility:** Onboarding new engineers and preserving architectural knowledge.
+**Responsibility:** Onboarding new engineers, preserving architectural knowledge, and serving as reference for client presentations.
+- `00–15_*.md`: Numbered documentation covering all aspects of the system.
+- `PPT/`: Presentation materials.
+- `Paper/`: Research paper references.

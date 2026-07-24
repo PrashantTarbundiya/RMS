@@ -105,6 +105,135 @@ def require_auth(f):
     return decorated
 
 
+def require_api_key(f):
+    """
+    Decorator: Require a valid X-API-Key header.
+    
+    On success, sets:
+      g.current_camera = {
+          'camera_id': str,
+          'org_id': str,
+      }
+      
+    On failure, returns 401 JSON response.
+    """
+    @functools.wraps(f)
+    def decorated(*args, **kwargs):
+        api_key = request.headers.get('X-API-Key')
+        
+        # Single-tenant mode bypass
+        if not _is_auth_enabled():
+            if api_key and api_key == os.environ.get('LOCAL_CAMERA_KEY', 'default-local-camera-key'):
+                g.current_camera = {
+                    'camera_id': 'local-camera',
+                    'org_id': None,
+                }
+                return f(*args, **kwargs)
+            else:
+                return jsonify({'error': 'Invalid local API key.'}), 401
+
+        if not api_key:
+            return jsonify({'error': 'Missing X-API-Key header for edge device authentication.'}), 401
+
+        from database.db import get_db_session
+        from database.models import Camera
+        
+        try:
+            with get_db_session() as session:
+                if session is None:
+                    return jsonify({'error': 'Database unavailable.'}), 503
+                
+                # We do a fast indexed lookup by api_key
+                camera = session.query(Camera).filter_by(api_key=api_key, is_active=True).first()
+                if not camera:
+                    return jsonify({'error': 'Invalid or revoked API Key.'}), 401
+                    
+                g.current_camera = {
+                    'camera_id': camera.id,
+                    'org_id': camera.org_id,
+                }
+        except Exception as e:
+            logger.error(f"API Key validation error: {e}")
+            return jsonify({'error': 'Authentication server error.'}), 500
+
+        return f(*args, **kwargs)
+
+    return decorated
+
+
+def require_api_key_or_auth(f):
+    """
+    Decorator: Require EITHER a valid X-API-Key header OR a valid JWT.
+    
+    Sets:
+      g.auth_type = 'camera' or 'user'
+      g.current_camera (if 'camera')
+      g.current_user (if 'user')
+    """
+    @functools.wraps(f)
+    def decorated(*args, **kwargs):
+        api_key = request.headers.get('X-API-Key')
+        
+        # Single-tenant mode logic
+        if not _is_auth_enabled():
+            if api_key and api_key == os.environ.get('LOCAL_CAMERA_KEY', 'default-local-camera-key'):
+                g.auth_type = 'camera'
+                g.current_camera = {'camera_id': 'local-camera', 'org_id': None}
+            else:
+                g.auth_type = 'user'
+                g.current_user = {'user_id': 'local-user', 'org_id': None, 'role': 'org_admin'}
+            return f(*args, **kwargs)
+
+        if api_key:
+            # We are authenticating as a camera
+            api_key = request.headers.get('X-API-Key')
+            from database.db import get_db_session
+            from database.models import Camera
+            try:
+                with get_db_session() as session:
+                    if session is None:
+                        return jsonify({'error': 'Database unavailable.'}), 503
+                    camera = session.query(Camera).filter_by(api_key=api_key, is_active=True).first()
+                    if not camera:
+                        return jsonify({'error': 'Invalid or revoked API Key.'}), 401
+                    g.auth_type = 'camera'
+                    g.current_camera = {'camera_id': camera.id, 'org_id': camera.org_id}
+                    # We also inject current_user structure to satisfy inject_org_id if needed
+                    g.current_user = {'user_id': None, 'org_id': camera.org_id, 'role': 'camera'}
+                    return f(*args, **kwargs)
+            except Exception as e:
+                logger.error(f"Hybrid API Key error: {e}")
+                return jsonify({'error': 'Authentication server error.'}), 500
+        else:
+            # Fall back to JWT auth
+            token = None
+            auth_header = request.headers.get('Authorization', '')
+            if auth_header.startswith('Bearer '):
+                token = auth_header[7:]
+            else:
+                token = request.args.get('token')
+
+            if not token:
+                return jsonify({'error': 'Missing authentication token or API Key.'}), 401
+
+            from auth import decode_token
+            payload = decode_token(token)
+            if payload is None:
+                return jsonify({'error': 'Invalid or expired token.'}), 401
+            if payload.get('type') != 'access':
+                return jsonify({'error': 'Invalid token type.'}), 401
+
+            g.auth_type = 'user'
+            g.current_user = {
+                'user_id': payload.get('sub'),
+                'org_id': payload.get('org_id'),
+                'role': payload.get('role', 'viewer'),
+            }
+            return f(*args, **kwargs)
+
+    return decorated
+
+
 def require_role(*allowed_roles):
     """
     Decorator: Require the authenticated user to have one of the specified roles.

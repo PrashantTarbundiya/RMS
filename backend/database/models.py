@@ -332,3 +332,40 @@ class ConsentRecord(Base):
 
     def __repr__(self):
         return f"<ConsentRecord employee={self.employee_id[:8]} @ {self.consented_at}>"
+
+
+# ──────────────────────────────────────────────────────────────────────
+# SystemInfo — Singleton: Application Version & Update State
+# ──────────────────────────────────────────────────────────────────────
+
+class UpdateSeverity(str, enum.Enum):
+    critical = "critical"
+    recommended = "recommended"
+    optional = "optional"
+
+class SystemInfo(Base):
+    """
+    Singleton table (always has exactly one row with id=1).
+    Tracks the install's current version and update state.
+    NOT per-org — each local install is its own deployment.
+    """
+    __tablename__ = "system_info"
+
+    id = Column(Integer, primary_key=True, default=1)
+    app_version = Column(String(20), nullable=False, default="1.0.0")
+    last_update_checked_at = Column(DateTime, nullable=True)
+    latest_available_version = Column(String(20), nullable=True)
+    update_severity = Column(
+        SQLEnum(UpdateSeverity, name="update_severity_enum"),
+        nullable=True
+    )
+    update_changelog = Column(Text, nullable=True)
+    update_download_url = Column(String(500), nullable=True)
+    update_checksum = Column(String(128), nullable=True)
+    update_signature = Column(String(256), nullable=True)  # HMAC signature
+    last_update_applied_at = Column(DateTime, nullable=True)
+    last_backup_path = Column(String(500), nullable=True)
+
+    def __repr__(self):
+        return f"<SystemInfo v{self.app_version}>"
+

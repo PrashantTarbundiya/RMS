@@ -1,0 +1,10 @@
+{
+  "latest_version": "1.0.0",
+  "changelog": "v1.0.0 — Initial production-hardened release.\n\n- Phase 0: 6-layer anti-spoofing liveness pipeline (edge density, glare, color variance, moiré FFT, micro-movement, anti-spoof CNN)\n- Phase 1: License & Release Sync System with signed packages and auto-restart\n- Fail-closed security posture on all liveness checks\n- Multi-frame micro-movement analysis for camera path\n- Rate limit tuning for live webcam feed",
+  "download_url": "",
+  "checksum": "",
+  "signature": "",
+  "min_upgrade_from": "0.9.0",
+  "severity": "recommended",
+  "released_at": "2026-07-24T00:00:00Z"
+}

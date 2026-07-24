@@ -158,9 +158,19 @@ export default function TestPage() {
 
   const [livePredicting, setLivePredicting] = useState(false);
   const liveLoopRef = useRef(null);
+  const modeRef = useRef(mode);
+  const isRequestInFlightRef = useRef(false);
+  const backoffDelayRef = useRef(0); // 0 = no backoff
+
+  useEffect(() => {
+    modeRef.current = mode;
+  }, [mode]);
+
 
   const runLivePrediction = useCallback(async () => {
-    if (mode !== 'webcam' || !videoRef.current || !webcamReady || livePredicting) return;
+    // Strict guard: skip if not in webcam mode, not ready, or a request is already in flight
+    if (modeRef.current !== 'webcam' || !videoRef.current || !webcamReady || isRequestInFlightRef.current) return;
+    isRequestInFlightRef.current = true;
     setLivePredicting(true);
     try {
       const canvas = document.createElement('canvas');
@@ -171,19 +181,24 @@ export default function TestPage() {
       
       const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.80));
       if (!blob) {
+        isRequestInFlightRef.current = false;
         setLivePredicting(false);
         return;
       }
       
       const formData = new FormData();
       formData.append('image', new File([blob], 'live_frame.jpg', { type: 'image/jpeg' }));
+      formData.append('test_mode', 'true');
       
       const res = await apiClient.post(`${API_BASE}/predict`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
-        timeout: 5000,
+        timeout: 8000,
       });
       
-      if (mode === 'webcam' && videoRef.current) {
+      // Success — clear any backoff
+      backoffDelayRef.current = 0;
+      
+      if (modeRef.current === 'webcam' && videoRef.current) {
         setResults(res.data);
         setPreviewSize({
           width: videoRef.current.clientWidth,
@@ -193,28 +208,43 @@ export default function TestPage() {
         });
       }
     } catch (err) {
-      console.error("Live prediction loop error:", err);
+      if (err?.response?.status === 429) {
+        // Rate limited — apply exponential backoff (2s, 4s, 8s, max 15s)
+        backoffDelayRef.current = Math.min(15000, Math.max(2000, (backoffDelayRef.current || 1000) * 2));
+        console.warn(`[TestPage] Rate limited (429). Backing off for ${backoffDelayRef.current / 1000}s`);
+      } else {
+        console.error("Live prediction loop error:", err);
+      }
     } finally {
+      isRequestInFlightRef.current = false;
       setLivePredicting(false);
     }
-  }, [mode, webcamReady, livePredicting, apiClient]);
+  }, [mode, webcamReady, apiClient]);
 
   useEffect(() => {
     if (mode === 'webcam' && webcamReady && !isFeedbackModalOpen) {
-      // Run once immediately
+      // Use a dynamic interval that respects backoff
+      const scheduleNext = () => {
+        const delay = backoffDelayRef.current > 0 ? backoffDelayRef.current : 2000;
+        liveLoopRef.current = setTimeout(() => {
+          runLivePrediction();
+          if (modeRef.current === 'webcam') {
+            scheduleNext();
+          }
+        }, delay);
+      };
+      // Run once immediately, then schedule recurring
       runLivePrediction();
-      liveLoopRef.current = setInterval(() => {
-        runLivePrediction();
-      }, 1500);
+      scheduleNext();
     } else {
       if (liveLoopRef.current) {
-        clearInterval(liveLoopRef.current);
+        clearTimeout(liveLoopRef.current);
         liveLoopRef.current = null;
       }
     }
     return () => {
       if (liveLoopRef.current) {
-        clearInterval(liveLoopRef.current);
+        clearTimeout(liveLoopRef.current);
         liveLoopRef.current = null;
       }
     };
@@ -267,6 +297,7 @@ export default function TestPage() {
 
           const formData = new FormData();
           formData.append('image', capturedFile);
+          formData.append('test_mode', 'true');
           try {
             const res = await apiClient.post(`${API_BASE}/predict`, formData, {
               headers: { 'Content-Type': 'multipart/form-data' },
@@ -319,6 +350,7 @@ export default function TestPage() {
     setLoading(true); setError(''); setResults(null);
     const formData = new FormData();
     formData.append('image', file);
+    formData.append('test_mode', 'true');
 
     try {
       const res = await apiClient.post(`${API_BASE}/predict`, formData, {
@@ -880,30 +912,19 @@ export default function TestPage() {
                                  </div>
                                </div>
 
-                               <div className="flex justify-between items-center mt-4 pt-4 border-t border-[#23252A]/50">
-                                 <div className="text-[10px] text-ink-subtle font-mono tracking-wider uppercase">
-                                   MTHD: SOTA Base {showConfidence && `| CONF: ${(displayConf * 100).toFixed(1)}%`}
-                                 </div>
-                                 
-                                 {face.prediction_id && !spoofed && (
-                                   <div className="flex gap-1.5">
-                                      {feedbackState[face.prediction_id] === 'success' ? (
-                                        <span className="px-2 py-0.5 rounded-full text-[10px] font-mono bg-[#27A644]/10 text-[#27A644] border border-[#27A644]/20 flex items-center gap-1">
-                                          <Check className="w-3 h-3" /> Logged
-                                        </span>
-                                      ) : (
-                                        <>
-                                          <button className="button-icon text-[#27A644] hover:bg-[#27A644]/10" onClick={() => submitFeedback(face.prediction_id, true, displayLabel)} title="Correct Detection">
-                                            <ThumbsUp className="w-4 h-4" />
-                                          </button>
-                                          <button className="button-icon text-[#F87171] hover:bg-[#F87171]/10" onClick={() => submitFeedback(face.prediction_id, false, displayLabel)} title="Incorrect Detection">
-                                            <ThumbsDown className="w-4 h-4" />
-                                          </button>
-                                        </>
-                                      )}
+                                 <div className="flex justify-between items-center mt-4 pt-4 border-t border-[#23252A]/50">
+                                   <div className="text-[10px] text-ink-subtle font-mono tracking-wider uppercase">
+                                     MTHD: SOTA Base {showConfidence && `| CONF: ${(displayConf * 100).toFixed(1)}%`}
                                    </div>
-                                 )}
-                               </div>
+                                   
+                                   {face.prediction_id && !spoofed && (
+                                     <div className="flex gap-1.5">
+                                        <span className="px-2 py-0.5 rounded-full text-[10px] font-mono bg-[#828FFF]/10 text-[#828FFF] border border-[#828FFF]/20 flex items-center gap-1">
+                                          <AlertCircle className="w-3 h-3" /> TEST MODE — Not Logged
+                                        </span>
+                                     </div>
+                                   )}
+                                 </div>
                              </div>
 
                              <div className="mt-4 flex flex-col gap-2 p-3 bg-[#0F1011] rounded-lg border border-[#23252A]">

@@ -82,7 +82,7 @@ limiter_storage = os.environ.get('REDIS_URL', 'memory://')
 limiter = Limiter(
     get_rate_limit_key,
     app=app,
-    default_limits=["10000 per day", "1000 per hour"],
+    default_limits=["30000 per day", "3000 per hour", "60 per minute"],
     storage_uri=limiter_storage
 )
 
@@ -125,7 +125,10 @@ if db_connected:
 else:
     logger.info("Single-tenant mode: using local file storage.")
 
+from middleware import require_auth, require_role, inject_org_id, get_current_org_id, require_api_key, require_api_key_or_auth
+
 @app.route('/api/sync', methods=['POST'])
+@require_api_key
 def receive_sync():
     """Cloud API endpoint to receive AttendanceLog from edge appliances."""
     from database.db import get_db_session
@@ -140,14 +143,17 @@ def receive_sync():
         
     try:
         with get_db_session() as session:
+            if session is None:
+                return jsonify({'message': 'Single-tenant mode: sync ignored (no database).'}), 200
+                
             for log_data in logs:
                 existing = session.query(AttendanceLog).filter_by(id=log_data['id']).first()
                 if not existing:
                     new_log = AttendanceLog(
                         id=log_data['id'],
-                        org_id=log_data['org_id'],
+                        org_id=g.current_camera['org_id'], # Forced from auth token
                         employee_id=log_data['employee_id'],
-                        camera_id=log_data['camera_id'],
+                        camera_id=g.current_camera['camera_id'], # Forced from auth token
                         checkin_time=datetime.fromisoformat(log_data['checkin_time']),
                         confidence=log_data.get('confidence'),
                         method=log_data.get('method'),
@@ -164,7 +170,6 @@ def receive_sync():
         return jsonify({'error': str(e)}), 500
 
 # Import auth and middleware (available regardless of DB mode)
-from middleware import require_auth, require_role, inject_org_id, get_current_org_id
 
 from employees import employees_bp
 app.register_blueprint(employees_bp)
@@ -193,9 +198,11 @@ _VALID_NAME_PATTERN = re.compile(r'^[A-Za-z0-9_-]+$')
 # ─── Health & Connectivity Endpoints ──────────────────────────────────
 @app.route('/api/health', methods=['GET'])
 def health_check():
-    """Quick health check for connectivity testing."""
+    """Quick health check for connectivity testing. Includes app version."""
+    from version import APP_VERSION
     return jsonify({
         'status': 'ok',
+        'app_version': APP_VERSION,
         'requires_retrain': False,
         'models': {
             'sota': True,
@@ -206,6 +213,160 @@ def health_check():
 def ping():
     """Minimal ping endpoint for connection testing."""
     return jsonify({'pong': True})
+
+
+# ─── System Update Endpoints ─────────────────────────────────────────
+
+@app.route('/api/system/info', methods=['GET'])
+@require_auth
+def system_info():
+    """
+    Returns current system version and update status.
+    Available to all authenticated users (read-only).
+    """
+    from update_checker import get_system_info
+    return jsonify(get_system_info())
+
+
+@app.route('/api/system/check-update', methods=['POST'])
+@require_auth
+@require_role('org_admin')
+def system_check_update():
+    """
+    Check the central manifest for available updates.
+    Requires org_admin or higher.
+    Transmits ZERO employee/biometric data — only fetches version metadata.
+    """
+    from update_checker import check_for_updates
+    result = check_for_updates()
+    return jsonify(result)
+
+
+@app.route('/api/system/download-update', methods=['POST'])
+@require_auth
+@require_role('org_admin')
+def system_download_update():
+    """
+    Download an update package and verify its checksum/signature.
+    Requires org_admin or higher.
+    """
+    from update_checker import download_update_package
+    
+    data = request.get_json() or {}
+    download_url = data.get('download_url')
+    checksum = data.get('checksum', '')
+    signature = data.get('signature')
+    
+    if not download_url:
+        return jsonify({'error': 'download_url is required'}), 400
+    
+    success, file_path, error = download_update_package(download_url, checksum, signature)
+    
+    if not success:
+        return jsonify({'error': error}), 400
+    
+    return jsonify({
+        'status': 'downloaded',
+        'file_path': file_path,
+        'message': 'Package downloaded and verified. Ready to apply.'
+    })
+
+
+@app.route('/api/system/apply-update', methods=['POST'])
+@require_auth
+@require_role('org_admin')
+def system_apply_update():
+    """
+    Apply a downloaded update package.
+    Flow: verify → backup → extract → migrate → auto-restart → health check.
+    Requires org_admin or higher.
+    """
+    from update_checker import apply_update, schedule_auto_restart
+    
+    data = request.get_json() or {}
+    package_path = data.get('package_path')
+    checksum = data.get('checksum')
+    signature = data.get('signature')
+    
+    # Default to the standard staging location
+    if not package_path:
+        package_path = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)),
+            'staging', 'update_package.tar.gz'
+        )
+    
+    if not os.path.exists(package_path):
+        return jsonify({'error': 'No update package found. Download one first.'}), 404
+    
+    success, message, details = apply_update(package_path, checksum, signature)
+    
+    if success:
+        # Schedule auto-restart after sending response
+        schedule_auto_restart(delay_seconds=3)
+    
+    return jsonify({
+        'success': success,
+        'message': message,
+        'details': details
+    }), 200 if success else 500
+
+
+@app.route('/api/system/rollback', methods=['POST'])
+@require_auth
+@require_role('org_admin')
+def system_rollback():
+    """
+    Roll back to the pre-update backup.
+    Requires org_admin or higher.
+    """
+    from update_checker import rollback_update, schedule_auto_restart
+    
+    data = request.get_json() or {}
+    backup_path = data.get('backup_path')
+    
+    success, message = rollback_update(backup_path)
+    
+    if success:
+        schedule_auto_restart(delay_seconds=3)
+    
+    return jsonify({
+        'success': success,
+        'message': message
+    }), 200 if success else 500
+
+
+@app.route('/api/system/upload-update', methods=['POST'])
+@require_auth
+@require_role('org_admin')
+def system_upload_update():
+    """
+    Offline/air-gapped update path: admin uploads a .tar.gz package directly.
+    Zero outbound network calls required.
+    Requires org_admin or higher.
+    """
+    from update_checker import handle_offline_upload, schedule_auto_restart
+    
+    if 'package' not in request.files:
+        return jsonify({'error': 'No package file uploaded. Send as multipart field "package".'}), 400
+    
+    file = request.files['package']
+    if not file.filename.endswith('.tar.gz'):
+        return jsonify({'error': 'Package must be a .tar.gz file'}), 400
+    
+    checksum = request.form.get('checksum')
+    signature = request.form.get('signature')
+    
+    success, message, details = handle_offline_upload(file, checksum, signature)
+    
+    if success:
+        schedule_auto_restart(delay_seconds=3)
+    
+    return jsonify({
+        'success': success,
+        'message': message,
+        'details': details
+    }), 200 if success else 500
+
 
 # ─── Authentication Endpoints ─────────────────────────────────────────
 @app.route('/api/auth/register', methods=['POST'])
@@ -1237,7 +1398,7 @@ def reset_models(org_id):
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/predict', methods=['POST'])
-@require_auth
+@require_api_key_or_auth
 @inject_org_id
 def predict(org_id):
     """Takes an image and returns face bounding boxes and predictions from all 3 models."""
@@ -1251,8 +1412,23 @@ def predict(org_id):
         return jsonify({'error': f'Unsupported file type. Allowed: {", ".join(ALLOWED_EXTENSIONS)}'}), 400
 
     try:
+        # ── SECURITY ENFORCEMENT: Enforce test mode strictly on the backend ──
+        # If the request comes from an API Key (hardware edge camera), it's production.
+        # If it comes from a JWT token (human user), FORCE test mode (no logs/history).
+        auth_type = getattr(g, 'auth_type', 'user')
+        if auth_type == 'user':
+            test_mode = True
+            logger.info("[SECURITY] JWT token detected. Forcing TEST MODE on /api/predict.")
+        else:
+            test_mode = False
+            logger.info(f"[PRODUCTION] API Key detected for camera_id {g.current_camera.get('camera_id')}. Logging enabled.")
+
         # Phase 5: Per-Camera Threshold Tuning
-        camera_id = request.form.get('camera_id')
+        if auth_type == 'camera':
+            camera_id = g.current_camera['camera_id']
+        else:
+            camera_id = request.form.get('camera_id')
+            
         camera_threshold = None
         if camera_id:
             from database.models import Camera
@@ -1271,6 +1447,23 @@ def predict(org_id):
         if pil_img.width < 20 or pil_img.height < 20:
             return jsonify({'error': 'Image is too small. Minimum size is 20x20 pixels.'}), 400
         img_np = cv2.cvtColor(np.array(pil_img), cv2.COLOR_RGB2BGR)
+        
+        # ── Multi-Frame Liveness: Parse additional frames (camera path) ──
+        # Cameras can optionally send 'frame_1', 'frame_2', etc. for
+        # micro-movement analysis. Single-frame requests are backward compatible.
+        additional_frames_raw = []
+        if auth_type == 'camera':
+            for key in sorted(request.files.keys()):
+                if key.startswith('frame_') and key != 'image':
+                    try:
+                        frame_file = request.files[key]
+                        frame_pil = Image.open(frame_file.stream).convert('RGB')
+                        frame_np = cv2.cvtColor(np.array(frame_pil), cv2.COLOR_RGB2BGR)
+                        additional_frames_raw.append(frame_np)
+                    except Exception as e:
+                        logger.warning(f"Failed to parse additional frame '{key}': {e}")
+            if additional_frames_raw:
+                logger.info(f"[LIVENESS] Received {len(additional_frames_raw)} additional frames for micro-movement analysis")
         
         # Phase 5: Deep Learning Face Detection (MediaPipe)
         detected_faces_info = face_detector.detect_faces(img_np, profile_only=False)
@@ -1300,9 +1493,56 @@ def predict(org_id):
             face_roi_pil = pil_img.crop((x1, y1, x2, y2))
             face_roi_cv = img_np[y1:y2, x1:x2]
             
-            # Phase 5: Liveness Detection (Anti-Spoofing)
+            # ── Liveness Detection (Anti-Spoofing) ──────────────────────
+            # SECURITY: This gate MUST block ML inference for non-live faces.
+            # A spoof that passes liveness = forged attendance = security breach.
             from liveness import evaluate_liveness
-            is_live, liveness_score, liveness_reason = evaluate_liveness(face_roi_cv)
+            
+            # Extract face ROIs from additional frames for micro-movement analysis
+            additional_face_rois = None
+            if additional_frames_raw:
+                additional_face_rois = []
+                for extra_frame in additional_frames_raw:
+                    ef_h, ef_w = extra_frame.shape[:2]
+                    # Use same bounding box proportionally (frames should be same size)
+                    ef_x1 = max(0, min(x1, ef_w - 1))
+                    ef_y1 = max(0, min(y1, ef_h - 1))
+                    ef_x2 = max(0, min(x2, ef_w))
+                    ef_y2 = max(0, min(y2, ef_h))
+                    if ef_x2 > ef_x1 and ef_y2 > ef_y1:
+                        additional_face_rois.append(extra_frame[ef_y1:ef_y2, ef_x1:ef_x2])
+            
+            is_live, liveness_score, liveness_reason, liveness_details = evaluate_liveness(
+                face_roi_cv, frames=additional_face_rois
+            )
+            
+            if not is_live:
+                # SPOOF DETECTED — skip all ML inference, return rejection
+                logger.warning(f"[LIVENESS] Spoof detected: {liveness_reason}")
+                results.append({
+                    'bbox': {'x': int(x), 'y': int(y), 'w': int(w), 'h': int(h)},
+                    'predictions': {
+                        'sota': {'label': 'SPOOF', 'confidence': 0.0},
+                        'deepface': {'label': 'SPOOF', 'confidence': 0.0, 'confidence_level': 'rejected'}
+                    },
+                    'ensemble': {
+                        'label': 'SPOOF DETECTED',
+                        'confidence': 0.0,
+                        'method': 'liveness_rejection',
+                        'agreement': 'N/A',
+                        'is_recognized': False,
+                        'is_confirmed': False,
+                        'confidence_level': 'rejected',
+                        'display': 'SPOOF DETECTED',
+                    },
+                    'liveness': {
+                        'is_live': False,
+                        'score': float(liveness_score),
+                        'reason': liveness_reason,
+                        'details': liveness_details,
+                    }
+                })
+                continue  # Skip to next face — do NOT run ML inference
             
             # Predict SOTA (guarded — won't crash if model/classes are empty)
             sota_label, sota_conf_val = '[UNTRAINED]', 0.0
@@ -1385,34 +1625,46 @@ def predict(org_id):
                     'is_confirmed': is_confirmed,
                     'confidence_level': 'confirmed' if is_confirmed else 'rejected',
                     'display': display_text,
+                },
+                'liveness': {
+                    'is_live': True,
+                    'score': float(liveness_score),
+                    'reason': liveness_reason,
                 }
             })
             
-        # Store embeddings for feedback tracking
-        for i, result in enumerate(results):
-            pred_id = generate_prediction_id()
-            result['prediction_id'] = pred_id
-            # Store the embedding if we have one (for feedback learning)
-            if i < len(faces):
-                x, y, w, h = faces[i] if isinstance(faces[i], tuple) else (faces[i][0], faces[i][1], faces[i][2], faces[i][3])
-                face_roi_cv = img_np[max(0, y - int(h*0.15)):min(img_np.shape[0], y + h + int(h*0.15)),
-                                     max(0, x - int(w*0.15)):min(img_np.shape[1], x + w + int(w*0.15))]
-                processed = apply_clahe(face_roi_cv)
-                emb = get_embedding(processed)
-                if emb:
-                    ensemble_data = result.get('ensemble', {})
-                    store_prediction_for_feedback(
-                        pred_id,
-                        img_np,
-                        face_roi_cv,
-                        ensemble_data.get('label', 'SPOOF DETECTED'),
-                        ensemble_data.get('confidence', 0.0),
-                        embedding=emb,
-                        org_id=org_id
-                    )
+        # Store embeddings for feedback tracking (SKIP in test mode)
+        if not test_mode:
+            for i, result in enumerate(results):
+                # Skip SPOOF-detected faces — never store spoof embeddings
+                ensemble_data = result.get('ensemble', {})
+                if ensemble_data.get('method') == 'liveness_rejection':
+                    continue
+                    
+                pred_id = generate_prediction_id()
+                result['prediction_id'] = pred_id
+                # Store the embedding if we have one (for feedback learning)
+                if i < len(faces):
+                    x, y, w, h = faces[i] if isinstance(faces[i], tuple) else (faces[i][0], faces[i][1], faces[i][2], faces[i][3])
+                    face_roi_cv = img_np[max(0, y - int(h*0.15)):min(img_np.shape[0], y + h + int(h*0.15)),
+                                         max(0, x - int(w*0.15)):min(img_np.shape[1], x + w + int(w*0.15))]
+                    processed = apply_clahe(face_roi_cv)
+                    emb = get_embedding(processed)
+                    if emb:
+                        store_prediction_for_feedback(
+                            pred_id,
+                            img_np,
+                            face_roi_cv,
+                            ensemble_data.get('label', 'SPOOF DETECTED'),
+                            ensemble_data.get('confidence', 0.0),
+                            embedding=emb,
+                            org_id=org_id
+                        )
 
-        # Log to recognition history
-        log_recognition(results, org_id)
+            # Log to recognition history (SKIP in test mode)
+            log_recognition(results, org_id)
+        else:
+            logger.info(f"[TEST MODE] Skipped log_recognition and feedback storage for {len(results)} result(s).")
             
         return jsonify({'faces': results, 'message': message})
     except Exception as e:
@@ -2026,6 +2278,14 @@ if __name__ == '__main__':
         local_ip = "127.0.0.1"
 
     port = 5000
+    
+    # ── Load Anti-Spoof CNN (if trained weights exist) ──
+    try:
+        from antispoof_model import load_antispoof_model
+        load_antispoof_model()
+    except Exception as e:
+        print(f"  [INFO] Anti-spoof CNN not loaded: {e}")
+    
     print(f"\n{'='*50}")
     print(f"  RMS Face AI - API Server")
     print(f"{'='*50}")

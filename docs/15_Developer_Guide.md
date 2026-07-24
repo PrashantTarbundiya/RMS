@@ -1,84 +1,188 @@
 # 15 Developer Guide
 
-Welcome to the RMS Face AI repository! This guide provides everything a new engineer needs to clone, test, and contribute to the system.
+Welcome to the RMS Face AI repository! This guide provides everything a new engineer needs to clone, configure, and contribute to the system.
+
+## Prerequisites
+- **Python 3.10+** (3.12 recommended)
+- **Node.js 18+** with npm
+- **PostgreSQL 14+** (optional — only for multi-tenant cloud mode)
+- **Git**
+
+---
 
 ## Setup & Installation
 
-### 1. Cloning the Repository
+### 1. Clone the Repository
 ```bash
 git clone https://github.com/your-org/rms-face-ai.git
 cd rms-face-ai
 ```
 
 ### 2. Quick Start (Windows)
-The repository includes an automated batch script that handles environment creation, dependency installation, and server launching.
 ```bash
 .\start.bat
 ```
-*(This will launch the Flask API on port 5000 and the Vite Frontend on port 5173).*
+This automatically creates a Python venv, installs dependencies, and launches Flask (port 5000) + Vite (port 5173).
 
-### 3. Manual Installation (macOS/Linux)
-If you are developing on a Unix-based system, follow these steps:
+### 3. Manual Installation
+
+#### Backend Setup
 ```bash
-# Setup Backend
 cd backend
-python3 -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
-python server.py
+python -m venv venv
 
-# Setup Frontend (in a new terminal)
+# Windows
+.\venv\Scripts\activate
+# macOS/Linux
+source venv/bin/activate
+
+pip install -r requirements.txt
+```
+
+#### Environment Configuration
+Copy the example environment file and configure:
+```bash
+cp .env.example .env
+```
+
+**For Local/Demo Mode** (no database required):
+```env
+DEPLOYMENT_MODE=local
+SECRET_KEY=your-random-secret-key
+JWT_SECRET_KEY=your-jwt-secret-key
+LAZY_LOAD_MODELS=true
+```
+
+**For Cloud/Multi-Tenant Mode** (PostgreSQL required):
+```env
+DEPLOYMENT_MODE=cloud
+DATABASE_URL=postgresql://user:password@localhost:5432/rms_faceai
+SECRET_KEY=your-random-secret-key
+JWT_SECRET_KEY=your-jwt-secret-key
+FRONTEND_URL=http://localhost:5173
+LAZY_LOAD_MODELS=true
+```
+
+#### Database Setup (Cloud Mode Only)
+```bash
+cd backend
+alembic upgrade head
+```
+This creates all 8 tables (organizations, users, employees, cameras, attendance_logs, feedback_logs, subscriptions, consent_records).
+
+#### Start the Backend
+```bash
+python server.py
+```
+
+#### Frontend Setup
+```bash
 cd frontend
 npm install
 npm run dev
 ```
 
 ### 4. Running the Mobile App
-You must have the Expo Go app installed on your physical smartphone.
+Install the Expo Go app on your smartphone.
 ```bash
 cd mobile
 npm install
 npx expo start
 ```
-Press `w` to open in a web simulator, or scan the QR code with your phone.
+Press `w` for web simulator or scan the QR code with your phone.
+
+**Important:** Update the API base URL in `mobile/src/services/api.js` to your computer's local IP (e.g., `http://192.168.1.50:5000/api`).
+
+---
+
+## Authentication for Development
+
+### Local Mode
+In local mode (`DEPLOYMENT_MODE=local`), authentication is bypassed. All middleware decorators act as passthroughs, granting `org_admin` access. You can access all pages without logging in.
+
+### Cloud Mode
+1. Start the server with `DATABASE_URL` configured.
+2. Navigate to `http://localhost:5173/register` to create your organization and admin account.
+3. Login at `http://localhost:5173/login`.
+4. JWT tokens are automatically managed by the `AuthContext`.
+
+---
 
 ## Folder Conventions & Architecture
-Always respect the strict decoupling of the architecture:
-- Do NOT place database logic in `server.py`. Use the utility files in `/backend`.
-- Do NOT place heavy CSS in React files. Use CSS Variables in `/frontend/src/index.css`.
-- ML Model edits belong strictly in `/backend/models`.
+Always respect the strict decoupling:
+- **Database logic** → `database/models.py` and `database/db.py`. Never put raw SQL in `server.py`.
+- **Authentication** → `auth.py` and `middleware.py`. Never validate tokens in route handlers directly.
+- **Multi-tenant paths** → Always use `org_storage.py` helpers. Never hardcode file paths.
+- **Styling** → Use CSS Variables in `index.css`. Never use inline styles or hardcoded hex values in React components.
+- **ML Models** → `models/` directory. Never modify model architecture in `server.py`.
 
-## Coding Standards & Naming Conventions
-- **Python:** PEP 8 compliance. Use `snake_case` for variables/functions and `PascalCase` for PyTorch classes. Use docstrings `""" """` for all major functions.
-- **JavaScript (React):** `PascalCase` for components (e.g., `LiveAttendancePage.jsx`). Functional components with Hooks only. No Class components.
-- **CSS:** Use descriptive semantic variable names (e.g., `var(--bg-card)`) rather than hardcoded hex values.
+## Coding Standards
+
+### Python (PEP 8)
+- `snake_case` for variables and functions.
+- `PascalCase` for classes (SQLAlchemy models, PyTorch modules).
+- Docstrings `""" """` for all major functions.
+- Type hints encouraged for function signatures.
+
+### JavaScript (React)
+- `PascalCase` for components (e.g., `LiveAttendancePage.jsx`).
+- Functional components with Hooks only — no Class components.
+- Destructure props. Use `useCallback` for stable function references.
+
+### CSS
+- Use semantic CSS variable names (e.g., `var(--bg-card)`, `var(--border)`).
+- Never use hardcoded hex values directly in component styles.
+- Glassmorphism utilities: `.liquid-glass`, `.liquid-glass-strong`, `.liquid-glass-subtle`.
+
+---
 
 ## Branch Strategy
 - `main`: Production-ready code. Must always be deployable.
-- `develop`: Staging area for integration.
-- `feature/<name>`: For implementing new components or models (e.g., `feature/jwt-auth`).
-- `bugfix/<name>`: For patching critical errors (e.g., `bugfix/camera-crash`).
+- `develop`: Staging area for integration testing.
+- `feature/<name>`: New components or features (e.g., `feature/stripe-billing`).
+- `bugfix/<name>`: Critical error patches (e.g., `bugfix/camera-crash`).
+
+---
 
 ## Common Errors & Debugging
 
-**Error:** `500 Internal Server Error` on Mobile App.
-**Fix:** The mobile app's `api.js` is likely pointing to the wrong IP address. Find your local IP (e.g., `192.168.1.10`) and update it, ensuring your firewall is not blocking Port `5000`.
+### `401 Unauthorized` on all API calls
+**Fix:** You're in cloud mode but haven't registered/logged in. Go to `/register` to create an account, or switch to `DEPLOYMENT_MODE=local` for no-auth development.
 
-**Error:** `RuntimeError: CUDA out of memory.`
-**Fix:** The PyTorch batch size during retraining is too high for your GPU. Decrease it in `sota_finetune/finetune.py`.
+### `[UNTRAINED]` showing in Test Console
+**Fix:** The SOTA MobileNetV2 model hasn't been trained yet for this organization. Go to the Training page and run a retraining cycle. The DeepFace KNN system will still work for recognition in the meantime.
 
-**Error:** "Unsupported file type" during upload.
-**Fix:** Ensure the frontend/mobile client is explicitly passing `.jpg` or `.png` in the `FormData` filename field.
+### `500 Internal Server Error` on Mobile App
+**Fix:** The mobile app's `api.js` is pointing to the wrong IP. Find your local IP (e.g., `ipconfig` on Windows) and update it. Ensure your firewall allows Port `5000`.
+
+### `CORS Error` in browser console
+**Fix:** Set `FRONTEND_URL=http://localhost:5173` in your `.env` file. In production, this must match your exact Vercel/deployment URL.
+
+### `alembic upgrade head` fails
+**Fix:** Ensure `DATABASE_URL` is set in `.env` and the PostgreSQL server is running. Check that the database exists and the user has CREATE TABLE permissions.
+
+### Out of memory during training
+**Fix:** Decrease batch size in `models/sota_finetune/finetune.py`. On free cloud tiers, set `LAZY_LOAD_MODELS=true` and keep epoch count low (5-10).
+
+---
 
 ## How to Add a Feature
-1. **Plan:** Read `01_Architecture.md` to determine which layers (ML, Backend, UI) are affected.
-2. **Backend First:** Implement the logic in Python and expose it via a new `@app.route` in `server.py`.
-3. **Test API:** Use Postman or cURL to verify the JSON output.
-4. **Frontend Integration:** Create or update a React component in `/frontend/src/components` to call the new endpoint using Axios.
-5. **Mobile Parity:** If applicable, replicate the UI component in the `/mobile` directory.
+1. **Read Docs:** Review `01_Architecture.md` to understand which layers are affected.
+2. **Database (if needed):** Add SQLAlchemy model in `database/models.py`, generate Alembic migration.
+3. **Backend:** Implement logic in a service file, expose via `@app.route` in `server.py` with proper auth decorators.
+4. **Test API:** Use Postman or cURL with a valid JWT Bearer token.
+5. **Frontend:** Create/update React component, use `apiClient` from `AuthContext` for authenticated requests.
+6. **Mobile (if applicable):** Replicate in `/mobile`.
+
+---
 
 ## Deployment Checklist
-Before pushing to `main` for a cloud deployment (Render/AWS):
-- [ ] Run `npm run build` in `/frontend` to verify Vite compiles without minification errors.
-- [ ] Verify `FRONTEND_URL` is configured correctly for CORS in the environment settings.
-- [ ] Ensure all API endpoints still function under expected network latencies.
+Before pushing to `main` for production:
+- [ ] Run `npm run build` in `/frontend` — verify Vite compiles without errors.
+- [ ] Run `python -m py_compile server.py` — verify no Python syntax errors.
+- [ ] Run `alembic upgrade head` — verify migrations apply cleanly.
+- [ ] Verify `FRONTEND_URL` is configured for CORS.
+- [ ] Verify `JWT_SECRET_KEY` is a strong random string (not the default).
+- [ ] Verify `LAZY_LOAD_MODELS=true` if deploying to memory-constrained environments.
+- [ ] Test login/register flow end-to-end.
+- [ ] Test `/api/predict` with both JWT and API key authentication.
