@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { User, Mail, Shield, Building, Cpu, Database, Server, BarChart3, Image as ImageIcon, RefreshCw, Download, Upload, RotateCcw, CheckCircle, AlertTriangle, Info, Package } from 'lucide-react';
+import { User, Mail, Shield, Building, Cpu, Database, Server, BarChart3, Image as ImageIcon, RefreshCw, Download, Upload, RotateCcw, CheckCircle, AlertTriangle, Info, Package, Bell } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { API_BASE } from '../config';
 
@@ -19,6 +19,11 @@ export default function ProfilePage() {
   const [updateMessage, setUpdateMessage] = useState(null);
   const fileInputRef = useRef(null);
   const isAdmin = user?.role && ADMIN_ROLES.includes(user.role);
+
+  // Notification preferences state
+  const [notifPrefs, setNotifPrefs] = useState(null);
+  const [notifSaving, setNotifSaving] = useState(false);
+  const [notifMessage, setNotifMessage] = useState(null);
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -42,6 +47,17 @@ export default function ProfilePage() {
       }
     };
     fetchSysInfo();
+
+    // Fetch notification preferences
+    const fetchNotifPrefs = async () => {
+      try {
+        const res = await apiClient.get(`${API_BASE}/notifications/preferences`);
+        setNotifPrefs(res.data);
+      } catch (err) {
+        // May not be available in single-tenant mode
+      }
+    };
+    fetchNotifPrefs();
   }, [apiClient]);
 
   const containerVariants = {
@@ -166,6 +182,83 @@ export default function ProfilePage() {
                 <div>
                   <div className="text-[10px] text-ink-tertiary uppercase tracking-wider font-semibold">Total Photo Samples</div>
                   <div className="text-lg font-mono font-medium text-ink mt-0.5">{stats.total_photos}</div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Notification Preferences Card */}
+          {notifPrefs && (
+            <div className="card-linear p-0 bg-[#0F1011] border-[#23252A]">
+              <div className="p-4 border-b border-[#23252A] flex items-center gap-2">
+                <Bell size={16} className="text-primary" />
+                <span className="text-sm font-semibold text-ink">Notification Preferences</span>
+              </div>
+              <div className="p-4 space-y-3">
+                {[
+                  { key: 'unknown_face_alert', label: 'Unknown Face Alerts', desc: 'Alert when unrecognized faces are detected' },
+                  { key: 'camera_offline_alert', label: 'Camera Offline Alerts', desc: 'Alert when a camera goes offline' },
+                  { key: 'model_stale_alert', label: 'Model Training Reminders', desc: 'Remind when model needs retraining' },
+                  { key: 'db_unreachable_alert', label: 'Database Alerts', desc: 'Alert when database connection is lost' },
+                  { key: 'daily_summary', label: 'Daily Attendance Summary', desc: 'Receive daily attendance report email' },
+                ].map(item => (
+                  <div key={item.key} className="flex items-center justify-between py-1">
+                    <div>
+                      <div className="text-sm text-ink">{item.label}</div>
+                      <div className="text-xs text-ink-subtle">{item.desc}</div>
+                    </div>
+                    <button
+                      onClick={async () => {
+                        const updated = { ...notifPrefs, [item.key]: !notifPrefs[item.key] };
+                        setNotifPrefs(updated);
+                        try {
+                          await apiClient.post(`${API_BASE}/notifications/preferences`, updated);
+                        } catch (err) {
+                          setNotifPrefs(notifPrefs); // rollback
+                        }
+                      }}
+                      className={`relative w-10 h-5 rounded-full transition-colors ${
+                        notifPrefs[item.key] ? 'bg-primary' : 'bg-[#333]'
+                      }`}
+                    >
+                      <span className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform ${
+                        notifPrefs[item.key] ? 'translate-x-5' : 'translate-x-0'
+                      }`} />
+                    </button>
+                  </div>
+                ))}
+
+                <div className="border-t border-[#23252A] pt-3 mt-3">
+                  <div className="text-xs text-ink-subtle font-semibold uppercase mb-2">Delivery Channels</div>
+                  {[
+                    { key: 'channel_email', label: 'Email', desc: 'Receive alerts via email' },
+                    { key: 'channel_webhook', label: 'Webhook (Slack/Teams)', desc: 'Send alerts to a webhook URL' },
+                  ].map(item => (
+                    <div key={item.key} className="flex items-center justify-between py-1">
+                      <div>
+                        <div className="text-sm text-ink">{item.label}</div>
+                        <div className="text-xs text-ink-subtle">{item.desc}</div>
+                      </div>
+                      <button
+                        onClick={async () => {
+                          const updated = { ...notifPrefs, [item.key]: !notifPrefs[item.key] };
+                          setNotifPrefs(updated);
+                          try {
+                            await apiClient.post(`${API_BASE}/notifications/preferences`, updated);
+                          } catch (err) {
+                            setNotifPrefs(notifPrefs);
+                          }
+                        }}
+                        className={`relative w-10 h-5 rounded-full transition-colors ${
+                          notifPrefs[item.key] ? 'bg-primary' : 'bg-[#333]'
+                        }`}
+                      >
+                        <span className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform ${
+                          notifPrefs[item.key] ? 'translate-x-5' : 'translate-x-0'
+                        }`} />
+                      </button>
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>

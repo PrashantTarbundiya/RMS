@@ -21,20 +21,30 @@ import logging
 
 logger = logging.getLogger('rms-liveness')
 
-# ─── Thresholds (tightened for production hardening) ────────────────────
-# Each check has its own threshold. A face must pass ALL checks to be live.
+# ─── Thresholds (calibrated for real webcam/phone cameras) ──────────────
+# Previously these were too aggressive and caused real faces to be rejected.
+# Now calibrated to reject obvious spoofs while accepting live webcam input.
 
-LAPLACIAN_THRESHOLD = 80.0       # Minimum edge density (was 30.0, tightened)
-BRIGHT_RATIO_THRESHOLD = 0.05    # Max fraction of blown-out pixels (was 0.10, tightened)
-SAT_VARIANCE_THRESHOLD = 15.0    # Min std-dev of HSV Saturation channel
-HUE_VARIANCE_THRESHOLD = 10.0    # Min std-dev of HSV Hue channel
-MOIRE_PEAK_THRESHOLD = 0.35      # Max ratio of energy in high-freq FFT band
+LAPLACIAN_THRESHOLD = 15.0       # Minimum edge density — webcams often have 20-100
+BRIGHT_RATIO_THRESHOLD = 0.25    # Max fraction of blown-out pixels — glasses/forehead reflect
+SAT_VARIANCE_THRESHOLD = 8.0     # Min std-dev of HSV Saturation — indoor lighting is low
+HUE_VARIANCE_THRESHOLD = 5.0     # Min std-dev of HSV Hue — uniform lighting is common
+MOIRE_PEAK_THRESHOLD = 0.45      # Max moiré periodicity score — only flag real screens
 MICRO_MOVEMENT_THRESHOLD = 2.0   # Min pixel displacement across multi-frame
+
+# Minimum number of FAILED checks required to declare spoof
+# (voting system — a single borderline check doesn't reject)
+MIN_FAILED_CHECKS_FOR_SPOOF = 2
 
 
 def evaluate_liveness(face_roi_bgr, threshold=None, frames=None):
     """
     Evaluates the liveness of a face ROI using multiple anti-spoofing checks.
+
+    Uses a VOTING system: the face is rejected only if at least
+    MIN_FAILED_CHECKS_FOR_SPOOF checks fail. This prevents false
+    rejections from a single borderline heuristic while still catching
+    obvious presentation attacks (printed photos, screen replays).
 
     Args:
         face_roi_bgr: BGR numpy array of the cropped face region.
@@ -44,14 +54,15 @@ def evaluate_liveness(face_roi_bgr, threshold=None, frames=None):
 
     Returns:
         (is_live: bool, liveness_score: float, reason: str, details: dict)
-        
-    Security: FAIL-CLOSED — any error or ambiguity returns is_live=False.
+
+    Security: FAIL-CLOSED on errors. Voting on normal operation.
     """
     if face_roi_bgr is None or face_roi_bgr.size == 0:
         return False, 0.0, "Invalid face ROI", {}
 
     lap_threshold = threshold if threshold is not None else LAPLACIAN_THRESHOLD
     details = {}
+    failed_checks = []
 
     try:
         gray = cv2.cvtColor(face_roi_bgr, cv2.COLOR_BGR2GRAY)
@@ -69,13 +80,12 @@ def evaluate_liveness(face_roi_bgr, threshold=None, frames=None):
         details['laplacian_threshold'] = lap_threshold
 
         if laplacian_var < lap_threshold:
-            return (False, float(laplacian_var),
-                    f"Failed edge density test (Variance: {laplacian_var:.2f} < {lap_threshold})",
-                    details)
+            failed_checks.append(
+                f"Failed edge density (Variance: {laplacian_var:.2f} < {lap_threshold})"
+            )
 
         # ── Check 2: Specular Glare Detection ───────────────────────────
         # Phone/tablet glass produces specular highlights (bright spots).
-        # Real skin rarely has >5% of pixels at near-white intensity.
         hist = cv2.calcHist([gray], [0], None, [256], [0, 256])
         bright_pixels = float(np.sum(hist[240:]))
         total_pixels = float(h * w)
@@ -84,14 +94,12 @@ def evaluate_liveness(face_roi_bgr, threshold=None, frames=None):
         details['bright_threshold'] = BRIGHT_RATIO_THRESHOLD
 
         if bright_ratio > BRIGHT_RATIO_THRESHOLD:
-            return (False, float(laplacian_var),
-                    f"Failed glare test (Bright Ratio: {bright_ratio:.2%} > {BRIGHT_RATIO_THRESHOLD:.2%})",
-                    details)
+            failed_checks.append(
+                f"Failed glare test (Bright Ratio: {bright_ratio:.2%} > {BRIGHT_RATIO_THRESHOLD:.2%})"
+            )
 
         # ── Check 3: Color Variance Analysis (HSV) ──────────────────────
-        # Real faces have natural sub-surface scattering producing high
-        # variance in saturation and hue. Printed photos and screen displays
-        # have more compressed, uniform color reproduction.
+        # Real faces have natural variance in saturation and hue.
         hsv = cv2.cvtColor(face_roi_bgr, cv2.COLOR_BGR2HSV)
         sat_std = float(np.std(hsv[:, :, 1]))
         hue_std = float(np.std(hsv[:, :, 0]))
@@ -101,40 +109,33 @@ def evaluate_liveness(face_roi_bgr, threshold=None, frames=None):
         details['hue_threshold'] = HUE_VARIANCE_THRESHOLD
 
         if sat_std < SAT_VARIANCE_THRESHOLD and hue_std < HUE_VARIANCE_THRESHOLD:
-            return (False, float(laplacian_var),
-                    f"Failed color variance test (Sat σ: {sat_std:.2f}, Hue σ: {hue_std:.2f})",
-                    details)
+            failed_checks.append(
+                f"Failed color variance (Sat σ: {sat_std:.2f}, Hue σ: {hue_std:.2f})"
+            )
 
         # ── Check 4: Moiré / Screen FFT Detection ──────────────────────
-        # LCD/OLED screens have a sub-pixel RGB grid that produces periodic
-        # peaks in the high-frequency band of the 2D FFT magnitude spectrum.
-        # Real faces do not have this periodic structure.
         moire_score = _detect_moire_pattern(gray)
         details['moire_score'] = round(moire_score, 4)
         details['moire_threshold'] = MOIRE_PEAK_THRESHOLD
 
         if moire_score > MOIRE_PEAK_THRESHOLD:
-            return (False, float(laplacian_var),
-                    f"Failed moiré/screen detection (Score: {moire_score:.4f} > {MOIRE_PEAK_THRESHOLD})",
-                    details)
+            failed_checks.append(
+                f"Failed moiré/screen detection (Score: {moire_score:.4f} > {MOIRE_PEAK_THRESHOLD})"
+            )
 
         # ── Check 5: Multi-frame Micro-movement (optional) ─────────────
-        # If multiple frames are provided, check for natural micro-movement.
-        # A completely static face across frames indicates a photo/screen.
         if frames and len(frames) >= 2:
             movement = _check_micro_movement(face_roi_bgr, frames)
             details['micro_movement'] = round(movement, 2)
             details['movement_threshold'] = MICRO_MOVEMENT_THRESHOLD
-            details['frames_analyzed'] = len(frames) + 1  # includes primary frame
+            details['frames_analyzed'] = len(frames) + 1
 
             if movement < MICRO_MOVEMENT_THRESHOLD:
-                return (False, float(laplacian_var),
-                        f"Failed micro-movement test (Movement: {movement:.2f}px < {MICRO_MOVEMENT_THRESHOLD}px)",
-                        details)
+                failed_checks.append(
+                    f"Failed micro-movement (Movement: {movement:.2f}px < {MICRO_MOVEMENT_THRESHOLD}px)"
+                )
+
         # ── Check 6: Anti-Spoof CNN Vote (if model is available) ──────
-        # An independent learned classifier trained on real/spoof datasets.
-        # Runs alongside classical checks, not as a replacement.
-        # If model is not loaded, graceful degradation to classical-only.
         try:
             from antispoof_model import predict_antispoof, is_antispoof_model_available
             if is_antispoof_model_available():
@@ -145,20 +146,32 @@ def evaluate_liveness(face_roi_bgr, threshold=None, frames=None):
                     'available': cnn_available,
                 }
                 if not cnn_is_real:
-                    return (False, float(laplacian_var),
-                            f"Failed anti-spoof CNN check (Confidence: {cnn_confidence:.4f})",
-                            details)
+                    failed_checks.append(
+                        f"Failed anti-spoof CNN (Confidence: {cnn_confidence:.4f})"
+                    )
         except ImportError:
             pass  # Module not available — classical checks remain active
 
-        # ── All checks passed ──────────────────────────────────────────
-        # Composite liveness score: weighted combination of all signals
+        # ── Voting Decision ─────────────────────────────────────────────
+        details['failed_checks'] = failed_checks
+        details['failed_count'] = len(failed_checks)
+        details['min_failed_for_spoof'] = MIN_FAILED_CHECKS_FOR_SPOOF
+
         composite_score = _compute_composite_score(
             laplacian_var, lap_threshold,
             bright_ratio, sat_std, hue_std, moire_score
         )
         details['composite_score'] = round(composite_score, 2)
 
+        if len(failed_checks) >= MIN_FAILED_CHECKS_FOR_SPOOF:
+            # Multiple checks failed — likely a spoof
+            reason = f"Spoof: {len(failed_checks)} checks failed — {'; '.join(failed_checks[:3])}"
+            logger.warning(f"[LIVENESS] {reason}")
+            return False, composite_score, reason, details
+
+        # Passed — either all checks passed, or only 1 borderline check failed
+        if failed_checks:
+            logger.info(f"[LIVENESS] Passed with warnings: {failed_checks}")
         return True, composite_score, "Pass", details
 
     except Exception as e:

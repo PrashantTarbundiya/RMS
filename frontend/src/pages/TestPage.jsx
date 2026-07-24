@@ -649,17 +649,25 @@ export default function TestPage() {
                 >
                   Webcam
                 </button>
+                <button 
+                  onClick={() => { stopWebcam(); setMode('group'); setResults(null); setError(''); }}
+                  className={`h-7 px-3 text-caption rounded-md transition-all ${
+                    mode === 'group' ? 'bg-[#141516] text-ink font-medium' : 'text-ink-tertiary hover:text-ink-subtle'
+                  }`}
+                >
+                  Group
+                </button>
              </div>
           </div>
           <div className="p-6 flex-1 flex flex-col">
 
             <div 
               onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
-              onDragEnter={(e) => { e.preventDefault(); e.stopPropagation(); if (mode === 'upload') setIsDragActive(true); }}
+              onDragEnter={(e) => { e.preventDefault(); e.stopPropagation(); if (mode === 'upload' || mode === 'group') setIsDragActive(true); }}
               onDragLeave={(e) => { e.preventDefault(); e.stopPropagation(); setIsDragActive(false); }}
               onDrop={(e) => {
                 e.preventDefault(); e.stopPropagation(); setIsDragActive(false);
-                if (mode === 'upload' && e.dataTransfer.files && e.dataTransfer.files[0]) {
+                if ((mode === 'upload' || mode === 'group') && e.dataTransfer.files && e.dataTransfer.files[0]) {
                   const selectedFile = e.dataTransfer.files[0];
                   if (selectedFile.type.startsWith('image/')) {
                     setFile(selectedFile); setResults(null); setError('');
@@ -816,7 +824,7 @@ export default function TestPage() {
             </div>
 
             <div className="mt-6">
-               {mode === 'upload' ? (
+               {(mode === 'upload' || mode === 'group') ? (
                  <button 
                    className="w-full button-primary flex items-center justify-center gap-2 h-10"
                    onClick={runPrediction} 
@@ -842,9 +850,43 @@ export default function TestPage() {
         {/* Results Block */}
         <div className="card-linear p-0 overflow-hidden flex flex-col bg-[#0F1011] border-[#23252A]">
           <div className="py-4 px-6 border-b border-[#23252A] bg-[#0F1011]">
-            <h3 className="text-body font-medium text-ink">Telemetry & Results</h3>
+            <h3 className="text-body font-medium text-ink">
+              {mode === 'group' ? 'Group Recognition Results' : 'Telemetry & Results'}
+            </h3>
           </div>
           <div className="p-6 flex-1 flex flex-col">
+
+            {/* Group Photo Summary Banner */}
+            {mode === 'group' && results?.faces && results.faces.length > 0 && (
+              <div className="mb-4 p-4 bg-[#010102]/60 rounded-lg border border-[#23252A]">
+                <div className="flex gap-4 flex-wrap">
+                  <div className="text-center flex-1 min-w-[80px]">
+                    <div className="text-2xl font-bold text-[#60a5fa]">{results.faces.length}</div>
+                    <div className="text-[10px] uppercase tracking-wider text-ink-subtle">Faces Found</div>
+                  </div>
+                  <div className="text-center flex-1 min-w-[80px]">
+                    <div className="text-2xl font-bold text-[#4ade80]">
+                      {results.faces.filter(f => {
+                        const label = f.predictions?.sota?.label;
+                        const conf = f.predictions?.sota?.confidence || 0;
+                        return label && label !== 'Unknown' && label !== 'SPOOF DETECTED' && conf > 0.6;
+                      }).length}
+                    </div>
+                    <div className="text-[10px] uppercase tracking-wider text-ink-subtle">Recognized</div>
+                  </div>
+                  <div className="text-center flex-1 min-w-[80px]">
+                    <div className="text-2xl font-bold text-[#f87171]">
+                      {results.faces.filter(f => {
+                        const label = f.predictions?.sota?.label;
+                        const conf = f.predictions?.sota?.confidence || 0;
+                        return !label || label === 'Unknown' || conf <= 0.6;
+                      }).length}
+                    </div>
+                    <div className="text-[10px] uppercase tracking-wider text-ink-subtle">Unknown</div>
+                  </div>
+                </div>
+              </div>
+            )}
             
             <div className="flex gap-6 p-4 bg-[#010102]/40 rounded-lg border border-[#23252A] mb-6 items-center">
                 <div className="flex items-center gap-2">

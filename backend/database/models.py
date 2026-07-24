@@ -152,6 +152,32 @@ class User(Base):
 
 
 # ──────────────────────────────────────────────────────────────────────
+# RevokedToken — Token Blocklist for Session Revocation
+# ──────────────────────────────────────────────────────────────────────
+
+class RevokedToken(Base):
+    """
+    Blocklist for revoked refresh tokens.
+    Checked on every /api/auth/refresh call.
+    Entries are cleaned up periodically (tokens expire after 7 days anyway).
+    """
+    __tablename__ = "revoked_tokens"
+
+    id = Column(String(36), primary_key=True, default=_uuid)
+    jti = Column(String(64), nullable=False, unique=True, index=True)  # JWT ID (token hash)
+    user_id = Column(String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    revoked_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    reason = Column(String(100), nullable=True)  # "manual", "logout_all", "admin_action"
+
+    __table_args__ = (
+        Index("ix_revoked_user_time", "user_id", "revoked_at"),
+    )
+
+    def __repr__(self):
+        return f"<RevokedToken jti={self.jti[:8]} user={self.user_id[:8]}>"
+
+
+# ──────────────────────────────────────────────────────────────────────
 # Employee — Faces Enrolled for Recognition
 # ──────────────────────────────────────────────────────────────────────
 
@@ -369,3 +395,26 @@ class SystemInfo(Base):
     def __repr__(self):
         return f"<SystemInfo v{self.app_version}>"
 
+
+# ──────────────────────────────────────────────────────────────────────
+# NotificationPreference — Per-User Alert Settings
+# ──────────────────────────────────────────────────────────────────────
+
+class NotificationPreference(Base):
+    """
+    Per-user notification preferences.
+    Stores a JSON blob of which alerts to receive and via which channels.
+    """
+    __tablename__ = "notification_preferences"
+
+    id = Column(String(36), primary_key=True, default=_uuid)
+    user_id = Column(String(36), ForeignKey("users.id", ondelete="CASCADE"),
+                     nullable=False, unique=True, index=True)
+    org_id = Column(String(36), ForeignKey("organizations.id", ondelete="CASCADE"),
+                    nullable=False, index=True)
+    preferences = Column(Text, nullable=False, default='{}')  # JSON blob
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc),
+                        onupdate=lambda: datetime.now(timezone.utc))
+
+    def __repr__(self):
+        return f"<NotificationPreference user={self.user_id[:8]}>"

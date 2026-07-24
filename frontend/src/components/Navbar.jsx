@@ -1,8 +1,18 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { NavLink, Link } from 'react-router-dom';
-import { Activity, Box, Video, Home, Upload, ClipboardList, Radio, Settings, LogOut, Users, User, Menu, X, Terminal } from 'lucide-react';
+import { Activity, Box, Video, Home, Upload, ClipboardList, Radio, Settings, LogOut, Users, User, Menu, X, Terminal, Shield, Monitor, BarChart3 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
+
+// Role hierarchy: platform_owner > org_admin > manager > viewer > kiosk
+const ROLE_HIERARCHY = ['platform_owner', 'org_admin', 'manager', 'viewer', 'kiosk'];
+
+function hasRole(userRole, minRole) {
+  const userIdx = ROLE_HIERARCHY.indexOf(userRole);
+  const minIdx = ROLE_HIERARCHY.indexOf(minRole);
+  if (userIdx === -1 || minIdx === -1) return false;
+  return userIdx <= minIdx; // Lower index = higher privilege
+}
 
 export function Navbar() {
   const { user, logout } = useAuth();
@@ -18,17 +28,29 @@ export function Navbar() {
       return next;
     });
   };
-  
-  const navItems = [
-    { to: '/dashboard', label: 'Dashboard', icon: Activity },
-    { to: '/attendance', label: 'Attendance', icon: ClipboardList, end: true },
-    { to: '/attendance/live', label: 'Live Site', icon: Radio },
-    { to: '/upload', label: 'Upload', icon: Upload },
-    { to: '/test', label: 'Test Camera', icon: Video },
-    { to: '/logs', label: 'Live Logs', icon: Terminal },
-    { to: '/profile', label: 'Profile', icon: User },
-    { to: '/models', label: 'Settings', icon: Settings },
+
+  const userRole = user?.role || 'viewer';
+
+  // Nav items with minimum required role
+  const allNavItems = [
+    { to: '/dashboard', label: 'Dashboard', icon: Activity, minRole: 'viewer' },
+    { to: '/attendance', label: 'Attendance', icon: ClipboardList, end: true, minRole: 'viewer' },
+    { to: '/attendance/live', label: 'Live Site', icon: Radio, minRole: 'viewer' },
+    { to: '/upload', label: 'Upload', icon: Upload, minRole: 'org_admin' },
+    { to: '/test', label: 'Test Camera', icon: Video, minRole: 'manager' },
+    { to: '/mosaic', label: 'Camera Mosaic', icon: Monitor, minRole: 'manager' },
+    { to: '/logs', label: 'Live Logs', icon: Terminal, minRole: 'manager' },
+    { to: '/analytics', label: 'Analytics', icon: BarChart3, minRole: 'org_admin' },
+    { to: '/audit', label: 'Audit Logs', icon: Shield, minRole: 'org_admin' },
+    { to: '/profile', label: 'Profile', icon: User, minRole: 'viewer' },
+    { to: '/models', label: 'Settings', icon: Settings, minRole: 'org_admin' },
   ];
+
+  const navItems = useMemo(
+    () => allNavItems.filter(item => hasRole(userRole, item.minRole)),
+    [userRole]
+  );
+
 
   return (
     <>

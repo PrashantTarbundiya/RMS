@@ -16,6 +16,9 @@ import AttendancePage from './pages/AttendancePage'
 import LiveAttendancePage from './pages/LiveAttendancePage'
 import ProfilePage from './pages/ProfilePage'
 import LogsPage from './pages/LogsPage'
+import AuditLogsPage from './pages/AuditLogsPage'
+import MosaicPage from './pages/MosaicPage'
+import AnalyticsPage from './pages/AnalyticsPage'
 import { AnimatePresence, motion } from 'framer-motion'
 
 /**
@@ -87,6 +90,9 @@ function AnimatedRoutes() {
         <Route path="/training" element={<ProtectedRoute><PageWrapper><TrainingPage /></PageWrapper></ProtectedRoute>} />
         <Route path="/models" element={<ProtectedRoute><PageWrapper><ModelsPage /></PageWrapper></ProtectedRoute>} />
         <Route path="/logs" element={<ProtectedRoute><PageWrapper><LogsPage /></PageWrapper></ProtectedRoute>} />
+        <Route path="/audit" element={<ProtectedRoute><PageWrapper><AuditLogsPage /></PageWrapper></ProtectedRoute>} />
+        <Route path="/mosaic" element={<ProtectedRoute><PageWrapper><MosaicPage /></PageWrapper></ProtectedRoute>} />
+        <Route path="/analytics" element={<ProtectedRoute><PageWrapper><AnalyticsPage /></PageWrapper></ProtectedRoute>} />
         <Route path="/support" element={<ProtectedRoute><PageWrapper><SupportPage /></PageWrapper></ProtectedRoute>} />
         <Route path="/profile" element={<ProtectedRoute><PageWrapper><ProfilePage /></PageWrapper></ProtectedRoute>} />
         <Route path="*" element={<Navigate to="/" replace />} />

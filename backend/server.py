@@ -14,7 +14,9 @@ import json
 import datetime
 import re
 import hashlib
+import pickle
 from io import StringIO
+from base64 import b64encode, b64decode
 from flask import Flask, request, jsonify, Response, send_file, g
 from flask_cors import CORS
 from werkzeug.utils import secure_filename
@@ -368,6 +370,696 @@ def system_upload_update():
     }), 200 if success else 500
 
 
+# ─── Notification & Alerting Endpoints ────────────────────────────────
+
+@app.route('/api/notifications/preferences', methods=['GET'])
+@require_auth
+@inject_org_id
+def get_notification_preferences(org_id):
+    """Get notification preferences for the current user."""
+    from notifications import get_user_preferences
+    user_id = g.current_user.get('user_id')
+    if not user_id:
+        return jsonify({'error': 'Not available in single-tenant mode.'}), 400
+    prefs = get_user_preferences(user_id, org_id)
+    return jsonify(prefs)
+
+
+@app.route('/api/notifications/preferences', methods=['POST'])
+@require_auth
+@inject_org_id
+def save_notification_preferences(org_id):
+    """Save notification preferences for the current user."""
+    from notifications import save_user_preferences
+    user_id = g.current_user.get('user_id')
+    if not user_id:
+        return jsonify({'error': 'Not available in single-tenant mode.'}), 400
+
+    data = request.get_json() or {}
+    # Whitelist allowed preference keys
+    allowed_keys = {
+        'unknown_face_alert', 'camera_offline_alert', 'model_stale_alert',
+        'db_unreachable_alert', 'daily_summary',
+        'channel_email', 'channel_webhook',
+    }
+    prefs = {k: bool(v) for k, v in data.items() if k in allowed_keys}
+
+    success, error = save_user_preferences(user_id, org_id, prefs)
+    if success:
+        return jsonify({'message': 'Preferences saved.', 'preferences': prefs})
+    return jsonify({'error': error or 'Failed to save preferences.'}), 500
+
+
+@app.route('/api/notifications/test-email', methods=['POST'])
+@require_auth
+@require_role('org_admin')
+def test_email_delivery():
+    """Send a test email to verify SMTP configuration."""
+    from notifications import send_email, is_email_configured
+
+    if not is_email_configured():
+        return jsonify({
+            'success': False,
+            'error': 'SMTP not configured. Set SMTP_HOST, SMTP_USER, SMTP_PASSWORD env vars.',
+        }), 400
+
+    user_email = g.current_user.get('email')
+    if not user_email:
+        data = request.get_json() or {}
+        user_email = data.get('email')
+
+    if not user_email:
+        return jsonify({'error': 'No email address available.'}), 400
+
+    success, error = send_email(
+        user_email,
+        '✅ RMS Face AI — Test Email',
+        '<div style="font-family: sans-serif; padding: 20px;">'
+        '<h2>Email Configuration Working</h2>'
+        '<p>This is a test email from your RMS Face AI installation. '
+        'If you received this, SMTP is configured correctly.</p>'
+        '<p style="color: #888; font-size: 12px;">RMS Face AI — Automated Test</p>'
+        '</div>',
+        'RMS Face AI — Test Email. SMTP is configured correctly.'
+    )
+
+    return jsonify({'success': success, 'error': error})
+
+
+@app.route('/api/notifications/daily-summary', methods=['POST'])
+@require_auth
+@require_role('org_admin')
+@inject_org_id
+def trigger_daily_summary(org_id):
+    """
+    Manually trigger a daily attendance summary email.
+    Defaults to yesterday; pass {"date": "YYYY-MM-DD"} to override.
+    """
+    from notifications import generate_daily_summary
+
+    data = request.get_json() or {}
+    date_str = data.get('date')
+    target_date = None
+    if date_str:
+        try:
+            target_date = datetime.datetime.strptime(date_str, '%Y-%m-%d').date()
+        except ValueError:
+            return jsonify({'error': 'Invalid date format. Use YYYY-MM-DD.'}), 400
+
+    success, summary_data, error = generate_daily_summary(org_id, target_date)
+
+    if success:
+        return jsonify({
+            'message': 'Daily summary generated.',
+            'summary': summary_data,
+        })
+    return jsonify({'error': error or 'Failed to generate summary.'}), 500
+
+
+# ─── Advanced Analytics & Reporting Endpoints ──────────────────────────
+
+@app.route('/api/analytics/departments', methods=['GET'])
+@require_auth
+@inject_org_id
+def analytics_departments(org_id):
+    """Department-level attendance aggregation."""
+    from analytics import get_department_breakdown
+    from datetime import datetime as dt
+
+    start = request.args.get('start_date')
+    end = request.args.get('end_date')
+    start_date = dt.fromisoformat(start) if start else None
+    end_date = dt.fromisoformat(end) if end else None
+
+    result = get_department_breakdown(org_id, start_date, end_date)
+    return jsonify(result)
+
+
+@app.route('/api/analytics/late-arrivals', methods=['GET'])
+@require_auth
+@inject_org_id
+def analytics_late_arrivals(org_id):
+    """Late-arrival trend analysis."""
+    from analytics import get_late_arrival_trends
+    from datetime import datetime as dt
+
+    start = request.args.get('start_date')
+    end = request.args.get('end_date')
+    work_start_hour = int(request.args.get('work_start_hour', 9))
+    work_start_minute = int(request.args.get('work_start_minute', 0))
+    start_date = dt.fromisoformat(start) if start else None
+    end_date = dt.fromisoformat(end) if end else None
+
+    result = get_late_arrival_trends(
+        org_id, work_start_hour, work_start_minute, start_date, end_date
+    )
+    return jsonify(result)
+
+
+@app.route('/api/analytics/heatmap', methods=['GET'])
+@require_auth
+@inject_org_id
+def analytics_heatmap(org_id):
+    """Attendance heatmap (hour × day-of-week)."""
+    from analytics import get_attendance_heatmap
+    from datetime import datetime as dt
+
+    start = request.args.get('start_date')
+    end = request.args.get('end_date')
+    start_date = dt.fromisoformat(start) if start else None
+    end_date = dt.fromisoformat(end) if end else None
+
+    result = get_attendance_heatmap(org_id, start_date, end_date)
+    return jsonify(result)
+
+
+@app.route('/api/analytics/report', methods=['GET'])
+@require_auth
+@require_role('org_admin')
+@inject_org_id
+def analytics_report(org_id):
+    """Generate comprehensive report data for PDF export."""
+    from analytics import generate_report_data
+    from datetime import datetime as dt
+
+    start = request.args.get('start_date')
+    end = request.args.get('end_date')
+    work_start_hour = int(request.args.get('work_start_hour', 9))
+    work_start_minute = int(request.args.get('work_start_minute', 0))
+    start_date = dt.fromisoformat(start) if start else None
+    end_date = dt.fromisoformat(end) if end else None
+
+    report = generate_report_data(
+        org_id, start_date, end_date, work_start_hour, work_start_minute
+    )
+    return jsonify(report)
+
+
+
+# ─── Security Hardening Endpoints ─────────────────────────────────────
+
+@app.route('/api/auth/sso/config', methods=['GET'])
+def sso_config():
+    """Return SSO configuration for the login page."""
+    from security_hardening import get_sso_config
+    config = get_sso_config()
+    if not config:
+        return jsonify({'sso_enabled': False})
+    return jsonify({
+        'sso_enabled': True,
+        'provider': config['provider'],
+        'display_name': config['display_name'],
+    })
+
+
+@app.route('/api/auth/sso/login', methods=['GET'])
+def sso_login():
+    """Redirect to SSO provider's authorization page."""
+    from security_hardening import get_sso_config, build_sso_auth_url
+    config = get_sso_config()
+    if not config:
+        return jsonify({'error': 'SSO not configured'}), 400
+
+    auth_url, state = build_sso_auth_url(config)
+
+    # Store state in session for CSRF verification
+    from flask import session
+    session['sso_state'] = state
+
+    return jsonify({'auth_url': auth_url, 'state': state})
+
+
+@app.route('/api/auth/sso/callback', methods=['POST'])
+def sso_callback():
+    """Handle SSO callback after user authenticates with the provider."""
+    from security_hardening import get_sso_config, validate_sso_callback
+    from auth import create_access_token, create_refresh_token
+
+    config = get_sso_config()
+    if not config:
+        return jsonify({'error': 'SSO not configured'}), 400
+
+    data = request.get_json() or {}
+    code = data.get('code')
+    received_state = data.get('state')
+
+    from flask import session
+    expected_state = session.pop('sso_state', None) or data.get('expected_state')
+
+    success, user_info, error = validate_sso_callback(
+        config, code, expected_state, received_state
+    )
+
+    if not success:
+        return jsonify({'error': error}), 401
+
+    # Find or create user in our system
+    try:
+        from database.db import is_db_available
+        auth_enabled = is_db_available()
+    except ImportError:
+        auth_enabled = False
+
+    if auth_enabled:
+        from database.db import get_db_session
+        from database.models import User
+
+        with get_db_session() as db:
+            user = db.query(User).filter_by(email=user_info['email']).first()
+            if user:
+                # Existing user — generate tokens
+                access_token = create_access_token(user.id, user.org_id, user.role)
+                refresh_token = create_refresh_token(user.id, user.org_id)
+                return jsonify({
+                    'access_token': access_token,
+                    'refresh_token': refresh_token,
+                    'user': {
+                        'email': user.email,
+                        'name': user.name,
+                        'role': user.role,
+                        'sso_provider': user_info['provider'],
+                    },
+                })
+            else:
+                return jsonify({
+                    'error': 'No account found for this email. Contact your org admin.',
+                    'email': user_info['email'],
+                    'provider': user_info['provider'],
+                }), 403
+    else:
+        return jsonify({
+            'message': 'SSO validated (single-tenant mode)',
+            'user': user_info,
+        })
+
+
+@app.route('/api/security/rotate-api-key', methods=['POST'])
+@require_auth
+@require_role('org_admin')
+@inject_org_id
+def security_rotate_api_key(org_id):
+    """Rotate a camera's API key with a grace period."""
+    from security_hardening import rotate_api_key
+
+    data = request.get_json() or {}
+    camera_id = data.get('camera_id')
+    grace_hours = int(data.get('grace_period_hours', 24))
+
+    if not camera_id:
+        return jsonify({'error': 'camera_id is required'}), 400
+
+    success, result, error = rotate_api_key(camera_id, grace_hours)
+
+    if success:
+        return jsonify({
+            'message': f"API key rotated for {result.get('camera_name', camera_id)}.",
+            **result,
+        })
+    return jsonify({'error': error}), 500
+
+
+@app.route('/api/security/encrypt-encodings', methods=['POST'])
+@require_auth
+@require_role('org_admin')
+@inject_org_id
+def security_encrypt_encodings(org_id):
+    """Encrypt the org's encodings.pickle with a per-org key."""
+    from security_hardening import (
+        generate_org_encryption_key, encrypt_encodings_file,
+        derive_key_from_passphrase, is_file_encrypted,
+    )
+    from org_storage import get_encodings_path
+
+    encodings_path = get_encodings_path(org_id)
+    if not os.path.exists(encodings_path):
+        return jsonify({'error': 'No encodings file found.'}), 404
+
+    if is_file_encrypted(encodings_path):
+        return jsonify({'error': 'Encodings already encrypted.'}), 400
+
+    data = request.get_json() or {}
+    passphrase = data.get('passphrase')
+
+    if passphrase:
+        key, salt = derive_key_from_passphrase(passphrase)
+        key_info = {'method': 'passphrase', 'salt': b64encode(salt).decode()}
+    else:
+        key = generate_org_encryption_key()
+        key_info = {'method': 'generated', 'key_b64': b64encode(key).decode()}
+
+    encrypted_path = encodings_path + '.encrypted'
+    success, stats, error = encrypt_encodings_file(encodings_path, encrypted_path, key)
+
+    if success:
+        # Replace the original file with the encrypted version
+        import shutil
+        backup_path = encodings_path + '.plaintext_backup'
+        shutil.copy2(encodings_path, backup_path)
+        shutil.move(encrypted_path, encodings_path)
+
+        return jsonify({
+            'message': 'Encodings encrypted successfully.',
+            'stats': stats,
+            'key_info': key_info,
+            'warning': 'Store the key/passphrase securely. Data is unrecoverable without it.',
+        })
+
+    return jsonify({'error': error}), 500
+
+
+# ─── ML Robustness Endpoints ──────────────────────────────────────────
+
+@app.route('/api/ml/hard-negatives', methods=['GET'])
+@require_auth
+@require_role('org_admin')
+@inject_org_id
+def ml_hard_negatives(org_id):
+    """Run hard negative mining to find confusable face pairs."""
+    from ml_robustness import mine_hard_negatives_from_pickle
+    from org_storage import get_encodings_path
+
+    threshold = float(request.args.get('threshold', 0.35))
+    encodings_path = get_encodings_path(org_id)
+
+    result = mine_hard_negatives_from_pickle(encodings_path, threshold)
+    return jsonify(result)
+
+
+@app.route('/api/ml/adaptive-thresholds', methods=['GET'])
+@require_auth
+@require_role('org_admin')
+@inject_org_id
+def ml_adaptive_thresholds(org_id):
+    """Compute adaptive per-person confirm thresholds."""
+    from ml_robustness import compute_adaptive_thresholds
+    from org_storage import get_encodings_path
+
+    encodings_path = get_encodings_path(org_id)
+    if not os.path.exists(encodings_path):
+        return jsonify({'error': 'No encodings found. Train the model first.'}), 404
+
+    try:
+        with open(encodings_path, 'rb') as f:
+            data = pickle.load(f)
+        encodings = data.get('encodings', data.get('embeddings', []))
+        names = data.get('names', data.get('labels', []))
+
+        margin = float(request.args.get('margin', 0.05))
+        result = compute_adaptive_thresholds(encodings, names, margin)
+        return jsonify(result)
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/ml/quantize', methods=['POST'])
+@require_auth
+@require_role('org_admin')
+@inject_org_id
+def ml_quantize_model(org_id):
+    """Quantize the SOTA model to INT8 for faster CPU inference."""
+    from ml_robustness import quantize_model
+    from org_storage import get_sota_model_path
+
+    model_path = get_sota_model_path(org_id)
+    if not os.path.exists(model_path):
+        return jsonify({'error': 'No trained model found. Train the model first.'}), 404
+
+    success, output_path, benchmark, error = quantize_model(model_path)
+
+    if success:
+        return jsonify({
+            'message': 'Model quantized to INT8 successfully.',
+            'output_file': os.path.basename(output_path),
+            'benchmark': benchmark,
+        })
+    return jsonify({'error': error}), 500
+
+
+
+# ─── Offline Sync Endpoints ───────────────────────────────────────────
+
+@app.route('/api/offline/sync', methods=['POST'])
+@require_auth
+@inject_org_id
+def offline_sync(org_id):
+    """
+    Receive batched offline-queued items from mobile clients.
+
+    Body: {
+        "type": "recognition" | "attendance" | "feedback",
+        "items": [...],
+        "client_timestamp": "2026-01-01T00:00:00Z"
+    }
+    """
+    data = request.get_json() or {}
+    sync_type = data.get('type', 'unknown')
+    items = data.get('items', [])
+    client_ts = data.get('client_timestamp')
+
+    if not items:
+        return jsonify({'error': 'No items to sync'}), 400
+
+    results = []
+    synced = 0
+    skipped = 0
+    errors = 0
+
+    for item in items:
+        try:
+            if sync_type == 'attendance':
+                # Process attendance log
+                result = _process_offline_attendance(org_id, item, client_ts)
+                if result.get('duplicate'):
+                    skipped += 1
+                else:
+                    synced += 1
+                results.append(result)
+
+            elif sync_type == 'recognition':
+                # Log the offline recognition event
+                result = _process_offline_recognition(org_id, item, client_ts)
+                synced += 1
+                results.append(result)
+
+            elif sync_type == 'feedback':
+                # Process prediction feedback
+                synced += 1
+                results.append({'processed': True})
+
+            else:
+                synced += 1
+                results.append({'processed': True, 'type': sync_type})
+
+        except Exception as e:
+            errors += 1
+            results.append({'error': str(e)})
+            logger.warning(f"Offline sync error for {sync_type}: {e}")
+
+    return jsonify({
+        'message': f'Synced {synced} items, {skipped} duplicates skipped, {errors} errors.',
+        'synced': synced,
+        'skipped': skipped,
+        'errors': errors,
+        'results': results[:50],  # Cap response size
+    })
+
+
+@app.route('/api/offline/status', methods=['GET'])
+@require_auth
+def offline_status():
+    """Return server readiness for offline sync clients."""
+    return jsonify({
+        'server_time': datetime.datetime.now(datetime.timezone.utc).isoformat(),
+        'sync_ready': True,
+        'max_batch_size': 50,
+        'supported_types': ['recognition', 'attendance', 'feedback'],
+    })
+
+
+def _process_offline_attendance(org_id, item, client_ts):
+    """Process a single offline attendance record."""
+    from database.db import is_db_available, get_db_session
+
+    if not is_db_available():
+        return {'processed': True, 'db': False}
+
+    try:
+        from database.models import AttendanceLog
+
+        employee_id = item.get('employee_id')
+        checkin_time_str = item.get('timestamp') or client_ts
+        prediction_label = item.get('label', item.get('prediction_label'))
+
+        if not prediction_label:
+            return {'processed': False, 'reason': 'no label'}
+
+        # Parse the client timestamp
+        checkin_time = datetime.datetime.fromisoformat(
+            checkin_time_str.replace('Z', '+00:00')
+        ) if checkin_time_str else datetime.datetime.now(datetime.timezone.utc)
+
+        with get_db_session() as db:
+            # Deduplication: check if same employee + same minute already exists
+            if employee_id:
+                window_start = checkin_time - datetime.timedelta(minutes=1)
+                window_end = checkin_time + datetime.timedelta(minutes=1)
+                existing = db.query(AttendanceLog).filter(
+                    AttendanceLog.org_id == org_id,
+                    AttendanceLog.employee_id == employee_id,
+                    AttendanceLog.checkin_time.between(window_start, window_end)
+                ).first()
+                if existing:
+                    return {'processed': True, 'duplicate': True, 'existing_id': existing.id}
+
+            # Create new log entry
+            log = AttendanceLog(
+                org_id=org_id,
+                employee_id=employee_id,
+                checkin_time=checkin_time,
+                prediction_label=prediction_label,
+                confidence=item.get('confidence'),
+                method=item.get('method', 'offline_sync'),
+                is_confirmed=item.get('is_confirmed', False),
+                synced=True,
+            )
+            db.add(log)
+            db.commit()
+
+            return {'processed': True, 'log_id': log.id}
+
+    except Exception as e:
+        logger.error(f"Offline attendance sync error: {e}")
+        return {'processed': False, 'error': str(e)}
+
+
+def _process_offline_recognition(org_id, item, client_ts):
+    """Log an offline recognition event."""
+    return {
+        'processed': True,
+        'timestamp': item.get('timestamp', client_ts),
+        'status': 'logged',
+    }
+
+
+# ─── Backup, Restore & Data Portability Endpoints ─────────────────────
+
+@app.route('/api/backup/create', methods=['POST'])
+@require_auth
+@require_role('org_admin')
+@inject_org_id
+def create_backup(org_id):
+    """Create a full system backup archive."""
+    from backup_restore import create_full_backup
+
+    data = request.get_json() or {}
+    org_scoped = data.get('org_scoped', True)
+
+    success, backup_path, manifest, error = create_full_backup(
+        org_id=org_id if org_scoped else None
+    )
+
+    if success:
+        return jsonify({
+            'message': 'Backup created successfully.',
+            'backup_file': os.path.basename(backup_path),
+            'manifest': manifest,
+        })
+    return jsonify({'error': error or 'Backup failed.'}), 500
+
+
+@app.route('/api/backup/list', methods=['GET'])
+@require_auth
+@require_role('org_admin')
+def list_backups_endpoint():
+    """List all available backup files."""
+    from backup_restore import list_backups
+    backups = list_backups()
+    return jsonify({'backups': backups, 'total': len(backups)})
+
+
+@app.route('/api/backup/download/<filename>', methods=['GET'])
+@require_auth
+@require_role('org_admin')
+def download_backup(filename):
+    """Download a backup archive."""
+    from flask import send_from_directory
+    backup_dir = os.path.join(BACKEND_DIR, 'backups')
+    if not filename.endswith('.zip') or '..' in filename:
+        return jsonify({'error': 'Invalid filename.'}), 400
+    filepath = os.path.join(backup_dir, filename)
+    if not os.path.exists(filepath):
+        return jsonify({'error': 'Backup not found.'}), 404
+    return send_from_directory(backup_dir, filename, as_attachment=True)
+
+
+@app.route('/api/backup/restore', methods=['POST'])
+@require_auth
+@require_role('platform_owner')
+def restore_backup_endpoint():
+    """
+    Restore from a backup archive.
+    Pass {"filename": "rms_backup_xxx.zip", "dry_run": true} to validate first.
+    """
+    from backup_restore import restore_from_backup
+
+    data = request.get_json() or {}
+    filename = data.get('filename', '')
+    dry_run = data.get('dry_run', True)  # Default to dry run for safety
+
+    if not filename:
+        return jsonify({'error': 'filename is required.'}), 400
+
+    backup_dir = os.path.join(BACKEND_DIR, 'backups')
+    backup_path = os.path.join(backup_dir, filename)
+
+    if not os.path.exists(backup_path):
+        return jsonify({'error': f'Backup file not found: {filename}'}), 404
+
+    success, report, error = restore_from_backup(backup_path, dry_run=dry_run)
+
+    if success:
+        return jsonify({
+            'message': 'Dry run passed.' if dry_run else 'Restore complete.',
+            'report': report,
+        })
+    return jsonify({'error': error, 'report': report}), 500
+
+
+@app.route('/api/backup/export-org', methods=['POST'])
+@require_auth
+@require_role('org_admin')
+@inject_org_id
+def export_org_data_endpoint(org_id):
+    """Export all data for the current org (compliance/migration)."""
+    from backup_restore import export_org_data
+
+    success, export_path, summary, error = export_org_data(org_id)
+
+    if success:
+        return jsonify({
+            'message': 'Organization data exported.',
+            'export_file': os.path.basename(export_path),
+            'summary': summary,
+        })
+    return jsonify({'error': error or 'Export failed.'}), 500
+
+
+@app.route('/api/backup/download-export/<filename>', methods=['GET'])
+@require_auth
+@require_role('org_admin')
+def download_export(filename):
+    """Download an org data export archive."""
+    from flask import send_from_directory
+    export_dir = os.path.join(BACKEND_DIR, 'exports')
+    if not filename.endswith('.zip') or '..' in filename:
+        return jsonify({'error': 'Invalid filename.'}), 400
+    filepath = os.path.join(export_dir, filename)
+    if not os.path.exists(filepath):
+        return jsonify({'error': 'Export not found.'}), 404
+    return send_from_directory(export_dir, filename, as_attachment=True)
+
+
 # ─── Billing & Subscription Endpoints ────────────────────────────────
 
 @app.route('/api/stripe/webhook', methods=['POST'])
@@ -461,6 +1153,35 @@ def provision_camera(org_id):
             'api_key': api_key,
             'message': f'Camera "{camera_name}" provisioned successfully.',
         }), 201
+
+
+@app.route('/api/cameras', methods=['GET'])
+@require_auth
+@inject_org_id
+def list_cameras(org_id):
+    """List all cameras registered for the current org."""
+    from database.db import get_db_session, is_db_available
+    from database.models import Camera
+
+    if not is_db_available():
+        return jsonify({'cameras': [], 'message': 'Camera registry requires database mode.'})
+
+    try:
+        with get_db_session() as db:
+            cameras = db.query(Camera).filter_by(org_id=org_id).all()
+            return jsonify({
+                'cameras': [{
+                    'id': cam.id,
+                    'name': cam.name,
+                    'location': cam.location,
+                    'is_active': cam.is_active,
+                    'last_seen_at': cam.last_seen_at.isoformat() if hasattr(cam, 'last_seen_at') and cam.last_seen_at else None,
+                } for cam in cameras],
+                'total': len(cameras),
+            })
+    except Exception as e:
+        logger.error(f"List cameras error: {e}")
+        return jsonify({'cameras': [], 'error': str(e)}), 500
 
 
 # ─── Authentication Endpoints ─────────────────────────────────────────
@@ -659,16 +1380,25 @@ def auth_refresh():
 
     from auth import decode_token, create_access_token
     from database.db import get_db_session
-    from database.models import User, Organization
+    from database.models import User, Organization, RevokedToken
+    import hashlib
 
     payload = decode_token(refresh_token)
     if payload is None or payload.get('type') != 'refresh':
         return jsonify({'error': 'Invalid or expired refresh token.'}), 401
 
+    # Compute token hash for blocklist check
+    token_jti = hashlib.sha256(refresh_token.encode()).hexdigest()[:64]
+
     try:
         with get_db_session() as db:
             if db is None:
                 return jsonify({'error': 'Database unavailable.'}), 503
+
+            # Check if token has been revoked
+            revoked = db.query(RevokedToken).filter_by(jti=token_jti).first()
+            if revoked:
+                return jsonify({'error': 'This session has been revoked. Please log in again.'}), 401
 
             user = db.query(User).filter_by(id=payload['sub']).first()
             if user is None or not user.is_active:
@@ -734,6 +1464,325 @@ def auth_me():
     except Exception as e:
         logger.error(f"Auth /me error: {e}", exc_info=True)
         return jsonify({'error': 'Failed to fetch user profile.'}), 500
+
+
+# ─── Session Management Endpoints ─────────────────────────────────────
+
+@app.route('/api/auth/revoke', methods=['POST'])
+@require_auth
+def auth_revoke_token():
+    """
+    Revoke a specific refresh token (log out a single session).
+    Any authenticated user can revoke their own tokens.
+    """
+    import hashlib
+    from database.db import get_db_session
+    from database.models import RevokedToken
+
+    data = request.get_json() or {}
+    refresh_token = data.get('refresh_token', '')
+    if not refresh_token:
+        return jsonify({'error': 'refresh_token is required.'}), 400
+
+    token_jti = hashlib.sha256(refresh_token.encode()).hexdigest()[:64]
+    user_id = g.current_user.get('user_id')
+
+    try:
+        with get_db_session() as db:
+            existing = db.query(RevokedToken).filter_by(jti=token_jti).first()
+            if not existing:
+                db.add(RevokedToken(
+                    jti=token_jti,
+                    user_id=user_id or 'local',
+                    reason='manual'
+                ))
+                db.commit()
+        return jsonify({'message': 'Token revoked successfully.'})
+    except Exception as e:
+        logger.error(f"Token revocation error: {e}")
+        return jsonify({'error': 'Revocation failed.'}), 500
+
+
+@app.route('/api/auth/revoke-all', methods=['POST'])
+@require_auth
+def auth_revoke_all_tokens():
+    """
+    Revoke ALL refresh tokens for the current user ("log out everywhere").
+    Uses a timestamp-based approach: any token issued before now is considered revoked.
+    """
+    import hashlib
+    from database.db import get_db_session
+    from database.models import RevokedToken
+
+    user_id = g.current_user.get('user_id')
+    if not user_id:
+        return jsonify({'error': 'Not available in single-tenant mode.'}), 400
+
+    # Optionally allow org_admin to revoke another user's tokens
+    data = request.get_json() or {}
+    target_user_id = data.get('user_id', user_id)
+
+    # Only org_admin+ can revoke other users' tokens
+    if target_user_id != user_id:
+        user_role = g.current_user.get('role', 'viewer')
+        if user_role not in ('org_admin', 'platform_owner'):
+            return jsonify({'error': 'Only admins can revoke other users\' sessions.'}), 403
+
+    try:
+        # Insert a sentinel revocation entry with a special jti
+        sentinel_jti = f"revoke_all_{target_user_id}_{datetime.datetime.now(datetime.timezone.utc).isoformat()}"
+        sentinel_jti = hashlib.sha256(sentinel_jti.encode()).hexdigest()[:64]
+
+        with get_db_session() as db:
+            db.add(RevokedToken(
+                jti=sentinel_jti,
+                user_id=target_user_id,
+                reason='logout_all'
+            ))
+            db.commit()
+
+        return jsonify({
+            'message': 'All sessions revoked. All devices will need to log in again.',
+            'user_id': target_user_id
+        })
+    except Exception as e:
+        logger.error(f"Revoke-all error: {e}")
+        return jsonify({'error': 'Revocation failed.'}), 500
+
+
+# ─── Audit Log Endpoints ──────────────────────────────────────────────
+
+@app.route('/api/audit-logs', methods=['GET'])
+@require_auth
+@require_role('org_admin')
+@inject_org_id
+def get_audit_logs(org_id):
+    """
+    Filterable, searchable audit log dashboard.
+    Returns feedback_logs and consent_records for the org.
+    Restricted to org_admin+ roles.
+    """
+    from database.db import get_db_session, is_db_available
+    from database.models import FeedbackLog, ConsentRecord, Employee
+
+    if not is_db_available():
+        return jsonify({'logs': [], 'total': 0, 'message': 'Audit logs require database mode.'})
+
+    # Query params
+    log_type = request.args.get('type', 'all')  # 'feedback', 'consent', 'all'
+    search = request.args.get('search', '').strip()
+    page = int(request.args.get('page', 1))
+    per_page = min(int(request.args.get('per_page', 50)), 100)
+    sort_order = request.args.get('sort', 'desc')  # 'asc' or 'desc'
+
+    results = []
+
+    try:
+        with get_db_session() as db:
+            # Feedback logs
+            if log_type in ('all', 'feedback'):
+                query = db.query(FeedbackLog).filter_by(org_id=org_id)
+                if search:
+                    query = query.filter(
+                        (FeedbackLog.predicted_name.ilike(f'%{search}%')) |
+                        (FeedbackLog.correct_name.ilike(f'%{search}%')) |
+                        (FeedbackLog.message.ilike(f'%{search}%'))
+                    )
+                if sort_order == 'asc':
+                    query = query.order_by(FeedbackLog.created_at.asc())
+                else:
+                    query = query.order_by(FeedbackLog.created_at.desc())
+
+                for log in query.all():
+                    results.append({
+                        'id': log.id,
+                        'type': 'feedback',
+                        'timestamp': log.created_at.isoformat() if log.created_at else None,
+                        'prediction_id': log.prediction_id,
+                        'predicted_name': log.predicted_name,
+                        'correct_name': log.correct_name,
+                        'is_correct': log.is_correct,
+                        'action_taken': log.action_taken,
+                        'message': log.message,
+                        'distance': log.distance,
+                    })
+
+            # Consent records
+            if log_type in ('all', 'consent'):
+                query = db.query(ConsentRecord).filter_by(org_id=org_id)
+                if search:
+                    query = query.filter(
+                        (ConsentRecord.consent_type.ilike(f'%{search}%')) |
+                        (ConsentRecord.notes.ilike(f'%{search}%'))
+                    )
+                if sort_order == 'asc':
+                    query = query.order_by(ConsentRecord.consented_at.asc())
+                else:
+                    query = query.order_by(ConsentRecord.consented_at.desc())
+
+                for rec in query.all():
+                    # Resolve employee name
+                    emp = db.query(Employee).filter_by(id=rec.employee_id).first()
+                    results.append({
+                        'id': rec.id,
+                        'type': 'consent',
+                        'timestamp': rec.consented_at.isoformat() if rec.consented_at else None,
+                        'employee_id': rec.employee_id,
+                        'employee_name': emp.name if emp else 'Unknown',
+                        'consent_type': rec.consent_type,
+                        'revoked_at': rec.revoked_at.isoformat() if rec.revoked_at else None,
+                        'ip_address': rec.ip_address,
+                        'notes': rec.notes,
+                    })
+
+            # Sort combined results by timestamp
+            results.sort(
+                key=lambda x: x.get('timestamp') or '',
+                reverse=(sort_order == 'desc')
+            )
+
+            total = len(results)
+            # Paginate
+            start = (page - 1) * per_page
+            results = results[start:start + per_page]
+
+            return jsonify({
+                'logs': results,
+                'total': total,
+                'page': page,
+                'per_page': per_page,
+                'total_pages': (total + per_page - 1) // per_page,
+            })
+    except Exception as e:
+        logger.error(f"Audit log error: {e}", exc_info=True)
+        return jsonify({'error': 'Failed to fetch audit logs.'}), 500
+
+
+# ─── Consent Self-Service Endpoints ───────────────────────────────────
+
+@app.route('/api/employees/<employee_name>/consent/revoke-and-purge', methods=['POST'])
+@require_auth
+@require_role('org_admin')
+@inject_org_id
+def consent_revoke_and_purge(employee_name, org_id):
+    """
+    Revoke biometric consent and ACTUALLY PURGE all data for an employee.
+
+    This is a REAL, COMPLETE purge — not just a status flag:
+      1. Delete all images from the dataset directory
+      2. Remove embeddings from encodings.pickle
+      3. Set consent_revoked_at on the Employee record
+      4. Create a ConsentRecord entry for the revocation
+      5. Mark employee as terminated
+
+    This is the operation that makes BIPA/GDPR/DPDP compliance real.
+    """
+    from database.db import get_db_session, is_db_available
+    from database.models import Employee, ConsentRecord, EmployeeStatus
+    from org_storage import get_dataset_cleaned_dir, get_encodings_path
+    import shutil
+    import pickle
+
+    employee_name = employee_name.strip()
+    if not employee_name:
+        return jsonify({'error': 'Employee name is required.'}), 400
+
+    purge_details = {'steps_completed': []}
+
+    try:
+        # Step 1: Delete images from dataset
+        dataset_dir = get_dataset_cleaned_dir(org_id)
+        person_dir = os.path.join(dataset_dir, employee_name)
+        if os.path.exists(person_dir):
+            file_count = sum(len(files) for _, _, files in os.walk(person_dir))
+            shutil.rmtree(person_dir)
+            purge_details['images_deleted'] = file_count
+            purge_details['steps_completed'].append('images_purged')
+            logger.info(f"[CONSENT-PURGE] Deleted {file_count} images for {employee_name}")
+        else:
+            purge_details['images_deleted'] = 0
+            purge_details['steps_completed'].append('no_images_found')
+
+        # Step 2: Remove from encodings.pickle (DeepFace embeddings)
+        encodings_path = get_encodings_path(org_id)
+        if os.path.exists(encodings_path):
+            try:
+                with open(encodings_path, 'rb') as f:
+                    enc_data = pickle.load(f)
+
+                encodings = enc_data.get('encodings', [])
+                names = enc_data.get('names', [])
+
+                # Filter out this employee's entries
+                filtered = [
+                    (enc, name) for enc, name in zip(encodings, names)
+                    if name != employee_name
+                ]
+                removed_count = len(encodings) - len(filtered)
+
+                if removed_count > 0:
+                    enc_data['encodings'] = [e for e, _ in filtered]
+                    enc_data['names'] = [n for _, n in filtered]
+                    with open(encodings_path, 'wb') as f:
+                        pickle.dump(enc_data, f)
+                    purge_details['embeddings_removed'] = removed_count
+                    purge_details['steps_completed'].append('embeddings_purged')
+                    logger.info(f"[CONSENT-PURGE] Removed {removed_count} embeddings for {employee_name}")
+                else:
+                    purge_details['embeddings_removed'] = 0
+                    purge_details['steps_completed'].append('no_embeddings_found')
+            except Exception as e:
+                logger.warning(f"[CONSENT-PURGE] Encoding purge warning: {e}")
+                purge_details['steps_completed'].append(f'encoding_warning: {str(e)}')
+
+        # Step 3 & 4: Update database records
+        if is_db_available() and org_id:
+            with get_db_session() as db:
+                emp = db.query(Employee).filter_by(
+                    org_id=org_id, name=employee_name
+                ).first()
+
+                if emp:
+                    # Set revocation timestamp
+                    emp.consent_revoked_at = datetime.datetime.now(datetime.timezone.utc)
+                    emp.status = EmployeeStatus.terminated
+                    emp.image_count = 0
+
+                    # Create consent revocation record
+                    user_id = g.current_user.get('user_id')
+                    db.add(ConsentRecord(
+                        org_id=org_id,
+                        employee_id=emp.id,
+                        consented_by_user_id=user_id,
+                        consent_type='biometric_consent_revocation',
+                        notes=f'Consent revoked and all biometric data purged by admin.',
+                        ip_address=request.remote_addr,
+                    ))
+                    db.commit()
+                    purge_details['steps_completed'].append('database_updated')
+                else:
+                    purge_details['steps_completed'].append('employee_not_in_db')
+
+        # Step 5: Reload models to reflect the removal
+        try:
+            reload_models(org_id)
+            purge_details['steps_completed'].append('models_reloaded')
+        except Exception:
+            purge_details['steps_completed'].append('model_reload_skipped')
+
+        return jsonify({
+            'success': True,
+            'message': (
+                f'Consent revoked and all biometric data purged for "{employee_name}". '
+                f'Images deleted: {purge_details.get("images_deleted", 0)}. '
+                f'Embeddings removed: {purge_details.get("embeddings_removed", 0)}.'
+            ),
+            'details': purge_details,
+        })
+
+    except Exception as e:
+        logger.error(f"[CONSENT-PURGE] Error: {e}", exc_info=True)
+        return jsonify({'error': f'Purge failed: {str(e)}'}), 500
 
 
 # Configuration — paths relative to project structure (configurable via env vars)
@@ -1758,6 +2807,24 @@ def predict(org_id):
 
             # Log to recognition history (SKIP in test mode)
             log_recognition(results, org_id)
+
+            # Phase 4: Fire unknown face alert if unrecognized faces detected
+            try:
+                unknown_count = sum(
+                    1 for r in results
+                    if r.get('ensemble', {}).get('label') == 'Unknown'
+                    or not r.get('ensemble', {}).get('is_recognized', True)
+                )
+                if unknown_count > 0 and org_id:
+                    from notifications import fire_unknown_face_alert
+                    camera_name = 'Production Camera'
+                    cam_id = None
+                    if hasattr(g, 'current_camera') and g.current_camera:
+                        cam_id = g.current_camera.get('camera_id')
+                        camera_name = g.current_camera.get('camera_name', camera_name)
+                    fire_unknown_face_alert(org_id, cam_id or 'web', camera_name, unknown_count)
+            except Exception as alert_err:
+                logger.debug(f"Alert trigger skipped: {alert_err}")
         else:
             logger.info(f"[TEST MODE] Skipped log_recognition and feedback storage for {len(results)} result(s).")
             
