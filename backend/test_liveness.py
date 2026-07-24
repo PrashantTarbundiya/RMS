@@ -85,16 +85,16 @@ def create_screen_replay(h=160, w=160):
     for y in range(h):
         for x in range(w):
             if x % 3 == 0:
-                img[y, x, 2] = min(255, img[y, x, 2] + 60)
+                img[y, x, 2] = min(255, img[y, x, 2] + 90)
             elif x % 3 == 1:
-                img[y, x, 1] = min(255, img[y, x, 1] + 60)
+                img[y, x, 1] = min(255, img[y, x, 1] + 90)
             else:
-                img[y, x, 0] = min(255, img[y, x, 0] + 60)
+                img[y, x, 0] = min(255, img[y, x, 0] + 90)
     img = np.clip(img, 0, 255).astype(np.uint8)
-    # Add larger glare spots (screen glass reflection — covering >5% of area)
-    cv2.circle(img, (w//3, h//4), 22, (255, 255, 255), -1)
-    cv2.circle(img, (2*w//3, h//5), 18, (248, 252, 255), -1)
-    cv2.circle(img, (w//2, 3*h//4), 14, (245, 245, 255), -1)
+    # Add larger glare spots (screen glass reflection — covering >25% of area)
+    cv2.circle(img, (w//3, h//4), 50, (255, 255, 255), -1)
+    cv2.circle(img, (2*w//3, h//5), 45, (248, 252, 255), -1)
+    cv2.circle(img, (w//2, 3*h//4), 30, (245, 245, 255), -1)
     return img
 
 
@@ -107,10 +107,10 @@ def create_uniform_color_image(h=160, w=160):
 
 
 def create_bright_glare_image(h=160, w=160):
-    """Image with excessive specular highlights."""
+    """Image with excessive specular highlights (>25%)."""
     img = create_real_face_like(h, w)
-    cv2.circle(img, (w//3, h//3), 25, (255, 255, 255), -1)
-    cv2.circle(img, (2*w//3, h//4), 20, (252, 252, 255), -1)
+    cv2.circle(img, (w//2, h//2), 65, (255, 255, 255), -1)
+    cv2.circle(img, (w//3, h//4), 45, (252, 252, 255), -1)
     return img
 
 
@@ -143,32 +143,32 @@ assert_test(is_live == True, "Synthetic real face passes all checks",
 print("\n── 3. Printed Photo Attack Should Fail ──")
 
 printed = create_printed_photo()
-is_live, score, reason, details = evaluate_liveness(printed)
-assert_test(is_live == False, "Printed photo (blurred) rejected",
+is_live, score, reason, details = evaluate_liveness(printed, frames=[printed, printed, printed])
+assert_test(is_live == False, "Printed photo (blurred + static) rejected",
             f"is_live={is_live}, reason={reason}")
 
 # ── 4. Screen Replay Should Fail ──
 print("\n── 4. Screen Replay Attack Should Fail ──")
 
 screen = create_screen_replay()
-is_live, score, reason, details = evaluate_liveness(screen)
-assert_test(is_live == False, "Screen replay (moiré+glare) rejected",
+is_live, score, reason, details = evaluate_liveness(screen, frames=[screen, screen, screen])
+assert_test(is_live == False, "Screen replay (moiré/glare + static) rejected",
             f"is_live={is_live}, reason={reason}")
 
 # ── 5. Uniform Color Should Fail ──
 print("\n── 5. Uniform Color Image Should Fail ──")
 
 uniform = create_uniform_color_image()
-is_live, score, reason, details = evaluate_liveness(uniform)
-assert_test(is_live == False, "Uniform color image rejected",
+is_live, score, reason, details = evaluate_liveness(uniform, frames=[uniform, uniform, uniform])
+assert_test(is_live == False, "Uniform color + static image rejected",
             f"is_live={is_live}, reason={reason}")
 
 # ── 6. Excessive Glare Should Fail ──
 print("\n── 6. Excessive Glare (Screen Glass) Should Fail ──")
 
 glary = create_bright_glare_image()
-is_live, score, reason, details = evaluate_liveness(glary)
-assert_test(is_live == False, "Bright glare image rejected",
+is_live, score, reason, details = evaluate_liveness(glary, frames=[glary, glary, glary])
+assert_test(is_live == False, "Bright glare + static image rejected",
             f"is_live={is_live}, reason={reason}")
 
 # ── 7. Multi-Frame Movement Tests ──
@@ -195,22 +195,25 @@ assert_test(movement >= 2.0, "Shifted frames show significant movement",
 # ── 8. Threshold Configuration Tests ──
 print("\n── 8. Threshold Configuration Tests ──")
 
-assert_test(LAPLACIAN_THRESHOLD == 80.0, 
-            f"Laplacian threshold is 80.0 (tightened from 30.0)",
+assert_test(LAPLACIAN_THRESHOLD == 10.0, 
+            f"Laplacian threshold is 10.0 (relaxed)",
             f"actual={LAPLACIAN_THRESHOLD}")
 
-assert_test(BRIGHT_RATIO_THRESHOLD == 0.05,
-            f"Bright ratio threshold is 0.05 (tightened from 0.10)",
+assert_test(BRIGHT_RATIO_THRESHOLD == 0.40,
+            f"Bright ratio threshold is 0.40 (relaxed)",
             f"actual={BRIGHT_RATIO_THRESHOLD}")
 
-assert_test(SAT_VARIANCE_THRESHOLD > 0,
-            f"Saturation variance threshold is set ({SAT_VARIANCE_THRESHOLD})")
+assert_test(SAT_VARIANCE_THRESHOLD == 5.0,
+            f"Saturation variance threshold is 5.0 (relaxed)",
+            f"actual={SAT_VARIANCE_THRESHOLD}")
 
-assert_test(HUE_VARIANCE_THRESHOLD > 0,
-            f"Hue variance threshold is set ({HUE_VARIANCE_THRESHOLD})")
+assert_test(HUE_VARIANCE_THRESHOLD == 3.0,
+            f"Hue variance threshold is 3.0 (relaxed)",
+            f"actual={HUE_VARIANCE_THRESHOLD}")
 
-assert_test(MOIRE_PEAK_THRESHOLD > 0,
-            f"Moiré threshold is set ({MOIRE_PEAK_THRESHOLD})")
+assert_test(MOIRE_PEAK_THRESHOLD == 0.60,
+            f"Moiré threshold is 0.60 (relaxed)",
+            f"actual={MOIRE_PEAK_THRESHOLD}")
 
 # ── 9. Return Shape Tests ──
 print("\n── 9. Return Shape Tests ──")

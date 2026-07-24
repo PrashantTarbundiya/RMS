@@ -723,10 +723,10 @@ export default function TestPage() {
                              const offsetX = (containerProps.width - imgRenderProps.width) / 2;
                              const offsetY = (containerProps.height - imgRenderProps.height) / 2;
                              
-                              const displayConf = face.predictions?.sota?.confidence || 0;
-                              const displayLabel = face.predictions?.sota?.label || 'Unknown';
-                              const isConfirmed = (displayConf > 0.6 && displayLabel !== 'Unknown');
-                             const spoofed = face.prediction === 'SPOOF DETECTED' || displayLabel === 'SPOOF DETECTED';
+                              const displayConf = face.ensemble?.confidence || 0;
+                              const displayLabel = face.ensemble?.label || 'Unknown';
+                              const isConfirmed = face.ensemble?.is_confirmed || false;
+                             const spoofed = face.liveness?.is_live === false || displayLabel === 'SPOOF DETECTED';
                              const boxColor = spoofed ? '#FBBF24' : (isConfirmed ? '#27A644' : '#F87171');
 
                              return (
@@ -784,10 +784,10 @@ export default function TestPage() {
                               const offsetX = (containerProps.width - imgRenderProps.width) / 2;
                               const offsetY = (containerProps.height - imgRenderProps.height) / 2;
                               
-                              const displayConf = face.predictions?.sota?.confidence || 0;
-                              const displayLabel = face.predictions?.sota?.label || 'Unknown';
-                              const isConfirmed = displayConf > 0.8 && displayLabel !== 'Unknown';
-                              const spoofed = face.prediction === 'SPOOF DETECTED' || displayLabel === 'SPOOF DETECTED';
+                              const displayConf = face.ensemble?.confidence || 0;
+                              const displayLabel = face.ensemble?.label || 'Unknown';
+                              const isConfirmed = face.ensemble?.is_confirmed || false;
+                              const spoofed = face.liveness?.is_live === false || displayLabel === 'SPOOF DETECTED';
                               const boxColor = spoofed ? '#FBBF24' : (isConfirmed ? '#27A644' : '#F87171');
 
                               return (
@@ -925,11 +925,11 @@ export default function TestPage() {
                       )}
                       
                       {results.faces.map((face, i) => {
-                         const displayLabel = face.predictions?.sota?.label;
-                         const displayConf = (face.predictions?.sota?.confidence || 0);
-                         const isConfirmed = (displayConf > 0.6 && displayLabel !== 'Unknown');
+                         const displayLabel = face.ensemble?.label || 'Unknown';
+                         const displayConf = face.ensemble?.confidence || 0;
+                         const isConfirmed = face.ensemble?.is_confirmed || false;
                          
-                         const spoofed = displayLabel === 'SPOOF DETECTED';
+                         const spoofed = face.liveness?.is_live === false || displayLabel === 'SPOOF DETECTED';
                          
                          const statusColor = spoofed ? 'text-[#FBBF24]' : (isConfirmed ? 'text-[#27A644]' : 'text-[#F87171]');
                          const statusBorder = spoofed ? 'border-[#FBBF24]/30' : (isConfirmed ? 'border-[#27A644]/30' : 'border-[#F87171]/30');
@@ -956,7 +956,7 @@ export default function TestPage() {
 
                                  <div className="flex justify-between items-center mt-4 pt-4 border-t border-[#23252A]/50">
                                    <div className="text-[10px] text-ink-subtle font-mono tracking-wider uppercase">
-                                     MTHD: SOTA Base {showConfidence && `| CONF: ${(displayConf * 100).toFixed(1)}%`}
+                                     MTHD: {face.ensemble?.method || 'ENSEMBLE'} {showConfidence && `| CONF: ${(displayConf * 100).toFixed(1)}%`}
                                    </div>
                                    
                                    {face.prediction_id && !spoofed && (

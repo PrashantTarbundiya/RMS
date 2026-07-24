@@ -2747,9 +2747,9 @@ def predict(org_id):
             ens_label = ensemble_result['label']
             ens_conf = ensemble_result['confidence']
             
-            # A person is CONFIRMED only if DeepFace says 'confirmed' 
-            # (passed all 4 gates including binary threshold)
-            is_confirmed = (df_confidence_level == "confirmed" and ens_label != "Unknown")
+            # Use the ensemble's built-in recognition logic which handles
+            # dynamic thresholds and single-model fallbacks correctly.
+            is_confirmed = ensemble_result['is_recognized']
             
             if is_confirmed:
                 display_text = f"CONFIRMED: {ens_label}"

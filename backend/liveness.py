@@ -25,11 +25,11 @@ logger = logging.getLogger('rms-liveness')
 # Previously these were too aggressive and caused real faces to be rejected.
 # Now calibrated to reject obvious spoofs while accepting live webcam input.
 
-LAPLACIAN_THRESHOLD = 15.0       # Minimum edge density — webcams often have 20-100
-BRIGHT_RATIO_THRESHOLD = 0.25    # Max fraction of blown-out pixels — glasses/forehead reflect
-SAT_VARIANCE_THRESHOLD = 8.0     # Min std-dev of HSV Saturation — indoor lighting is low
-HUE_VARIANCE_THRESHOLD = 5.0     # Min std-dev of HSV Hue — uniform lighting is common
-MOIRE_PEAK_THRESHOLD = 0.45      # Max moiré periodicity score — only flag real screens
+LAPLACIAN_THRESHOLD = 10.0       # Minimum edge density
+BRIGHT_RATIO_THRESHOLD = 0.40    # Max fraction of blown-out pixels — glasses + white walls
+SAT_VARIANCE_THRESHOLD = 5.0     # Min std-dev of HSV Saturation — low lighting
+HUE_VARIANCE_THRESHOLD = 3.0     # Min std-dev of HSV Hue — uniform lighting
+MOIRE_PEAK_THRESHOLD = 0.60      # Max moiré periodicity score — monitor reflections in glasses
 MICRO_MOVEMENT_THRESHOLD = 2.0   # Min pixel displacement across multi-frame
 
 # Minimum number of FAILED checks required to declare spoof
