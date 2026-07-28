@@ -65,7 +65,7 @@ def ensemble_predict(predictions, weights=None):
         label = pred.get('label', '')
         conf = pred.get('confidence', 0.0)
 
-        if label not in SKIP_LABELS and conf > 0:
+        if label not in SKIP_LABELS and conf >= 0:
             valid_preds[model_key] = {'label': label, 'confidence': conf}
 
     if not valid_preds:
@@ -126,8 +126,12 @@ def ensemble_predict(predictions, weights=None):
         # No agreement — all models said different names
         if num_valid > 1:
             best_score = max(0, best_score - DISAGREEMENT_PENALTY)
-        effective_hard_threshold = HARD_MATCH_THRESHOLD + 0.10  # Harder to match
-        effective_soft_threshold = SOFT_MATCH_THRESHOLD + 0.05
+            effective_hard_threshold = HARD_MATCH_THRESHOLD + 0.10  # Harder to match
+            effective_soft_threshold = SOFT_MATCH_THRESHOLD + 0.05
+        else:
+            # Single model fallback — severely tighten thresholds
+            effective_hard_threshold = HARD_MATCH_THRESHOLD + 0.35  # e.g., 0.80
+            effective_soft_threshold = SOFT_MATCH_THRESHOLD + 0.30  # e.g., 0.60
 
     # ── Single High-Confidence Override ──
     # If only 1 model voted but it's very confident (>0.80), trust it

@@ -42,18 +42,20 @@ Upon launching `python server.py`, the backend performs the following initializa
 
 ## Liveness Detection (`liveness.py`)
 - **Purpose:** Anti-spoofing to reject printed photos, screen replays, and presentation attacks.
-- **Method:** Evaluates three signals:
-  1. **Edge Density:** Laplacian variance — real faces have richer texture detail than printed photos.
-  2. **Color Variance:** Real faces exhibit natural color gradients; printed photos show uniform color blocks.
-  3. **Texture Analysis:** Frequency-domain analysis to detect printing artifacts.
+- **Method:** Evaluates heuristic signals using a **2-Failure Voting System**. A face must fail at least two distinct checks to be rejected, drastically reducing false positives caused by glasses glare or harsh lighting:
+  1. **Edge Density (Laplacian Variance):** Real faces have richer texture detail than printed photos. (Threshold: 10.0)
+  2. **Color Variance (HSV):** Real faces exhibit natural color gradients; printed photos show uniform blocks. (Saturation: 5.0, Hue: 3.0)
+  3. **Specular Glare:** Evaluates blown-out pixels. Relaxed to 40% to accommodate screen reflections on glasses.
+  4. **Texture Frequency:** Moiré pattern detection to flag screen pixel grids. (Threshold: 0.60)
+  5. **Micro-Movement:** Multi-frame displacement analysis (only runs on edge cameras sending multi-frame payloads).
 
-## Inference Engine (`inference.py`)
+## Inference Engine (`inference.py` & `ensemble.py`)
 - Iterates over bounding boxes from MediaPipe.
 - Crops face with 15% margin padding.
-- Runs liveness detection on each crop.
+- Runs liveness detection on each crop. If `liveness.is_live` is false, it returns `SPOOF DETECTED` and skips all ML inference.
 - **DeepFace (FaceNet512 + TTA):** Generates 5 augmented embeddings per face (Test-Time Augmentation), averages them, and queries the KNN index with cosine distance.
 - **MobileNetV2 (SOTA):** Forward pass on the fine-tuned model for categorical classification.
-- **Ensemble Voter:** 4-gate confirmation pipeline combining both model outputs.
+- **Ensemble Voter:** 4-gate confirmation pipeline combining both model outputs. Dynamically trusts single-model fallback (e.g., MobileNetV2 alone) if DeepFace is disabled or untrained. Result relies purely on `ensemble_result['is_recognized']`.
 
 ## Multi-Tenant Data Isolation (`org_storage.py`)
 Each organization gets its own isolated data directory:

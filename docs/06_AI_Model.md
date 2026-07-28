@@ -15,13 +15,16 @@ Before any recognition occurs, faces must be precisely located and cropped from 
 - **Pose Classification:** Landmark-based geometric analysis classifies head orientation as `Frontal`, `Left Profile`, or `Right Profile` for multi-view matching.
 - **Why MediaPipe?** Replaced the legacy OpenCV Haar Cascade classifier, which struggled with extreme side profiles (>45° yaw) and produced high false positive rates on background objects.
 
-## Stage 2: Liveness Detection (Anti-Spoofing)
+## Stage 2: Liveness Detection (Anti-Spoofing Voting System)
 Each detected face is evaluated for liveness before being passed to the recognition models. This prevents presentation attacks (printed photos, screen replays).
 
-- **Edge Density (Laplacian Variance):** Real faces exhibit rich texture detail with high Laplacian variance. Printed photos and screen displays produce flatter texture patterns.
-- **Color Variance Analysis:** Real faces have natural color gradients across skin tones. Printed images show more uniform color blocks with visible printing artifacts.
-- **Texture Frequency Analysis:** Evaluates frequency-domain characteristics to detect printing dot patterns, screen pixel grids, and moiré artifacts.
-- **Decision:** If the face fails any liveness check, it is flagged as `SPOOF DETECTED` and rejected before any ML inference occurs.
+The system uses a **2-Failure Voting System**. A face must fail at least 2 heuristic checks to be classified as a spoof. This prevents false positives caused by isolated environmental factors (like screen reflections on glasses).
+
+- **Edge Density (Laplacian Variance, threshold 10.0):** Real faces exhibit rich texture detail. Blurry printed photos and low-res screens produce flatter texture patterns and fail this check.
+- **Color Variance Analysis (Saturation 5.0, Hue 3.0):** Real faces have natural color gradients across skin tones. Printed images show more uniform color blocks.
+- **Specular Glare (Brightness > 40%):** Phone/tablet glass produces massive specular highlights. The threshold is relaxed to 40% to accommodate users wearing glasses in brightly lit rooms.
+- **Texture Frequency (Moiré Peak < 0.60):** Evaluates frequency-domain characteristics to detect screen pixel grids and moiré artifacts.
+- **Decision:** If the face fails ≥2 checks, it is flagged as `SPOOF DETECTED` and rejected before any ML inference occurs.
 
 ## Stage 3: Structural Embeddings (DeepFace/FaceNet512 + TTA)
 **Goal:** High-speed vector similarity matching with enhanced robustness through Test-Time Augmentation.
@@ -59,21 +62,17 @@ When a new employee is enrolled, embeddings are computed and appended to the Pic
 The ensemble engine combines outputs from both models through a strict multi-gate confirmation pipeline:
 
 ### Gate 1: Distance Threshold
-The DeepFace cosine distance must be below `CONFIRM_THRESHOLD` (default: 0.55). If the distance exceeds this threshold, the face is immediately rejected regardless of SOTA output.
+If DeepFace is active, its cosine distance must be below `CONFIRM_THRESHOLD` (default: 0.55). If the distance exceeds this threshold, the face is rejected regardless of SOTA output.
 
 ### Gate 2: Binary Classifier Agreement
 If both DeepFace and MobileNetV2 agree on the identity label, an agreement bonus is applied to the confidence score. If they disagree, the system defaults to the DeepFace result (which has the embedding-backed geometric proof).
 
 ### Gate 3: Dynamic Adaptive Threshold
-The effective threshold is dynamically adjusted based on camera-specific overrides and the confidence level of the match.
+The effective threshold is dynamically adjusted based on camera-specific overrides, the confidence level of the match, and the number of active models.
 
-### Gate 4: Confidence Level Classification
-The final confidence is classified into one of three levels:
-- **`confirmed`**: High-confidence match. The face is logged as a verified attendance event.
-- **`uncertain`**: Medium-confidence match. The face is shown but flagged for manual review.
-- **`rejected`**: Low-confidence or no match. Displayed as "NOT FOUND."
-
-A person is only marked as `CONFIRMED` (and eligible for attendance logging) if the DeepFace confidence level reaches `confirmed` AND the ensemble label is not "Unknown."
+### Gate 4: Resilient Single-Model Fallback
+If the global model settings have disabled DeepFace, or if DeepFace is untrained, the ensemble dynamically falls back to relying strictly on the MobileNetV2 SOTA confidence.
+The final prediction evaluates `ensemble_result['is_recognized']` rather than enforcing a hardcoded dependency on DeepFace. If the ensemble threshold is met, the system returns a definitive `CONFIRMED` match, otherwise `NOT FOUND / Unknown`.
 
 ## Feature Extraction & Normalization
 - Images are resized to 160×160 for DeepFace and 224×224 for MobileNetV2.

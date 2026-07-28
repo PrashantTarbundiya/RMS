@@ -1827,3 +1827,239 @@
     font-size: 28px;
   }
 }
+/* ── Onboarding Wizard Styles ── */
+.onboarding-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  background-color: var(--bg-main, #0f1115);
+  padding: 20px;
+}
+
+.onboarding-card {
+  width: 100%;
+  max-width: 600px;
+  background-color: var(--bg-card, #16181d);
+  border: 1px solid var(--border-color, #2a2d35);
+  border-radius: 12px;
+  padding: 40px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+  position: relative;
+  overflow: hidden;
+}
+
+.onboarding-progress {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 30px;
+}
+
+.progress-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background-color: var(--border-color, #2a2d35);
+  transition: background-color 0.3s;
+}
+
+.progress-dot.active {
+  background-color: var(--accent-color, #4f46e5);
+}
+
+.onboarding-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.onboarding-step h2 {
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--text-primary, #fff);
+  margin-top: 20px;
+  margin-bottom: 12px;
+}
+
+.onboarding-step p {
+  font-size: 15px;
+  color: var(--text-secondary, #999);
+  line-height: 1.5;
+  margin-bottom: 24px;
+}
+
+.onboarding-icon-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background-color: rgba(255, 255, 255, 0.05);
+  margin-bottom: 10px;
+}
+
+.icon-blue { color: #3b82f6; }
+.icon-green { color: #10b981; }
+.icon-purple { color: #8b5cf6; }
+.icon-orange { color: #f97316; }
+
+.onboarding-info-box, .onboarding-code-box {
+  background-color: rgba(255,255,255,0.03);
+  border: 1px solid var(--border-color, #2a2d35);
+  border-radius: 8px;
+  padding: 16px;
+  text-align: left;
+  width: 100%;
+}
+
+.onboarding-info-box ul {
+  padding-left: 20px;
+  margin-top: 10px;
+  color: var(--text-secondary, #999);
+}
+
+.onboarding-info-box li {
+  margin-bottom: 6px;
+}
+
+.block-code {
+  display: block;
+  background-color: #000;
+  color: #a5b4fc;
+  padding: 12px;
+  border-radius: 6px;
+  font-family: monospace;
+  margin-top: 10px;
+  font-size: 14px;
+}
+
+.onboarding-actions {
+  display: flex;
+  gap: 16px;
+  margin-top: 30px;
+  width: 100%;
+}
+
+.onboarding-actions.center {
+  justify-content: center;
+}
+
+.onboarding-actions button {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.onboarding-actions .launch-btn {
+  flex: none;
+  width: 200px;
+}
+
+.onboarding-upload-form {
+  width: 100%;
+  text-align: left;
+}
+
+.onboarding-upload-form .input-group {
+  margin-bottom: 16px;
+}
+
+.onboarding-upload-form label {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--text-primary, #fff);
+  font-size: 14px;
+}
+
+.onboarding-upload-form input[type="text"] {
+  width: 100%;
+  padding: 10px 12px;
+  background-color: rgba(0,0,0,0.2);
+  border: 1px solid var(--border-color, #2a2d35);
+  border-radius: 6px;
+  color: #fff;
+}
+
+.onboarding-upload-form input[type="file"] {
+  width: 100%;
+  padding: 8px;
+  color: var(--text-secondary, #999);
+}
+
+.onboarding-webcam-container {
+  width: 100%;
+  max-width: 400px;
+  aspect-ratio: 4/3;
+  background-color: #000;
+  border-radius: 8px;
+  overflow: hidden;
+  position: relative;
+  border: 1px solid var(--border-color, #2a2d35);
+  margin-bottom: 20px;
+}
+
+.onboarding-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.test-overlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 12px;
+  text-align: center;
+  font-weight: 500;
+  font-size: 14px;
+}
+
+.test-overlay.success {
+  background-color: rgba(16, 185, 129, 0.9);
+  color: #fff;
+}
+
+.test-overlay.error {
+  background-color: rgba(239, 68, 68, 0.9);
+  color: #fff;
+}
+
+.onboarding-checklist {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  max-width: 300px;
+  margin: 0 auto 20px;
+  text-align: left;
+}
+
+.check-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 16px;
+  color: var(--text-primary, #fff);
+}
+
+.skip-btn {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  background: none;
+  border: none;
+  color: var(--text-secondary, #999);
+  font-size: 13px;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.skip-btn:hover {
+  color: #fff;
+}

@@ -84,6 +84,27 @@ class SafeImageFolder(Dataset):
         return image, label
 
 
+import math
+import torch.nn.functional as F
+
+class RandomGlassesOcclusion:
+    """Randomly draws a black bar across the eye region to force the network to learn lower facial features."""
+    def __init__(self, p=0.5):
+        self.p = p
+
+    def __call__(self, img):
+        if torch.rand(1).item() > self.p:
+            return img
+        
+        _, H, W = img.size()
+        y1 = int(H * 0.25)
+        y2 = int(H * 0.50)
+        x1 = int(W * 0.15)
+        x2 = int(W * 0.85)
+        
+        img[:, y1:y2, x1:x2] = 0.0
+        return img
+
 # ==============================================================================
 # MIXUP DATA AUGMENTATION — Creates virtual training samples
 # ==============================================================================
@@ -117,6 +138,41 @@ def mixup_criterion(criterion, pred, y_a, y_b, lam):
     """Compute loss for mixup-blended labels."""
     return lam * criterion(pred, y_a) + (1 - lam) * criterion(pred, y_b)
 
+
+# ==============================================================================
+# ARCFACE (Additive Angular Margin Loss)
+# ==============================================================================
+class ArcFaceLinear(nn.Module):
+    def __init__(self, in_features, out_features, s=30.0, m=0.50):
+        super(ArcFaceLinear, self).__init__()
+        self.in_features = in_features
+        self.out_features = out_features
+        self.s = s
+        self.m = m
+        self.weight = nn.Parameter(torch.FloatTensor(out_features, in_features))
+        nn.init.xavier_uniform_(self.weight)
+        
+        self.cos_m = math.cos(m)
+        self.sin_m = math.sin(m)
+        self.th = math.cos(math.pi - m)
+        self.mm = math.sin(math.pi - m) * m
+
+    def forward(self, input, label=None):
+        cosine = F.linear(F.normalize(input), F.normalize(self.weight))
+        
+        if label is None:
+            return cosine * self.s
+            
+        sine = torch.sqrt((1.0 - torch.pow(cosine, 2)).clamp(0, 1))
+        phi = cosine * self.cos_m - sine * self.sin_m
+        phi = torch.where(cosine > self.th, phi, cosine - self.mm)
+        
+        one_hot = torch.zeros(cosine.size(), device=input.device)
+        one_hot.scatter_(1, label.view(-1, 1).long(), 1)
+        
+        output = (one_hot * phi) + ((1.0 - one_hot) * cosine)
+        output *= self.s
+        return output
 
 # ==============================================================================
 # EMA (Exponential Moving Average) — Smoother, more stable model weights
@@ -164,40 +220,35 @@ class EMA:
 # MODEL: MobileNetV2 — Ultra-lightweight, designed for on-device mobile inference
 # Only ~3.5MB Perfect for React Native apps.
 # ==============================================================================
+class MobileNetArcFace(nn.Module):
+    def __init__(self, num_classes):
+        super().__init__()
+        print("[INFO] Loading Pre-trained MobileNetV2 (lightweight mobile backbone)...")
+        self.backbone = models.mobilenet_v2(weights=models.MobileNet_V2_Weights.DEFAULT)
+        
+        all_params = list(self.backbone.parameters())
+        for param in all_params[:-60]:
+            param.requires_grad = False
+        for param in all_params[-60:]:
+            param.requires_grad = True
+        
+        num_ftrs = self.backbone.classifier[1].in_features
+        self.backbone.classifier = nn.Sequential(
+            nn.Dropout(0.4),
+            nn.Linear(num_ftrs, 256),
+            nn.BatchNorm1d(256)
+        )
+        self.arcface = ArcFaceLinear(256, num_classes)
+        
+    def forward(self, x, label=None):
+        features = self.backbone(x)
+        return self.arcface(features, label)
+
 def build_mobile_model(num_classes):
     """
-    Builds a lightweight MobileNetV2 model for mobile deployment.
-    - ~3.5MB model size 
-    - Runs in real-time on mobile CPUs (no GPU needed)
-    - Exportable to ONNX / TFLite for React Native
-    
-    Improvements:
-    - Unfreezes last 60 parameters (deeper fine-tuning for face features)
-    - Richer classifier head with 256-d hidden layer
+    Builds a lightweight MobileNetV2 model with ArcFace for robust face recognition.
     """
-    print("[INFO] Loading Pre-trained MobileNetV2 (lightweight mobile backbone)...")
-    weights = models.MobileNet_V2_Weights.DEFAULT
-    model = models.mobilenet_v2(weights=weights)
-    
-    # Unfreeze the last 60 parameters for deeper fine-tuning
-    # This significantly improves accuracy on face datasets
-    all_params = list(model.parameters())
-    for param in all_params[:-60]:
-        param.requires_grad = False
-    for param in all_params[-60:]:
-        param.requires_grad = True
-    
-    # Replace classifier head with a richer head for face classification
-    num_ftrs = model.classifier[1].in_features
-    model.classifier = nn.Sequential(
-        nn.Dropout(0.4),
-        nn.Linear(num_ftrs, 256),
-        nn.ReLU(),
-        nn.Dropout(0.2),
-        nn.Linear(256, num_classes)
-    )
-    
-    return model
+    return MobileNetArcFace(num_classes)
 
 
 # ==============================================================================
@@ -296,6 +347,7 @@ def finetune_mobile_model(data_dir="../dataset_cleaned", num_epochs=25, batch_si
         transforms.RandomGrayscale(p=0.1),
         transforms.GaussianBlur(kernel_size=3, sigma=(0.1, 1.5)),
         transforms.ToTensor(),
+        RandomGlassesOcclusion(p=0.5),
         transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
         transforms.RandomErasing(p=0.2, scale=(0.02, 0.15)),
     ])
@@ -370,7 +422,7 @@ def finetune_mobile_model(data_dir="../dataset_cleaned", num_epochs=25, batch_si
             if use_mixup and np.random.rand() > 0.3:
                 # Apply Mixup augmentation
                 mixed_images, targets_a, targets_b, lam = mixup_data(images, labels, alpha=0.2)
-                outputs = model(mixed_images)
+                outputs = model(mixed_images, targets_a) # Use targets_a for ArcFace margin
                 loss = mixup_criterion(criterion, outputs, targets_a, targets_b, lam)
                 
                 # For accuracy tracking, use the dominant label
@@ -379,7 +431,7 @@ def finetune_mobile_model(data_dir="../dataset_cleaned", num_epochs=25, batch_si
                 correct += (lam * (predicted == targets_a).sum().item() +
                            (1 - lam) * (predicted == targets_b).sum().item())
             else:
-                outputs = model(images)
+                outputs = model(images, labels)
                 loss = criterion(outputs, labels)
                 
                 _, predicted = torch.max(outputs, 1)

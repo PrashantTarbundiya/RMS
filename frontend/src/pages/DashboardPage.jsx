@@ -231,7 +231,7 @@ export default function DashboardPage() {
         <KpiCard icon={<Users className="h-5 w-5"/>} label="Total Enrolled" value={total_people} />
         <KpiCard icon={<ImageIcon className="h-5 w-5"/>} label="Faces Processed" value={total_photos} />
         <KpiCard icon={<Clock className="h-5 w-5"/>} label="Scan Events" value={total_predictions} />
-        <KpiCard icon={<CheckCircle className="h-5 w-5"/>} label="Accuracy Rate" value={`${successRate}%`} highlight={true} />
+        <KpiCard icon={<CheckCircle className="h-5 w-5"/>} label="Hard Match Rate" value={`${successRate}%`} highlight={true} />
       </motion.div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

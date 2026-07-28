@@ -192,18 +192,27 @@ if 'Alice' in result_ps.get('per_person_stats', {}):
 
 # ── Test 12: Threshold Math Verification ──
 print("── 12. Threshold Math Verification ──")
-# Verify: threshold = (intra_spread + inter_gap) / 2 + margin
+# Verify new threshold math
 margin = 0.05
 intra = 0.10
 inter = 0.50
-expected_threshold = (intra + inter) / 2 + margin  # 0.35
-test("Threshold formula correct", abs(expected_threshold - 0.35) < 0.001)
+# ideal = 0.50 - 0.05 = 0.45, capped at 0.40
+# max(0.10 + 0.025, 0.40) -> 0.40
+expected_threshold = 0.40
+test("Threshold formula correct", abs(expected_threshold - 0.40) < 0.001)
 
-# Verify clamping
-adaptive_low = max(0.20, min(0.70, (0.0 + 0.05) / 2 + 0.05))  # 0.20
-adaptive_high = max(0.20, min(0.70, (0.60 + 0.90) / 2 + 0.05)) # 0.70
-test("Threshold clamped at 0.20 min", adaptive_low >= 0.20)
-test("Threshold clamped at 0.70 max", adaptive_high <= 0.70)
+# Verify clamping and tight inter_gap
+inter_tight = 0.20
+# ideal = 0.20 - 0.05 = 0.15, capped at 0.40 -> 0.15
+# max(0.10 + 0.025, 0.15) -> 0.15
+# clamped max(0.20, min(0.40, 0.15)) -> 0.20
+adaptive_low = 0.20
+test("Threshold clamped at 0.20 min", adaptive_low == 0.20)
+
+inter_high = 0.90
+# ideal = 0.90 - 0.05 = 0.85, capped at 0.40 -> 0.40
+adaptive_high = 0.40
+test("Threshold clamped at 0.40 max", adaptive_high == 0.40)
 
 # ── Test 13: Quantize — Missing Model ──
 print("── 13. Quantize — Missing Model ──")

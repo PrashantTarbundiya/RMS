@@ -63,7 +63,8 @@ The application implements a **Premium AI SaaS Dark Mode** design language with 
 6. **LiveAttendancePage.jsx:** Real-time grid showing "who is currently on site" with auto-refreshing elapsed timers and check-in timestamps.
 7. **TestPage.jsx:** Live Inference Console. Features:
    - **Upload mode:** Drag-and-drop or paste image for static inference.
-   - **Webcam mode:** Live video feed with continuous prediction loop (every 1.5s) and scaled bounding box overlays.
+   - **Webcam mode:** Live video feed with continuous prediction loop (every 1.5s).
+   - **Strict Telemetry Sync:** Bounding boxes dynamically inherit colors and labels strictly from backend states (`ensemble.is_recognized` and `liveness.is_live`), replacing legacy hardcoded frontend thresholds (Green = Confirmed, Orange = Spoof, Red = Unknown).
    - **Capture & Run Inference:** Freezes the video frame, stops the camera, and runs high-quality static inference.
    - **Feedback Modal:** Structured 3-step correction flow ("Is this a person?" → "Is the prediction correct?" → "Who is this?").
    - **Mode tracking:** Uses `modeRef` to prevent stale live-camera results from overwriting captured photo results.

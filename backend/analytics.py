@@ -372,3 +372,188 @@ def generate_report_data(org_id, start_date=None, end_date=None,
     report['heatmap'] = get_attendance_heatmap(org_id, start_date, end_date)
 
     return report
+
+
+def generate_pdf_report(org_id, start_date=None, end_date=None,
+                        work_start_hour=9, work_start_minute=0):
+    """
+    Generates a PDF analytics report as bytes using ReportLab.
+    """
+    import io
+    from reportlab.lib import colors
+    from reportlab.lib.pagesizes import letter
+    from reportlab.platypus import (
+        SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+    )
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+
+    report_data = generate_report_data(org_id, start_date, end_date, work_start_hour, work_start_minute)
+
+    buffer = io.BytesIO()
+    doc = SimpleDocTemplate(
+        buffer,
+        pagesize=letter,
+        rightMargin=36,
+        leftMargin=36,
+        topMargin=36,
+        bottomMargin=36
+    )
+
+    styles = getSampleStyleSheet()
+    
+    title_style = ParagraphStyle(
+        'DocTitle',
+        parent=styles['Heading1'],
+        fontSize=20,
+        leading=24,
+        textColor=colors.HexColor('#1E293B'),
+        spaceAfter=6
+    )
+    
+    subtitle_style = ParagraphStyle(
+        'DocSubTitle',
+        parent=styles['Normal'],
+        fontSize=10,
+        textColor=colors.HexColor('#64748B'),
+        spaceAfter=15
+    )
+
+    section_heading = ParagraphStyle(
+        'SectionHeading',
+        parent=styles['Heading2'],
+        fontSize=14,
+        leading=18,
+        textColor=colors.HexColor('#0F172A'),
+        spaceBefore=12,
+        spaceAfter=8
+    )
+
+    cell_style = ParagraphStyle(
+        'Cell',
+        parent=styles['Normal'],
+        fontSize=9,
+        leading=11,
+        textColor=colors.HexColor('#334155')
+    )
+
+    header_cell_style = ParagraphStyle(
+        'HeaderCell',
+        parent=styles['Normal'],
+        fontSize=9,
+        leading=11,
+        fontName='Helvetica-Bold',
+        textColor=colors.HexColor('#FFFFFF')
+    )
+
+    elements = []
+
+    # Title & Metadata
+    org_name = report_data.get('org_name') or 'Organization'
+    gen_time = report_data.get('generated_at', '')[:19].replace('T', ' ')
+    date_str = f"Date Range: {start_date.strftime('%Y-%m-%d') if start_date else 'All Time'} to {end_date.strftime('%Y-%m-%d') if end_date else 'Present'}"
+
+    elements.append(Paragraph(f"RMS Face AI — Executive Analytics Report", title_style))
+    elements.append(Paragraph(f"Organization: <b>{org_name}</b> | Generated: {gen_time} | {date_str}", subtitle_style))
+    elements.append(Spacer(1, 10))
+
+    # 1. Executive Overview Table
+    elements.append(Paragraph("1. Executive Overview", section_heading))
+    overview = report_data.get('overview', {})
+    
+    overview_data = [
+        [Paragraph("Metric", header_cell_style), Paragraph("Value", header_cell_style)],
+        [Paragraph("Total Enrolled Employees", cell_style), Paragraph(str(overview.get('total_employees', 0)), cell_style)],
+        [Paragraph("Total Attendance Logs", cell_style), Paragraph(str(overview.get('total_attendance_logs', 0)), cell_style)],
+        [Paragraph("Confirmed Recognition Logs", cell_style), Paragraph(str(overview.get('confirmed_logs', 0)), cell_style)],
+        [Paragraph("Recognition Accuracy Rate", cell_style), Paragraph(f"{overview.get('recognition_rate', 0)}%", cell_style)],
+    ]
+
+    t_overview = Table(overview_data, colWidths=[270, 270])
+    t_overview.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#2563EB')),
+        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+        ('TOPPADDING', (0, 0), (-1, -1), 6),
+        ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#E2E8F0')),
+        ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.HexColor('#F8FAFC'), colors.HexColor('#FFFFFF')])
+    ]))
+    elements.append(t_overview)
+    elements.append(Spacer(1, 15))
+
+    # 2. Department Breakdown
+    elements.append(Paragraph("2. Department Breakdown", section_heading))
+    dept_data = report_data.get('department_breakdown', {}).get('departments', [])
+    
+    dept_table_content = [
+        [
+            Paragraph("Department", header_cell_style),
+            Paragraph("Employees", header_cell_style),
+            Paragraph("Total Checkins", header_cell_style),
+            Paragraph("Avg Attendance Rate", header_cell_style),
+            Paragraph("Avg Confidence", header_cell_style)
+        ]
+    ]
+
+    if dept_data:
+        for d in dept_data:
+            dept_table_content.append([
+                Paragraph(str(d.get('name', '')), cell_style),
+                Paragraph(str(d.get('total_employees', 0)), cell_style),
+                Paragraph(str(d.get('total_checkins', 0)), cell_style),
+                Paragraph(f"{d.get('avg_attendance_rate', 0)}%", cell_style),
+                Paragraph(f"{d.get('avg_confidence', 0)}", cell_style),
+            ])
+    else:
+        dept_table_content.append([Paragraph("No department data available", cell_style)] + [Paragraph("-", cell_style)]*4)
+
+    t_dept = Table(dept_table_content, colWidths=[140, 100, 100, 110, 90])
+    t_dept.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#0D9488')),
+        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+        ('TOPPADDING', (0, 0), (-1, -1), 6),
+        ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#E2E8F0')),
+        ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.HexColor('#F8FAFC'), colors.HexColor('#FFFFFF')])
+    ]))
+    elements.append(t_dept)
+    elements.append(Spacer(1, 15))
+
+    # 3. Late Arrival Analysis
+    elements.append(Paragraph("3. Late Arrival Analysis", section_heading))
+    late_analysis = report_data.get('late_arrival_analysis', {})
+    
+    late_table_content = [
+        [Paragraph("Metric", header_cell_style), Paragraph("Value", header_cell_style)],
+        [Paragraph("Configured Shift Start Time", cell_style), Paragraph(f"{work_start_hour:02d}:{work_start_minute:02d}", cell_style)],
+        [Paragraph("Total Check-ins Analyzed", cell_style), Paragraph(str(late_analysis.get('total_logs', 0)), cell_style)],
+        [Paragraph("Late Arrivals Count", cell_style), Paragraph(str(late_analysis.get('late_count', 0)), cell_style)],
+        [Paragraph("Late Arrival Percentage", cell_style), Paragraph(f"{late_analysis.get('late_percentage', 0)}%", cell_style)],
+        [Paragraph("Average Delay", cell_style), Paragraph(f"{late_analysis.get('avg_delay_minutes', 0)} mins", cell_style)],
+    ]
+
+    t_late = Table(late_table_content, colWidths=[270, 270])
+    t_late.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#E11D48')),
+        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+        ('TOPPADDING', (0, 0), (-1, -1), 6),
+        ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#E2E8F0')),
+        ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.HexColor('#F8FAFC'), colors.HexColor('#FFFFFF')])
+    ]))
+    elements.append(t_late)
+
+    def add_page_number(canvas, doc):
+        canvas.saveState()
+        canvas.setFont('Helvetica', 8)
+        canvas.setFillColor(colors.HexColor('#94A3B8'))
+        canvas.drawString(36, 20, f"RMS Face AI Platform — Confidential")
+        canvas.drawRightString(576, 20, f"Page {doc.page}")
+        canvas.restoreState()
+
+    doc.build(elements, onFirstPage=add_page_number, onLaterPages=add_page_number)
+    pdf_bytes = buffer.getvalue()
+    buffer.close()
+    return pdf_bytes

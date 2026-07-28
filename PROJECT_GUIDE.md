@@ -17,12 +17,12 @@ The project consists of three main systems:
 The system supports dual inference pipelines that vote on identity classifications:
 * **SOTA MobileNetV2:** Fine-tuned on local training classes. The vision model understands facial orientation features and is optimized for speed and generalization.
 * **DeepFace (Facenet512 + TTA):** Generates a 512-dimension spatial embedding vector per face using Test-Time Augmentation (5 augmented variants averaged). A K-Nearest Neighbors (KNN) classifier with cosine distance evaluates matches against enrolled class centroids.
-* **Global Model Selection:** DeepFace/Ensemble settings can be disabled entirely in the Models page. When disabled, the server bypasses embedding computation, saves memory, and relies strictly on SOTA MobileNetV2.
+* **Global Model Selection & Resilient Fallback:** DeepFace/Ensemble settings can be disabled entirely in the Models page. When disabled, the ensemble predictor dynamically falls back to trusting the SOTA MobileNetV2 confidence, overriding historical hard-dependencies on dual confirmation.
 
 ### 2. Multi-Stage AI Pipeline
 The inference pipeline runs 5 stages in sequence:
 1. **MediaPipe BlazeFace Detection:** Deep learning face detection supporting 0°–90° head rotation.
-2. **Liveness Detection:** Anti-spoofing checks (edge density, color variance, texture analysis) reject printed photos and screen replays.
+2. **Liveness Detection (Voting System):** A resilient anti-spoofing mechanism utilizing a 2-failure voting system. Evaluates edge density, color variance, specular glare, and moiré patterns. Thresholds are highly tuned to accommodate glasses reflections while strictly rejecting printed photos and screen replays.
 3. **DeepFace FaceNet512 + TTA:** 5-variant augmented embedding generation with KNN cosine distance matching.
 4. **MobileNetV2 SOTA:** Fine-tuned CNN forward pass for categorical classification.
 5. **4-Gate Ensemble Voter:** Distance threshold → binary agreement → adaptive threshold → confidence level classification.
@@ -41,7 +41,7 @@ The **Enrollment & Update** interface (UploadPage.jsx) is organized into profile
 
 ### 5. Real-time Video Telemetry & Bounding Boxes
 * The Webcam test console continuously polls frame captures (every 1.5s) in the background.
-* Scaled bounding boxes overlay the live `<video>` element with name labels ("SPOOF", "UNKNOWN", or recognized name).
+* Scaled bounding boxes overlay the live `<video>` element with name labels ("SPOOF", "UNKNOWN", or recognized name). The bounding box logic is strictly synchronized to the backend `ensemble.is_recognized` and `liveness.is_live` telemetry states to guarantee 1:1 parity with the side panel.
 * **Capture & Run Inference** freezes the frame, stops the camera, and runs static inference.
 * Mode tracking via `modeRef` prevents stale live-camera results from overwriting captured photo results.
 

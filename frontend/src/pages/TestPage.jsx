@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { Camera, Image as ImageIcon, Video, Maximize, Play, X, AlertCircle, ThumbsUp, ThumbsDown, Check, Loader2, UploadCloud } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { API_BASE } from '../config';
+import { io } from 'socket.io-client';
 import ApertureReticle from '../components/ApertureReticle';
 
 
@@ -161,51 +162,113 @@ export default function TestPage() {
   const modeRef = useRef(mode);
   const isRequestInFlightRef = useRef(false);
   const backoffDelayRef = useRef(0); // 0 = no backoff
+  const socketRef = useRef(null);
+  const [socketConnected, setSocketConnected] = useState(false);
 
   useEffect(() => {
     modeRef.current = mode;
   }, [mode]);
 
+  // ─── WebSocket Connection Management ───
+  useEffect(() => {
+    if (mode === 'webcam') {
+      const wsUrl = API_BASE.replace('http', 'ws');
+      const socket = io(wsUrl, {
+        reconnectionDelayMax: 5000,
+        transports: ['websocket', 'polling']
+      });
+
+      socket.on('connect', () => {
+        console.log('[TestPage] WebSocket connected');
+        setSocketConnected(true);
+      });
+
+      socket.on('disconnect', () => {
+        console.warn('[TestPage] WebSocket disconnected, falling back to polling');
+        setSocketConnected(false);
+      });
+
+      socket.on('prediction_result', (data) => {
+        isRequestInFlightRef.current = false;
+        setLivePredicting(false);
+        backoffDelayRef.current = 0;
+        
+        if (data.error) {
+          console.error("WebSocket prediction error:", data.error);
+        } else if (modeRef.current === 'webcam' && videoRef.current) {
+          setResults(data);
+          setPreviewSize({
+            width: videoRef.current.clientWidth,
+            height: videoRef.current.clientHeight,
+            naturalWidth: videoRef.current.videoWidth || 640,
+            naturalHeight: videoRef.current.videoHeight || 480
+          });
+        }
+      });
+
+      socketRef.current = socket;
+
+      return () => {
+        socket.disconnect();
+        socketRef.current = null;
+        setSocketConnected(false);
+      };
+    }
+  }, [mode]);
 
   const runLivePrediction = useCallback(async () => {
     // Strict guard: skip if not in webcam mode, not ready, or a request is already in flight
     if (modeRef.current !== 'webcam' || !videoRef.current || !webcamReady || isRequestInFlightRef.current) return;
+    
     isRequestInFlightRef.current = true;
     setLivePredicting(true);
+    
     try {
       const canvas = document.createElement('canvas');
       canvas.width = videoRef.current.videoWidth || 640;
       canvas.height = videoRef.current.videoHeight || 480;
       const ctx = canvas.getContext('2d');
       ctx.drawImage(videoRef.current, 0, 0);
-      
-      const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.80));
-      if (!blob) {
+
+      if (socketConnected && socketRef.current?.connected) {
+        // --- WEBSOCKET STREAMING PATH ---
+        const base64Image = canvas.toDataURL('image/jpeg', 0.80);
+        socketRef.current.emit('stream_frame', {
+          image: base64Image,
+          token: sessionStorage.getItem('rms_access_token')
+        });
+        // Note: isRequestInFlightRef is reset in the socket listener
+      } else {
+        // --- HTTP POLLING FALLBACK PATH ---
+        const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.80));
+        if (!blob) {
+          isRequestInFlightRef.current = false;
+          setLivePredicting(false);
+          return;
+        }
+        
+        const formData = new FormData();
+        formData.append('image', new File([blob], 'live_frame.jpg', { type: 'image/jpeg' }));
+        formData.append('test_mode', 'true');
+        
+        const res = await apiClient.post(`${API_BASE}/predict`, formData, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+          timeout: 8000,
+        });
+        
+        backoffDelayRef.current = 0;
+        
+        if (modeRef.current === 'webcam' && videoRef.current) {
+          setResults(res.data);
+          setPreviewSize({
+            width: videoRef.current.clientWidth,
+            height: videoRef.current.clientHeight,
+            naturalWidth: videoRef.current.videoWidth || 640,
+            naturalHeight: videoRef.current.videoHeight || 480
+          });
+        }
         isRequestInFlightRef.current = false;
         setLivePredicting(false);
-        return;
-      }
-      
-      const formData = new FormData();
-      formData.append('image', new File([blob], 'live_frame.jpg', { type: 'image/jpeg' }));
-      formData.append('test_mode', 'true');
-      
-      const res = await apiClient.post(`${API_BASE}/predict`, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-        timeout: 8000,
-      });
-      
-      // Success — clear any backoff
-      backoffDelayRef.current = 0;
-      
-      if (modeRef.current === 'webcam' && videoRef.current) {
-        setResults(res.data);
-        setPreviewSize({
-          width: videoRef.current.clientWidth,
-          height: videoRef.current.clientHeight,
-          naturalWidth: videoRef.current.videoWidth || 640,
-          naturalHeight: videoRef.current.videoHeight || 480
-        });
       }
     } catch (err) {
       if (err?.response?.status === 429) {
@@ -215,17 +278,18 @@ export default function TestPage() {
       } else {
         console.error("Live prediction loop error:", err);
       }
-    } finally {
       isRequestInFlightRef.current = false;
       setLivePredicting(false);
     }
-  }, [mode, webcamReady, apiClient]);
+  }, [mode, webcamReady, apiClient, socketConnected]);
 
   useEffect(() => {
     if (mode === 'webcam' && webcamReady && !isFeedbackModalOpen) {
-      // Use a dynamic interval that respects backoff
       const scheduleNext = () => {
-        const delay = backoffDelayRef.current > 0 ? backoffDelayRef.current : 2000;
+        // WebSocket can handle faster frame rate; fallback is slower
+        const baseDelay = socketConnected ? 250 : 2000;
+        const delay = backoffDelayRef.current > 0 ? backoffDelayRef.current : baseDelay;
+        
         liveLoopRef.current = setTimeout(() => {
           runLivePrediction();
           if (modeRef.current === 'webcam') {
@@ -233,7 +297,7 @@ export default function TestPage() {
           }
         }, delay);
       };
-      // Run once immediately, then schedule recurring
+      
       runLivePrediction();
       scheduleNext();
     } else {
@@ -248,7 +312,7 @@ export default function TestPage() {
         liveLoopRef.current = null;
       }
     };
-  }, [mode, webcamReady, isFeedbackModalOpen, runLivePrediction]);
+  }, [mode, webcamReady, isFeedbackModalOpen, runLivePrediction, socketConnected]);
 
   const captureWebcam = useCallback(() => {
     // Legacy snapshot capture falls back to running a single manual prediction

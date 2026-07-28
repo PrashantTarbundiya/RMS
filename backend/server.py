@@ -60,6 +60,10 @@ logger = logging.getLogger('rms-api')
 # ─── App Setup ─────────────────────────────────────────────────────────
 app = Flask(__name__)
 
+# Observability, Structured Logging, and Health Endpoint
+from observability import init_observability
+init_observability(app)
+
 # Sentry Error Tracking
 import sentry_sdk
 from sentry_sdk.integrations.flask import FlaskIntegration
@@ -106,6 +110,9 @@ else:
 
 app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024  # 50 MB max upload
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-secret-key')
+
+from flask_socketio import SocketIO, emit
+socketio = SocketIO(app, cors_allowed_origins="*", async_mode='gevent')
 
 # ─── Database Initialization & License Gating ───────────────────────────
 from database.db import init_database, create_tables, is_db_available
@@ -553,6 +560,34 @@ def analytics_report(org_id):
         org_id, start_date, end_date, work_start_hour, work_start_minute
     )
     return jsonify(report)
+
+
+@app.route('/api/analytics/export/pdf', methods=['GET'])
+@require_auth
+@inject_org_id
+def export_analytics_pdf(org_id):
+    """Generate and download PDF analytics report."""
+    from analytics import generate_pdf_report
+    from datetime import datetime as dt
+    import io
+
+    start = request.args.get('start_date')
+    end = request.args.get('end_date')
+    work_start_hour = int(request.args.get('work_start_hour', 9))
+    work_start_minute = int(request.args.get('work_start_minute', 0))
+    start_date = dt.fromisoformat(start) if start else None
+    end_date = dt.fromisoformat(end) if end else None
+
+    pdf_bytes = generate_pdf_report(
+        org_id, start_date, end_date, work_start_hour, work_start_minute
+    )
+
+    return send_file(
+        io.BytesIO(pdf_bytes),
+        mimetype='application/pdf',
+        as_attachment=True,
+        download_name=f'rms_analytics_report_{datetime.now().strftime("%Y%m%d")}.pdf'
+    )
 
 
 
@@ -1903,7 +1938,12 @@ def process_local_training_queue():
             ]
             
             org_dataset_dir = get_dataset_cleaned_dir(org_id)
-            update_sota_model(person_name, dataset_dir=org_dataset_dir, num_epochs=epochs, org_id=org_id)
+            try:
+                import gevent.threadpool
+                pool = gevent.threadpool.ThreadPool(1)
+                pool.apply(update_sota_model, args=(person_name,), kwds={'dataset_dir': org_dataset_dir, 'num_epochs': epochs, 'org_id': org_id})
+            except ImportError:
+                update_sota_model(person_name, dataset_dir=org_dataset_dir, num_epochs=epochs, org_id=org_id)
             
             training_status['progress'] = 100
             training_status['logs'].append("Saved updated model: best_mobile_sideface")
@@ -2542,6 +2582,7 @@ def reset_models(org_id):
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/predict', methods=['POST'])
+@limiter.limit("5000 per minute")
 @require_api_key_or_auth
 @inject_org_id
 def predict(org_id):
@@ -2834,6 +2875,191 @@ def predict(org_id):
         trace = traceback.format_exc()
         logger.error(f"Predict error: {e}", exc_info=True)
         return jsonify({'error': str(e), 'trace': trace}), 500
+
+# ─── WebSocket Inference ──────────────────────────────────────────────
+@socketio.on('stream_frame')
+def handle_stream_frame(data):
+    """
+    WebSocket endpoint for real-time inference (used by Test Console).
+    Receives base64 encoded frame, processes it in test_mode=True, and emits results.
+    """
+    try:
+        from middleware import decode_auth_token
+        # Basic auth check - frontend should send token
+        token = data.get('token')
+        org_id = None
+        if token:
+            payload = decode_auth_token(token)
+            if not isinstance(payload, str) and payload.get('sub'):
+                org_id = payload.get('org_id')
+                
+        # If no org_id in token, fallback to local dev default if available
+        if not org_id:
+            org_id = os.environ.get('DEFAULT_ORG_ID', 'default_org')
+
+        image_data = data.get('image')
+        if not image_data:
+            emit('prediction_result', {'error': 'No image provided'})
+            return
+
+        # Decode base64 image
+        if ',' in image_data:
+            image_data = image_data.split(',')[1]
+        img_bytes = b64decode(image_data)
+        
+        pil_img = Image.open(StringIO(img_bytes.decode('latin1')) if sys.version_info < (3,) else __import__('io').BytesIO(img_bytes)).convert('RGB')
+        
+        if pil_img.width < 20 or pil_img.height < 20:
+            emit('prediction_result', {'error': 'Image is too small.'})
+            return
+            
+        img_np = cv2.cvtColor(np.array(pil_img), cv2.COLOR_RGB2BGR)
+
+        # Force test mode for WebSocket (Test Console)
+        test_mode = True
+        camera_threshold = None
+        additional_frames_raw = []
+
+        org_models = ensure_org_models_loaded(org_id)
+        
+        from face_detector import face_detector
+        detected_faces_info = face_detector.detect_faces(img_np, profile_only=False)
+        faces = []
+        for face_info in detected_faces_info:
+            b = face_info['bbox']
+            faces.append((b['x'], b['y'], b['w'], b['h']))
+
+        if len(faces) == 0:
+            h, w = img_np.shape[:2]
+            faces = [(0, 0, w, h)]
+            message = "Detector failed to find a face: Full image evaluated."
+        else:
+            message = f'Detected {len(faces)} face(s)'
+
+        results = []
+        for (x, y, w, h) in faces:
+            margin_x = int(w * 0.15)
+            margin_y = int(h * 0.15)
+            x1 = max(0, x - margin_x)
+            y1 = max(0, y - margin_y)
+            x2 = min(img_np.shape[1], x + w + margin_x)
+            y2 = min(img_np.shape[0], y + h + margin_y)
+            
+            face_roi_pil = pil_img.crop((x1, y1, x2, y2))
+            face_roi_cv = img_np[y1:y2, x1:x2]
+            
+            from liveness import evaluate_liveness
+            is_live, liveness_score, liveness_reason, liveness_details = evaluate_liveness(face_roi_cv)
+            
+            if not is_live:
+                results.append({
+                    'bbox': {'x': int(x), 'y': int(y), 'w': int(w), 'h': int(h)},
+                    'predictions': {
+                        'sota': {'label': 'SPOOF', 'confidence': 0.0},
+                        'deepface': {'label': 'SPOOF', 'confidence': 0.0, 'confidence_level': 'rejected'}
+                    },
+                    'ensemble': {
+                        'label': 'SPOOF DETECTED',
+                        'confidence': 0.0,
+                        'method': 'liveness_rejection',
+                        'agreement': 'N/A',
+                        'is_recognized': False,
+                        'is_confirmed': False,
+                        'confidence_level': 'rejected',
+                        'display': 'SPOOF DETECTED',
+                    },
+                    'liveness': {
+                        'is_live': False,
+                        'score': float(liveness_score),
+                        'reason': liveness_reason,
+                        'details': liveness_details,
+                    }
+                })
+                continue
+                
+            sota_label, sota_conf_val = '[UNTRAINED]', 0.0
+            sota_model = org_models.get('sota_model')
+            sota_transform = org_models.get('sota_transform')
+            sota_device = org_models.get('sota_device')
+            sota_classes = org_models.get('sota_classes')
+            sota_loaded = org_models.get('sota_loaded')
+            
+            if sota_model is not None and sota_transform is not None:
+                try:
+                    input_tensor = sota_transform(face_roi_pil).unsqueeze(0).to(sota_device)
+                    with torch.no_grad():
+                        outputs = sota_model(input_tensor)
+                        probs = torch.nn.functional.softmax(outputs, dim=1)
+                        conf_tensor, predicted_idx = torch.max(probs, 1)
+                    idx = predicted_idx.item()
+                    sota_conf_val = float(conf_tensor.item())
+                    sota_label = sota_classes[idx] if sota_classes and idx < len(sota_classes) else f"Class {idx}"
+                    if not sota_loaded:
+                        sota_label = "[UNTRAINED]"
+                except Exception as e:
+                    sota_label, sota_conf_val = 'Error', 0.0
+
+            df_label, df_conf = "Not Trained", 0.0
+            df_confidence_level = "rejected"
+            deepface_encodings = org_models.get('deepface_encodings')
+            deepface_names = org_models.get('deepface_names')
+            
+            if deepface_encodings is not None:
+                try:
+                    processed = apply_clahe(face_roi_cv)
+                    emb = get_embedding_tta(processed)
+                    if emb is None:
+                        emb = get_embedding(processed)
+                    if emb is not None:
+                        df_label, dist, df_confidence_level = find_match_knn(
+                            emb, deepface_encodings, deepface_names, 
+                            custom_threshold=camera_threshold
+                        )
+                        df_conf = max(0, (1 - dist))
+                except Exception as e:
+                    df_label = "Error"
+                    
+            individual_preds = {
+                'sota': {'label': sota_label, 'confidence': float(sota_conf_val)},
+                'deepface': {'label': df_label, 'confidence': float(df_conf), 'confidence_level': df_confidence_level}
+            }
+            ensemble_result = ensemble_predict(individual_preds)
+
+            ens_label = ensemble_result['label']
+            ens_conf = ensemble_result['confidence']
+            is_confirmed = ensemble_result['is_recognized']
+            
+            if is_confirmed:
+                display_text = f"CONFIRMED: {ens_label}"
+            else:
+                display_text = "NOT FOUND"
+                ens_label = "Unknown"
+
+            results.append({
+                'bbox': {'x': int(x), 'y': int(y), 'w': int(w), 'h': int(h)},
+                'predictions': individual_preds,
+                'ensemble': {
+                    'label': ens_label,
+                    'confidence': ens_conf if is_confirmed else 0.0,
+                    'method': ensemble_result['method'],
+                    'agreement': ensemble_result.get('agreement', 'N/A'),
+                    'is_recognized': is_confirmed,
+                    'is_confirmed': is_confirmed,
+                    'confidence_level': 'confirmed' if is_confirmed else 'rejected',
+                    'display': display_text,
+                },
+                'liveness': {
+                    'is_live': True,
+                    'score': float(liveness_score),
+                    'reason': liveness_reason,
+                }
+            })
+
+        emit('prediction_result', {'faces': results, 'message': message})
+    except Exception as e:
+        import traceback
+        trace = traceback.format_exc()
+        emit('prediction_result', {'error': str(e), 'trace': trace})
 
 # ─── Recognition History Endpoints ────────────────────────────────────
 @app.route('/api/history', methods=['GET'])
@@ -3461,15 +3687,10 @@ if __name__ == '__main__':
     env = os.environ.get('FLASK_ENV', 'development')
     
     if env == 'production':
-        print(f"  -> Running in PRODUCTION mode (Waitress)")
+        print(f"  -> Running in PRODUCTION mode (socketio + gevent)")
         print(f"{'='*50}\n")
-        try:
-            from waitress import serve
-            serve(app, host='0.0.0.0', port=port)
-        except ImportError:
-            print("Waitress not installed. Falling back to Flask built-in server.")
-            app.run(host='0.0.0.0', port=port, debug=False, use_reloader=False, threaded=True)
+        socketio.run(app, host='0.0.0.0', port=port, debug=False, use_reloader=False)
     else:
-        print(f"  -> Running in DEVELOPMENT mode")
+        print(f"  -> Running in DEVELOPMENT mode (socketio + werkzeug)")
         print(f"{'='*50}\n")
-        app.run(host='0.0.0.0', port=port, debug=True, use_reloader=False, threaded=True)
+        socketio.run(app, host='0.0.0.0', port=port, debug=True, use_reloader=False)

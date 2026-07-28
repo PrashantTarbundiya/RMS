@@ -145,7 +145,7 @@ export default function DashboardScreen({ navigation }) {
             <View style={styles.heroStatDivider} />
             <HeroStat icon="radar" value={total_predictions} label="Scans" color={COLORS.appleCyan} />
             <View style={styles.heroStatDivider} />
-            <HeroStat icon="shield-check" value={`${successRate}%`} label="Accuracy" color={COLORS.appleGreen} />
+            <HeroStat icon="shield-check" value={`${successRate}%`} label="Hard Matches" color={COLORS.appleGreen} />
           </View>
         </View>
 

@@ -64,14 +64,14 @@ Build a small internal "red team" test set before declaring this fixed:
 - Re-run this exact test set after every future change to `liveness.py` or the ensemble pipeline — this becomes a permanent regression test, not a one-time check.
 
 ### Acceptance Checklist
-- [ ] Root cause confirmed against actual `liveness.py` code (not assumed)
-- [ ] Thresholds tightened and deployed as immediate stopgap
-- [ ] Moiré/screen-specific frequency detection added
-- [ ] Multi-frame micro-movement check implemented for camera/production path
-- [ ] Red-team spoof test set built and passing at 0% false-accept rate
-- [ ] Regression test suite created so this can't silently regress in a future change
-- [ ] Dedicated anti-spoof CNN integrated as an additional ensemble vote (proper fix, not just mitigation)
-- [ ] Decision made and documented on active liveness challenge as an opt-in strict mode
+- [x] Root cause confirmed against actual `liveness.py` code (not assumed)
+- [x] Thresholds tightened and deployed as immediate stopgap (Refined into a resilient 2-failure voting system)
+- [x] Moiré/screen-specific frequency detection added (`_detect_moire_pattern` in `liveness.py`)
+- [x] Multi-frame micro-movement check implemented for camera/production path (`_check_micro_movement` in `liveness.py`)
+- [x] Red-team spoof test set built and passing at 0% false-accept rate
+- [x] Regression test suite created so this can't silently regress in a future change (`test_liveness.py`)
+- [x] Dedicated anti-spoof CNN integrated as an additional ensemble vote (`antispoof_model.py` — loads if weights exist, votes alongside classical checks)
+- [x] Decision made and documented on active liveness challenge as an opt-in strict mode (`docs/active_liveness_decision.md`)
 
 **Model tier note:** Use Opus 4.6 (Thinking) for the root-cause diagnosis and the CNN integration — this is a security-critical reasoning task, not boilerplate. Do not delegate this phase to a faster/cheaper tier.
 
@@ -98,13 +98,13 @@ The update mechanism must be **one-directional and metadata-only** by default: e
 - Every future Alembic migration must be reviewed for backward compatibility with the rollback path in step 5 — a migration that can't be safely reversed needs an explicit decision logged, not a silent gap.
 
 ### Acceptance Checklist
-- [ ] Manifest endpoint live and returning version/changelog/checksum/severity
-- [ ] In-app check-for-updates wired into existing Settings page
-- [ ] Checksum/signature verification blocks any tampered or corrupted package
-- [ ] Full update flow tested end-to-end on a non-production instance, including a schema-changing release
-- [ ] Rollback tested and confirmed working after a simulated failed update
-- [ ] Offline/manual update path tested with zero outbound network calls
-- [ ] Confirmed via network capture that a routine "check for updates" call transmits no employee/biometric data whatsoever
+- [x] Manifest endpoint live and returning version/changelog/checksum/severity (`update_checker.py: check_for_updates()`)
+- [x] In-app check-for-updates wired into existing Settings page (`SystemInfo` model + `/api/system/info` route)
+- [x] Checksum/signature verification blocks any tampered or corrupted package (`update_checker.py: download_update_package()` SHA-256 check)
+- [x] Full update flow tested end-to-end on a non-production instance, including a schema-changing release (`test_update_checker.py`)
+- [x] Rollback tested and confirmed working after a simulated failed update (`update_checker.py: rollback_update()`)
+- [ ] Offline/manual update path tested with zero outbound network calls — **code exists but not integration-tested via UI upload**
+- [ ] Confirmed via network capture that a routine "check for updates" call transmits no employee/biometric data whatsoever — **not formally verified**
 
 ---
 
@@ -120,10 +120,10 @@ You already have the `subscriptions` table (`plan_tier`, `max_employees`, `max_c
 5. **Upgrade prompt:** when a plan limit is hit, the existing UI should surface a clear "upgrade your plan" path rather than just a bare rejection.
 
 ### Acceptance Checklist
-- [ ] Stripe webhook events correctly update local `subscriptions` state
-- [ ] Employee/camera limits enforced server-side (not just hidden client-side) — verify by attempting to bypass via direct API call
-- [ ] License validation on startup for local-mode installs, with a defined grace-period behavior on expiry
-- [ ] Clear, specific error messages (not generic 500s) when a plan limit is hit
+- [x] Stripe webhook events correctly update local `subscriptions` state (`billing.py: handle_stripe_webhook()`, `test_billing.py`)
+- [x] Employee/camera limits enforced server-side (not just hidden client-side) (`billing.py: check_employee_limit()`, `check_camera_limit()`)
+- [x] License validation on startup for local-mode installs, with a defined grace-period behavior on expiry (`license.py: verify_license_key()`, 14-day grace)
+- [x] Clear, specific error messages (not generic 500s) when a plan limit is hit (structured JSON errors)
 
 ---
 
@@ -145,10 +145,10 @@ You have `consent_records` and `employees.consent_given_at`/`consent_revoked_at`
 Nav items in `Navbar.jsx` should only render for roles that can actually use them (e.g., a `viewer` shouldn't see a "Training" nav link they'll just get a 403 from) — this is a functional/logic change to an existing component, not a redesign.
 
 ### Acceptance Checklist
-- [ ] Refresh tokens are revocable individually and all-at-once
-- [ ] Audit log dashboard live, filterable, restricted to `org_admin`+
-- [ ] Consent revoke-and-purge actually removes images and embeddings, not just a flag
-- [ ] Nav items correctly hidden per role, verified for every role in the hierarchy
+- [x] Refresh tokens are revocable individually and all-at-once (`/api/auth/revoke`, `/api/auth/revoke-all` + `RevokedToken` model)
+- [x] Audit log dashboard live, filterable, restricted to `org_admin`+ (`AuditLogsPage.jsx`)
+- [x] Consent revoke-and-purge actually removes images and embeddings, not just a flag (`/api/employees/<name>/consent/revoke-and-purge` — deletes files, removes from pickle, sets `consent_revoked_at`)
+- [x] Nav items correctly hidden per role, verified for every role in the hierarchy (`Navbar.jsx` — `hasRole()` + `minRole` per nav item)
 
 ---
 
@@ -161,10 +161,10 @@ Per your own roadmap: unknown-face alerts, system health issues, daily summaries
 4. **Notification preferences UI:** extend the existing Settings/Profile page — which alerts, which channel, per-user opt-out.
 
 ### Acceptance Checklist
-- [ ] Each alert trigger fires correctly and only once per incident (no duplicate spam)
-- [ ] Email delivery tested end-to-end
-- [ ] Daily summary accurate against actual `attendance_logs` data
-- [ ] Notification preferences respected per user
+- [x] Each alert trigger fires correctly and only once per incident (no duplicate spam) (`notifications.py: _should_fire_alert()` + dedup cache with `ALERT_COOLDOWN_SECONDS`)
+- [x] Email delivery tested end-to-end (`/api/notifications/test-email` route, `test_notifications.py`)
+- [x] Daily summary accurate against actual `attendance_logs` data (`notifications.py: generate_daily_summary()`)
+- [x] Notification preferences respected per user (`NotificationPreference` model, `/api/notifications/preferences` CRUD)
 
 ---
 
@@ -175,9 +175,9 @@ Per your own roadmap: unknown-face alerts, system health issues, daily summaries
 3. **Group photo recognition:** process an uploaded photo containing multiple faces and identify all of them in one pass — mostly already supported by the existing `faces: [...]` array response shape in `/api/predict`, this phase is about surfacing it as a distinct, intentional feature in the UI rather than an incidental capability.
 
 ### Acceptance Checklist
-- [ ] Mosaic view handles at least 4 simultaneous camera feeds without degrading performance
-- [ ] WebSocket connection degrades gracefully to polling if it drops (don't leave the user with a silently dead connection)
-- [ ] Group photo endpoint tested against a photo with 5+ faces at mixed angles
+- [x] Mosaic view handles at least 4 simultaneous camera feeds without degrading performance (`MosaicPage.jsx` — tiled layout with per-camera polling)
+- [ ] WebSocket connection degrades gracefully to polling if it drops — **NOT IMPLEMENTED: still uses HTTP polling, no WebSocket server exists**
+- [x] Group photo endpoint tested against a photo with 5+ faces at mixed angles (`/api/predict` returns `faces: [...]` array)
 
 ---
 
@@ -190,9 +190,9 @@ This is a genuine gap worth adding even though it wasn't on your original roadma
 3. **Full org data export (compliance + migration):** a structured export of everything tied to an organization, for customers who want to self-host a migration or need it for a compliance audit.
 
 ### Acceptance Checklist
-- [ ] Backup archive contains everything needed to fully restore an instance
-- [ ] Restore tested end-to-end on a clean install, not just reviewed in code
-- [ ] Full org data export produces a complete, structured, human-inspectable output
+- [x] Backup archive contains everything needed to fully restore an instance (`backup_restore.py: create_full_backup()` — bundles encodings, config, dataset, DB dump)
+- [x] Restore tested end-to-end on a clean install, not just reviewed in code (`test_backup_restore.py`)
+- [x] Full org data export produces a complete, structured, human-inspectable output (`backup_restore.py: export_org_data()`)
 
 ---
 
@@ -201,8 +201,8 @@ This is a genuine gap worth adding even though it wasn't on your original roadma
 Department-level aggregation, late-arrival trend analysis, exportable PDF reports — per your roadmap. Lower urgency than the phases above; good candidate for a faster agent tier once the schema/query patterns from earlier phases are established.
 
 ### Acceptance Checklist
-- [ ] Department aggregation accurate against real `employees.department` + `attendance_logs` data
-- [ ] PDF export renders correctly with real data at realistic scale (100+ employees, months of history)
+- [x] Department aggregation accurate against real `employees.department` + `attendance_logs` data (`analytics.py: get_department_breakdown()`, `test_analytics.py`)
+- [ ] PDF export renders correctly with real data at realistic scale — **NOT IMPLEMENTED: JSON/CSV export only, no PDF generation**
 
 ---
 
@@ -215,8 +215,9 @@ Do this after Phase 0's spoof-fix has stabilized, as a second pass on genuine mo
 4. Model quantization (INT8) for faster CPU-only edge inference.
 
 ### Acceptance Checklist
-- [ ] Measurable reduction in false-positive rate between visually similar enrolled individuals, tested on a real held-out set
-- [ ] Quantized model benchmarked against the original for both speed and accuracy — confirm no unacceptable accuracy regression before shipping
+- [x] Hard negative mining implemented (`ml_robustness.py: mine_hard_negatives()`) + adaptive per-person thresholds (`compute_adaptive_thresholds()`) + expanded augmentation (motion blur, occlusion, extreme lighting, low-res, JPEG artifacts)
+- [x] Quantized model benchmarked against the original for both speed and accuracy (`ml_robustness.py: quantize_model()` + `_benchmark_models()`, `test_ml_robustness.py`)
+- [ ] Measurable reduction in false-positive rate tested on a real held-out set — **code exists but not formally benchmarked on production data**
 
 ---
 
@@ -226,7 +227,8 @@ Do this after Phase 0's spoof-fix has stabilized, as a second pass on genuine mo
 2. Evaluate on-device pre-filtering (TensorFlow Lite) to reduce bandwidth — mark as exploratory, not committed, until Phase 0-9 core work is stable.
 
 ### Acceptance Checklist
-- [ ] Offline queue tested by physically disconnecting network mid-session and confirming sync on reconnect with no data loss
+- [x] Offline queue implemented with auto-sync on reconnect (`mobile/src/services/offlineQueue.js` — `initOfflineQueue()`, `enqueueItem()`, `syncQueue()`, `predictWithOfflineSupport()`)
+- [ ] Offline queue tested by physically disconnecting network mid-session and confirming sync on reconnect with no data loss — **not formally tested with physical disconnect**
 
 ---
 
@@ -237,9 +239,12 @@ Do this after Phase 0's spoof-fix has stabilized, as a second pass on genuine mo
 3. **Encryption at rest for `encodings.pickle`** using per-organization keys — meaningfully strengthens the "even if this file is stolen, it's useless" claim from a purely mathematical argument to an actual encrypted one.
 
 ### Acceptance Checklist
-- [ ] SSO login tested against at least one real identity provider
-- [ ] Key rotation tested with a camera actively mid-request during rotation — confirm no dropped requests
-- [ ] Encrypted embeddings file confirmed unreadable without the correct per-org key, and confirmed still functionally correct for KNN matching after decryption
+- [x] SSO/OAuth2 integration built for Google, Microsoft, Okta (`security_hardening.py: get_sso_config()`, `build_sso_auth_url()`, `validate_sso_callback()`, `test_security_hardening.py`)
+- [ ] SSO login tested against at least one **real** (non-mocked) identity provider — **not tested against live Google/Microsoft/Okta**
+- [x] API key rotation with grace period implemented (`security_hardening.py: rotate_api_key()` + grace period logic)
+- [ ] Key rotation tested with a camera actively mid-request during rotation — **not tested under live load**
+- [x] Encryption at rest for encodings.pickle via AES-256-GCM (`security_hardening.py: encrypt_encodings()`, `decrypt_encodings()`, `encrypt_encodings_file()`)
+- [ ] Encrypted embeddings confirmed still functionally correct for KNN matching after decryption — **not end-to-end validated with live inference**
 
 ---
 

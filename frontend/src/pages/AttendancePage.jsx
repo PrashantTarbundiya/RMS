@@ -87,6 +87,27 @@ export default function AttendancePage() {
     document.body.removeChild(link);
   };
 
+  const exportPDF = async () => {
+    try {
+      const params = new URLSearchParams();
+      if (dateFilter) {
+        params.set('start_date', `${dateFilter}T00:00:00`);
+        params.set('end_date', `${dateFilter}T23:59:59`);
+      }
+      const res = await apiClient.get(`${API_BASE}/analytics/export/pdf?${params}`, {
+        responseType: 'blob'
+      });
+      const url = URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }));
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `rms_attendance_report_${dateFilter || 'all'}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('PDF export error:', err);
+    }
+  };
+
   const getBadgeStatus = (status) => {
     if (status === 'On Time') return 'success';
     if (status === 'Late') return 'warning';
@@ -166,9 +187,14 @@ export default function AttendancePage() {
             </button>
           )}
         </div>
-        <button onClick={exportCSV} className="button-primary text-white flex items-center gap-2 h-9 text-caption py-1.5 px-4">
-          <Download className="w-4 h-4 text-white" /> Export CSV
-        </button>
+        <div className="flex items-center gap-2">
+          <button onClick={exportCSV} className="button-secondary flex items-center gap-2 h-9 text-caption py-1.5 px-3">
+            <Download className="w-4 h-4" /> Export CSV
+          </button>
+          <button onClick={exportPDF} className="button-primary text-white flex items-center gap-2 h-9 text-caption py-1.5 px-4">
+            <Download className="w-4 h-4 text-white" /> Export PDF
+          </button>
+        </div>
       </motion.div>
 
 

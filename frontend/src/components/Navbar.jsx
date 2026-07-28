@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { NavLink, Link } from 'react-router-dom';
-import { Activity, Box, Video, Home, Upload, ClipboardList, Radio, Settings, LogOut, Users, User, Menu, X, Terminal, Shield, Monitor, BarChart3 } from 'lucide-react';
+import { Activity, Box, Video, Home, Upload, ClipboardList, Radio, Settings, LogOut, Users, User, Menu, X, Terminal, Shield, Monitor, BarChart3, Play } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -131,7 +131,13 @@ export function Navbar() {
               </div>
 
               {/* Sign Out Action */}
-              <div className="pt-4 border-t border-[#23252A] mt-auto">
+              <div className="pt-4 border-t border-[#23252A] mt-auto flex flex-col gap-2">
+                {hasRole(userRole, 'org_admin') && (
+                  <Link to="/onboarding" onClick={() => setIsMobileOpen(false)} className="logout-btn" style={{ color: 'var(--accent-primary)' }}>
+                    <Play size={18} />
+                    <span>Setup Wizard</span>
+                  </Link>
+                )}
                 {user && (
                   <button onClick={() => { logout(); setIsMobileOpen(false); }} className="logout-btn">
                     <LogOut size={18} />
@@ -197,7 +203,13 @@ export function Navbar() {
         </div>
 
         {/* Footer Actions */}
-        <div className="sidebar-footer">
+        <div className="sidebar-footer" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          {hasRole(userRole, 'org_admin') && (
+            <Link to="/onboarding" className={`logout-btn ${isCollapsed ? 'justify-center' : ''}`} style={{ color: 'var(--accent-primary)' }} title={isCollapsed ? "Setup Wizard" : undefined}>
+              <Play size={18} />
+              {!isCollapsed && <span>Setup Wizard</span>}
+            </Link>
+          )}
           {user && (
             <button onClick={logout} className={`logout-btn ${isCollapsed ? 'justify-center' : ''}`} title={isCollapsed ? "Sign Out" : undefined}>
               <LogOut size={18} />

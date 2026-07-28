@@ -23,10 +23,11 @@ graph LR
 
 ## 🚀 Key Features
 
-- **Real-time Face Recognition** with MediaPipe BlazeFace detection and dual-model ensemble voting
-- **Anti-Spoofing Liveness Detection** — rejects printed photos and screen replays
+- **Real-time Face Recognition** with MediaPipe BlazeFace detection and dual-model ensemble voting (with resilient single-model fallback)
+- **Anti-Spoofing Liveness Voting System** — requires 2 heuristic failures to reject, heavily optimized to accommodate glasses reflections and harsh lighting
+- **Strict UI-Telemetry Sync** — frontend live bounding boxes perfectly mirror backend ensemble states (Green = Confirmed, Orange = Spoof, Red = Unknown)
 - **Zero-Shot Enrollment** — new employees searchable within seconds via KNN indexing
-- **4-Gate Confirmation Pipeline** — definitive CONFIRMED/NOT FOUND binary verification
+- **4-Gate Confirmation Pipeline** — definitive CONFIRMED/NOT FOUND binary verification with dynamic thresholding
 - **Multi-Tenant SaaS** — full organization isolation with PostgreSQL + SQLAlchemy
 - **JWT Authentication & RBAC** — role hierarchy: platform_owner → org_admin → manager → viewer → kiosk
 - **Edge Camera API Key Auth** — hardware cameras authenticate independently with anti-spoofing on `/api/predict`

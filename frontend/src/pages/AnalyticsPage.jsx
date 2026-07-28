@@ -239,6 +239,25 @@ export default function AnalyticsPage() {
     }
   };
 
+  const exportPDF = async () => {
+    try {
+      const params = new URLSearchParams();
+      if (dateRange.start) params.set('start_date', dateRange.start);
+      if (dateRange.end) params.set('end_date', dateRange.end);
+      const res = await apiClient.get(`${API_BASE}/analytics/export/pdf?${params}`, {
+        responseType: 'blob'
+      });
+      const url = URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }));
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `rms_analytics_report_${new Date().toISOString().slice(0, 10)}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('PDF export error:', err);
+    }
+  };
+
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="pb-12 max-w-7xl mx-auto space-y-6 page-container">
       {/* Header */}
@@ -254,8 +273,11 @@ export default function AnalyticsPage() {
           <button onClick={fetchAll} className="button-secondary flex items-center gap-1.5 text-caption h-8 px-3">
             <RefreshCw size={13} /> Refresh
           </button>
-          <button onClick={exportReport} className="button-primary flex items-center gap-1.5 text-caption h-8 px-3">
-            <Download size={13} /> Export Report
+          <button onClick={exportReport} className="button-secondary flex items-center gap-1.5 text-caption h-8 px-3">
+            <Download size={13} /> Export JSON
+          </button>
+          <button onClick={exportPDF} className="button-primary flex items-center gap-1.5 text-caption h-8 px-3">
+            <Download size={13} /> Export PDF
           </button>
         </div>
       </div>

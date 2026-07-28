@@ -56,7 +56,7 @@ def mine_hard_negatives(encodings, names, similarity_threshold=0.35):
             'high_risk_count': 2,
         }
     """
-    from scipy.spatial.distance import cosine
+    from scipy.spatial.distance import cosine, cdist
 
     if not encodings or not names:
         return {
@@ -78,7 +78,7 @@ def mine_hard_negatives(encodings, names, similarity_threshold=0.35):
     # Compute centroid for each person
     centroids = {}
     for name in unique_names:
-        embs = person_embeddings[name]
+        embs = np.array(person_embeddings[name])
         centroids[name] = np.mean(embs, axis=0)
 
     # Find confusable pairs
@@ -90,17 +90,18 @@ def mine_hard_negatives(encodings, names, similarity_threshold=0.35):
         name_a = unique_names[i]
         nearest_other = None
         nearest_dist = float('inf')
+        embs_a = np.array(person_embeddings[name_a])
 
         for j in range(i + 1, n):
             name_b = unique_names[j]
             total_pairs += 1
+            embs_b = np.array(person_embeddings[name_b])
 
-            # Compute min distance between any pair of embeddings
-            min_dist = float('inf')
-            for emb_a in person_embeddings[name_a]:
-                for emb_b in person_embeddings[name_b]:
-                    d = cosine(emb_a, emb_b)
-                    min_dist = min(min_dist, d)
+            if len(embs_a) > 0 and len(embs_b) > 0:
+                # Vectorized cdist for extremely fast pair comparison
+                min_dist = float(np.min(cdist(embs_a, embs_b, 'cosine')))
+            else:
+                min_dist = float('inf')
 
             if min_dist < nearest_dist:
                 nearest_dist = min_dist
@@ -186,7 +187,7 @@ def compute_adaptive_thresholds(encodings, names, margin=0.05):
             'global_threshold': 0.40,  # Median of all per-person thresholds
         }
     """
-    from scipy.spatial.distance import cosine
+    from scipy.spatial.distance import cosine, cdist
 
     if not encodings or not names:
         return {'thresholds': {}, 'global_threshold': 0.55}
@@ -200,34 +201,45 @@ def compute_adaptive_thresholds(encodings, names, margin=0.05):
     thresholds = {}
 
     for name in unique_names:
-        embs = person_embeddings[name]
+        embs = np.array(person_embeddings[name])
 
-        # Intra-class spread: max distance between own embeddings
+        # Intra-class spread: 90th percentile distance to ignore outliers
         intra_spread = 0.0
         if len(embs) > 1:
-            for i in range(len(embs)):
-                for j in range(i + 1, len(embs)):
-                    d = cosine(embs[i], embs[j])
-                    intra_spread = max(intra_spread, d)
+            # cdist computes all pairwise distances efficiently
+            dists = cdist(embs, embs, 'cosine')
+            # Extract upper triangle to avoid 0s on diagonal dominating
+            upper_tri = dists[np.triu_indices_from(dists, k=1)]
+            if len(upper_tri) > 0:
+                intra_spread = float(np.percentile(upper_tri, 90))
 
         # Inter-class gap: min distance to nearest different person
         inter_gap = float('inf')
         for other_name in unique_names:
             if other_name == name:
                 continue
-            for emb_self in embs:
-                for emb_other in person_embeddings[other_name]:
-                    d = cosine(emb_self, emb_other)
-                    inter_gap = min(inter_gap, d)
+            other_embs = np.array(person_embeddings[other_name])
+            if len(other_embs) > 0:
+                # cdist for inter-class gap
+                min_d = float(np.min(cdist(embs, other_embs, 'cosine')))
+                inter_gap = min(inter_gap, min_d)
 
         if inter_gap == float('inf'):
             inter_gap = 1.0  # Only person in DB
 
-        # Adaptive threshold: midpoint between intra-spread and inter-gap
-        adaptive = (intra_spread + inter_gap) / 2 + margin
+        # Adaptive threshold: prioritize false-positive reduction
+        STATIC_MAX = 0.40
+        ideal_threshold = inter_gap - margin
+        
+        # Start with a threshold that accommodates the user's variance
+        adaptive = intra_spread + (margin / 2)
+        
+        # SECURITY OVERRIDE: Never exceed the static max, and NEVER exceed the ideal threshold 
+        # that prevents confusion with the nearest imposter.
+        adaptive = min(STATIC_MAX, min(ideal_threshold, adaptive))
 
-        # Clamp to reasonable range
-        adaptive = max(0.20, min(0.70, adaptive))
+        # Clamp to absolute reasonable range (0.20 is the strictest we can reasonably be)
+        adaptive = max(0.20, min(0.40, adaptive))
 
         thresholds[name] = {
             'threshold': round(adaptive, 4),
