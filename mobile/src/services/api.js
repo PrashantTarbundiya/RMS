@@ -111,14 +111,23 @@ export async function clearHistory() {
   return response.data;
 }
 
-export async function predictImage(imageUri, config = {}) {
+export async function predictImage(imageUri, options = {}) {
   const formData = new FormData();
   const fileObj = await getFileObject(imageUri, 'capture.jpg');
   formData.append('image', fileObj);
+  formData.append('test_mode', 'true');
+
+  if (typeof options === 'number') {
+    formData.append('threshold', options.toString());
+  } else if (options && options.threshold) {
+    formData.append('threshold', options.threshold.toString());
+  }
+
+  const configObj = (typeof options === 'object' && options.config) ? options.config : {};
 
   const response = await api.post('/predict', formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
-    ...config,
+    ...configObj,
   });
   return response.data;
 }
@@ -133,8 +142,12 @@ export async function getPersonPhotos(name) {
   return response.data;
 }
 
+export function getPersonPhotoUrl(name, angle, filename) {
+  return `${BASE_URL}/persons/${encodeURIComponent(name)}/photos/${encodeURIComponent(angle)}/${encodeURIComponent(filename)}`;
+}
+
 export async function deletePersonPhoto(name, angle, filename) {
-  const response = await api.delete(`/persons/${encodeURIComponent(name)}/photos/${angle}/${filename}`);
+  const response = await api.delete(`/persons/${encodeURIComponent(name)}/photos/${encodeURIComponent(angle)}/${encodeURIComponent(filename)}`);
   return response.data;
 }
 
@@ -164,9 +177,10 @@ export async function triggerRetrain(name, epochs = 5) {
   return response.data;
 }
 
-export async function uploadPerson(personName, imageUris) {
+export async function uploadPerson(personName, imageUris, epochs = 5) {
   const formData = new FormData();
   formData.append('person_name', personName);
+  formData.append('epochs', (epochs || 5).toString());
 
   for (let i = 0; i < imageUris.length; i++) {
     const fileObj = await getFileObject(imageUris[i], `photo_${i}.jpg`);

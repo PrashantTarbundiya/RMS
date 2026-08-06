@@ -21,7 +21,9 @@ _config_lock = threading.Lock()
 
 DEFAULT_CONFIG = {
     "CONFIRM_THRESHOLD": 0.55,
-    "ENABLE_DEEPFACE": False
+    "ENABLE_FACENET512": False,
+    "ENABLE_INSIGHTFACE": False,
+    "ENABLE_GHOSTFACENET": False
 }
 
 

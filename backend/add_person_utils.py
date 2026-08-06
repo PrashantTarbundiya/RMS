@@ -22,7 +22,7 @@ BACKEND_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = os.path.dirname(BACKEND_DIR)
 
 # Reuse existing pipeline functions
-from model import apply_clahe, get_embedding, generate_augments, NUM_AUGMENTS_QUICK
+from model import apply_clahe, get_embedding, get_embedding_insightface, generate_augments, NUM_AUGMENTS_QUICK, EDGE_LIGHTWEIGHT
 from org_storage import get_sota_model_path, get_sota_classes_path
 from face_detection import SideFaceDetector
 from clean_dataset import _build_mediapipe_detector, _detect_with_mediapipe, EXTRA_PAD
@@ -71,19 +71,37 @@ def check_image_quality(img_bgr, min_size=60, blur_threshold=50.0):
 # 1. DEEPFACE — Incremental Embedding Append (No Retrain)
 # ============================================================================
 
-def update_deepface_model(person_name, image_paths, encodings_path=None):
-    if encodings_path is None:
-        encodings_path = os.path.join(BACKEND_DIR, 'data', 'encodings.pickle')
+def update_deepface_model(person_name, image_paths, model_name='Facenet512', org_id=None):
+    from org_storage import get_encodings_path
+    encodings_path = get_encodings_path(org_id, model_name)
     """
-    Generate Facenet512 embeddings for uploaded images and append them to
-    the existing encodings.pickle. No retraining needed.
+    Generate embeddings for uploaded images and append them to
+    the existing encodings file for the specified model. No retraining needed.
+
+    GPU-first strategy:
+      - If InsightFace (ArcFace) + CUDA is available, uses GPU batch embedding
+        (~10-20x faster than CPU DeepFace).
+      - Falls back automatically to the existing CPU DeepFace pipeline if GPU
+        is unavailable or raises any error.
+
+    Edge optimization: When EDGE_LIGHTWEIGHT is enabled and multi-angle
+    enrollment photos (front/left/right) are present, synthetic augmentation
+    is skipped entirely since real viewing angles are far more representative.
 
     Returns:
         tuple: (new_encodings_list, new_names_list, num_added)
     """
-    print(f"\n{'='*50}")
-    print(f"DeepFace: Adding embeddings for '{person_name}'")
-    print(f"{'='*50}")
+    # ── GPU Fast Path ──────────────────────────────────────────────────────────
+    try:
+        from gpu_trainer import is_gpu_available, enroll_with_gpu
+        if is_gpu_available():
+            print(f"\n{'='*50}")
+            print(f"GPU (InsightFace): Adding embeddings for '{person_name}'")
+            print(f"{'='*50}")
+            return enroll_with_gpu(person_name, image_paths, encodings_path)
+    except Exception as gpu_err:
+        print(f"   [GPU] Failed ({gpu_err}), falling back to CPU DeepFace...")
+    # ── CPU Fallback (original logic below, unchanged) ──────────────────────
 
     # Load existing encodings
     existing_encodings = []
@@ -97,6 +115,23 @@ def update_deepface_model(person_name, image_paths, encodings_path=None):
             print(f"   Loaded {len(existing_encodings)} existing embeddings.")
     else:
         print("   No existing encodings found. Creating new file.")
+
+    # Detect multi-angle coverage: if the person has front/left/right images,
+    # real viewing angle diversity makes augmentation unnecessary.
+    has_multi_angle = False
+    angle_dirs = set()
+    for p in image_paths:
+        parent_dir = os.path.basename(os.path.dirname(p)).lower()
+        if parent_dir in ('frontal', 'front', 'left', 'right', 'front_img', 'left_img', 'right_img'):
+            angle_dirs.add(parent_dir)
+    if len(angle_dirs) >= 2:
+        has_multi_angle = True
+
+    skip_augmentation = EDGE_LIGHTWEIGHT and has_multi_angle
+    if skip_augmentation:
+        print(f"   [Edge] Multi-angle photos detected ({', '.join(angle_dirs)}). Skipping synthetic augmentation.")
+    else:
+        print(f"   [Augmentation] Generating {NUM_AUGMENTS_QUICK} augments per image.")
 
     # Initialize face detector
     detector = SideFaceDetector(min_detection_confidence=0.45)  # 0.45 = balanced to reduce false positives
@@ -143,20 +178,27 @@ def update_deepface_model(person_name, image_paths, encodings_path=None):
             face_crop = apply_clahe(face_crop)
 
             # Generate embedding for the ORIGINAL image
-            embedding = get_embedding(face_crop)
+            if model_name == 'InsightFace':
+                embedding = get_embedding_insightface(face_crop)
+            else:
+                embedding = get_embedding(face_crop, model_name=model_name)
             if embedding:
                 existing_encodings.append(embedding)
                 existing_names.append(person_name)
                 new_count += 1
 
-            # Generate embeddings for AUGMENTED variants (quick mode = 4 augments)
-            augments = generate_augments(face_crop, num_augments=NUM_AUGMENTS_QUICK)
-            for aug_img in augments:
-                aug_embedding = get_embedding(aug_img)
-                if aug_embedding:
-                    existing_encodings.append(aug_embedding)
-                    existing_names.append(person_name)
-                    new_count += 1
+            # Generate embeddings for AUGMENTED variants (skip when multi-angle + edge mode)
+            if not skip_augmentation:
+                augments = generate_augments(face_crop, num_augments=NUM_AUGMENTS_QUICK)
+                for aug_img in augments:
+                    if model_name == 'InsightFace':
+                        aug_embedding = get_embedding_insightface(aug_img)
+                    else:
+                        aug_embedding = get_embedding(aug_img, model_name=model_name)
+                    if aug_embedding:
+                        existing_encodings.append(aug_embedding)
+                        existing_names.append(person_name)
+                        new_count += 1
 
             print(f"   [OK] Processed: {os.path.basename(img_path)}")
 
@@ -169,7 +211,7 @@ def update_deepface_model(person_name, image_paths, encodings_path=None):
     data = {
         "encodings": existing_encodings,
         "names": existing_names,
-        "model_used": "Facenet512",
+        "model_used": model_name,
         "version": "2.0-lightweight"
     }
     with open(encodings_path, "wb") as f:
@@ -526,7 +568,7 @@ def clean_and_save_face(img_bgr, output_path, margin_ratio=0.20):
 # MASTER FUNCTION: Save images + clean + update DeepFace (Synchronous/Fast)
 # ============================================================================
 
-def add_person_fast(person_name, image_data_list, dataset_dir=None, encodings_path=None):
+def add_person_fast(person_name, image_data_list, dataset_dir=None, encodings_path=None, org_id=None):
     if dataset_dir is None:
         dataset_dir = os.path.join(PROJECT_ROOT, 'dataset_cleaned')
     """
@@ -610,15 +652,16 @@ def add_person_fast(person_name, image_data_list, dataset_dir=None, encodings_pa
     else:
         status_parts.append(f"[Saved] Retraining on existing dataset for {person_name}.\n")
 
-    # 3. Update DeepFace (instant — no retrain) if we added new images and DeepFace is enabled
-    from config_utils import load_config
-    if saved_cleaned_paths and load_config().get("ENABLE_DEEPFACE", False):
-        try:
-            new_encs, new_names, num_added = update_deepface_model(person_name, saved_cleaned_paths, encodings_path=encodings_path)
-            status_parts.append(f"**DeepFace**: Added {num_added} embeddings (total: {len(new_encs)})")
-        except Exception as e:
-            status_parts.append(f"**DeepFace**: Error — {e}")
-    elif saved_cleaned_paths:
-        status_parts.append("**DeepFace**: Model is disabled in settings. Skipping embedding generation.")
+    # 3. Update Embeddings (instant -- no retrain) if we added new images
+    # We update Facenet512, GhostFaceNet, AND InsightFace (primary model for live prediction)
+    if saved_cleaned_paths:
+        for model_name in ['InsightFace', 'Facenet512', 'GhostFaceNet']:
+            try:
+                new_encs, new_names, num_added = update_deepface_model(person_name, saved_cleaned_paths, model_name=model_name, org_id=org_id)
+                status_parts.append(f"**{model_name}**: Added {num_added} embeddings (total: {len(new_encs)})")
+            except Exception as e:
+                status_parts.append(f"**{model_name}**: Error -- {e}")
+    elif not saved_cleaned_paths:
+        status_parts.append("**Models**: No new images to process.")
 
     return "\n\n".join(status_parts)

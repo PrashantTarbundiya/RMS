@@ -18,7 +18,7 @@ Table summary:
 import uuid
 from datetime import datetime, timezone
 from sqlalchemy import (
-    Column, String, Float, Boolean, Integer, Text,
+    Column, String, Float, Boolean, Integer, Text, JSON,
     DateTime, ForeignKey, Enum as SQLEnum, Index, UniqueConstraint
 )
 from sqlalchemy.dialects.postgresql import UUID
@@ -104,6 +104,7 @@ class Organization(Base):
         default=PlanTier.starter, nullable=False
     )
     confirm_threshold = Column(Float, default=0.55, nullable=False)
+    onboarding_state = Column(JSON, nullable=True, default=dict)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
     updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc),
                         onupdate=lambda: datetime.now(timezone.utc))

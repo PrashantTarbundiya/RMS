@@ -4,17 +4,18 @@ import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { 
   Users, Image as ImageIcon, BarChart3, Clock, CheckCircle, 
-  AlertTriangle, Trash2, Edit2, Check, X, RefreshCw, User 
+  AlertTriangle, Trash2, Edit2, Check, X, RefreshCw, User, Sparkles, ArrowRight 
 } from 'lucide-react';
 import { API_BASE } from '../config';
 import ApertureReticle from '../components/ApertureReticle';
 
 export default function DashboardPage() {
-  const { apiClient } = useAuth();
+  const { user, apiClient } = useAuth();
   const [stats, setStats] = useState(null);
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [dismissChecklist, setDismissChecklist] = useState(false);
   
   const [editingPerson, setEditingPerson] = useState(null);
   const [newName, setNewName] = useState('');
@@ -200,6 +201,48 @@ export default function DashboardPage() {
         </button>
       </motion.div>
 
+      {/* Resumable Onboarding Checklist Card */}
+      {user?.role && ['org_admin', 'platform_owner'].includes(user.role) && 
+       user?.onboarding_state?.completed !== true && !dismissChecklist && (
+        <motion.div 
+          variants={itemVariants} 
+          className="p-5 bg-[#5E6AD2]/10 border border-[#5E6AD2]/30 rounded-xl flex items-center justify-between gap-4"
+        >
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-lg bg-[#5E6AD2]/20 text-[#828FFF]">
+              <Sparkles className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="text-body font-semibold text-ink">
+                Setup Checklist (Step {(user?.onboarding_state?.step ?? 0) + 1} of 5)
+              </h3>
+              <p className="text-caption text-ink-subtle mt-0.5">
+                Resume your guided organization setup whenever you're ready.
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <button 
+              onClick={() => {
+                sessionStorage.removeItem('onboarding_paused');
+                window.location.reload();
+              }}
+              className="button-primary text-caption py-1.5 px-3 text-white flex items-center gap-1.5"
+            >
+              <span>Resume Setup</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </button>
+            <button 
+              onClick={() => setDismissChecklist(true)}
+              className="p-1 text-ink-tertiary hover:text-ink text-xs"
+              title="Dismiss for this session"
+            >
+              <X className="w-4 h-4 text-ink-tertiary hover:text-ink" />
+            </button>
+          </div>
+        </motion.div>
+      )}
+
       {/* System Status Line (Calm) */}
       <motion.div variants={itemVariants} className="flex flex-wrap gap-6 p-4 bg-[#0F1011] border border-[#23252A] rounded-lg items-center text-caption text-ink-muted">
         <div className="flex items-center gap-2">
@@ -221,13 +264,13 @@ export default function DashboardPage() {
           {models_loaded.deepface ? <span className="text-emerald-500 font-medium">Loaded</span> : <span className="text-ink-tertiary">Offline</span>}
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-ink-subtle">SOTA:</span>
-          {models_loaded.sota ? <span className="text-emerald-500 font-medium">Loaded</span> : <span className="text-ink-tertiary">Offline</span>}
+          <span className="text-ink-subtle">GhostFaceNet:</span>
+          {models_loaded.edge ? <span className="text-emerald-500 font-medium">Loaded</span> : <span className="text-ink-tertiary">Offline</span>}
         </div>
       </motion.div>
 
       {/* KPI Grid */}
-      <motion.div variants={itemVariants} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <motion.div data-tour="today-summary" variants={itemVariants} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <KpiCard icon={<Users className="h-5 w-5"/>} label="Total Enrolled" value={total_people} />
         <KpiCard icon={<ImageIcon className="h-5 w-5"/>} label="Faces Processed" value={total_photos} />
         <KpiCard icon={<Clock className="h-5 w-5"/>} label="Scan Events" value={total_predictions} />
@@ -390,7 +433,7 @@ export default function DashboardPage() {
 
       {/* Clear History Confirmation Modal */}
       {isClearHistoryModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#010102]/80 backdrop-blur-sm">
+        <div className="fixed inset-0 z-[999999] flex items-center justify-center p-4 bg-[#010102]/80 backdrop-blur-sm">
           <div className="w-full max-w-sm card-linear bg-[#191A1B] border-[#23252A] p-6 space-y-4">
             <div>
               <h4 className="text-body font-semibold text-ink">Clear Telemetry Logs</h4>

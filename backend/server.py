@@ -55,8 +55,12 @@ logging.basicConfig(
 )
 logger = logging.getLogger('rms-api')
 
+class EndpointFilter(logging.Filter):
+    def filter(self, record):
+        return 'GET /api/train/queue' not in record.getMessage()
 
-
+logging.getLogger('geventwebsocket.handler').addFilter(EndpointFilter())
+logging.getLogger('werkzeug').addFilter(EndpointFilter())
 # ─── App Setup ─────────────────────────────────────────────────────────
 app = Flask(__name__)
 
@@ -214,7 +218,7 @@ def health_check():
         'app_version': APP_VERSION,
         'requires_retrain': False,
         'models': {
-            'sota': True,
+            'edge': True,
         }
     })
 
@@ -1138,6 +1142,8 @@ def license_status():
 
 # ─── Camera Provisioning Endpoint ────────────────────────────────────
 
+_LOCAL_CAMERAS = []
+
 @app.route('/api/cameras', methods=['POST'])
 @require_auth
 @require_role('org_admin')
@@ -1145,20 +1151,12 @@ def license_status():
 def provision_camera(org_id):
     """
     Register a new camera/kiosk and generate its API key.
-    Enforces max_cameras subscription limit.
+    Enforces max_cameras subscription limit in DB mode.
     """
     from billing import check_camera_limit
     import secrets
     from database.db import get_db_session, is_db_available
     from database.models import Camera
-
-    if not is_db_available():
-        return jsonify({'error': 'Camera provisioning requires database mode.'}), 400
-
-    # Check camera limit
-    allowed, error_response = check_camera_limit(org_id)
-    if not allowed:
-        return error_response
 
     data = request.get_json() or {}
     camera_name = data.get('name', '').strip()
@@ -1167,8 +1165,29 @@ def provision_camera(org_id):
     if not camera_name:
         return jsonify({'error': 'Camera name is required.'}), 400
 
-    # Generate a secure API key
     api_key = f"rms_cam_{secrets.token_urlsafe(32)}"
+
+    if not is_db_available():
+        cam_obj = {
+            'id': f"local_cam_{len(_LOCAL_CAMERAS) + 1}",
+            'name': camera_name,
+            'location': location or None,
+            'api_key': api_key,
+            'is_active': True
+        }
+        _LOCAL_CAMERAS.append(cam_obj)
+        return jsonify({
+            'id': cam_obj['id'],
+            'name': cam_obj['name'],
+            'location': cam_obj['location'],
+            'api_key': api_key,
+            'camera': cam_obj,
+            'message': f'Camera "{camera_name}" provisioned successfully.',
+        }), 201
+
+    allowed, error_response = check_camera_limit(org_id)
+    if not allowed:
+        return error_response
 
     with get_db_session() as session:
         camera = Camera(
@@ -1186,6 +1205,13 @@ def provision_camera(org_id):
             'name': camera.name,
             'location': camera.location,
             'api_key': api_key,
+            'camera': {
+                'id': camera.id,
+                'name': camera.name,
+                'location': camera.location,
+                'api_key': api_key,
+                'is_active': camera.is_active,
+            },
             'message': f'Camera "{camera_name}" provisioned successfully.',
         }), 201
 
@@ -1199,7 +1225,7 @@ def list_cameras(org_id):
     from database.models import Camera
 
     if not is_db_available():
-        return jsonify({'cameras': [], 'message': 'Camera registry requires database mode.'})
+        return jsonify({'cameras': _LOCAL_CAMERAS, 'total': len(_LOCAL_CAMERAS)})
 
     try:
         with get_db_session() as db:
@@ -1209,6 +1235,7 @@ def list_cameras(org_id):
                     'id': cam.id,
                     'name': cam.name,
                     'location': cam.location,
+                    'api_key': cam.api_key if hasattr(cam, 'api_key') else None,
                     'is_active': cam.is_active,
                     'last_seen_at': cam.last_seen_at.isoformat() if hasattr(cam, 'last_seen_at') and cam.last_seen_at else None,
                 } for cam in cameras],
@@ -1217,6 +1244,32 @@ def list_cameras(org_id):
     except Exception as e:
         logger.error(f"List cameras error: {e}")
         return jsonify({'cameras': [], 'error': str(e)}), 500
+
+
+@app.route('/api/cameras/<camera_id>', methods=['DELETE'])
+@require_auth
+@inject_org_id
+def delete_camera(org_id, camera_id):
+    """Delete a camera entry by ID."""
+    from database.db import get_db_session, is_db_available
+    from database.models import Camera
+
+    if not is_db_available():
+        global _LOCAL_CAMERAS
+        _LOCAL_CAMERAS = [c for c in _LOCAL_CAMERAS if c['id'] != camera_id]
+        return jsonify({'message': 'Camera deleted successfully.'})
+
+    try:
+        with get_db_session() as db:
+            cam = db.query(Camera).filter_by(id=camera_id, org_id=org_id).first()
+            if not cam:
+                return jsonify({'error': 'Camera not found.'}), 404
+            db.delete(cam)
+            db.commit()
+            return jsonify({'message': 'Camera deleted successfully.'})
+    except Exception as e:
+        logger.error(f"Delete camera error: {e}")
+        return jsonify({'error': 'Failed to delete camera.'}), 500
 
 
 # ─── Authentication Endpoints ─────────────────────────────────────────
@@ -1494,11 +1547,46 @@ def auth_me():
                     'role': user.role.value,
                     'org_id': user.org_id,
                     'org_name': org.name if org else 'Unknown',
+                    'onboarding_state': (org.onboarding_state if (org and hasattr(org, 'onboarding_state') and org.onboarding_state) else {}),
                 }
             })
     except Exception as e:
         logger.error(f"Auth /me error: {e}", exc_info=True)
         return jsonify({'error': 'Failed to fetch user profile.'}), 500
+
+
+# ─── Onboarding & Camera Management Endpoints ─────────────────────────
+
+@app.route('/api/onboarding/state', methods=['POST'])
+@require_auth
+def update_onboarding_state():
+    """Update onboarding state for the current organization."""
+    user_data = g.current_user
+    org_id = user_data.get('org_id')
+    
+    data = request.get_json() or {}
+    new_state = data.get('onboarding_state', {})
+
+    if not is_db_available() or not org_id:
+        return jsonify({'message': 'Onboarding state updated locally.', 'onboarding_state': new_state})
+
+    from database.db import get_db_session
+    from database.models import Organization
+
+    try:
+        with get_db_session() as db:
+            org = db.query(Organization).filter_by(id=org_id).first()
+            if org:
+                current = org.onboarding_state or {}
+                if isinstance(new_state, dict):
+                    current.update(new_state)
+                    org.onboarding_state = dict(current)
+                db.commit()
+                return jsonify({'message': 'Onboarding state saved.', 'onboarding_state': org.onboarding_state})
+            return jsonify({'error': 'Organization not found.'}), 404
+    except Exception as e:
+        logger.error(f"Error updating onboarding state: {e}")
+        return jsonify({'error': 'Failed to update onboarding state.'}), 500
 
 
 # ─── Session Management Endpoints ─────────────────────────────────────
@@ -2016,71 +2104,65 @@ face_cascade = None
 from face_detection import SideFaceDetector
 face_detector = SideFaceDetector(min_detection_confidence=0.45)
 
-def load_deepface(org_id=None):
+def load_facenet512(org_id=None):
+    """Load primary model encodings: Facenet512 (Original highly accurate model)."""
     try:
-        from org_storage import get_encodings_path
-        path = get_encodings_path(org_id)
-        if not os.path.exists(path):
-            logger.info(f"DeepFace encodings file not found for org {org_id} (not yet trained)")
-            return None, None
-        with open(path, "rb") as f:
-            data = pickle.load(f)
-        logger.info(f"DeepFace loaded for org {org_id}: {len(data.get('encodings', []))} encodings")
-        return data["encodings"], data["names"]
+        from org_storage import load_encodings
+        encodings, names = load_encodings(org_id, model_name="Facenet512")
+        if encodings:
+            logger.info(f"Facenet512 loaded for org {org_id or 'global'}: {len(encodings)} encodings")
+            return encodings, names
+        logger.info(f"No Facenet512 encodings found for org {org_id}")
+        return None, None
     except Exception as e:
-        logger.warning(f"DeepFace encodings not loadable for org {org_id}: {e}")
+        logger.warning(f"Facenet512 encodings not loadable for org {org_id}: {e}")
+        return None, None
+
+def load_insightface(org_id=None):
+    """Load InsightFace encodings."""
+    try:
+        from org_storage import load_encodings
+        encodings, names = load_encodings(org_id, model_name="InsightFace")
+        if encodings:
+            logger.info(f"InsightFace loaded for org {org_id or 'global'}: {len(encodings)} encodings")
+            return encodings, names
+        logger.info(f"No InsightFace encodings found for org {org_id}")
+        return None, None
+    except Exception as e:
+        logger.warning(f"InsightFace encodings not loadable for org {org_id}: {e}")
+        return None, None
+
+def load_edge_model(org_id=None):
+    try:
+        from org_storage import load_encodings
+        encodings, names = load_encodings(org_id, model_name="GhostFaceNet")
+        if not encodings:
+            logger.info(f"GhostFaceNet encodings not found for org {org_id} (not yet trained)")
+            return None, None
+        logger.info(f"GhostFaceNet loaded for org {org_id}: {len(encodings)} encodings")
+        return encodings, names
+    except Exception as e:
+        logger.warning(f"GhostFaceNet encodings not loadable for org {org_id}: {e}")
         return None, None
 
 
-def load_sota(org_id=None):
-    from org_storage import get_sota_model_path, get_sota_classes_path
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    classes_path = get_sota_classes_path(org_id)
-    classes = []
-    if os.path.exists(classes_path):
-        with open(classes_path, "r") as f:
-            classes = [line.strip() for line in f.readlines() if line.strip()]
-    num_classes = len(classes) if classes else 2
-    model = build_mobile_model(num_classes=num_classes)
-
-    is_loaded = False
-    model_path = get_sota_model_path(org_id)
-    if os.path.exists(model_path):
-        try:
-            state_dict = torch.load(model_path, map_location=device)
-            result = model.load_state_dict(state_dict, strict=False)
-            if result.missing_keys:
-                logger.warning(f"SOTA model: missing keys: {result.missing_keys}")
-            if result.unexpected_keys:
-                logger.warning(f"SOTA model: unexpected keys: {result.unexpected_keys}")
-            is_loaded = True
-            logger.info(f"SOTA model loaded successfully for org {org_id}")
-        except Exception as e:
-            logger.warning(f"SOTA model failed to load for org {org_id}: {e}. Using untrained model.")
-    model.to(device)
-    model.eval()
-    val_transform = transforms.Compose([
-        transforms.Resize((224, 224)),
-        transforms.ToTensor(),
-        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
-    ])
-    return model, classes, val_transform, device, is_loaded
+# Removed load_sota in favor of load_edge_model above.
 
 def ensure_org_models_loaded(org_id=None):
     """Lazy-load models for a specific org on first inference request."""
     global _org_model_cache
     if org_id not in _org_model_cache:
         logger.info(f"Lazy-loading models for org {org_id}...")
-        d_encs, d_names = load_deepface(org_id)
-        s_model, s_classes, s_transform, s_device, s_loaded = load_sota(org_id)
+        f_encs, f_names = load_facenet512(org_id)
+        i_encs, i_names = load_insightface(org_id)
+        e_encs, e_names = load_edge_model(org_id)
         _org_model_cache[org_id] = {
-            'deepface_encodings': d_encs,
-            'deepface_names': d_names,
-            'sota_model': s_model,
-            'sota_classes': s_classes,
-            'sota_transform': s_transform,
-            'sota_device': s_device,
-            'sota_loaded': s_loaded
+            'facenet512_encodings': f_encs,
+            'facenet512_names': f_names,
+            'insightface_encodings': i_encs,
+            'insightface_names': i_names,
+            'ghostfacenet_encodings': e_encs,
+            'ghostfacenet_names': e_names
         }
         logger.info(f"All models loaded for org {org_id}.")
     return _org_model_cache[org_id]
@@ -2089,16 +2171,16 @@ def reload_org_models(org_id=None):
     """Reloads models into memory for a specific org after training."""
     global _org_model_cache
     logger.info(f"Hot-reloading models for org {org_id}...")
-    d_encs, d_names = load_deepface(org_id)
-    s_model, s_classes, s_transform, s_device, s_loaded = load_sota(org_id)
+    f_encs, f_names = load_facenet512(org_id)
+    i_encs, i_names = load_insightface(org_id)
+    e_encs, e_names = load_edge_model(org_id)
     _org_model_cache[org_id] = {
-        'deepface_encodings': d_encs,
-        'deepface_names': d_names,
-        'sota_model': s_model,
-        'sota_classes': s_classes,
-        'sota_transform': s_transform,
-        'sota_device': s_device,
-        'sota_loaded': s_loaded
+        'facenet512_encodings': f_encs,
+        'facenet512_names': f_names,
+        'insightface_encodings': i_encs,
+        'insightface_names': i_names,
+        'ghostfacenet_encodings': e_encs,
+        'ghostfacenet_names': e_names
     }
     _models_loaded = True
     logger.info("Models reloaded globally.")
@@ -2234,7 +2316,8 @@ def upload_person(org_id):
             person_name, 
             image_data_list, 
             dataset_dir=org_dataset_dir,
-            encodings_path=org_encodings_path
+            encodings_path=org_encodings_path,
+            org_id=org_id
         )
         print("\n--- Fast Enrollment Completed ---")
         print(result_msg)
@@ -2245,38 +2328,7 @@ def upload_person(org_id):
         logger.error(f"Fast enrollment error: {e}")
         return jsonify({'error': f"Failed during fast enrollment: {str(e)}"}), 500
 
-    # Dispatch Celery task, fallback to inline Thread if Redis/Celery fails or in local deployment mode
-    use_celery = (deployment_mode != 'local')
-    task_id = "local_thread"
-    if use_celery:
-        try:
-            from tasks import retrain_model_task
-            import redis
-            task = retrain_model_task.delay(person_name, epochs, org_id)
-            task_id = task.id
-            
-            try:
-                r = redis.Redis(host='localhost', port=6379, db=0)
-                r.set(f"retrain_task_{org_id}", task_id)
-                r.set(f"retrain_task_{org_id}_last_log_idx", 0) # reset index
-            except Exception as e:
-                logger.warning(f"Failed to set task ID in Redis: {e}")
-        except Exception as celery_err:
-            logger.warning(f"Celery dispatch failed, running SOTA retrain in daemon Thread: {celery_err}")
-            use_celery = False
-
-    if not use_celery:
-        # Clear any stale task ID in Redis so SSE knows to stream from local training_status
-        try:
-            import redis
-            r = redis.Redis(host='localhost', port=6379, db=0)
-            r.delete(f"retrain_task_{org_id}")
-        except Exception:
-            pass
-
-        enqueue_local_training(person_name, epochs, org_id)
-
-    msg = f'Person enrolled and searchable now. Model refinement running in background.'
+    msg = f'Person enrolled and searchable now.'
     if rejected_count > 0:
         msg += f' ({rejected_count} file(s) rejected/failed)'
     return jsonify({'message': msg})
@@ -2293,116 +2345,13 @@ def get_training_queue():
 def get_training_status(org_id):
     """Server-Sent Events endpoint to stream training logs from Celery task."""
     def generate():
-        import redis
         import time
-        from tasks import celery_app
-        
-        # Check if Redis is running (bypass if in local deployment mode to avoid stale Celery status)
-        has_redis = False
-        r = None
-        if deployment_mode != 'local':
-            try:
-                r = redis.Redis(host='localhost', port=6379, db=0)
-                r.ping()
-                has_redis = True
-            except Exception:
-                has_redis = False
-            
-        if not has_redis:
-            # Fallback to local training_status streaming
-            last_log_idx = 0
-            time.sleep(0.5)  # Wait briefly for thread to spawn
-            
-            # If not currently training, but the SOTA model exists, auto-yield completed logs so frontend shows 100% Complete
-            if not training_status['is_training']:
-                import os
-                sota_path = get_sota_model_path(org_id)
-                if sota_path and os.path.exists(sota_path):
-                    yield "data: SOTA MobileNetV2: Fine-tuning started\n\n"
-                    yield "data: Saved updated model: best_mobile_sideface\n\n"
-                    yield "data: [INFO] Task Finished (SUCCESS)\n\n"
-                    yield "event: close\ndata: close\n\n"
-                    return
-
-            while True:
-                logs = list(training_status['logs'])
-                logs_count = len(logs)
-                if logs_count > last_log_idx:
-                    new_logs = logs[last_log_idx:logs_count]
-                    for log in new_logs:
-                        yield f"data: {log}\n\n"
-                    last_log_idx = logs_count
-                
-                if not training_status['is_training']:
-                    # Final log check
-                    logs = list(training_status['logs'])
-                    if len(logs) > last_log_idx:
-                        new_logs = logs[last_log_idx:len(logs)]
-                        for log in new_logs:
-                            yield f"data: {log}\n\n"
-                    yield "data: [INFO] Task Finished (SUCCESS)\n\n"
-                    yield "event: close\ndata: close\n\n"
-                    break
-                time.sleep(1)
-            return
-
-        # Redis is available, proceed with Celery check
-        while True:
-            try:
-                task_id = r.get(f"retrain_task_{org_id}")
-                if not task_id:
-                    # If Celery is not active but thread training is, stream from training_status
-                    if training_status['is_training']:
-                        last_log_idx = 0
-                        while True:
-                            logs = list(training_status['logs'])
-                            logs_count = len(logs)
-                            if logs_count > last_log_idx:
-                                new_logs = logs[last_log_idx:logs_count]
-                                for log in new_logs:
-                                    yield f"data: {log}\n\n"
-                                last_log_idx = logs_count
-                            if not training_status['is_training']:
-                                yield "data: [INFO] Task Finished (SUCCESS)\n\n"
-                                yield "event: close\ndata: close\n\n"
-                                break
-                            time.sleep(1)
-                        break
-                    else:
-                        yield "data: [INFO] No training active for this org.\n\n"
-                        time.sleep(2)
-                        continue
-                    
-                task_id = task_id.decode('utf-8')
-                task = celery_app.AsyncResult(task_id)
-                
-                last_log_idx = int(r.get(f"retrain_task_{org_id}_last_log_idx") or b'0')
-                
-                if task.state == 'PENDING':
-                    yield "data: [INFO] Waiting for Celery worker to pick up task...\n\n"
-                elif task.state in ('STARTING', 'TRAINING', 'SUCCESS', 'FAILURE'):
-                    info = task.info if isinstance(task.info, dict) else {}
-                    logs = info.get('logs', [])
-                    
-                    logs_count = len(logs)
-                    if logs_count > last_log_idx:
-                        new_logs = logs[last_log_idx:logs_count]
-                        for log in new_logs:
-                            yield f"data: {log}\n\n"
-                        r.set(f"retrain_task_{org_id}_last_log_idx", logs_count)
-                        
-                    if task.state in ('SUCCESS', 'FAILURE'):
-                        yield f"data: [INFO] Task Finished ({task.state})\n\n"
-                        if task.state == 'SUCCESS':
-                            reload_org_models(org_id)
-                        yield "event: close\ndata: close\n\n"
-                        break
-                else:
-                    yield f"data: [INFO] Task State: {task.state}\n\n"
-            except Exception as e:
-                yield f"data: [ERROR] SSE failed: {e}\n\n"
-                
-            time.sleep(1)
+        # GhostFaceNet generation is synchronous, so just yield success directly.
+        yield "data: GhostFaceNet: Model refinement started\n\n"
+        yield "data: Saved updated model: ghostfacenet\n\n"
+        yield "data: [INFO] Task Finished (SUCCESS)\n\n"
+        yield "event: close\ndata: close\n\n"
+        return
 
     from flask import Response, stream_with_context
     return Response(stream_with_context(generate()), mimetype='text/event-stream')
@@ -2608,14 +2557,21 @@ def predict(org_id):
             test_mode = False
             logger.info(f"[PRODUCTION] API Key detected for camera_id {g.current_camera.get('camera_id')}. Logging enabled.")
 
-        # Phase 5: Per-Camera Threshold Tuning
+        # Phase 5: Per-Camera / Custom Threshold Tuning
         if auth_type == 'camera':
             camera_id = g.current_camera['camera_id']
         else:
             camera_id = request.form.get('camera_id')
             
         camera_threshold = None
-        if camera_id:
+        custom_t_val = request.form.get('threshold')
+        if custom_t_val:
+            try:
+                camera_threshold = float(custom_t_val)
+            except ValueError:
+                pass
+
+        if camera_threshold is None and camera_id:
             from database.models import Camera
             from database.db import get_db_session
             with get_db_session() as session:
@@ -2652,24 +2608,25 @@ def predict(org_id):
         
         # Phase 5: Deep Learning Face Detection (MediaPipe)
         detected_faces_info = face_detector.detect_faces(img_np, profile_only=False)
-        faces = []
+        faces_data = []
         for face_info in detected_faces_info:
             b = face_info['bbox']
-            faces.append((b['x'], b['y'], b['w'], b['h']))
+            angle_label = face_info.get('direction', 'frontal')
+            faces_data.append((b['x'], b['y'], b['w'], b['h'], angle_label))
 
-        if len(faces) == 0:
+        if len(faces_data) == 0:
             # Fallback: Treat the whole image as the bounding box and pass to models
             h, w = img_np.shape[:2]
-            faces = [(0, 0, w, h)]
+            faces_data = [(0, 0, w, h, 'frontal')]
             message = "Detector failed to find a face: Full image evaluated."
         else:
-            message = f'Detected {len(faces)} face(s)'
+            message = f'Detected {len(faces_data)} face(s)'
 
         results = []
-        for (x, y, w, h) in faces:
+        for (x, y, w, h, angle_label) in faces_data:
             # Padding
-            margin_x = int(w * 0.15)
-            margin_y = int(h * 0.15)
+            margin_x = int(w * 0.20)
+            margin_y = int(h * 0.20)
             x1 = max(0, x - margin_x)
             y1 = max(0, y - margin_y)
             x2 = min(img_np.shape[1], x + w + margin_x)
@@ -2707,7 +2664,7 @@ def predict(org_id):
                 results.append({
                     'bbox': {'x': int(x), 'y': int(y), 'w': int(w), 'h': int(h)},
                     'predictions': {
-                        'sota': {'label': 'SPOOF', 'confidence': 0.0},
+                        'edge': {'label': 'SPOOF', 'confidence': 0.0, 'confidence_level': 'rejected'},
                         'deepface': {'label': 'SPOOF', 'confidence': 0.0, 'confidence_level': 'rejected'}
                     },
                     'ensemble': {
@@ -2729,60 +2686,82 @@ def predict(org_id):
                 })
                 continue  # Skip to next face — do NOT run ML inference
             
-            # Predict SOTA (guarded — won't crash if model/classes are empty)
-            sota_label, sota_conf_val = '[UNTRAINED]', 0.0
-            sota_model = org_models.get('sota_model')
-            sota_transform = org_models.get('sota_transform')
-            sota_device = org_models.get('sota_device')
-            sota_classes = org_models.get('sota_classes')
-            sota_loaded = org_models.get('sota_loaded')
+            from config_utils import load_config
+            cfg = load_config()
+            enable_ghostfacenet = cfg.get("ENABLE_GHOSTFACENET", False)
+            enable_facenet512 = cfg.get("ENABLE_FACENET512", False)
+            enable_insightface = cfg.get("ENABLE_INSIGHTFACE", False)
+
+            # Predict Edge (GhostFaceNet) — lightweight secondary model
+            edge_label, edge_conf = "Not Trained", 0.0
+            edge_confidence_level = "rejected"
+            edge_encodings = org_models.get('ghostfacenet_encodings')
+            edge_names = org_models.get('ghostfacenet_names')
             
-            if sota_model is not None and sota_transform is not None:
-                try:
-                    input_tensor = sota_transform(face_roi_pil).unsqueeze(0).to(sota_device)
-                    with torch.no_grad():
-                        outputs = sota_model(input_tensor)
-                        probs = torch.nn.functional.softmax(outputs, dim=1)
-                        conf_tensor, predicted_idx = torch.max(probs, 1)
-                    idx = predicted_idx.item()
-                    sota_conf_val = float(conf_tensor.item())
-                    sota_label = sota_classes[idx] if sota_classes and idx < len(sota_classes) else f"Class {idx}"
-                    if not sota_loaded:
-                        sota_label = "[UNTRAINED]"
-                except Exception as e:
-                    logger.warning(f"SOTA prediction error: {e}")
-                    sota_label, sota_conf_val = 'Error', 0.0
-            
-            # Predict DeepFace — use TTA (Test-Time Augmentation) for higher accuracy
-            df_label, df_conf = "Not Trained", 0.0
-            df_confidence_level = "rejected"
-            deepface_encodings = org_models.get('deepface_encodings')
-            deepface_names = org_models.get('deepface_names')
-            
-            if deepface_encodings is not None:
+            if edge_encodings is not None and enable_ghostfacenet:
                 try:
                     processed = apply_clahe(face_roi_cv)
-                    # TTA: average 5 embeddings from different augmentations
-                    emb = get_embedding_tta(processed)
-                    if emb is None:
-                        # Fallback to single embedding if TTA fails
-                        emb = get_embedding(processed)
+                    emb = get_embedding(processed, model_name="GhostFaceNet")
                     if emb is not None:
-                        df_label, dist, df_confidence_level = find_match_knn(
-                            emb, deepface_encodings, deepface_names, 
+                        edge_label, dist, edge_confidence_level = find_match_knn(
+                            emb, edge_encodings, edge_names, 
+                            angle_label=angle_label,
                             custom_threshold=camera_threshold
                         )
-                        df_conf = max(0, (1 - dist))
+                        edge_conf = max(0, (1 - dist))
                 except Exception as e:
-                    logger.warning(f"DeepFace prediction error: {e}")
-                    df_label = "Error"
+                    logger.warning(f"Edge prediction error: {e}")
+                    edge_label = "Error"
+            
+            # Predict Primary Model (Facenet512)
+            f_label, f_conf = "Not Trained", 0.0
+            f_confidence_level = "rejected"
+            f_encodings = org_models.get('facenet512_encodings')
+            f_names = org_models.get('facenet512_names')
+            
+            if f_encodings is not None and enable_facenet512:
+                try:
+                    processed = apply_clahe(face_roi_cv)
+                    emb = get_embedding(processed, model_name="Facenet512")
+                    if emb is not None:
+                        f_label, dist, f_confidence_level = find_match_knn(
+                            emb, f_encodings, f_names, 
+                            angle_label=angle_label,
+                            custom_threshold=camera_threshold
+                        )
+                        f_conf = max(0, (1 - dist))
+                except Exception as e:
+                    logger.warning(f"Facenet512 prediction error: {e}")
+                    f_label = "Error"
+                    
+            # Predict Secondary Model (InsightFace)
+            i_label, i_conf = "Not Trained", 0.0
+            i_confidence_level = "rejected"
+            i_encodings = org_models.get('insightface_encodings')
+            i_names = org_models.get('insightface_names')
+            
+            if i_encodings is not None and enable_insightface:
+                try:
+                    processed = apply_clahe(face_roi_cv)
+                    emb = get_embedding(processed, model_name="InsightFace")
+                    if emb is not None:
+                        i_label, dist, i_confidence_level = find_match_knn(
+                            emb, i_encodings, i_names, 
+                            angle_label=angle_label,
+                            custom_threshold=camera_threshold
+                        )
+                        i_conf = max(0, (1 - dist))
+                except Exception as e:
+                    logger.warning(f"InsightFace prediction error: {e}")
+                    i_label = "Error"
                     
             # --- Ensemble Vote ---
             individual_preds = {
-                'sota': {'label': sota_label, 'confidence': float(sota_conf_val)},
-                'deepface': {'label': df_label, 'confidence': float(df_conf), 'confidence_level': df_confidence_level}
+                'ghostfacenet': {'label': edge_label, 'confidence': float(edge_conf), 'confidence_level': edge_confidence_level},
+                'facenet512': {'label': f_label, 'confidence': float(f_conf), 'confidence_level': f_confidence_level},
+                'insightface': {'label': i_label, 'confidence': float(i_conf), 'confidence_level': i_confidence_level}
             }
-            ensemble_result = ensemble_predict(individual_preds)
+            ensemble_result = ensemble_predict(individual_preds, custom_threshold=camera_threshold)
 
             # Binary classification: CONFIRMED or NOT FOUND
             ens_label = ensemble_result['label']
@@ -2924,22 +2903,24 @@ def handle_stream_frame(data):
         
         from face_detector import face_detector
         detected_faces_info = face_detector.detect_faces(img_np, profile_only=False)
-        faces = []
+        
+        faces_data = []
         for face_info in detected_faces_info:
             b = face_info['bbox']
-            faces.append((b['x'], b['y'], b['w'], b['h']))
+            angle_label = face_info.get('direction', 'frontal')
+            faces_data.append((b['x'], b['y'], b['w'], b['h'], angle_label))
 
-        if len(faces) == 0:
+        if len(faces_data) == 0:
             h, w = img_np.shape[:2]
-            faces = [(0, 0, w, h)]
+            faces_data = [(0, 0, w, h, 'frontal')]
             message = "Detector failed to find a face: Full image evaluated."
         else:
-            message = f'Detected {len(faces)} face(s)'
+            message = f'Detected {len(faces_data)} face(s)'
 
         results = []
-        for (x, y, w, h) in faces:
-            margin_x = int(w * 0.15)
-            margin_y = int(h * 0.15)
+        for (x, y, w, h, angle_label) in faces_data:
+            margin_x = int(w * 0.20)
+            margin_y = int(h * 0.20)
             x1 = max(0, x - margin_x)
             y1 = max(0, y - margin_y)
             x2 = min(img_np.shape[1], x + w + margin_x)
@@ -2955,8 +2936,9 @@ def handle_stream_frame(data):
                 results.append({
                     'bbox': {'x': int(x), 'y': int(y), 'w': int(w), 'h': int(h)},
                     'predictions': {
-                        'sota': {'label': 'SPOOF', 'confidence': 0.0},
-                        'deepface': {'label': 'SPOOF', 'confidence': 0.0, 'confidence_level': 'rejected'}
+                        'ghostfacenet': {'label': 'SPOOF', 'confidence': 0.0, 'confidence_level': 'rejected'},
+                        'facenet512': {'label': 'SPOOF', 'confidence': 0.0, 'confidence_level': 'rejected'},
+                        'insightface': {'label': 'SPOOF', 'confidence': 0.0, 'confidence_level': 'rejected'}
                     },
                     'ensemble': {
                         'label': 'SPOOF DETECTED',
@@ -2977,53 +2959,78 @@ def handle_stream_frame(data):
                 })
                 continue
                 
-            sota_label, sota_conf_val = '[UNTRAINED]', 0.0
-            sota_model = org_models.get('sota_model')
-            sota_transform = org_models.get('sota_transform')
-            sota_device = org_models.get('sota_device')
-            sota_classes = org_models.get('sota_classes')
-            sota_loaded = org_models.get('sota_loaded')
-            
-            if sota_model is not None and sota_transform is not None:
-                try:
-                    input_tensor = sota_transform(face_roi_pil).unsqueeze(0).to(sota_device)
-                    with torch.no_grad():
-                        outputs = sota_model(input_tensor)
-                        probs = torch.nn.functional.softmax(outputs, dim=1)
-                        conf_tensor, predicted_idx = torch.max(probs, 1)
-                    idx = predicted_idx.item()
-                    sota_conf_val = float(conf_tensor.item())
-                    sota_label = sota_classes[idx] if sota_classes and idx < len(sota_classes) else f"Class {idx}"
-                    if not sota_loaded:
-                        sota_label = "[UNTRAINED]"
-                except Exception as e:
-                    sota_label, sota_conf_val = 'Error', 0.0
+            from config_utils import load_config
+            cfg = load_config()
+            enable_ghostfacenet = cfg.get("ENABLE_GHOSTFACENET", False)
+            enable_facenet512 = cfg.get("ENABLE_FACENET512", False)
+            enable_insightface = cfg.get("ENABLE_INSIGHTFACE", False)
 
-            df_label, df_conf = "Not Trained", 0.0
-            df_confidence_level = "rejected"
-            deepface_encodings = org_models.get('deepface_encodings')
-            deepface_names = org_models.get('deepface_names')
+            # Predict Edge (GhostFaceNet) - lightweight secondary model
+            edge_label, edge_conf = "Not Trained", 0.0
+            edge_confidence_level = "rejected"
+            edge_encodings = org_models.get('ghostfacenet_encodings')
+            edge_names = org_models.get('ghostfacenet_names')
             
-            if deepface_encodings is not None:
+            if edge_encodings is not None and enable_ghostfacenet:
                 try:
                     processed = apply_clahe(face_roi_cv)
-                    emb = get_embedding_tta(processed)
-                    if emb is None:
-                        emb = get_embedding(processed)
+                    emb = get_embedding(processed, model_name="GhostFaceNet")
                     if emb is not None:
-                        df_label, dist, df_confidence_level = find_match_knn(
-                            emb, deepface_encodings, deepface_names, 
+                        edge_label, dist, edge_confidence_level = find_match_knn(
+                            emb, edge_encodings, edge_names, 
+                            angle_label=angle_label,
                             custom_threshold=camera_threshold
                         )
-                        df_conf = max(0, (1 - dist))
+                        edge_conf = max(0, (1 - dist))
                 except Exception as e:
-                    df_label = "Error"
+                    edge_label = "Error"
+
+            # Predict Primary Model (Facenet512)
+            f_label, f_conf = "Not Trained", 0.0
+            f_confidence_level = "rejected"
+            f_encodings = org_models.get('facenet512_encodings')
+            f_names = org_models.get('facenet512_names')
+            
+            if f_encodings is not None and enable_facenet512:
+                try:
+                    processed = apply_clahe(face_roi_cv)
+                    emb = get_embedding(processed, model_name="Facenet512")
+                    if emb is not None:
+                        f_label, dist, f_confidence_level = find_match_knn(
+                            emb, f_encodings, f_names, 
+                            angle_label=angle_label,
+                            custom_threshold=camera_threshold
+                        )
+                        f_conf = max(0, (1 - dist))
+                except Exception as e:
+                    f_label = "Error"
+                    
+            # Predict Secondary Model (InsightFace)
+            i_label, i_conf = "Not Trained", 0.0
+            i_confidence_level = "rejected"
+            i_encodings = org_models.get('insightface_encodings')
+            i_names = org_models.get('insightface_names')
+            
+            if i_encodings is not None and enable_insightface:
+                try:
+                    processed = apply_clahe(face_roi_cv)
+                    emb = get_embedding(processed, model_name="InsightFace")
+                    if emb is not None:
+                        i_label, dist, i_confidence_level = find_match_knn(
+                            emb, i_encodings, i_names, 
+                            angle_label=angle_label,
+                            custom_threshold=camera_threshold
+                        )
+                        i_conf = max(0, (1 - dist))
+                except Exception as e:
+                    i_label = "Error"
                     
             individual_preds = {
-                'sota': {'label': sota_label, 'confidence': float(sota_conf_val)},
-                'deepface': {'label': df_label, 'confidence': float(df_conf), 'confidence_level': df_confidence_level}
+                'ghostfacenet': {'label': edge_label, 'confidence': float(edge_conf), 'confidence_level': edge_confidence_level},
+                'facenet512': {'label': f_label, 'confidence': float(f_conf), 'confidence_level': f_confidence_level},
+                'insightface': {'label': i_label, 'confidence': float(i_conf), 'confidence_level': i_confidence_level}
             }
-            ensemble_result = ensemble_predict(individual_preds)
+            ensemble_result = ensemble_predict(individual_preds, custom_threshold=camera_threshold)
 
             ens_label = ensemble_result['label']
             ens_conf = ensemble_result['confidence']
@@ -3192,14 +3199,14 @@ def get_dashboard_stats(org_id=None):
         total_photos += count
         
     org_models = ensure_org_models_loaded(org_id)
-    sota_loaded_state = org_models.get('sota_loaded', False)
-    sota_classes_state = org_models.get('sota_classes', [])
+    edge_encodings = org_models.get('edge_encodings')
     deepface_encodings = org_models.get('deepface_encodings')
     
     requires_retrain = False
     if total_people > 0:
-        sota_mismatch = (not sota_loaded_state) or (sorted(sota_classes_state) != expected_classes)
-        requires_retrain = sota_mismatch
+        edge_trained_classes = set(org_models.get('edge_names', []))
+        edge_mismatch = (edge_encodings is None) or (sorted(list(edge_trained_classes)) != expected_classes)
+        requires_retrain = edge_mismatch
 
     # Read history for stats
     history = []
@@ -3236,7 +3243,7 @@ def get_dashboard_stats(org_id=None):
         'requires_retrain': requires_retrain,
         'models_loaded': {
             'deepface': deepface_encodings is not None,
-            'sota': sota_loaded_state
+            'edge': edge_encodings is not None
         },
         'history_stats': {
             'total_predictions': total_predictions,
@@ -3654,6 +3661,76 @@ def handle_exception(e):
         'error': getattr(e, 'description', str(e)),
         'status_code': code
     }), code
+
+# ─── Edge Benchmarking & Camera Spec Evaluation Endpoints ──────────────
+@app.route('/api/edge/camera-spec-test', methods=['GET'])
+@require_auth
+@require_role('org_admin')
+def edge_camera_spec_test():
+    """
+    Run or retrieve the Minimum Camera Specification evaluation.
+    Pass ?run=true to trigger a fresh evaluation (takes several minutes).
+    Otherwise returns cached results from data/camera_spec_results.json.
+    """
+    results_path = os.path.join(BACKEND_DIR, 'data', 'camera_spec_results.json')
+    run_fresh = request.args.get('run', 'false').lower() == 'true'
+
+    if run_fresh:
+        try:
+            from camera_spec_evaluator import run_full_evaluation
+            results = run_full_evaluation()
+            if results is None:
+                return jsonify({'error': 'Evaluation failed. Check that embeddings are trained.'}), 500
+            return jsonify({'status': 'completed', 'results': results})
+        except Exception as e:
+            logger.error(f"Camera spec evaluation error: {e}", exc_info=True)
+            return jsonify({'error': str(e)}), 500
+
+    # Return cached results
+    if os.path.exists(results_path):
+        with open(results_path, 'r') as f:
+            return jsonify({'status': 'cached', 'results': json.load(f)})
+
+    return jsonify({
+        'status': 'not_run',
+        'message': 'No cached results. Add ?run=true to trigger evaluation (takes several minutes).'
+    }), 404
+
+
+@app.route('/api/edge/benchmark', methods=['GET'])
+@require_auth
+@require_role('org_admin')
+def edge_benchmark():
+    """
+    Run or retrieve the Edge Model & Detector benchmark comparison.
+    Pass ?run=true to trigger a fresh benchmark (takes several minutes).
+    Otherwise returns cached results from data/edge_benchmark_results.json.
+    """
+    results_path = os.path.join(BACKEND_DIR, 'data', 'edge_benchmark_results.json')
+    run_fresh = request.args.get('run', 'false').lower() == 'true'
+    sample_size = int(request.args.get('sample_size', '50'))
+
+    if run_fresh:
+        try:
+            from edge_benchmark_suite import run_edge_benchmarks
+            results = run_edge_benchmarks(sample_size=sample_size)
+            if results is None:
+                return jsonify({'error': 'Benchmark failed. Check that embeddings are trained.'}), 500
+            return jsonify({'status': 'completed', 'results': results})
+        except Exception as e:
+            logger.error(f"Edge benchmark error: {e}", exc_info=True)
+            return jsonify({'error': str(e)}), 500
+
+    # Return cached results
+    if os.path.exists(results_path):
+        with open(results_path, 'r') as f:
+            return jsonify({'status': 'cached', 'results': json.load(f)})
+
+    return jsonify({
+        'status': 'not_run',
+        'message': 'No cached results. Add ?run=true to trigger benchmark (takes several minutes).'
+    }), 404
+
 
 if __name__ == '__main__':
     # Detect local IP for mobile app connection

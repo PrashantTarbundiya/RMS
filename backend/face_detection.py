@@ -428,6 +428,10 @@ class SideFaceDetector:
         if profile_only:
             all_faces = [f for f in all_faces if f['direction'] in ['left_profile', 'right_profile']]
         
+        # Sort faces from left to right (based on x-coordinate) to ensure stable
+        # array indices frame-to-frame, preventing React UI from "swapping" labels.
+        all_faces.sort(key=lambda f: f['bbox']['x'])
+        
         return all_faces
     
     def draw_results(self, image, faces, show_keypoints=True, show_stats=True):

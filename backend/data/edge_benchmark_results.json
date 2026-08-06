@@ -1,0 +1,68 @@
+{
+  "detectors": [
+    {
+      "name": "MediaPipe (SideFaceDetector)",
+      "avg_latency_ms": 2.6,
+      "p95_latency_ms": 3.0,
+      "fps": 380.5,
+      "detection_rate": 100.0,
+      "tested": 10
+    },
+    {
+      "name": "OpenCV Haar Cascade",
+      "avg_latency_ms": 0.8,
+      "p95_latency_ms": 1.0,
+      "fps": 1249.7,
+      "detection_rate": 0.0,
+      "tested": 10
+    },
+    {
+      "name": "OpenCV DNN (Caffe SSD)",
+      "avg_latency_ms": -1,
+      "p95_latency_ms": -1,
+      "fps": 0,
+      "detection_rate": 0,
+      "tested": 0,
+      "note": "Model files not found. Download deploy.prototxt and res10_300x300_ssd_iter_140000.caffemodel to backend/data/"
+    }
+  ],
+  "models": [
+    {
+      "name": "Facenet512 (DeepFace)",
+      "embedding_dim": 512,
+      "avg_latency_ms": 423.4,
+      "p95_latency_ms": 525.9,
+      "fps": 2.4,
+      "accuracy": 100.0,
+      "tested": 10,
+      "correct": 10
+    },
+    {
+      "name": "ArcFace (DeepFace)",
+      "embedding_dim": 512,
+      "avg_latency_ms": 706.9,
+      "p95_latency_ms": 996.9,
+      "fps": 1.4,
+      "accuracy": 0,
+      "tested": 0,
+      "correct": 0
+    },
+    {
+      "name": "GhostFaceNet (EdgeFace)",
+      "embedding_dim": 512,
+      "avg_latency_ms": 1307.5,
+      "p95_latency_ms": 1486.7,
+      "fps": 0.8,
+      "accuracy": 0,
+      "tested": 0,
+      "correct": 0
+    }
+  ],
+  "system": {
+    "ram_mb": 1518.3,
+    "cpu_percent": 7.9,
+    "cpu_count": 12,
+    "total_ram_mb": 15790.0
+  },
+  "timestamp": "2026-07-31 21:45:09"
+}

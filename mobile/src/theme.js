@@ -14,10 +14,10 @@ export const COLORS = {
   bgInput: '#141516',                 
 
   // ── Vibrant Accent Colors ──
-  appleBlue: '#5E6AD2',               // SOTA MobileNetV2 Primary Accent
+  appleBlue: '#5E6AD2',               // GhostFaceNet Primary Accent
   appleGreen: '#27A644',              // Success / Confirmed
   appleRed: '#F87171',                // Error / Failed
-  applePurple: '#828FFF',             // Secondary / Muted SOTA
+  applePurple: '#828FFF',             // Secondary / Muted GhostFaceNet
   appleOrange: '#FBBF24',             // Warning / Spoof
   appleCyan: '#32ADE6',               
   appleIndigo: '#5856D6',             

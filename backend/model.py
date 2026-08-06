@@ -33,16 +33,25 @@ PROJECT_ROOT = os.path.dirname(BACKEND_DIR)
 # ======================== CONFIGURATION ========================
 MODEL_NAME = "Facenet512"
 
-# Augmentation counts
-NUM_AUGMENTS_FULL = 8      # For full retrain (comprehensive)
-NUM_AUGMENTS_QUICK = 4     # For add-person (speed priority: flip, jitter, blur, rotate)
+# Augmentation counts — edge-optimized defaults
+# When multi-angle enrollment photos (front/left/right) are provided,
+# synthetic augmentations add marginal value. Keep them minimal.
+NUM_AUGMENTS_FULL = 2       # For full retrain (flip + jitter only; was 8)
+NUM_AUGMENTS_QUICK = 2      # For add-person (same lightweight set)
 NUM_AUGMENTS = NUM_AUGMENTS_FULL  # Default for backward compatibility
+
+# Edge lightweight training: set EDGE_LIGHTWEIGHT_TRAINING=true to skip
+# all augmentations when multi-angle enrollment photos are present.
+EDGE_LIGHTWEIGHT = os.environ.get('EDGE_LIGHTWEIGHT_TRAINING', 'false').lower() == 'true'
 
 # Crop margin as a percentage of face dimension
 CROP_MARGIN_RATIO = 0.22
 
 # Detector confidence — 0.30 catches more side/profile faces
 DETECTOR_CONFIDENCE = 0.30
+
+# CLAHE preprocessing toggle — disable to benchmark its impact on latency
+ENABLE_CLAHE = os.environ.get('ENABLE_CLAHE', 'true').lower() != 'false'
 
 # Embedding dimension (pure Facenet512, no soft biometrics)
 EMBEDDING_DIM = 512
@@ -71,12 +80,104 @@ else:
 # ===============================================================
 
 
+# ======================== INSIGHTFACE ONNX ========================
+# InsightFace ArcFace (MobileFaceNet w600k) via ONNX Runtime
+# 42x faster than Facenet512: 9.8ms vs 414ms per embedding on CPU.
+# This is the RECOMMENDED primary model for both live prediction and
+# edge deployment based on our evaluation report.
+# ===================================================================
+
+_INSIGHTFACE_ONNX_PATH = os.path.join(
+    os.path.expanduser('~'), '.insightface', 'models', 'buffalo_sc', 'w600k_mbf.onnx'
+)
+_insightface_session = None  # Loaded lazily on first call
+
+def _load_insightface_session():
+    """Load the InsightFace ONNX session once. Thread-safe via GIL."""
+    global _insightface_session
+    if _insightface_session is not None:
+        return _insightface_session
+
+    if not os.path.exists(_INSIGHTFACE_ONNX_PATH):
+        print(f"[WARNING] InsightFace ONNX not found at {_INSIGHTFACE_ONNX_PATH}")
+        print("          Run gpu_trainer.py first to download the model.")
+        return None
+
+    try:
+        import onnxruntime as ort
+        so = ort.SessionOptions()
+        so.intra_op_num_threads = os.cpu_count() or 4
+        so.graph_optimization_level = ort.GraphOptimizationLevel.ORT_ENABLE_ALL
+        so.log_severity_level = 3
+
+        _insightface_session = ort.InferenceSession(
+            _INSIGHTFACE_ONNX_PATH,
+            providers=['CPUExecutionProvider'],
+            sess_options=so
+        )
+        # Warm up with a dummy inference
+        dummy = np.zeros((1, 3, 112, 112), dtype=np.float32)
+        _insightface_session.run(None, {_insightface_session.get_inputs()[0].name: dummy})
+        print(f"[INFO] InsightFace ArcFace ONNX ready (CPU, {os.cpu_count()} threads)")
+        return _insightface_session
+    except ImportError:
+        print("[WARNING] onnxruntime not installed. InsightFace unavailable.")
+        return None
+    except Exception as e:
+        print(f"[WARNING] InsightFace ONNX load failed: {e}")
+        return None
+
+
+def get_embedding_insightface(face_crop):
+    """
+    Generate a single L2-normalized 512-d embedding using InsightFace ArcFace.
+
+    Input: BGR face crop (any size, will be resized to 112x112).
+    Output: list[float] (512-d) or None on failure.
+
+    Performance: ~9.8ms per call on CPU (42x faster than Facenet512).
+    """
+    sess = _load_insightface_session()
+    if sess is None:
+        return None
+
+    try:
+        # Preprocess: resize to 112x112, BGR->RGB, normalize to [-1, 1], NCHW
+        resized = cv2.resize(face_crop, (112, 112), interpolation=cv2.INTER_LINEAR)
+        rgb = cv2.cvtColor(resized, cv2.COLOR_BGR2RGB)
+        arr = ((rgb.astype(np.float32) - 127.5) / 127.5)  # normalize to [-1, 1]
+        arr = arr.transpose(2, 0, 1)[np.newaxis]           # (1, 3, 112, 112)
+
+        raw = sess.run(None, {sess.get_inputs()[0].name: arr})[0][0]
+        emb = raw.astype(np.float32)
+
+        # L2 normalize
+        norm = np.linalg.norm(emb)
+        if norm > 0:
+            emb = emb / norm
+        return emb.tolist()
+    except Exception as e:
+        print(f"[WARNING] InsightFace embedding failed: {e}")
+        return None
+
+# Eagerly load InsightFace session at startup for instant first-call
+print("[INFO] Loading InsightFace ArcFace model...")
+_load_insightface_session()
+# ===================================================================
+
+
 def apply_clahe(image):
     """
     Apply CLAHE (Contrast Limited Adaptive Histogram Equalization).
     Normalizes lighting and exposure variations — the biggest source of
     embedding error in real-world conditions.
+
+    Toggleable via ENABLE_CLAHE env var (default: true).
+    When disabled, returns the image unchanged — useful for benchmarking
+    CLAHE's latency cost vs accuracy gain on edge hardware.
     """
+    if not ENABLE_CLAHE:
+        return image
     lab = cv2.cvtColor(image, cv2.COLOR_BGR2LAB)
     l, a, b = cv2.split(lab)
     clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
@@ -158,22 +259,19 @@ def generate_augments(image, num_augments=NUM_AUGMENTS):
     return augments
 
 
-def get_embedding(face_crop):
+def get_embedding(face_crop, model_name=MODEL_NAME):
     """
-    Generate a single L2-normalized 512-d Facenet512 embedding.
+    Generate a single L2-normalized embedding using the specified model.
     
     The model is already loaded in memory (warm-up at module level),
     so each call takes ~100ms instead of ~20s.
 
-    Returns a list[float] (512-d) or None on failure.
+    Returns a list[float] or None on failure.
     """
-    from config_utils import load_config
-    if not load_config().get("ENABLE_DEEPFACE", False):
-        return None
     try:
         embedding_objs = DeepFace.represent(
             img_path=face_crop,
-            model_name=MODEL_NAME,
+            model_name=model_name,
             enforce_detection=False,
             detector_backend='skip',
             align=False
@@ -187,7 +285,7 @@ def get_embedding(face_crop):
                 emb = emb / norm
             return emb.tolist()
     except Exception as e:
-        print(f"      ⚠️ Embedding failed: {e}")
+        print(f"      [WARNING] Embedding failed for {model_name}: {e}")
 
     return None
 
@@ -320,11 +418,31 @@ def train_model(dataset_path=None, model_save_path=None):
     """
     Production embedding generation pipeline.
 
+    v6.0 changes:
+    - GPU-first: delegates to gpu_trainer.retrain_all_gpu() when CUDA + InsightFace available
+      (10-20x faster full retrain on GTX 1650 vs CPU)
+    - CPU fallback: original Facenet512 DeepFace pipeline (unchanged, always available)
+    - Progress logging with timing
+
     v5.0 changes:
     - Pure 512-d Facenet512 embeddings (removed soft biometrics overhead)
     - Model pre-loaded at module level (no per-call TF reload)
-    - Progress logging with timing
     """
+    # ── GPU Fast Path ─────────────────────────────────────────────────────────
+    try:
+        from gpu_trainer import is_gpu_available, retrain_all_gpu
+        if is_gpu_available():
+            print("\n[GPU] Full retrain using InsightFace ArcFace on CUDA...")
+            encodings, names, total = retrain_all_gpu(
+                dataset_path=dataset_path,
+                encodings_path=model_save_path,
+                num_augments=NUM_AUGMENTS,
+            )
+            print(f"\n[GPU] Retrain complete: {total} embeddings, {len(set(names))} persons")
+            return
+    except Exception as gpu_err:
+        print(f"[GPU] Retrain failed ({gpu_err}), falling back to CPU DeepFace...")
+    # ── CPU Fallback (original logic below, unchanged) ─────────────────────
     if not os.path.exists(dataset_path):
         print(f"Error: Dataset directory '{dataset_path}' not found.")
         return

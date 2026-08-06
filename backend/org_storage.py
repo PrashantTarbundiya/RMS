@@ -53,21 +53,25 @@ def get_storage_dir():
 # Path Resolvers
 # ──────────────────────────────────────────────────────────────────────
 
-def get_encodings_path(org_id=None):
+def get_encodings_path(org_id=None, model_name="Facenet512"):
     """
-    Get the path to the encodings.pickle file.
+    Get the path to the encodings file for a specific model.
 
     Args:
         org_id: Organization UUID string, or None for single-tenant mode.
+        model_name: The name of the embedding model (e.g., Facenet512, GhostFaceNet)
 
     Returns:
-        Absolute path to the org's encodings.pickle file.
+        Absolute path to the org's encodings file.
     """
+    filename = f'encodings_{model_name}.pickle' if model_name != "Facenet512" else 'encodings.pickle'
+    
     if org_id is None:
-        return _GLOBAL_ENCODINGS_PATH
+        return os.path.join(_GLOBAL_DATA_DIR, filename)
+        
     org_dir = _get_org_data_dir(org_id)
     os.makedirs(org_dir, exist_ok=True)
-    return os.path.join(org_dir, 'encodings.pickle')
+    return os.path.join(org_dir, filename)
 
 
 def get_feedback_log_path(org_id=None):
@@ -151,14 +155,14 @@ def get_sota_classes_path(org_id=None):
 # Encodings I/O
 # ──────────────────────────────────────────────────────────────────────
 
-def load_encodings(org_id=None):
+def load_encodings(org_id=None, model_name="Facenet512"):
     """
     Load the KNN embeddings index for an organization.
 
     Returns:
         tuple: (encodings_list, names_list) or (None, None) if not found.
     """
-    path = get_encodings_path(org_id)
+    path = get_encodings_path(org_id, model_name=model_name)
     if not os.path.exists(path):
         return None, None
     try:
@@ -166,14 +170,14 @@ def load_encodings(org_id=None):
             data = pickle.load(f)
         encodings = data.get('encodings', [])
         names = data.get('names', [])
-        logger.info(f"Loaded {len(encodings)} encodings for org={org_id or 'global'}")
+        logger.info(f"Loaded {len(encodings)} encodings for model={model_name}, org={org_id or 'global'}")
         return encodings, names
     except Exception as e:
-        logger.warning(f"Failed to load encodings for org={org_id}: {e}")
+        logger.warning(f"Failed to load encodings for model={model_name}, org={org_id}: {e}")
         return None, None
 
 
-def save_encodings(encodings, names, org_id=None):
+def save_encodings(encodings, names, org_id=None, model_name="Facenet512"):
     """
     Save the KNN embeddings index for an organization.
 
@@ -181,13 +185,14 @@ def save_encodings(encodings, names, org_id=None):
         encodings: List of embedding vectors.
         names: List of corresponding person names.
         org_id: Organization UUID, or None for global mode.
+        model_name: The name of the embedding model (e.g., Facenet512, GhostFaceNet).
     """
-    path = get_encodings_path(org_id)
+    path = get_encodings_path(org_id, model_name=model_name)
     os.makedirs(os.path.dirname(path), exist_ok=True)
     data = {'encodings': encodings, 'names': names}
     with open(path, 'wb') as f:
         pickle.dump(data, f)
-    logger.info(f"Saved {len(encodings)} encodings for org={org_id or 'global'}")
+    logger.info(f"Saved {len(encodings)} encodings for model={model_name}, org={org_id or 'global'}")
 
 
 # ──────────────────────────────────────────────────────────────────────

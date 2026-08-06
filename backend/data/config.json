@@ -1,4 +1,6 @@
 {
-    "CONFIRM_THRESHOLD": 0.35,
-    "ENABLE_DEEPFACE": false
+    "CONFIRM_THRESHOLD": 0.55,
+    "ENABLE_FACENET512": true,
+    "ENABLE_INSIGHTFACE": false,
+    "ENABLE_GHOSTFACENET": false
 }

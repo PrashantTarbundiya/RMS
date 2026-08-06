@@ -13,7 +13,7 @@ const faqs = [
   },
   {
     q: 'Which face recognition models does the system use?',
-    a: 'The system runs a SOTA MobileNetV2 model (lightweight, optimized for fast CPU inference) alongside a high-dimensional embedding model. Detections are resolved using a weighted ensemble consensus logic.',
+    a: 'The system runs a GhostFaceNet model (lightweight, optimized for fast CPU edge inference) alongside a high-dimensional InsightFace ArcFace embedding model. Detections are resolved using a weighted ensemble consensus logic.',
   },
   {
     q: 'Can the system recognize faces from profile/side angles?',

@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { NavLink, Link } from 'react-router-dom';
-import { Activity, Box, Video, Home, Upload, ClipboardList, Radio, Settings, LogOut, Users, User, Menu, X, Terminal, Shield, Monitor, BarChart3, Play } from 'lucide-react';
+import { Activity, Box, Video, Home, Upload, ClipboardList, Radio, Settings, LogOut, Users, User, Menu, X, Terminal, Shield, Monitor, BarChart3, Play, Camera } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -36,6 +36,7 @@ export function Navbar() {
     { to: '/dashboard', label: 'Dashboard', icon: Activity, minRole: 'viewer' },
     { to: '/attendance', label: 'Attendance', icon: ClipboardList, end: true, minRole: 'viewer' },
     { to: '/attendance/live', label: 'Live Site', icon: Radio, minRole: 'viewer' },
+    { to: '/cameras', label: 'Cameras', icon: Camera, minRole: 'org_admin' },
     { to: '/upload', label: 'Upload', icon: Upload, minRole: 'org_admin' },
     { to: '/test', label: 'Test Camera', icon: Video, minRole: 'manager' },
     { to: '/mosaic', label: 'Camera Mosaic', icon: Monitor, minRole: 'manager' },
@@ -135,7 +136,7 @@ export function Navbar() {
                 {hasRole(userRole, 'org_admin') && (
                   <Link to="/onboarding" onClick={() => setIsMobileOpen(false)} className="logout-btn" style={{ color: 'var(--accent-primary)' }}>
                     <Play size={18} />
-                    <span>Setup Wizard</span>
+                    <span>Setup Guide</span>
                   </Link>
                 )}
                 {user && (
@@ -205,9 +206,9 @@ export function Navbar() {
         {/* Footer Actions */}
         <div className="sidebar-footer" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
           {hasRole(userRole, 'org_admin') && (
-            <Link to="/onboarding" className={`logout-btn ${isCollapsed ? 'justify-center' : ''}`} style={{ color: 'var(--accent-primary)' }} title={isCollapsed ? "Setup Wizard" : undefined}>
+            <Link to="/onboarding" className={`logout-btn ${isCollapsed ? 'justify-center' : ''}`} style={{ color: 'var(--accent-primary)' }} title={isCollapsed ? "Setup Guide" : undefined}>
               <Play size={18} />
-              {!isCollapsed && <span>Setup Wizard</span>}
+              {!isCollapsed && <span>Setup Guide</span>}
             </Link>
           )}
           {user && (

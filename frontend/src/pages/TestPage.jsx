@@ -1,6 +1,6 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { Camera, Image as ImageIcon, Video, Maximize, Play, X, AlertCircle, ThumbsUp, ThumbsDown, Check, Loader2, UploadCloud } from 'lucide-react';
+import { Camera, Image as ImageIcon, Video, Maximize, Play, X, AlertCircle, ThumbsUp, ThumbsDown, Check, Loader2, UploadCloud, Sliders } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { API_BASE } from '../config';
 import { io } from 'socket.io-client';
@@ -17,6 +17,7 @@ export default function TestPage() {
   const [results, setResults] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [customThreshold, setCustomThreshold] = useState(0.55);
   const [webcamError, setWebcamError] = useState('');
   const [webcamReady, setWebcamReady] = useState(false);
   const [isDragActive, setIsDragActive] = useState(false);
@@ -26,10 +27,25 @@ export default function TestPage() {
   const [showConfidence, setShowConfidence] = useState(() => {
     return localStorage.getItem('showConfidence') !== 'false';
   });
+  
+  const [enableFacenet512, setEnableFacenet512] = useState(() => {
+    return localStorage.getItem('enableFacenet512') !== 'false';
+  });
+
+  const [enableInsightFace, setEnableInsightFace] = useState(() => {
+    return localStorage.getItem('enableInsightFace') !== 'false';
+  });
+
+  const [enableGhostFaceNet, setEnableGhostFaceNet] = useState(() => {
+    return localStorage.getItem('enableGhostFaceNet') === 'true'; // Default disabled
+  });
 
   useEffect(() => {
     const handleStorageChange = () => {
       setShowConfidence(localStorage.getItem('showConfidence') !== 'false');
+      setEnableFacenet512(localStorage.getItem('enableFacenet512') !== 'false');
+      setEnableInsightFace(localStorage.getItem('enableInsightFace') !== 'false');
+      setEnableGhostFaceNet(localStorage.getItem('enableGhostFaceNet') === 'true');
     };
     window.addEventListener('storage', handleStorageChange);
     return () => window.removeEventListener('storage', handleStorageChange);
@@ -314,6 +330,12 @@ export default function TestPage() {
     };
   }, [mode, webcamReady, isFeedbackModalOpen, runLivePrediction, socketConnected]);
 
+  useEffect(() => {
+    if (results) {
+      sessionStorage.setItem('onboarding_test_scanned', 'true');
+    }
+  }, [results]);
+
   const captureWebcam = useCallback(() => {
     // Legacy snapshot capture falls back to running a single manual prediction
     if (!videoRef.current || !webcamReady) return;
@@ -368,6 +390,7 @@ export default function TestPage() {
               timeout: 30000,
             });
             setResults(res.data);
+            sessionStorage.setItem('onboarding_test_scanned', 'true');
             
             setTimeout(() => {
               if (imgRef.current) {
@@ -415,6 +438,7 @@ export default function TestPage() {
     const formData = new FormData();
     formData.append('image', file);
     formData.append('test_mode', 'true');
+    formData.append('threshold', customThreshold);
 
     try {
       const res = await apiClient.post(`${API_BASE}/predict`, formData, {
@@ -422,6 +446,7 @@ export default function TestPage() {
         timeout: 30000,
       });
       setResults(res.data);
+      sessionStorage.setItem('onboarding_test_scanned', 'true');
       if (imgRef.current) {
         setPreviewSize({
           width: imgRef.current.clientWidth,
@@ -614,7 +639,7 @@ export default function TestPage() {
                   className="input-linear w-full h-10 px-3 text-caption font-mono"
                 />
                 {feedbackShowDropdown && (
-                  <div className="absolute top-full left-0 right-0 mt-1 max-h-40 overflow-y-auto bg-[#0F1011] border border-[#23252A] rounded-md z-50 shadow-xl scrollbar-thin">
+                  <div className="absolute top-full left-0 right-0 mt-1 max-h-40 overflow-y-auto bg-[#0F1011] border border-[#23252A] rounded-md z-[999999] shadow-xl scrollbar-thin">
                     {personsList
                       .filter(p => p.toLowerCase().includes(feedbackSearchQuery.toLowerCase()))
                       .map(p => (
@@ -726,6 +751,7 @@ export default function TestPage() {
           <div className="p-6 flex-1 flex flex-col">
 
             <div 
+              data-tour="test-upload-area"
               onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
               onDragEnter={(e) => { e.preventDefault(); e.stopPropagation(); if (mode === 'upload' || mode === 'group') setIsDragActive(true); }}
               onDragLeave={(e) => { e.preventDefault(); e.stopPropagation(); setIsDragActive(false); }}
@@ -887,7 +913,76 @@ export default function TestPage() {
                 )}
             </div>
 
-            <div className="mt-6">
+             {/* Threshold Control */}
+             <div className="mt-4 p-4 rounded-xl border space-y-3" style={{ background: 'rgba(15, 16, 17, 0.65)', borderColor: 'rgba(255, 255, 255, 0.08)' }}>
+               <div className="flex justify-between items-center">
+                 <div className="flex items-center gap-2">
+                   <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: 'rgba(94, 106, 210, 0.15)', border: '1px solid rgba(94, 106, 210, 0.30)' }}>
+                     <Sliders className="w-3.5 h-3.5 text-[#5E6AD2]" />
+                   </div>
+                   <span className="text-xs font-bold text-white">Recognition Threshold</span>
+                 </div>
+                 <span className="font-mono text-sm font-extrabold px-3 py-0.5 rounded-lg" style={{ color: '#5E6AD2', background: 'rgba(94, 106, 210, 0.18)', border: '1px solid rgba(94, 106, 210, 0.40)' }}>
+                   {customThreshold.toFixed(2)}
+                 </span>
+               </div>
+
+               {/* Track with +/- */}
+               <div className="flex items-center gap-2.5">
+                 <button
+                   onClick={() => setCustomThreshold(prev => Math.max(0.20, parseFloat((prev - 0.05).toFixed(2))))}
+                   className="w-8 h-8 rounded-lg flex items-center justify-center text-white text-sm font-bold transition-all hover:scale-105 active:scale-95"
+                   style={{ background: 'rgba(255, 255, 255, 0.08)', border: '1px solid rgba(255, 255, 255, 0.15)' }}
+                 >−</button>
+
+                 <input 
+                   type="range"
+                   min="0.20"
+                   max="0.90"
+                   step="0.05"
+                   value={customThreshold}
+                   onChange={(e) => setCustomThreshold(parseFloat(e.target.value))}
+                   className="flex-1 h-1.5 accent-[#5E6AD2] rounded-lg appearance-none cursor-pointer"
+                   style={{ background: `linear-gradient(to right, #5E6AD2 ${((customThreshold - 0.20) / 0.70) * 100}%, rgba(255,255,255,0.08) ${((customThreshold - 0.20) / 0.70) * 100}%)` }}
+                 />
+
+                 <button
+                   onClick={() => setCustomThreshold(prev => Math.min(0.90, parseFloat((prev + 0.05).toFixed(2))))}
+                   className="w-8 h-8 rounded-lg flex items-center justify-center text-white text-sm font-bold transition-all hover:scale-105 active:scale-95"
+                   style={{ background: 'rgba(255, 255, 255, 0.08)', border: '1px solid rgba(255, 255, 255, 0.15)' }}
+                 >+</button>
+               </div>
+
+               {/* Presets */}
+               <div className="flex gap-1.5">
+                 {[
+                   { val: 0.30, label: 'Strict', color: '#F87171' },
+                   { val: 0.45, label: 'Balanced', color: '#FBBF24' },
+                   { val: 0.55, label: 'Standard', color: '#5E6AD2' },
+                   { val: 0.70, label: 'Relaxed', color: '#27A644' },
+                 ].map(p => {
+                   const active = Math.abs(customThreshold - p.val) < 0.01;
+                   return (
+                     <button
+                       key={p.val}
+                       onClick={() => setCustomThreshold(p.val)}
+                       className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-[10px] font-semibold transition-all hover:scale-[1.02] active:scale-95"
+                       style={{
+                         background: active ? p.color + '25' : 'rgba(255, 255, 255, 0.04)',
+                         border: `1px solid ${active ? p.color + '60' : 'rgba(255, 255, 255, 0.10)'}`,
+                         color: active ? p.color : '#737780',
+                         fontWeight: active ? 800 : 600,
+                       }}
+                     >
+                       <span className="w-1.5 h-1.5 rounded-full" style={{ background: active ? p.color : '#737780' }} />
+                       {p.label}
+                     </button>
+                   );
+                 })}
+               </div>
+             </div>
+
+            <div data-tour="test-run-btn" className="mt-4">
                {(mode === 'upload' || mode === 'group') ? (
                  <button 
                    className="w-full button-primary flex items-center justify-center gap-2 h-10"
@@ -931,8 +1026,8 @@ export default function TestPage() {
                   <div className="text-center flex-1 min-w-[80px]">
                     <div className="text-2xl font-bold text-[#4ade80]">
                       {results.faces.filter(f => {
-                        const label = f.predictions?.sota?.label;
-                        const conf = f.predictions?.sota?.confidence || 0;
+                        const label = f.ensemble?.label;
+                        const conf = f.ensemble?.confidence || 0;
                         return label && label !== 'Unknown' && label !== 'SPOOF DETECTED' && conf > 0.6;
                       }).length}
                     </div>
@@ -941,8 +1036,8 @@ export default function TestPage() {
                   <div className="text-center flex-1 min-w-[80px]">
                     <div className="text-2xl font-bold text-[#f87171]">
                       {results.faces.filter(f => {
-                        const label = f.predictions?.sota?.label;
-                        const conf = f.predictions?.sota?.confidence || 0;
+                        const label = f.ensemble?.label;
+                        const conf = f.ensemble?.confidence || 0;
                         return !label || label === 'Unknown' || conf <= 0.6;
                       }).length}
                     </div>
@@ -952,11 +1047,28 @@ export default function TestPage() {
               </div>
             )}
             
-            <div className="flex gap-6 p-4 bg-[#010102]/40 rounded-lg border border-[#23252A] mb-6 items-center">
-                <div className="flex items-center gap-2">
-                  <span className="w-2.5 h-2.5 rounded-full bg-[#5E6AD2]" />
-                  <span className="text-caption font-mono text-ink-subtle">MobileNetV2: Active</span>
-                </div>
+            <div className="flex gap-6 p-4 bg-[#010102]/40 rounded-lg border border-[#23252A] mb-6 items-center flex-wrap">
+                {enableFacenet512 && (
+                  <div className="flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-[#5E6AD2]" />
+                    <span className="text-caption font-mono text-ink-subtle">Facenet512: Active</span>
+                  </div>
+                )}
+                {enableInsightFace && (
+                  <div className="flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-[#27A644]" />
+                    <span className="text-caption font-mono text-ink-subtle">InsightFace: Active</span>
+                  </div>
+                )}
+                {enableGhostFaceNet && (
+                  <div className="flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-[#A855F7]" />
+                    <span className="text-caption font-mono text-ink-subtle">GhostFaceNet: Active</span>
+                  </div>
+                )}
+                {!enableGhostFaceNet && !enableInsightFace && !enableFacenet512 && (
+                  <div className="text-caption font-mono text-[#F87171]">All Recognition Models Disabled</div>
+                )}
             </div>
             
             <div className="flex-1 overflow-y-auto">
@@ -1033,12 +1145,32 @@ export default function TestPage() {
                                  </div>
                              </div>
 
-                             <div className="mt-4 flex flex-col gap-2 p-3 bg-[#0F1011] rounded-lg border border-[#23252A]">
-                                 <div className="flex justify-between text-[11px] font-mono">
-                                    <span className="text-ink-tertiary">MobileNetV2</span>
-                                    <span className="text-ink-muted">{face.predictions?.sota?.label} {showConfidence && `(${(face.predictions?.sota?.confidence * 100).toFixed(1)}%)`}</span>
-                                 </div>
-                             </div>
+                            {enableFacenet512 && face.predictions?.facenet512 && (
+                              <div className="flex flex-col gap-2 p-3 bg-[#0F1011] rounded-lg border border-[#23252A]">
+                                  <div className="flex justify-between text-[11px] font-mono">
+                                     <span className="text-ink-tertiary">Facenet512</span>
+                                     <span className="text-ink-muted">{face.predictions?.facenet512?.label} {showConfidence && `(${(face.predictions?.facenet512?.confidence * 100).toFixed(1)}%)`}</span>
+                                  </div>
+                              </div>
+                            )}
+                            
+                            {enableInsightFace && face.predictions?.insightface && (
+                              <div className="flex flex-col gap-2 p-3 bg-[#0F1011] rounded-lg border border-[#23252A]">
+                                  <div className="flex justify-between text-[11px] font-mono">
+                                     <span className="text-ink-tertiary">InsightFace</span>
+                                     <span className="text-ink-muted">{face.predictions?.insightface?.label} {showConfidence && `(${(face.predictions?.insightface?.confidence * 100).toFixed(1)}%)`}</span>
+                                  </div>
+                              </div>
+                            )}
+
+                            {enableGhostFaceNet && face.predictions?.ghostfacenet && (
+                              <div className="flex flex-col gap-2 p-3 bg-[#0F1011] rounded-lg border border-[#23252A]">
+                                  <div className="flex justify-between text-[11px] font-mono">
+                                     <span className="text-ink-tertiary">GhostFaceNet</span>
+                                     <span className="text-ink-muted">{face.predictions?.ghostfacenet?.label} {showConfidence && `(${(face.predictions?.ghostfacenet?.confidence * 100).toFixed(1)}%)`}</span>
+                                  </div>
+                              </div>
+                            )}
                           </div>
                           );
                        })}

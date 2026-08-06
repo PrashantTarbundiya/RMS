@@ -20,6 +20,8 @@ import AuditLogsPage from './pages/AuditLogsPage'
 import MosaicPage from './pages/MosaicPage'
 import AnalyticsPage from './pages/AnalyticsPage'
 import OnboardingPage from './pages/OnboardingPage'
+import CamerasPage from './pages/CamerasPage'
+import OnboardingWizard from './components/OnboardingWizard'
 import { AnimatePresence, motion } from 'framer-motion'
 
 /**
@@ -28,7 +30,6 @@ import { AnimatePresence, motion } from 'framer-motion'
  */
 function ProtectedRoute({ children }) {
   const { isAuthenticated, loading, isMultiTenant } = useAuth();
-  const location = useLocation();
 
   if (loading) {
     return (
@@ -41,20 +42,12 @@ function ProtectedRoute({ children }) {
     );
   }
 
-  // Single-tenant mode: always authenticated
   if (isMultiTenant === false) {
-    if (location.pathname !== '/onboarding' && localStorage.getItem('rms_onboarding_complete') !== 'true') {
-      return <Navigate to="/onboarding" replace />;
-    }
     return children;
   }
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
-  }
-
-  if (location.pathname !== '/onboarding' && localStorage.getItem('rms_onboarding_complete') !== 'true') {
-    return <Navigate to="/onboarding" replace />;
   }
 
   return children;
@@ -69,7 +62,6 @@ function GuestRoute({ children }) {
 
   if (loading) return null;
 
-  // Redirect to dashboard if logged in (both single and multi-tenant)
   if (isAuthenticated) {
     return <Navigate to="/dashboard" replace />;
   }
@@ -92,6 +84,7 @@ function AnimatedRoutes() {
         {/* Protected routes */}
         <Route path="/onboarding" element={<ProtectedRoute><PageWrapper><OnboardingPage /></PageWrapper></ProtectedRoute>} />
         <Route path="/dashboard" element={<ProtectedRoute><PageWrapper><DashboardPage /></PageWrapper></ProtectedRoute>} />
+        <Route path="/cameras" element={<ProtectedRoute><PageWrapper><CamerasPage /></PageWrapper></ProtectedRoute>} />
         <Route path="/attendance" element={<ProtectedRoute><PageWrapper><AttendancePage /></PageWrapper></ProtectedRoute>} />
         <Route path="/attendance/live" element={<ProtectedRoute><PageWrapper><LiveAttendancePage /></PageWrapper></ProtectedRoute>} />
         <Route path="/persons/edit/:name" element={<ProtectedRoute><PageWrapper><ManagePersonPage /></PageWrapper></ProtectedRoute>} />
@@ -132,12 +125,13 @@ function PageWrapper({ children }) {
 function AppContent() {
   const location = useLocation();
   const { isAuthenticated, isMultiTenant } = useAuth();
-  const isOuterPage = ['/login', '/register', '/', '/onboarding'].includes(location.pathname);
+  const isOuterPage = ['/login', '/register', '/'].includes(location.pathname);
   const showNavbar = !isOuterPage && (isAuthenticated || isMultiTenant === false);
 
   return (
     <div className="app-container">
       {showNavbar && <Navbar />}
+      {showNavbar && <OnboardingWizard />}
       <main className={showNavbar ? "main-content" : "main-content-fullscreen"}>
         <AnimatedRoutes />
       </main>

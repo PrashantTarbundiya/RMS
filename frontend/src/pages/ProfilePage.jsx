@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { User, Mail, Shield, Building, Cpu, Database, Server, BarChart3, Image as ImageIcon, RefreshCw, Download, Upload, RotateCcw, CheckCircle, AlertTriangle, Info, Package, Bell } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -8,6 +9,7 @@ const ADMIN_ROLES = ['org_admin', 'platform_owner'];
 
 export default function ProfilePage() {
   const { user, apiClient } = useAuth();
+  const navigate = useNavigate();
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [sysInfo, setSysInfo] = useState(null);
@@ -97,7 +99,7 @@ export default function ProfilePage() {
         <div className="md:col-span-2 space-y-6">
           
           {/* User Details */}
-          <div className="card-linear p-0 bg-[#0F1011] border-[#23252A]">
+          <div data-tour="org-settings" className="card-linear p-0 bg-[#0F1011] border-[#23252A]">
             <div className="py-4 px-6 border-b border-[#23252A] bg-[#0F1011]">
               <h3 className="text-body font-medium text-ink">Account Details</h3>
             </div>
@@ -125,6 +127,27 @@ export default function ProfilePage() {
                 </div>
                 <span className="text-ink">{user?.org_name || 'System Local'}</span>
               </div>
+
+              {isAdmin && (
+                <div className="pt-2 border-t border-[#23252A] flex justify-end">
+                  <button
+                    onClick={async () => {
+                      sessionStorage.removeItem('onboarding_paused');
+                      sessionStorage.removeItem('welcome_shown');
+                      try {
+                        await apiClient.post(`${API_BASE}/onboarding/state`, {
+                          onboarding_state: { step: 0, completed: false }
+                        });
+                      } catch (err) {}
+                      window.location.href = '/profile';
+                    }}
+                    className="button-secondary text-caption flex items-center gap-1.5 py-1 px-3"
+                  >
+                    <RotateCcw className="w-3.5 h-3.5" />
+                    <span>Replay Setup Tour</span>
+                  </button>
+                </div>
+              )}
             </div>
           </div>
 
@@ -157,7 +180,7 @@ export default function ProfilePage() {
                   <Cpu className="w-4 h-4" />
                   <span>Face Recognition Core</span>
                 </div>
-                <span className="text-ink font-mono text-xs">SOTA MobileNetV2</span>
+                <span className="text-ink font-mono text-xs">GhostFaceNet</span>
               </div>
             </div>
           </div>

@@ -17,8 +17,8 @@ const FAQ_DATA = [
     a: 'Yes! The system is specifically designed for side-face recognition. It uses MediaPipe BlazeFace for detection which handles profile views well, and the training pipeline includes perspective augmentation for angle robustness.'
   },
   {
-    q: 'What are the 2 models and which is best?',
-    a: 'The system uses: (1) DeepFace with Facenet512 embeddings — best for few-shot recognition with 1-3 photos. (2) SOTA MobileNetV2 — pretrained backbone fine-tuned on your faces, good balance of speed and accuracy. The Ensemble mode combines both for the most reliable result.'
+    q: 'What AI models are running under the hood?',
+    a: 'The system uses: (1) InsightFace ArcFace embeddings — high-speed, high-accuracy primary model. (2) GhostFaceNet — optimized for fast edge inference. The Ensemble mode combines both for the most reliable result.'
   },
   {
     q: 'Do I need a GPU?',
@@ -29,8 +29,8 @@ const FAQ_DATA = [
     a: 'Both your phone and computer must be on the same WiFi network. Open the app, go to Settings, and enter your computer\'s IP address (shown when the Flask server starts). The format is: http://YOUR_IP:5000'
   },
   {
-    q: 'What does "Unknown" mean in results?',
-    a: 'The Ensemble system returns "Unknown" when the confidence is below 25% or when the models disagree strongly. The SOTA MobileNetV2 model is weighted highest in the ensemble. Try uploading more/better photos of that person to improve accuracy.'
+    q: 'Why did the system predict "Unknown"?',
+    a: 'The Ensemble system returns "Unknown" when the confidence is below 25% or when the models disagree strongly. The InsightFace ArcFace model is weighted highest in the ensemble. Try uploading more/better photos of that person to improve accuracy.'
   },
   {
     q: 'Can I delete a person after registration?',

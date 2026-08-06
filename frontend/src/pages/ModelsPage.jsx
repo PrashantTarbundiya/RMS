@@ -16,18 +16,40 @@ export default function ModelsPage() {
   const [threshold, setThreshold] = useState(0.35);
   const [isSavingConfig, setIsSavingConfig] = useState(false);
 
-  const [enableDeepFace, setEnableDeepFace] = useState(() => {
-    return localStorage.getItem('enableDeepFace') !== 'false';
+  const [enableFacenet512, setEnableFacenet512] = useState(() => {
+    return localStorage.getItem('enableFacenet512') !== 'false';
+  });
+
+  const [enableInsightFace, setEnableInsightFace] = useState(() => {
+    return localStorage.getItem('enableInsightFace') !== 'false';
+  });
+
+  const [enableGhostFaceNet, setEnableGhostFaceNet] = useState(() => {
+    return localStorage.getItem('enableGhostFaceNet') === 'true'; // Default disabled
   });
 
   const [showConfidence, setShowConfidence] = useState(() => {
     return localStorage.getItem('showConfidence') !== 'false';
   });
 
-  const handleToggleDeepFace = (checked) => {
-    setEnableDeepFace(checked);
-    localStorage.setItem('enableDeepFace', checked ? 'true' : 'false');
-    // dispatch a custom event to notify other pages immediately if needed
+  const handleToggleFacenet512 = (checked) => {
+    setEnableFacenet512(checked);
+    localStorage.setItem('enableFacenet512', checked ? 'true' : 'false');
+    apiClient.post(`${API_BASE}/config`, { ...config, ENABLE_FACENET512: checked, CONFIRM_THRESHOLD: threshold }).then(res => setConfig(res.data));
+    window.dispatchEvent(new Event('storage'));
+  };
+
+  const handleToggleInsightFace = (checked) => {
+    setEnableInsightFace(checked);
+    localStorage.setItem('enableInsightFace', checked ? 'true' : 'false');
+    apiClient.post(`${API_BASE}/config`, { ...config, ENABLE_INSIGHTFACE: checked, CONFIRM_THRESHOLD: threshold }).then(res => setConfig(res.data));
+    window.dispatchEvent(new Event('storage'));
+  };
+
+  const handleToggleGhostFaceNet = (checked) => {
+    setEnableGhostFaceNet(checked);
+    localStorage.setItem('enableGhostFaceNet', checked ? 'true' : 'false');
+    apiClient.post(`${API_BASE}/config`, { ...config, ENABLE_GHOSTFACENET: checked, CONFIRM_THRESHOLD: threshold }).then(res => setConfig(res.data));
     window.dispatchEvent(new Event('storage'));
   };
 
@@ -41,6 +63,18 @@ export default function ModelsPage() {
     apiClient.get(`${API_BASE}/config`).then(res => {
       setConfig(res.data);
       setThreshold(res.data.CONFIRM_THRESHOLD || 0.35);
+      if (res.data.ENABLE_FACENET512 !== undefined) {
+         setEnableFacenet512(res.data.ENABLE_FACENET512);
+         localStorage.setItem('enableFacenet512', res.data.ENABLE_FACENET512 ? 'true' : 'false');
+      }
+      if (res.data.ENABLE_INSIGHTFACE !== undefined) {
+         setEnableInsightFace(res.data.ENABLE_INSIGHTFACE);
+         localStorage.setItem('enableInsightFace', res.data.ENABLE_INSIGHTFACE ? 'true' : 'false');
+      }
+      if (res.data.ENABLE_GHOSTFACENET !== undefined) {
+         setEnableGhostFaceNet(res.data.ENABLE_GHOSTFACENET);
+         localStorage.setItem('enableGhostFaceNet', res.data.ENABLE_GHOSTFACENET ? 'true' : 'false');
+      }
     }).catch(err => console.error("Failed to load config", err));
   }, [apiClient]);
 
@@ -57,7 +91,7 @@ export default function ModelsPage() {
 
   const handleExport = async () => {
     setIsExporting(true);
-    setStatus({ type: 'info', message: 'Exporting MobileNetV2 to ONNX format. This may take a few seconds...' });
+    setStatus({ type: 'info', message: 'Exporting GhostFaceNet to ONNX format. This may take a few seconds...' });
     
     try {
       const res = await apiClient.post(`${API_BASE}/export-onnx`);
@@ -111,36 +145,53 @@ export default function ModelsPage() {
         )}
       </AnimatePresence>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {enableDeepFace && (
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {enableFacenet512 && (
           <div className="card-linear p-6">
             <div className="flex items-center gap-4 mb-4">
               <div className="w-12 h-12 rounded-lg bg-[#5E6AD2]/10 flex items-center justify-center text-[#828FFF] border border-[#5E6AD2]/20">
                 <Cpu className="w-6 h-6" />
               </div>
               <div>
-                <div className="text-body font-medium text-ink">DeepFace 512</div>
-                <div className="text-caption text-ink-subtle font-mono">encodings.pickle</div>
+                <div className="text-body font-medium text-ink">Facenet512</div>
+                <div className="text-caption text-ink-subtle font-mono">Original Baseline</div>
               </div>
             </div>
             <p className="text-caption text-ink-subtle m-0">
-              Stores raw L2-normalized embeddings using Facenet512.
+              Highly accurate server-side model providing 512-d embeddings. The primary model you requested.
             </p>
           </div>
         )}
 
-        <div className={`card-linear p-6 ${!enableDeepFace ? 'md:col-span-2' : ''}`}>
+        {enableInsightFace && (
+          <div className="card-linear p-6">
+            <div className="flex items-center gap-4 mb-4">
+              <div className="w-12 h-12 rounded-lg bg-[#5E6AD2]/10 flex items-center justify-center text-[#828FFF] border border-[#5E6AD2]/20">
+                <Cpu className="w-6 h-6" />
+              </div>
+              <div>
+                <div className="text-body font-medium text-ink">InsightFace ArcFace</div>
+                <div className="text-caption text-ink-subtle font-mono">primary_network.onnx</div>
+              </div>
+            </div>
+            <p className="text-caption text-ink-subtle m-0">
+              State-of-the-art ONNX-accelerated inference model. Highly optimized for speed.
+            </p>
+          </div>
+        )}
+
+        <div className={`card-linear p-6 ${(!enableFacenet512 && !enableInsightFace) ? 'md:col-span-3' : (!enableFacenet512 || !enableInsightFace) ? 'md:col-span-2' : ''}`}>
           <div className="flex items-center gap-4 mb-4">
             <div className="w-12 h-12 rounded-lg bg-[#5E6AD2]/10 flex items-center justify-center text-[#828FFF] border border-[#5E6AD2]/20">
               <Box className="w-6 h-6" />
             </div>
             <div>
-              <div className="text-body font-medium text-ink">MobileNetV2</div>
+              <div className="text-body font-medium text-ink">GhostFaceNet</div>
               <div className="text-caption text-ink-subtle font-mono">best_mobile_sideface.pth</div>
             </div>
           </div>
           <p className="text-caption text-ink-subtle m-0">
-            SOTA lightweight model explicitly trained for edge device inference.
+            Lightweight GhostFaceNet embedding model explicitly meant for edge device inference.
           </p>
         </div>
       </div>
@@ -158,16 +209,50 @@ export default function ModelsPage() {
             
             <div className="flex items-center justify-between p-4 bg-[#010102]/60 border border-[#23252A] rounded-lg mb-6">
               <div>
-                <label htmlFor="deepface-toggle" className="text-caption font-medium text-ink cursor-pointer">Enable DeepFace (Ensemble Model)</label>
-                <p className="text-[11px] text-ink-tertiary mt-1">Run secondary deep embedding comparison alongside SOTA MobileNetV2.</p>
+                <label htmlFor="facenet512-toggle" className="text-caption font-medium text-ink cursor-pointer">Enable Facenet512 (Original Model)</label>
+                <p className="text-[11px] text-ink-tertiary mt-1">Run primary high-accuracy model.</p>
               </div>
               <label className="relative inline-flex items-center cursor-pointer">
                 <input 
-                  id="deepface-toggle"
+                  id="facenet512-toggle"
                   type="checkbox" 
                   className="sr-only peer" 
-                  checked={enableDeepFace} 
-                  onChange={e => handleToggleDeepFace(e.target.checked)} 
+                  checked={enableFacenet512} 
+                  onChange={e => handleToggleFacenet512(e.target.checked)} 
+                />
+                <div className="w-9 h-5 bg-[#141516] rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[4px] after:left-[3px] after:bg-ink-muted after:rounded-full after:h-3 after:w-3.5 after:transition-all peer-checked:bg-[#5E6AD2] border border-[#23252A]"></div>
+              </label>
+            </div>
+
+            <div className="flex items-center justify-between p-4 bg-[#010102]/60 border border-[#23252A] rounded-lg mb-6">
+              <div>
+                <label htmlFor="insightface-toggle" className="text-caption font-medium text-ink cursor-pointer">Enable InsightFace (Fast ArcFace)</label>
+                <p className="text-[11px] text-ink-tertiary mt-1">Run secondary fast embedding comparison.</p>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input 
+                  id="insightface-toggle"
+                  type="checkbox" 
+                  className="sr-only peer" 
+                  checked={enableInsightFace} 
+                  onChange={e => handleToggleInsightFace(e.target.checked)} 
+                />
+                <div className="w-9 h-5 bg-[#141516] rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[4px] after:left-[3px] after:bg-ink-muted after:rounded-full after:h-3 after:w-3.5 after:transition-all peer-checked:bg-[#5E6AD2] border border-[#23252A]"></div>
+              </label>
+            </div>
+
+            <div className="flex items-center justify-between p-4 bg-[#010102]/60 border border-[#23252A] rounded-lg mb-6">
+              <div>
+                <label htmlFor="ghostfacenet-toggle" className="text-caption font-medium text-ink cursor-pointer">Enable GhostFaceNet (Edge Model)</label>
+                <p className="text-[11px] text-ink-tertiary mt-1">Run lightweight mobile-optimized edge inference.</p>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input 
+                  id="ghostfacenet-toggle"
+                  type="checkbox" 
+                  className="sr-only peer" 
+                  checked={enableGhostFaceNet} 
+                  onChange={e => handleToggleGhostFaceNet(e.target.checked)} 
                 />
                 <div className="w-9 h-5 bg-[#141516] rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[4px] after:left-[3px] after:bg-ink-muted after:rounded-full after:h-3 after:w-3.5 after:transition-all peer-checked:bg-[#5E6AD2] border border-[#23252A]"></div>
               </label>
@@ -190,10 +275,10 @@ export default function ModelsPage() {
               </label>
             </div>
             
-            {enableDeepFace ? (
+            {(enableFacenet512 || enableInsightFace) ? (
               <div className="bg-[#010102]/50 p-5 rounded-lg border border-[#23252A]">
                  <div className="flex justify-between items-center mb-2">
-                   <label className="text-caption font-medium text-ink-subtle">DeepFace Confirmation Threshold</label>
+                   <label className="text-caption font-medium text-ink-subtle">InsightFace Confirmation Threshold</label>
                    <span className="text-[#828FFF] font-mono font-semibold">{threshold.toFixed(2)}</span>
                  </div>
                  <p className="text-[11px] text-ink-tertiary mb-6">
@@ -216,7 +301,7 @@ export default function ModelsPage() {
             ) : (
               <div className="bg-[#010102]/50 p-5 rounded-lg border border-[#23252A] text-center py-6 text-ink-subtle text-caption">
                 <Info className="w-5 h-5 text-[#828FFF] mx-auto mb-2" />
-                DeepFace is currently disabled. Face recognition runs strictly using the SOTA MobileNetV2 model with a default confidence threshold of <span className="font-mono font-semibold text-ink">0.80</span>.
+                InsightFace is currently disabled. Face recognition runs strictly using the GhostFaceNet model with a default confidence threshold of <span className="font-mono font-semibold text-ink">0.80</span>.
               </div>
             )}
           </div>
@@ -225,10 +310,10 @@ export default function ModelsPage() {
         <div className="card-linear p-6">
           <div>
             <h3 className="text-body font-medium text-ink flex items-center gap-2 mb-2">
-              <Download className="w-5 h-5 text-ink-subtle" /> Export MobileNetV2 for Edge
+              <Download className="w-5 h-5 text-ink-subtle" /> Export GhostFaceNet for Edge
             </h3>
             <p className="text-caption text-ink-subtle mb-6">
-              Convert the trained PyTorch MobileNetV2 model into an ONNX format to deploy directly to iOS/Android apps or edge devices.
+              Convert the trained PyTorch GhostFaceNet model into an ONNX format to deploy directly to iOS/Android apps or edge devices.
             </p>
             
             <div className="flex flex-wrap gap-3">
@@ -250,7 +335,7 @@ export default function ModelsPage() {
               <AlertTriangle className="w-5 h-5" /> Danger Zone
             </h3>
             <p className="text-caption text-ink-subtle mb-6">
-              Resetting the system will permanently delete all trained models (DeepFace and MobileNetV2) and all collected identity datasets. You will need to re-register everyone.
+              Resetting the system will permanently delete all trained models (InsightFace and GhostFaceNet) and all collected identity datasets. You will need to re-register everyone.
             </p>
             
             {showConfirm ? (

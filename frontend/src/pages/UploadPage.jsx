@@ -280,6 +280,7 @@ export default function UploadPage() {
 
       try {
         const res = await apiClient.post(`${API_BASE}/upload`, formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+        sessionStorage.setItem('onboarding_subject_enrolled', 'true');
         setStatus({ type: 'success', message: res.data.message });
         setPersonName('');
         setSearchQuery('');
@@ -459,7 +460,7 @@ export default function UploadPage() {
             </AnimatePresence>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="flex flex-col gap-1.5">
+              <div data-tour="subject-name-input" className="flex flex-col gap-1.5">
                 <label htmlFor="person-name" className="text-caption text-ink-muted font-medium">Subject Identifier</label>
                 {mode === 'new' ? (
                   <input 
@@ -488,7 +489,7 @@ export default function UploadPage() {
                       required={!personName}
                     />
                     {showDropdown && (
-                      <div className="absolute top-full left-0 right-0 mt-1 max-h-40 overflow-y-auto bg-[#0F1011] border border-[#23252A] rounded-md z-50 shadow-xl scrollbar-thin">
+                      <div className="absolute top-full left-0 right-0 mt-1 max-h-40 overflow-y-auto bg-[#0F1011] border border-[#23252A] rounded-md z-[999999] shadow-xl scrollbar-thin">
                         {existingPersons
                           .filter(p => p.toLowerCase().includes(searchQuery.toLowerCase()))
                           .map(p => (
@@ -553,7 +554,7 @@ export default function UploadPage() {
               )}
             </div>
 
-            <div className="pt-4 border-t border-[#23252A] space-y-4">
+            <div data-tour="asset-allocation" className="pt-4 border-t border-[#23252A] space-y-4">
               <label className="text-body font-medium text-ink block">Asset Allocation</label>
               
               {/* Row 1: LEFT, FRONT, RIGHT */}
@@ -572,6 +573,7 @@ export default function UploadPage() {
                 Total Files: <span className="font-mono text-ink">{totalAvailablePhotos}</span>
               </div>
               <button 
+                data-tour="enroll-submit-btn"
                 type="submit" 
                 disabled={isSubmitting || !personName || totalAvailablePhotos === 0}
                 className="button-primary flex items-center gap-2"

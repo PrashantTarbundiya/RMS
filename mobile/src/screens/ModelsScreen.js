@@ -1,11 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, StyleSheet, ScrollView, TouchableOpacity,
 } from 'react-native';
-import { Text, ActivityIndicator, IconButton, Snackbar } from 'react-native-paper';
+import { Text, ActivityIndicator, IconButton, Snackbar, Switch } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { COLORS, SPACING, FONT_SIZES, BORDER_RADIUS, APPLE_GLASS_STYLE } from '../theme';
-import { getPersons, exportOnnx, resetModels, checkHealth } from '../services/api';
+import { getPersons, exportOnnx, resetModels, checkHealth, saveConfig } from '../services/api';
+import { getLocalSettings, saveLocalSettings, syncSettingsWithServer } from '../services/settings';
 import CustomDialog from '../components/CustomDialog';
 import BackgroundOrbs from '../components/BackgroundOrbs';
 
@@ -19,6 +20,12 @@ export default function ModelsScreen({ navigation }) {
   const [snackVisible, setSnackVisible] = useState(false);
   const [resetDialogVisible, setResetDialogVisible] = useState(false);
 
+  // Settings State
+  const [showConfidence, setShowConfidence] = useState(true);
+  const [enableDeepFace, setEnableDeepFace] = useState(false);
+  const [confirmThreshold, setConfirmThreshold] = useState(0.55);
+  const [savingSettings, setSavingSettings] = useState(false);
+
   useEffect(() => {
     refresh();
     const unsubscribe = navigation.addListener('focus', () => {
@@ -30,6 +37,11 @@ export default function ModelsScreen({ navigation }) {
   async function refresh() {
     setLoading(true);
     try {
+      const settings = await syncSettingsWithServer();
+      setShowConfidence(settings.showConfidence);
+      setEnableDeepFace(settings.enableDeepFace);
+      setConfirmThreshold(settings.confirmThreshold);
+
       const online = await checkHealth();
       setServerOnline(online);
       if (online) {
@@ -48,6 +60,63 @@ export default function ModelsScreen({ navigation }) {
     setSnackVisible(true);
   }
 
+  const handleToggleConfidence = async (val) => {
+    setShowConfidence(val);
+    await saveLocalSettings({ showConfidence: val });
+    showStatus('info', val ? 'Confidence scores enabled' : 'Confidence scores hidden');
+  };
+
+  const handleToggleDeepFace = async (val) => {
+    setEnableDeepFace(val);
+    await saveLocalSettings({ enableDeepFace: val });
+    if (serverOnline) {
+      try {
+        await saveConfig({ ENABLE_DEEPFACE: val });
+      } catch (e) {
+        console.warn('Failed to sync DeepFace setting to server', e);
+      }
+    }
+    showStatus('info', val ? 'DeepFace model enabled' : 'DeepFace model disabled');
+  };
+
+  const THRESHOLD_MIN = 0.20;
+  const THRESHOLD_MAX = 0.90;
+
+  const setThresholdTo = useCallback((value) => {
+    const clamped = Math.max(THRESHOLD_MIN, Math.min(THRESHOLD_MAX, parseFloat(value.toFixed(2))));
+    setConfirmThreshold(clamped);
+  }, []);
+
+  const stepThreshold = useCallback((delta) => {
+    setConfirmThreshold(prev => {
+      return Math.max(THRESHOLD_MIN, Math.min(THRESHOLD_MAX, parseFloat((prev + delta).toFixed(2))));
+    });
+  }, []);
+
+  const handleSaveSettings = async () => {
+    setSavingSettings(true);
+    try {
+      await saveLocalSettings({
+        showConfidence,
+        enableDeepFace,
+        confirmThreshold,
+      });
+
+      if (serverOnline) {
+        await saveConfig({
+          CONFIRM_THRESHOLD: confirmThreshold,
+          ENABLE_DEEPFACE: enableDeepFace,
+        });
+      }
+
+      showStatus('success', 'Model & recognition settings saved!');
+    } catch (err) {
+      showStatus('error', err.message || 'Failed to save settings');
+    } finally {
+      setSavingSettings(false);
+    }
+  };
+
   async function handleExport() {
     setExporting(true);
     showStatus('info', 'Exporting MobileNetV2 to ONNX format...');
@@ -65,7 +134,6 @@ export default function ModelsScreen({ navigation }) {
     setDownloading(filename);
     showStatus('info', `Downloading ${filename}...`);
     try {
-      // simulate file download
       setTimeout(() => {
         showStatus('success', `${filename} saved to device Downloads!`);
         setDownloading(null);
@@ -133,6 +201,123 @@ export default function ModelsScreen({ navigation }) {
           </View>
         )}
 
+        {/* Model & Recognition Settings */}
+        <Text style={styles.sectionHeaderTitle}>MODEL & RECOGNITION CONFIGURATION</Text>
+        <View style={styles.appleGlassCard}>
+
+          {/* Show Confidence Switch */}
+          <View style={styles.settingRow}>
+            <View style={{ flex: 1, paddingRight: 10 }}>
+              <View style={styles.settingHeader}>
+                <MaterialCommunityIcons name="percent-outline" size={18} color={COLORS.appleBlue} />
+                <Text style={styles.settingTitle}>Show Confidence Scores</Text>
+              </View>
+              <Text style={styles.settingDesc}>
+                Display match confidence percentages (e.g. 85.4%) on recognition screens
+              </Text>
+            </View>
+            <Switch
+              value={showConfidence}
+              onValueChange={handleToggleConfidence}
+              color={COLORS.appleBlue}
+            />
+          </View>
+
+          <View style={styles.divider} />
+
+          {/* Enable DeepFace Switch */}
+          <View style={styles.settingRow}>
+            <View style={{ flex: 1, paddingRight: 10 }}>
+              <View style={styles.settingHeader}>
+                <MaterialCommunityIcons name="brain" size={18} color={COLORS.applePurple} />
+                <Text style={styles.settingTitle}>Enable DeepFace Model</Text>
+              </View>
+              <Text style={styles.settingDesc}>
+                Facenet512 embedding distance check alongside GhostFaceNet
+              </Text>
+            </View>
+            <Switch
+              value={enableDeepFace}
+              onValueChange={handleToggleDeepFace}
+              color={COLORS.applePurple}
+            />
+          </View>
+
+          <View style={styles.divider} />
+
+          {/* Threshold Control */}
+          <View style={{ marginTop: 4 }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+              <View style={styles.settingHeader}>
+                <MaterialCommunityIcons name="tune-vertical" size={18} color={COLORS.appleBlue} />
+                <Text style={styles.settingTitle}>Recognition Distance Cutoff</Text>
+              </View>
+              <View style={styles.thresholdBadge}>
+                <Text style={styles.thresholdBadgeText}>{confirmThreshold.toFixed(2)}</Text>
+              </View>
+            </View>
+            <Text style={styles.settingDesc}>
+              Distance threshold for confirming match. Lower = Stricter, Higher = Lenient.
+            </Text>
+
+            <View style={styles.thresholdControlRow}>
+              <TouchableOpacity style={styles.stepBtn} onPress={() => stepThreshold(-0.05)} activeOpacity={0.6}>
+                <MaterialCommunityIcons name="minus" size={20} color={COLORS.textPrimary} />
+              </TouchableOpacity>
+
+              <View style={styles.trackOuter}>
+                <View style={[styles.trackFill, { width: `${((confirmThreshold - 0.20) / 0.70) * 100}%` }]} />
+                <View style={[styles.trackThumb, { left: `${((confirmThreshold - 0.20) / 0.70) * 100}%` }]} />
+              </View>
+
+              <TouchableOpacity style={styles.stepBtn} onPress={() => stepThreshold(0.05)} activeOpacity={0.6}>
+                <MaterialCommunityIcons name="plus" size={20} color={COLORS.textPrimary} />
+              </TouchableOpacity>
+            </View>
+
+            {/* Preset Chips */}
+            <View style={styles.presetsRow}>
+              {[
+                { val: 0.30, label: 'Strict', color: COLORS.appleRed },
+                { val: 0.45, label: 'Balanced', color: COLORS.appleOrange },
+                { val: 0.55, label: 'Standard', color: COLORS.appleBlue },
+                { val: 0.70, label: 'Relaxed', color: COLORS.appleGreen },
+              ].map(p => {
+                const active = Math.abs(confirmThreshold - p.val) < 0.01;
+                return (
+                  <TouchableOpacity
+                    key={p.val}
+                    style={[styles.presetChip, active && { backgroundColor: p.color + '25', borderColor: p.color + '60' }]}
+                    onPress={() => setThresholdTo(p.val)}
+                    activeOpacity={0.7}
+                  >
+                    <View style={[styles.presetDot, { backgroundColor: active ? p.color : COLORS.textTertiary }]} />
+                    <Text style={[styles.presetChipText, active && { color: p.color, fontWeight: '800' }]}>
+                      {p.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
+            <TouchableOpacity
+              style={styles.saveSettingsBtn}
+              onPress={handleSaveSettings}
+              disabled={savingSettings}
+            >
+              {savingSettings ? (
+                <ActivityIndicator color="#FFF" size="small" />
+              ) : (
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <MaterialCommunityIcons name="content-save-outline" size={18} color="#FFF" />
+                  <Text style={styles.saveSettingsBtnText}>Save Recognition Settings</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+          </View>
+
+        </View>
+
         {/* Model Cards Showcase */}
         <Text style={styles.sectionHeaderTitle}>NEURAL MODELS</Text>
 
@@ -142,7 +327,14 @@ export default function ModelsScreen({ navigation }) {
               <MaterialCommunityIcons name="brain" size={22} color={COLORS.appleBlue} />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={styles.modelTitle}>DeepFace (Facenet512)</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', justify: 'space-between' }}>
+                <Text style={styles.modelTitle}>DeepFace (Facenet512)</Text>
+                <View style={[styles.modelStatusPill, { backgroundColor: enableDeepFace ? 'rgba(48, 209, 88, 0.15)' : 'rgba(255, 255, 255, 0.08)' }]}>
+                  <Text style={[styles.modelStatusText, { color: enableDeepFace ? COLORS.appleGreen : COLORS.textTertiary }]}>
+                    {enableDeepFace ? 'Active' : 'Disabled in Settings'}
+                  </Text>
+                </View>
+              </View>
               <Text style={styles.modelDesc}>512-d embeddings stored in encodings.pickle</Text>
             </View>
           </View>
@@ -154,7 +346,12 @@ export default function ModelsScreen({ navigation }) {
               <MaterialCommunityIcons name="cellphone-cog" size={22} color={COLORS.applePurple} />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={styles.modelTitle}>SOTA MobileNetV2</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', justify: 'space-between' }}>
+                <Text style={styles.modelTitle}>GhostFaceNet</Text>
+                <View style={[styles.modelStatusPill, { backgroundColor: 'rgba(48, 209, 88, 0.15)' }]}>
+                  <Text style={[styles.modelStatusText, { color: COLORS.appleGreen }]}>Active</Text>
+                </View>
+              </View>
               <Text style={styles.modelDesc}>Edge optimized classifier (best_mobile_sideface.pth)</Text>
             </View>
           </View>
@@ -260,11 +457,6 @@ export default function ModelsScreen({ navigation }) {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   scrollContent: { padding: SPACING.md, paddingBottom: 100 },
-  appleWallpaperOrbPurple: {
-    position: 'absolute', top: -60, right: -60,
-    width: 250, height: 250, borderRadius: 125,
-    backgroundColor: 'rgba(94, 44, 165, 0.25)',
-  },
   statusBarGlass: {
     ...APPLE_GLASS_STYLE,
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
@@ -288,6 +480,50 @@ const styles = StyleSheet.create({
     ...APPLE_GLASS_STYLE, padding: SPACING.md, marginBottom: SPACING.md,
   },
   emptyText: { color: COLORS.textTertiary, fontSize: 13, textAlign: 'center' },
+  settingRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 4 },
+  settingHeader: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  settingTitle: { color: COLORS.textPrimary, fontWeight: '700', fontSize: 14 },
+  settingDesc: { color: COLORS.textSecondary, fontSize: 12, marginTop: 4, lineHeight: 16 },
+  divider: { height: 1, backgroundColor: 'rgba(255, 255, 255, 0.08)', marginVertical: SPACING.md },
+  thresholdBadge: {
+    paddingHorizontal: 10, paddingVertical: 3, borderRadius: 12,
+    backgroundColor: 'rgba(10, 132, 255, 0.15)', borderWidth: 1, borderColor: 'rgba(10, 132, 255, 0.35)',
+  },
+  thresholdBadgeText: { color: COLORS.appleBlue, fontWeight: '800', fontSize: 13, fontFamily: 'monospace' },
+  thresholdControlRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: SPACING.md, marginBottom: SPACING.md },
+  stepBtn: {
+    width: 38, height: 38, borderRadius: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)', borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.15)',
+    justifyContent: 'center', alignItems: 'center',
+  },
+  trackOuter: {
+    flex: 1, height: 6, borderRadius: 3,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    position: 'relative', justifyContent: 'center',
+  },
+  trackFill: {
+    position: 'absolute', left: 0, top: 0, bottom: 0,
+    borderRadius: 3, backgroundColor: COLORS.appleBlue,
+  },
+  trackThumb: {
+    position: 'absolute', width: 16, height: 16, borderRadius: 8,
+    backgroundColor: COLORS.appleBlue, borderWidth: 2.5, borderColor: '#FFF',
+    marginLeft: -8, top: -5,
+    elevation: 4, shadowColor: COLORS.appleBlue, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.4, shadowRadius: 4,
+  },
+  presetsRow: { flexDirection: 'row', gap: 6, marginBottom: SPACING.sm },
+  presetChip: {
+    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5,
+    paddingVertical: 8, borderRadius: 10,
+    backgroundColor: 'rgba(255, 255, 255, 0.04)', borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.10)',
+  },
+  presetDot: { width: 6, height: 6, borderRadius: 3 },
+  presetChipText: { color: COLORS.textSecondary, fontSize: 10, fontWeight: '600' },
+  saveSettingsBtn: {
+    backgroundColor: COLORS.appleBlue, borderRadius: BORDER_RADIUS.full,
+    paddingVertical: 12, justifyContent: 'center', alignItems: 'center', marginTop: 4,
+  },
+  saveSettingsBtnText: { color: '#FFF', fontWeight: '700', fontSize: 13 },
   modelHeaderRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   modelIconBox: {
     width: 42, height: 42, borderRadius: 12,
@@ -296,6 +532,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center', alignItems: 'center',
   },
   modelTitle: { color: COLORS.textPrimary, fontWeight: '700', fontSize: 15 },
+  modelStatusPill: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10 },
+  modelStatusText: { fontSize: 10, fontWeight: '700' },
   modelDesc: { color: COLORS.textSecondary, fontSize: 12, marginTop: 2, lineHeight: 16 },
   cardDescText: { color: COLORS.textSecondary, fontSize: 13, lineHeight: 18, marginBottom: SPACING.md },
   appleActionButton: {

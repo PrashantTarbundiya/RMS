@@ -6,6 +6,7 @@ import { Text, ActivityIndicator, Button } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { COLORS, SPACING, FONT_SIZES, BORDER_RADIUS, APPLE_GLASS_STYLE } from '../theme';
 import { getDashboardStats, clearHistory, checkHealth } from '../services/api';
+import { getLocalSettings } from '../services/settings';
 import GlassView from '../components/GlassView';
 import BackgroundOrbs from '../components/BackgroundOrbs';
 
@@ -18,6 +19,7 @@ export default function DashboardScreen({ navigation }) {
   const [refreshing, setRefreshing] = useState(false);
   const [serverOnline, setServerOnline] = useState(null);
   const [error, setError] = useState(null);
+  const [showConfidence, setShowConfidence] = useState(true);
 
   const currentHour = new Date().getHours();
   const timeGreeting = currentHour < 5 ? 'Late Night' : currentHour < 12 ? 'Good Morning' : currentHour < 17 ? 'Good Afternoon' : currentHour < 21 ? 'Good Evening' : 'Good Night';
@@ -25,6 +27,9 @@ export default function DashboardScreen({ navigation }) {
 
   const loadData = useCallback(async () => {
     try {
+      const settings = await getLocalSettings();
+      setShowConfidence(settings.showConfidence);
+
       const online = await checkHealth();
       setServerOnline(online);
       if (online) {
@@ -177,8 +182,8 @@ export default function DashboardScreen({ navigation }) {
             icon="brain" loaded={models_loaded.deepface}
           />
           <ModelStatusCard
-            name="MobileNetV2" subtitle="Side-Face Classifier"
-            icon="cellphone-cog" loaded={models_loaded.sota}
+            name="GhostFaceNet" subtitle="Edge Optimized"
+            icon="cellphone-cog" loaded={models_loaded.edge}
           />
         </View>
 
@@ -263,7 +268,9 @@ export default function DashboardScreen({ navigation }) {
                 <View style={{ flex: 1, marginLeft: 12 }}>
                   <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                     <Text style={styles.logLabel}>{(item.label || 'Unknown').replace(/_/g, ' ')}</Text>
-                    <Text style={[styles.logConfBadge, { color: badgeColor }]}>{confPercent}%</Text>
+                    {showConfidence && (
+                      <Text style={[styles.logConfBadge, { color: badgeColor }]}>{confPercent}%</Text>
+                    )}
                   </View>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 3 }}>
                     <Text style={styles.logTime}>{timeStr}</Text>

@@ -21,7 +21,7 @@ export default function Modal({ isOpen, onClose, title, children, footer }) {
       {isOpen && (
         <div style={{
           position: 'fixed', inset: 0,
-          zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center'
+          zIndex: 999999, display: 'flex', alignItems: 'center', justifyContent: 'center'
         }}>
           {/* Backdrop */}
           <motion.div

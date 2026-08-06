@@ -12,8 +12,9 @@ agreement bonuses, and binary 100%/Unknown output.
 
 # Default model weights for ensemble voting
 DEFAULT_WEIGHTS = {
-    'sota': 0.60,        # Primary — best accuracy (pretrained MobileNetV2 backbone)
-    'deepface': 0.40,    # Embedding-based (Facenet512) — solid for few-shot
+    'facenet512': 0.45,   # Primary — Original highly accurate model
+    'insightface': 0.35,  # Secondary — Fast ArcFace model
+    'ghostfacenet': 0.20, # Edge — lightweight mobile model
 }
 
 # ─── Binary Recognition Thresholds ─────────────────────────────────────
@@ -29,26 +30,27 @@ DISAGREEMENT_PENALTY = 0.10   # Penalty when models disagree
 UNKNOWN_LABEL = "Unknown"
 
 # Labels that indicate a model didn't produce a real prediction
-SKIP_LABELS = frozenset({'[UNTRAINED]', 'Not Trained', 'Not Loaded', 'Error', ''})
+SKIP_LABELS = frozenset({'[UNTRAINED]', 'Not Trained', 'Not Loaded', 'Error', '', 'Unknown'})
 
 
-def ensemble_predict(predictions, weights=None):
+def ensemble_predict(predictions, weights=None, custom_threshold=None):
     """
     Combine predictions from multiple models using weighted voting
     with dynamic weight redistribution and binary output.
 
     Output behavior:
-      - Score ≥ HARD_MATCH_THRESHOLD  → label = name, confidence = 1.0 (100%)
-      - SOFT ≤ Score < HARD           → label = name, confidence = actual score
-      - Score < SOFT_MATCH_THRESHOLD  → label = "Unknown", confidence = 0.0
+      - Score >= HARD_MATCH_THRESHOLD  -> label = name, confidence = 1.0 (100%)
+      - SOFT <= Score < HARD           -> label = name, confidence = actual score
+      - Score < SOFT_MATCH_THRESHOLD  -> label = "Unknown", confidence = 0.0
 
-    When all 3 models agree, thresholds are relaxed (easier to match).
+    When all models agree, thresholds are relaxed (easier to match).
     When models disagree on name, thresholds are tightened.
 
     Args:
-        predictions: dict with keys 'sota', 'deepface', each containing:
-            {'label': str, 'confidence': float}
+        predictions: dict with keys 'edge', 'deepface', each containing:
+            {'label': str, 'confidence': float, 'confidence_level': str}
         weights: optional dict overriding DEFAULT_WEIGHTS
+        custom_threshold: optional float overriding the default distance threshold from the user
 
     Returns:
         dict: {'label': str, 'confidence': float, 'method': str,
@@ -60,7 +62,7 @@ def ensemble_predict(predictions, weights=None):
     # Gather valid predictions (skip untrained/error models)
     valid_preds = {}
 
-    for model_key in ['deepface', 'sota']:
+    for model_key in ['facenet512', 'insightface', 'ghostfacenet']:
         pred = predictions.get(model_key, {})
         label = pred.get('label', '')
         conf = pred.get('confidence', 0.0)
@@ -129,18 +131,24 @@ def ensemble_predict(predictions, weights=None):
             effective_hard_threshold = HARD_MATCH_THRESHOLD + 0.10  # Harder to match
             effective_soft_threshold = SOFT_MATCH_THRESHOLD + 0.05
         else:
-            # Single model fallback — severely tighten thresholds
-            effective_hard_threshold = HARD_MATCH_THRESHOLD + 0.35  # e.g., 0.80
-            effective_soft_threshold = SOFT_MATCH_THRESHOLD + 0.30  # e.g., 0.60
+            # Single model fallback — reasonably adjust thresholds
+            effective_hard_threshold = HARD_MATCH_THRESHOLD + 0.15  # e.g., 0.60
+            effective_soft_threshold = SOFT_MATCH_THRESHOLD + 0.10  # e.g., 0.40
 
     # ── Single High-Confidence Override ──
-    # If only 1 model voted but it's very confident (>0.80), trust it
+    # If single model and very confident, trust it
     if num_valid == 1:
         single_conf = list(valid_preds.values())[0]['confidence']
         if single_conf >= 0.80:
             best_score = max(best_score, single_conf * 0.85)
 
-    # ── Apply Binary Threshold Logic ──
+    if custom_threshold is not None:
+        # User defined distance threshold. Distance 0.70 means confidence threshold is 0.30
+        user_conf_threshold = 1.0 - custom_threshold
+        effective_hard_threshold = user_conf_threshold
+        effective_soft_threshold = user_conf_threshold - 0.05
+
+    # Apply Binary Threshold Logic
     if best_score >= effective_hard_threshold:
         # HARD MATCH → 100% confidence (person detected!)
         final_label = best_label

@@ -42,51 +42,53 @@ export default function TrainingPage() {
   }, [logs]);
 
   const extractProgress = () => {
-    let sotaPercent = 0;
+    let edgePercent = 0;
     let dfPercent = 100;
+    
+    // Parse output lines (simplistic heuristic to animate bars based on logs)
     let currentBlock = null;
-
-    for (let i = 0; i < logs.length; i++) {
-        const line = logs[i];
-        if (line.includes('SOTA MobileNetV2: Fine-tuning') || line.includes('Starting background model refinement')) {
-            currentBlock = 'sota';
-            sotaPercent = 5;
-        } else if (line.includes('Pipeline Completed') || line.includes('Saved updated model: sota_finetune') || line.includes('Saved updated model: best_mobile_sideface')) {
-            sotaPercent = 100;
-            break;
-        }
-        if (line.includes('Epoch [')) {
-            const match = line.match(/Epoch \[(\d+)\/(\d+)\]/);
+    logs.forEach(line => {
+        if (line.includes('GhostFaceNet') || line.includes('Starting edge model refinement')) {
+            currentBlock = 'edge';
+            edgePercent = 5;
+        } else if (line.includes('Pipeline Completed') || line.includes('Saved updated model: ghostfacenet')) {
+            edgePercent = 100;
+        } else if (line.includes('DeepFace: Adding embeddings')) {
+            currentBlock = 'df';
+            dfPercent = 10;
+        } else if (line.includes('TRAINING SUMMARY')) {
+            dfPercent = 100;
+        } else {
+            const match = line.match(/\[(\d+)\/(\d+)\]/);
             if (match) {
-                const currentE = parseInt(match[1], 10);
-                const totalE = parseInt(match[2], 10);
-                const p = Math.floor((currentE / totalE) * 100);
-                if (currentBlock === 'sota') sotaPercent = p === 100 ? 99 : p;
+                const p = Math.floor((parseInt(match[1]) / parseInt(match[2])) * 100);
+                if (currentBlock === 'df') dfPercent = p === 100 ? 99 : p;
+                if (currentBlock === 'edge') edgePercent = p === 100 ? 99 : p;
             }
         }
-    }
-    if (isTraining && sotaPercent === 0) sotaPercent = 1;
-    return { dfPercent, sotaPercent };
+    });
+    if (isTraining && edgePercent === 0) edgePercent = 1;
+    return { dfPercent, edgePercent };
   };
 
-  const { dfPercent, sotaPercent } = extractProgress();
+  const { dfPercent, edgePercent } = extractProgress();
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="pb-12 max-w-5xl mx-auto space-y-6 page-container">
       <div>
         <h1 className="text-headline font-semibold text-ink font-display">Model Refinement</h1>
-        <p className="mt-1 text-caption text-ink-subtle">
-          DeepFace embeddings are processed instantly. SOTA MobileNetV2 fine-tuning runs asynchronously in the background.
+        <p className="text-sm text-ink-subtle mt-1 mb-8 max-w-xl">
+          DeepFace embeddings are processed instantly. GhostFaceNet generation runs synchronously.
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <ModelProgressCard title="DeepFace (Facenet512)" subtitle="Instant Embeddings" percent={dfPercent} isTraining={false} />
-        <ModelProgressCard title="SOTA MobileNetV2" subtitle="Edge Optimized" percent={sotaPercent} isTraining={isTraining && sotaPercent < 100} />
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+        <ModelProgressCard title="InsightFace ArcFace" subtitle="Primary Model" percent={dfPercent} isTraining={isTraining && dfPercent < 100} />
+        <ModelProgressCard title="GhostFaceNet" subtitle="Edge Optimized" percent={edgePercent} isTraining={isTraining && edgePercent < 100} />
       </div>
 
       <AnimatePresence>
-        {(!isTraining && sotaPercent === 100) && (
+        {(!isTraining && edgePercent === 100) && (
           <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
             <div className="card-linear border-[#27A644]/20 bg-[#27A644]/5">
               <div className="p-6">

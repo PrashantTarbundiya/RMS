@@ -16,15 +16,6 @@ LogBox.ignoreLogs([
   'shadow* style props are deprecated',
 ]);
 
-// Silence the warning in the web console as well
-const originalError = console.error;
-console.error = (...args) => {
-  if (args[0] && typeof args[0] === 'string' && args[0].includes('props.pointerEvents is deprecated')) {
-    return;
-  }
-  originalError(...args);
-};
-
 import DashboardScreen from './src/screens/DashboardScreen';
 import RecognizeScreen from './src/screens/RecognizeScreen';
 import AddPersonScreen from './src/screens/AddPersonScreen';
