@@ -6,15 +6,16 @@ Combines predictions from:
   2. SOTA MobileNetV2 — classification-based
 
 Uses weighted confidence scoring with dynamic weight redistribution,
-agreement bonuses, and binary 100%/Unknown output.
+agreement bonuses, and raw weighted-score output for informative confidence.
 """
 
 
 # Default model weights for ensemble voting
 DEFAULT_WEIGHTS = {
-    'facenet512': 0.45,   # Primary — Original highly accurate model
+    'facenet512': 0.30,   # Primary — Original highly accurate model
     'insightface': 0.35,  # Secondary — Fast ArcFace model
-    'ghostfacenet': 0.20, # Edge — lightweight mobile model
+    'ghostfacenet': 0.15, # Edge — lightweight mobile model
+    'vggface': 0.20,      # Legacy — VGG-Face deep model
 }
 
 # ─── Binary Recognition Thresholds ─────────────────────────────────────
@@ -39,9 +40,9 @@ def ensemble_predict(predictions, weights=None, custom_threshold=None):
     with dynamic weight redistribution and binary output.
 
     Output behavior:
-      - Score >= HARD_MATCH_THRESHOLD  -> label = name, confidence = 1.0 (100%)
-      - SOFT <= Score < HARD           -> label = name, confidence = actual score
-      - Score < SOFT_MATCH_THRESHOLD  -> label = "Unknown", confidence = 0.0
+      - Score >= HARD_MATCH_THRESHOLD  -> label = name, confidence = raw score, is_recognized = True
+      - SOFT <= Score < HARD           -> label = name, confidence = raw score, is_recognized = True
+      - Score < SOFT_MATCH_THRESHOLD  -> label = "Unknown", confidence = raw score, is_recognized = False
 
     When all models agree, thresholds are relaxed (easier to match).
     When models disagree on name, thresholds are tightened.
@@ -62,7 +63,7 @@ def ensemble_predict(predictions, weights=None, custom_threshold=None):
     # Gather valid predictions (skip untrained/error models)
     valid_preds = {}
 
-    for model_key in ['facenet512', 'insightface', 'ghostfacenet']:
+    for model_key in ['facenet512', 'insightface', 'ghostfacenet', 'vggface']:
         pred = predictions.get(model_key, {})
         label = pred.get('label', '')
         conf = pred.get('confidence', 0.0)
@@ -142,28 +143,28 @@ def ensemble_predict(predictions, weights=None, custom_threshold=None):
         if single_conf >= 0.80:
             best_score = max(best_score, single_conf * 0.85)
 
-    if custom_threshold is not None:
-        # User defined distance threshold. Distance 0.70 means confidence threshold is 0.30
-        user_conf_threshold = 1.0 - custom_threshold
-        effective_hard_threshold = user_conf_threshold
-        effective_soft_threshold = user_conf_threshold - 0.05
+    # Note: custom_threshold is a distance threshold used by find_match_knn.
+    # The ensemble uses its own confidence-based thresholds and should NOT
+    # re-interpret the distance threshold. Models already gate on distance
+    # before reporting their confidence to the ensemble.
 
-    # Apply Binary Threshold Logic
+    # Apply Threshold Logic — always report raw weighted score as confidence
     if best_score >= effective_hard_threshold:
-        # HARD MATCH → 100% confidence (person detected!)
+        # HARD MATCH → person confirmed, show raw ensemble score
         final_label = best_label
-        final_confidence = 1.0
+        final_confidence = round(best_score, 3)
         is_recognized = True
     elif best_score >= effective_soft_threshold:
-        # SOFT MATCH → show actual confidence (possible match)
+        # SOFT MATCH → possible match, show raw ensemble score
         final_label = best_label
         final_confidence = round(best_score, 3)
         is_recognized = True
     else:
-        # BELOW THRESHOLD → Unknown
+        # BELOW THRESHOLD → Unknown, still report raw score for diagnostics
         final_label = UNKNOWN_LABEL
-        final_confidence = 0.0
+        final_confidence = round(best_score, 3)
         is_recognized = False
+
 
     # Determine consensus method
     if num_agreeing >= 3:

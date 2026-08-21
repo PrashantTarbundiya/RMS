@@ -2,6 +2,10 @@ import React from 'react'
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { Navbar } from './components/Navbar'
 import { AuthProvider, useAuth } from './context/AuthContext'
+import { ToastProvider } from './context/ToastContext'
+import NetworkBanner from './components/ui/NetworkBanner'
+import ErrorBoundary from './components/ErrorBoundary'
+import NotFoundPage from './pages/NotFoundPage'
 import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
 import LandingPage from './pages/LandingPage'
@@ -33,11 +37,14 @@ function ProtectedRoute({ children }) {
 
   if (loading) {
     return (
-      <div style={{
-        display: 'flex', justifyContent: 'center', alignItems: 'center',
-        height: '100vh', color: 'var(--text-secondary, #999)'
-      }}>
-        Loading...
+      <div className="min-h-screen bg-[#010102] flex flex-col items-center justify-center gap-4">
+        <div className="w-10 h-10 rounded-xl border border-[#23252A] flex items-center justify-center bg-[#0F1011]">
+          <span className="font-mono text-[#5E6AD2] font-bold text-sm">R</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="w-1.5 h-1.5 rounded-full bg-[#5E6AD2] animate-pulse" />
+          <span className="text-xs text-ink-subtle tracking-wider">Loading console...</span>
+        </div>
       </div>
     );
   }
@@ -98,7 +105,7 @@ function AnimatedRoutes() {
         <Route path="/analytics" element={<ProtectedRoute><PageWrapper><AnalyticsPage /></PageWrapper></ProtectedRoute>} />
         <Route path="/support" element={<ProtectedRoute><PageWrapper><SupportPage /></PageWrapper></ProtectedRoute>} />
         <Route path="/profile" element={<ProtectedRoute><PageWrapper><ProfilePage /></PageWrapper></ProtectedRoute>} />
-        <Route path="*" element={<Navigate to="/" replace />} />
+        <Route path="*" element={<PageWrapper><NotFoundPage /></PageWrapper>} />
       </Routes>
     </AnimatePresence>
   );
@@ -132,8 +139,11 @@ function AppContent() {
     <div className="app-container">
       {showNavbar && <Navbar />}
       {showNavbar && <OnboardingWizard />}
-      <main className={showNavbar ? "main-content" : "main-content-fullscreen"}>
-        <AnimatedRoutes />
+      <main className={showNavbar ? "main-content" : "main-content-fullscreen"} style={{ display: 'flex', flexDirection: 'column' }}>
+        {showNavbar && <NetworkBanner />}
+        <div style={{ flex: 1 }}>
+          <AnimatedRoutes />
+        </div>
       </main>
     </div>
   );
@@ -142,9 +152,13 @@ function AppContent() {
 function App() {
   return (
     <BrowserRouter>
-      <AuthProvider>
-        <AppContent />
-      </AuthProvider>
+      <ErrorBoundary>
+        <AuthProvider>
+          <ToastProvider>
+            <AppContent />
+          </ToastProvider>
+        </AuthProvider>
+      </ErrorBoundary>
     </BrowserRouter>
   )
 }

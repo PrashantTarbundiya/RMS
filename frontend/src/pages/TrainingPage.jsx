@@ -1,13 +1,20 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 import { Link } from 'react-router-dom';
-import { Terminal, CheckCircle, Download, Activity, Loader2 } from 'lucide-react';
+import { Terminal, CheckCircle, Download, Activity, Loader2, RefreshCw, Play, XCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { API_BASE } from '../config';
+import EmptyState from '../components/ui/EmptyState';
 
 
 export default function TrainingPage() {
+  const { apiClient } = useAuth();
+  const toast = useToast();
   const [logs, setLogs] = useState([]);
   const [isTraining, setIsTraining] = useState(false);
+  const [isRetrigger, setIsRetrigger] = useState(false);
+  const [autoScroll, setAutoScroll] = useState(true);
   const logsEndRef = useRef(null);
   const eventSourceRef = useRef(null);
 
@@ -20,6 +27,7 @@ export default function TrainingPage() {
     source.onmessage = (e) => {
       if (e.data === '[DONE]') {
         setIsTraining(false);
+        toast.success('All models have finished training.');
         source.close();
       } else {
         setLogs(prev => [...prev, e.data]);
@@ -38,58 +46,111 @@ export default function TrainingPage() {
   }, []);
 
   useEffect(() => {
-    logsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [logs]);
+    if (autoScroll) {
+      logsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [logs, autoScroll]);
 
-  const extractProgress = () => {
-    let edgePercent = 0;
-    let dfPercent = 100;
-    
-    // Parse output lines (simplistic heuristic to animate bars based on logs)
-    let currentBlock = null;
-    logs.forEach(line => {
-        if (line.includes('GhostFaceNet') || line.includes('Starting edge model refinement')) {
-            currentBlock = 'edge';
-            edgePercent = 5;
-        } else if (line.includes('Pipeline Completed') || line.includes('Saved updated model: ghostfacenet')) {
-            edgePercent = 100;
-        } else if (line.includes('DeepFace: Adding embeddings')) {
-            currentBlock = 'df';
-            dfPercent = 10;
-        } else if (line.includes('TRAINING SUMMARY')) {
-            dfPercent = 100;
-        } else {
-            const match = line.match(/\[(\d+)\/(\d+)\]/);
-            if (match) {
-                const p = Math.floor((parseInt(match[1]) / parseInt(match[2])) * 100);
-                if (currentBlock === 'df') dfPercent = p === 100 ? 99 : p;
-                if (currentBlock === 'edge') edgePercent = p === 100 ? 99 : p;
-            }
-        }
-    });
-    if (isTraining && edgePercent === 0) edgePercent = 1;
-    return { dfPercent, edgePercent };
+  const triggerRetrainAll = async () => {
+    setIsRetrigger(true);
+    try {
+      // Get all persons and retrain the first one (which triggers full pipeline)
+      const personsRes = await apiClient.get(`${API_BASE}/persons`);
+      const persons = personsRes.data?.persons || [];
+      if (persons.length === 0) {
+        toast.warning('No persons enrolled. Upload at least one person first.');
+        setIsRetrigger(false);
+        return;
+      }
+      // Trigger retrain for the first person — this retrains all models
+      await apiClient.post(`${API_BASE}/persons/${persons[0]}/retrain`);
+      toast.info('Retrain triggered. Connecting to live log stream...');
+      setLogs([]);
+      // Reconnect to the SSE stream after a short delay
+      setTimeout(connectToStream, 1500);
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Failed to trigger retraining.');
+    } finally {
+      setIsRetrigger(false);
+    }
   };
 
-  const { dfPercent, edgePercent } = extractProgress();
+  const extractProgress = () => {
+    let facenet512 = 0;
+    let insightface = 0;
+    let ghostfacenet = 0;
+    let vggface = 0;
+    let sotaPercent = 0;
+
+    logs.forEach(line => {
+      if (line.includes('Retraining Facenet512') || line.includes('Facenet512')) facenet512 = Math.max(facenet512, 30);
+      if (line.includes('[OK] Facenet512')) facenet512 = 100;
+      if (line.includes('Retraining InsightFace') || line.includes('InsightFace')) insightface = Math.max(insightface, 30);
+      if (line.includes('[OK] InsightFace')) insightface = 100;
+      if (line.includes('Retraining GhostFaceNet') || line.includes('GhostFaceNet')) ghostfacenet = Math.max(ghostfacenet, 30);
+      if (line.includes('[OK] GhostFaceNet')) ghostfacenet = 100;
+      if (line.includes('Retraining VGG-Face') || line.includes('VGG-Face')) vggface = Math.max(vggface, 30);
+      if (line.includes('[OK] VGG-Face')) vggface = 100;
+      if (line.includes('SOTA') || line.includes('MobileNetV2') || line.includes('fine-tun')) sotaPercent = Math.max(sotaPercent, 10);
+      if (line.includes('[SUCCESS]')) sotaPercent = 100;
+      // Parse epoch progress for SOTA
+      const match = line.match(/\[(\d+)\/(\d+)\]/);
+      if (match && sotaPercent > 0 && sotaPercent < 100) {
+        sotaPercent = Math.min(99, 10 + Math.floor((parseInt(match[1]) / parseInt(match[2])) * 85));
+      }
+    });
+
+    if (isTraining && facenet512 === 0 && logs.length > 0) facenet512 = 5;
+
+    return { facenet512, insightface, ghostfacenet, vggface, sotaPercent };
+  };
+
+  const { facenet512, insightface, ghostfacenet, vggface, sotaPercent } = extractProgress();
+  const allDone = facenet512 === 100 && insightface === 100 && ghostfacenet === 100 && vggface === 100 && sotaPercent === 100;
+
+  const clearLogs = () => {
+    setLogs([]);
+    toast.info('Terminal cleared.');
+  };
+
+  const copyLogs = () => {
+    navigator.clipboard.writeText(logs.join('\n')).then(() => {
+      toast.success('Logs copied to clipboard.');
+    });
+  };
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="pb-12 max-w-5xl mx-auto space-y-6 page-container">
-      <div>
-        <h1 className="text-headline font-semibold text-ink font-display">Model Refinement</h1>
-        <p className="text-sm text-ink-subtle mt-1 mb-8 max-w-xl">
-          DeepFace embeddings are processed instantly. GhostFaceNet generation runs synchronously.
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div>
+          <h1 className="text-headline font-semibold text-ink font-display">Model Refinement</h1>
+          <p className="text-sm text-ink-subtle mt-1 max-w-xl">
+            Retrains all 4 embedding models and the SOTA MobileNetV2 classifier.
+          </p>
+        </div>
+        <button
+          onClick={triggerRetrainAll}
+          disabled={isTraining || isRetrigger}
+          className="button-primary text-white flex items-center gap-2 h-10 px-5 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {isRetrigger ? <Loader2 size={16} className="animate-spin text-white" /> : <Play size={16} className="text-white" />}
+          {isTraining ? 'Training in Progress…' : 'Retrain All Models'}
+        </button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-        <ModelProgressCard title="InsightFace ArcFace" subtitle="Primary Model" percent={dfPercent} isTraining={isTraining && dfPercent < 100} />
-        <ModelProgressCard title="GhostFaceNet" subtitle="Edge Optimized" percent={edgePercent} isTraining={isTraining && edgePercent < 100} />
+      {/* Model Progress Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <ModelProgressCard title="Facenet512" subtitle="Primary Embedding" percent={facenet512} isTraining={isTraining && facenet512 < 100} />
+        <ModelProgressCard title="InsightFace ArcFace" subtitle="ArcFace ONNX" percent={insightface} isTraining={isTraining && insightface < 100} />
+        <ModelProgressCard title="GhostFaceNet" subtitle="Edge Optimized" percent={ghostfacenet} isTraining={isTraining && ghostfacenet < 100} />
+        <ModelProgressCard title="VGG-Face" subtitle="Deep 4096-d" percent={vggface} isTraining={isTraining && vggface < 100} />
+        <ModelProgressCard title="SOTA MobileNetV2" subtitle="Classifier Fine-tune" percent={sotaPercent} isTraining={isTraining && sotaPercent < 100} />
       </div>
 
+      {/* Training Complete Banner */}
       <AnimatePresence>
-        {(!isTraining && edgePercent === 100) && (
-          <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
+        {(!isTraining && allDone && logs.length > 0) && (
+          <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mb-2">
             <div className="card-linear border-[#27A644]/20 bg-[#27A644]/5">
               <div className="p-6">
                 <div className="flex items-center gap-3 mb-6">
@@ -99,7 +160,7 @@ export default function TrainingPage() {
                     <p className="m-0 mt-1 text-ink-subtle text-caption">All models have been successfully updated.</p>
                   </div>
                 </div>
-                
+
                 <div className="grid gap-4">
                   <div className="p-4 bg-black/30 rounded-lg border border-[#23252A]">
                     <h4 className="m-0 mb-3 text-sm flex items-center gap-2 text-ink-subtle font-semibold uppercase tracking-wider text-[11px]">
@@ -135,24 +196,46 @@ export default function TrainingPage() {
         )}
       </AnimatePresence>
 
+      {/* Terminal Output */}
       <div className="card-linear p-6">
-        <div className="flex items-center gap-2 border-b border-[#23252A] pb-3 mb-4">
-          <Terminal className="w-4 h-4 text-ink-tertiary" />
-          <h3 className="m-0 text-body font-mono text-ink-subtle">Terminal Output</h3>
+        <div className="flex items-center justify-between border-b border-[#23252A] pb-3 mb-4">
+          <div className="flex items-center gap-2">
+            <Terminal className="w-4 h-4 text-ink-tertiary" />
+            <h3 className="m-0 text-body font-mono text-ink-subtle">Terminal Output</h3>
+            {isTraining && <span className="w-2 h-2 rounded-full bg-[#27A644] animate-pulse" />}
+          </div>
+          <div className="flex items-center gap-2">
+            <label className="flex items-center gap-1.5 text-[11px] text-ink-tertiary cursor-pointer select-none">
+              <input type="checkbox" checked={autoScroll} onChange={e => setAutoScroll(e.target.checked)} className="accent-[#5E6AD2]" />
+              Auto-scroll
+            </label>
+            <button onClick={copyLogs} disabled={logs.length === 0} className="button-secondary text-[11px] py-1 px-2 h-7 disabled:opacity-30">Copy</button>
+            <button onClick={clearLogs} disabled={logs.length === 0} className="button-secondary text-[11px] py-1 px-2 h-7 disabled:opacity-30">Clear</button>
+          </div>
         </div>
-        
-        <div className="bg-black/50 rounded-lg p-4 font-mono text-xs text-ink-subtle h-[400px] overflow-y-auto border border-[#23252A]/50">
+
+        <div className="bg-black/60 rounded-xl p-5 font-mono text-[11px] leading-relaxed text-ink-subtle h-[500px] overflow-y-auto border border-[#23252A]/60 shadow-inner">
           {logs.length === 0 ? (
-            <div className="opacity-50 flex items-center justify-center h-full gap-2">
-              <Loader2 className="w-4 h-4 animate-spin text-[#5E6AD2]" /> Waiting for training telemetry...
-            </div>
+            <EmptyState
+              icon={Terminal}
+              title="No training output"
+              description={isTraining ? 'Waiting for training telemetry...' : 'Click "Retrain All Models" to start a new training session.'}
+            />
           ) : (
             logs.map((log, i) => (
-              <div key={i} className="py-1 border-b border-white/5 flex">
-                <span className="text-ink-muted mr-3 w-10 shrink-0 select-none">{String(i + 1).padStart(4, '0')}</span>
-                <span className="break-all text-ink">{log}</span>
-              </div>
-            ))
+                <div key={i} className="py-0.5 border-b border-white/[0.02] flex">
+                  <span className="text-ink-muted mr-4 w-9 shrink-0 select-none text-right font-normal">
+                    {String(i + 1).padStart(4, '0')}
+                  </span>
+                  <span className={`break-all flex-1 ${
+                    log.includes('[ERROR]') || log.includes('failed') ? 'text-[#F87171] font-medium' :
+                    log.includes('[WARNING]') ? 'text-amber-400' :
+                    log.includes('[SUCCESS]') || log.includes('[OK]') ? 'text-[#4ade80]' : ''
+                  }`}>
+                    {log}
+                  </span>
+                </div>
+              ))
           )}
           <div ref={logsEndRef} />
         </div>
@@ -173,23 +256,23 @@ function ModelProgressCard({ title, subtitle, percent, isTraining }) {
             <h3 className="m-0 text-body font-semibold text-ink font-display">{title}</h3>
             <p className="m-0 mt-1 text-caption text-ink-subtle">{subtitle}</p>
           </div>
-          <span 
+          <span
             className={`inline-flex px-2 py-0.5 rounded font-mono text-[9px] font-semibold border uppercase tracking-wider ${
-              status === 'success' ? 'bg-[#27A644]/10 text-[#27A644] border-[#27A644]/20' : 
-              status === 'progress' ? 'bg-[#5E6AD2]/10 text-[#828FFF] border-[#5E6AD2]/20 animate-pulse' : 
+              status === 'success' ? 'bg-[#27A644]/10 text-[#27A644] border-[#27A644]/20' :
+              status === 'progress' ? 'bg-[#5E6AD2]/10 text-[#828FFF] border-[#5E6AD2]/20 animate-pulse' :
               'bg-[#141516] text-ink-muted border-[#23252A]'
             }`}
           >
             {statusText}
           </span>
         </div>
-        
+
         <div>
           <div className="flex justify-between mb-2 text-xs text-ink-subtle font-mono">
             <span>{percent}%</span>
           </div>
           <div className="h-1.5 bg-[#141516] rounded-full overflow-hidden border border-[#23252A]">
-            <motion.div 
+            <motion.div
               initial={{ width: 0 }}
               animate={{ width: `${percent}%` }}
               transition={{ type: 'tween', duration: 0.5 }}

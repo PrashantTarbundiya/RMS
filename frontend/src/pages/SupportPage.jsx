@@ -1,11 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import { 
   HelpCircle, BookOpen, Monitor, Smartphone, Server,
   ChevronDown, ChevronRight, AlertTriangle, CheckCircle, 
-  Camera, Brain, Zap
+  Camera, Brain, Zap, Keyboard, Activity, Loader2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { API_BASE } from '../config';
 
 const FAQ_DATA = [
   {
@@ -43,6 +45,24 @@ const FAQ_DATA = [
 ];
 
 export default function SupportPage() {
+  const { apiClient } = useAuth();
+  const [healthStatus, setHealthStatus] = useState('checking'); // checking, ok, error
+  const [healthLatency, setHealthLatency] = useState(null);
+
+  useEffect(() => {
+    const checkHealth = async () => {
+      const start = performance.now();
+      try {
+        await apiClient.get(`${API_BASE}/ping`);
+        setHealthLatency(Math.round(performance.now() - start));
+        setHealthStatus('ok');
+      } catch {
+        setHealthStatus('error');
+      }
+    };
+    checkHealth();
+  }, [apiClient]);
+
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="pb-12 max-w-5xl mx-auto space-y-8 page-container">
       <div>
@@ -163,6 +183,64 @@ export default function SupportPage() {
             />
           </div>
         </div>
+      </div>
+
+      {/* System Health Check */}
+      <section className="space-y-4">
+        <h2 className="text-body font-semibold flex items-center gap-2 text-ink uppercase tracking-wider">
+          <Activity className="w-4 h-4 text-[#828FFF]" />
+          System Health
+        </h2>
+        <div className="card-linear p-5 bg-[#0F1011] border-[#23252A] flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            {healthStatus === 'checking' && <Loader2 className="w-5 h-5 text-[#828FFF] animate-spin" />}
+            {healthStatus === 'ok' && <CheckCircle className="w-5 h-5 text-[#27A644]" />}
+            {healthStatus === 'error' && <AlertTriangle className="w-5 h-5 text-[#F87171]" />}
+            <div>
+              <div className="text-sm font-medium text-ink">
+                {healthStatus === 'checking' ? 'Checking backend...' : healthStatus === 'ok' ? 'Backend Online' : 'Backend Unreachable'}
+              </div>
+              {healthLatency && (
+                <div className="text-[11px] text-ink-tertiary font-mono">Latency: {healthLatency}ms</div>
+              )}
+            </div>
+          </div>
+          <span className={`inline-flex px-2 py-0.5 rounded font-mono text-[10px] font-semibold border ${
+            healthStatus === 'ok' ? 'bg-[#27A644]/10 text-[#27A644] border-[#27A644]/20' :
+            healthStatus === 'error' ? 'bg-[#F87171]/10 text-[#F87171] border-[#F87171]/20' :
+            'bg-[#5E6AD2]/10 text-[#828FFF] border-[#5E6AD2]/20'
+          }`}>
+            {healthStatus === 'ok' ? 'HEALTHY' : healthStatus === 'error' ? 'DOWN' : 'CHECKING'}
+          </span>
+        </div>
+      </section>
+
+      {/* Keyboard Shortcuts */}
+      <section className="space-y-4">
+        <h2 className="text-body font-semibold flex items-center gap-2 text-ink uppercase tracking-wider">
+          <Keyboard className="w-4 h-4 text-[#828FFF]" />
+          Keyboard Shortcuts
+        </h2>
+        <div className="card-linear p-5 bg-[#0F1011] border-[#23252A]">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {[
+              { keys: 'Ctrl + V', desc: 'Paste image into upload' },
+              { keys: 'Ctrl + S', desc: 'Save configuration' },
+              { keys: 'Esc', desc: 'Close modals & dialogs' },
+              { keys: 'Tab', desc: 'Navigate between fields' },
+            ].map((s, i) => (
+              <div key={i} className="flex items-center justify-between p-2.5 rounded-md bg-[#010102]/40 border border-[#23252A]/50">
+                <span className="text-caption text-ink-subtle">{s.desc}</span>
+                <kbd className="bg-[#141516] border border-[#23252A] text-ink-muted text-[11px] font-mono px-2 py-0.5 rounded">{s.keys}</kbd>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Version */}
+      <div className="text-center text-[11px] text-ink-tertiary pt-4 border-t border-[#23252A]">
+        RMS — Recognition Management System v2.0 • Built with Flask + React + PyTorch
       </div>
     </motion.div>
   );

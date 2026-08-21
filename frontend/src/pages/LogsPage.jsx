@@ -1,15 +1,21 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { Terminal as TerminalIcon, ClipboardList, CheckCircle, XCircle, Play, Clock, RefreshCw } from 'lucide-react';
+import { useToast } from '../context/ToastContext';
+import { Terminal as TerminalIcon, ClipboardList, CheckCircle, XCircle, Play, Clock, RefreshCw, Search, Copy, Trash2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { API_BASE } from '../config';
+import EmptyState from '../components/ui/EmptyState';
 
 export default function LogsPage() {
   const { apiClient } = useAuth();
+  const toast = useToast();
   const [jobs, setJobs] = useState([]);
   const [selectedJobId, setSelectedJobId] = useState(null);
   const [liveLogs, setLiveLogs] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [logSearch, setLogSearch] = useState('');
+  const [logFilter, setLogFilter] = useState('all'); // all, error, success, warning
+  const [autoScroll, setAutoScroll] = useState(true);
   const logsEndRef = useRef(null);
   const eventSourceRef = useRef(null);
 
@@ -55,8 +61,10 @@ export default function LogsPage() {
 
   // Auto-scroll logs
   useEffect(() => {
-    logsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [liveLogs, selectedJobId, jobs]);
+    if (autoScroll) {
+      logsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [liveLogs, selectedJobId, jobs, autoScroll]);
 
   // Find the selected job
   const selectedJob = jobs.find(j => j.id === selectedJobId) || jobs[0];
@@ -102,6 +110,28 @@ export default function LogsPage() {
 
   const displayedLogs = renderLogs();
 
+  // Filter and search logs
+  const filteredLogs = displayedLogs.filter(log => {
+    const matchSearch = !logSearch || log.toLowerCase().includes(logSearch.toLowerCase());
+    if (!matchSearch) return false;
+    if (logFilter === 'all') return true;
+    if (logFilter === 'error') return log.includes('[ERROR]') || log.includes('failed') || log.includes('Error');
+    if (logFilter === 'success') return log.includes('[SUCCESS]') || log.includes('[OK]');
+    if (logFilter === 'warning') return log.includes('[Warning]') || log.includes('[WARNING]');
+    return true;
+  });
+
+  const copyLogs = () => {
+    navigator.clipboard.writeText(filteredLogs.join('\n')).then(() => {
+      toast.success(`Copied ${filteredLogs.length} log lines to clipboard.`);
+    });
+  };
+
+  const clearLiveLogs = () => {
+    setLiveLogs([]);
+    toast.info('Live logs cleared.');
+  };
+
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="pb-12 max-w-6xl mx-auto space-y-6 page-container">
       <div>
@@ -127,9 +157,7 @@ export default function LogsPage() {
             {isLoading ? (
               <div className="text-caption text-ink-muted text-center py-8">Loading queue history...</div>
             ) : jobs.length === 0 ? (
-              <div className="text-caption text-ink-muted text-center py-8 border border-dashed border-[#23252A] rounded-lg">
-                No training jobs recorded.
-              </div>
+              <EmptyState icon={ClipboardList} title="No training jobs" description="Jobs will appear here when models are trained." />
             ) : (
               jobs.map(job => (
                 <div
@@ -170,25 +198,62 @@ export default function LogsPage() {
                 </span>
               )}
             </h3>
-            {selectedJob && getStatusBadge(selectedJob.status)}
+            <div className="flex items-center gap-2">
+              {selectedJob && getStatusBadge(selectedJob.status)}
+            </div>
+          </div>
+
+          {/* Search & Filter Bar */}
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="flex items-center gap-2 input-linear h-8 py-0 px-2.5 flex-1 min-w-[150px]">
+              <Search className="w-3.5 h-3.5 text-ink-tertiary shrink-0" />
+              <input
+                type="text"
+                placeholder="Search logs..."
+                className="bg-transparent border-none text-ink text-[11px] w-full focus:outline-none p-0 placeholder:text-ink-tertiary"
+                value={logSearch}
+                onChange={e => setLogSearch(e.target.value)}
+              />
+            </div>
+            <select
+              value={logFilter}
+              onChange={e => setLogFilter(e.target.value)}
+              className="input-linear h-8 py-0 px-2.5 text-[11px] text-ink bg-[#0F1011] border border-[#23252A] rounded-md"
+            >
+              <option value="all">All Levels</option>
+              <option value="error">Errors</option>
+              <option value="warning">Warnings</option>
+              <option value="success">Success</option>
+            </select>
+            <label className="flex items-center gap-1.5 text-[11px] text-ink-tertiary cursor-pointer select-none">
+              <input type="checkbox" checked={autoScroll} onChange={e => setAutoScroll(e.target.checked)} className="accent-[#5E6AD2]" />
+              Auto-scroll
+            </label>
+            <button onClick={copyLogs} disabled={filteredLogs.length === 0} className="button-secondary text-[11px] py-0.5 px-2 h-7 flex items-center gap-1 disabled:opacity-30">
+              <Copy size={12} /> Copy
+            </button>
+            <button onClick={clearLiveLogs} disabled={liveLogs.length === 0} className="button-secondary text-[11px] py-0.5 px-2 h-7 flex items-center gap-1 disabled:opacity-30">
+              <Trash2 size={12} /> Clear
+            </button>
           </div>
 
           <div className="bg-black/60 rounded-xl p-5 font-mono text-[11px] leading-relaxed text-ink-subtle h-[500px] overflow-y-auto border border-[#23252A]/60 shadow-inner">
-            {displayedLogs.length === 0 ? (
-              <div className="opacity-50 flex items-center justify-center h-full gap-2 text-caption">
-                <RefreshCw className="w-4 h-4 animate-spin text-[#5E6AD2]" />
-                Waiting for log telemetry...
-              </div>
+            {filteredLogs.length === 0 ? (
+              <EmptyState
+                icon={TerminalIcon}
+                title={displayedLogs.length === 0 ? 'No log output' : 'No logs match your filter'}
+                description={displayedLogs.length === 0 ? 'Waiting for log telemetry...' : 'Try adjusting the search or filter.'}
+              />
             ) : (
-              displayedLogs.map((log, i) => (
+              filteredLogs.map((log, i) => (
                 <div key={i} className="py-0.5 border-b border-white/[0.02] flex">
                   <span className="text-ink-muted mr-4 w-9 shrink-0 select-none text-right font-normal">
                     {String(i + 1).padStart(4, '0')}
                   </span>
                   <span className={`break-all font-mono ${
-                    log.includes('[ERROR]') ? 'text-[#E5484D]' :
-                    log.includes('[SUCCESS]') ? 'text-[#27A644]' :
-                    log.includes('[Warning]') ? 'text-[#FFC53D]' : 'text-ink'
+                    log.includes('[ERROR]') || log.includes('failed') ? 'text-[#E5484D]' :
+                    log.includes('[SUCCESS]') || log.includes('[OK]') ? 'text-[#27A644]' :
+                    log.includes('[Warning]') || log.includes('[WARNING]') ? 'text-[#FFC53D]' : 'text-ink'
                   }`}>
                     {log}
                   </span>

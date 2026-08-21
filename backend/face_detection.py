@@ -1,11 +1,13 @@
 """
-Advanced Side/Profile Face Detection using MediaPipe
-=====================================================
-✅ Optimized for LEFT and RIGHT profile detection
-✅ Pre-trained model - NO dataset required
-✅ Real-time FPS display
-✅ Multiple detection modes
-✅ Enhanced profile classification
+Advanced Side/Profile Face Detection using MediaPipe FaceLandmarker + Haar Multi-Pass Cascade
+=============================================================================================
+✅ Pass 1: MediaPipe FaceLandmarker (478 landmarks) + 3D Head Pose (solvePnP)
+✅ Pass 2: Flipped Image Detection for extreme profiles
+✅ Pass 3: Haar Profile Cascade (haarcascade_profileface.xml) for 90° profiles
+✅ Pass 4: Haar Frontal Cascade (haarcascade_frontalface_alt2.xml) emergency fallback
+✅ Real-time CLAHE lighting normalization
+✅ Exact Yaw, Pitch, Roll degree estimation
+✅ Fully backwards compatible with all downstream endpoints
 """
 
 import cv2
@@ -13,30 +15,41 @@ import numpy as np
 import time
 import os
 import urllib.request
-
-# Path constants
-BACKEND_DIR = os.path.dirname(os.path.abspath(__file__))
+import math
 
 import mediapipe as mp
 from mediapipe.tasks import python
 from mediapipe.tasks.python import vision
 
+BACKEND_DIR = os.path.dirname(os.path.abspath(__file__))
+
 
 class SideFaceDetector:
-    """Enhanced MediaPipe Face Detection for side/profile faces.
+    """Enhanced MediaPipe FaceLandmarker & Multi-Pass Cascade Face Detector.
     
-    Uses multi-pass detection cascade for maximum recall:
-      Pass 1: BlazeFace at normal confidence (fast, catches most faces)
-      Pass 2: BlazeFace at low confidence (catches side faces)
-      Pass 3: Haar profile cascade (catches extreme profiles BlazeFace misses)
+    Uses 4-pass detection cascade for maximum recall across all face angles:
+      Pass 1: MediaPipe FaceLandmarker (478 3D landmarks + solvePnP head pose)
+      Pass 2: FaceLandmarker on horizontally flipped image
+      Pass 3: OpenCV Haar Profile Cascade for 90° edge profiles
+      Pass 4: OpenCV Haar Frontal Cascade as emergency fallback
     
-    Includes Non-Maximum Suppression (NMS) to deduplicate overlapping detections.
+    Includes Non-Maximum Suppression (NMS) and CLAHE illumination normalization.
     """
-    
+
     # Detection thresholds
-    PROFILE_THRESHOLD = 0.20      # Lower = more sensitive to profiles
-    STRONG_PROFILE_THRESHOLD = 0.40  # Strong profile detection
-    
+    PROFILE_THRESHOLD = 15.0         # Degrees yaw for profile classification
+    STRONG_PROFILE_THRESHOLD = 35.0  # Degrees yaw for strong profile classification
+
+    # Canonical 3D model points for 6 facial landmarks (in mm)
+    MODEL_POINTS_3D = np.array([
+        (0.0, 0.0, 0.0),          # Nose tip (index 1)
+        (0.0, -330.0, -65.0),     # Chin (index 152)
+        (-225.0, 170.0, -135.0),  # Left eye outer corner (index 33)
+        (225.0, 170.0, -135.0),   # Right eye outer corner (index 263)
+        (-150.0, -150.0, -125.0), # Left mouth corner (index 61)
+        (150.0, -150.0, -125.0)   # Right mouth corner (index 291)
+    ], dtype=np.float64)
+
     # Colors (BGR format)
     COLORS = {
         'left_profile': (255, 100, 0),    # Blue
@@ -44,298 +57,361 @@ class SideFaceDetector:
         'frontal': (0, 200, 0),           # Green
         'unknown': (128, 128, 128)        # Gray
     }
-    
+
     def __init__(self, min_detection_confidence=0.45):
         """
-        Initialize the Enhanced Side Face Detector.
+        Initialize the Enhanced Multi-Pass Face Detector.
         
         Args:
-            min_detection_confidence: Lower = detect more faces (better for profiles)
+            min_detection_confidence: Confidence threshold for face detection.
         """
         self.min_confidence = min_detection_confidence
         self.fps = 0
         self.frame_count = 0
         self.start_time = time.time()
-        
-        # Download and load primary model
+
+        # CLAHE for lighting normalization
+        self.clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
+
+        # Ensure model is available
         model_path = self._ensure_model()
-        
-        # Primary detector (normal confidence)
+
+        # Primary FaceLandmarker detector (Tasks API)
         base_options = python.BaseOptions(model_asset_path=model_path)
-        options = vision.FaceDetectorOptions(
+        options = vision.FaceLandmarkerOptions(
             base_options=base_options,
-            min_detection_confidence=min_detection_confidence
+            output_face_blendshapes=False,
+            output_facial_transformation_matrixes=False,
+            num_faces=10,
+            min_face_detection_confidence=min_detection_confidence,
+            min_face_presence_confidence=min_detection_confidence,
+            min_tracking_confidence=min_detection_confidence,
         )
-        self.detector = vision.FaceDetector.create_from_options(options)
-        
-        # Low-confidence fallback detector for side faces
-        self._low_conf_detector = None
-        low_conf = min(min_detection_confidence, 0.20)
-        if low_conf < min_detection_confidence:
-            try:
-                base_options_low = python.BaseOptions(model_asset_path=model_path)
-                options_low = vision.FaceDetectorOptions(
-                    base_options=base_options_low,
-                    min_detection_confidence=low_conf
-                )
-                self._low_conf_detector = vision.FaceDetector.create_from_options(options_low)
-            except Exception:
-                pass  # Fallback not available — fine, primary is good enough
-        
-        # Removed Haar profile cascade (Phase 5 upgrade)
-        
-        print("[INFO] Face detector initialized (multi-pass cascade)!")
-    
+        self.landmarker = vision.FaceLandmarker.create_from_options(options)
+
+        # Fallback Haar cascades
+        try:
+            self.profile_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_profileface.xml')
+        except Exception:
+            self.profile_cascade = None
+
+        try:
+            self.frontal_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_alt2.xml')
+        except Exception:
+            self.frontal_cascade = None
+
+        print("[INFO] SideFaceDetector initialized (4-Pass MediaPipe FaceLandmarker + solvePnP)!")
+
     def _ensure_model(self):
-        """Download the face detection model if not present."""
-        model_path = os.path.join(BACKEND_DIR, 'data', 'blaze_face_short_range.tflite')
-        
+        """Ensure face_landmarker.task model is downloaded and present."""
+        model_path = os.path.join(BACKEND_DIR, 'data', 'face_landmarker.task')
+
         if not os.path.exists(model_path):
             os.makedirs(os.path.dirname(model_path), exist_ok=True)
-            root_path = os.path.join(os.path.dirname(BACKEND_DIR), 'blaze_face_short_range.tflite')
+            root_path = os.path.join(os.path.dirname(BACKEND_DIR), 'face_landmarker.task')
             if os.path.exists(root_path):
                 import shutil
-                print("[INFO] Copying face detection model from root...")
+                print("[INFO] Copying FaceLandmarker model from root...")
                 shutil.copy(root_path, model_path)
             else:
-                print("📥 Downloading face detection model...")
-                url = "https://storage.googleapis.com/mediapipe-models/face_detector/blaze_face_short_range/float16/1/blaze_face_short_range.tflite"
+                print("📥 Downloading FaceLandmarker model...")
+                url = "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task"
                 try:
                     urllib.request.urlretrieve(url, model_path)
-                    print("✅ Model downloaded!")
+                    print("✅ FaceLandmarker model downloaded successfully!")
                 except Exception as e:
                     print(f"❌ Download failed: {e}")
                     raise
-        
-        return model_path
-    
-    def _calculate_profile_direction(self, keypoints, img_w, img_h):
-        """
-        Calculates profile direction using "Short-term Soft Biometrics" (Anthropometric features).
-        
-        Reference: 
-        Alsubhi, A.H.; Jaha, E.S. "Front-to-Side Hard and Soft Biometrics for Augmented Zero-Shot 
-        Side Face Recognition". Sensors 2025, 25, 1638.
-        
-        Extracts anthropometric keys from the face to determine pose:
-        1. Nose-Eye Offset (Horizontal Asymmetry)
-        2. Eye-Ear Distance Ratio (Vertical/Depth Asymmetry)
-        3. Facial Width Compression (Projected Geometry)
-        """
-        if len(keypoints) < 3:
-            return 0, 'unknown', 0, {}
-        
-        # Extract ALL keypoints (normalized 0-1)
-        # BlazeFace keypoints: right_eye, left_eye, nose, mouth, right_ear, left_ear
-        right_eye = keypoints[0]
-        left_eye = keypoints[1]
-        nose = keypoints[2] # Nose tip (Pronasale)
 
+        return model_path
+
+    def _apply_clahe(self, image):
+        """Apply Contrast Limited Adaptive Histogram Equalization to the L-channel."""
+        lab = cv2.cvtColor(image, cv2.COLOR_BGR2LAB)
+        l, a, b = cv2.split(lab)
+        cl = self.clahe.apply(l)
+        limg = cv2.merge((cl, a, b))
+        return cv2.cvtColor(limg, cv2.COLOR_LAB2BGR)
+
+    def _compute_head_pose(self, landmarks, img_w, img_h):
+        """
+        Compute precise 3D head pose (Yaw, Pitch, Roll) using cv2.solvePnP.
         
-        # Convert to pixel coordinates - Core keypoints
-        re_x, re_y = right_eye.x * img_w, right_eye.y * img_h
-        le_x, le_y = left_eye.x * img_w, left_eye.y * img_h
-        nose_x, nose_y = nose.x * img_w, nose.y * img_h
-        
-        # Optional keypoints (mouth and ears)
-        mouth_x, mouth_y = None, None
-        right_ear_x, right_ear_y = None, None
-        left_ear_x, left_ear_y = None, None
-        
-        if len(keypoints) >= 4:
-            mouth = keypoints[3]
-            mouth_x, mouth_y = mouth.x * img_w, mouth.y * img_h
-        
-        if len(keypoints) >= 5:
-            right_ear = keypoints[4]
-            right_ear_x, right_ear_y = right_ear.x * img_w, right_ear.y * img_h
-        
-        if len(keypoints) >= 6:
-            left_ear = keypoints[5]
-            left_ear_x, left_ear_y = left_ear.x * img_w, left_ear.y * img_h
-        
-        # ============ FEATURE 1: Eye distance (baseline) ============
-        eye_dist = abs(le_x - re_x)
-        eye_mid_x = (le_x + re_x) / 2
-        eye_mid_y = (le_y + re_y) / 2
-        
-        # ============ FEATURE 2: Nose offset from eye center ============
-        nose_offset = nose_x - eye_mid_x
-        if eye_dist > 5:
-            nose_offset_ratio = nose_offset / eye_dist
-        else:
-            nose_offset_ratio = 0.8 if nose_x > eye_mid_x else -0.8
-        
-        # ============ FEATURE 3: Eye distance compression ============
-        # When face turns, eyes appear closer together
-        # Normalize by face height (nose to eye distance)
-        face_height = abs(nose_y - eye_mid_y)
-        if face_height > 5:
-            eye_compression_ratio = eye_dist / face_height
-        else:
-            eye_compression_ratio = 1.0
-        
-        # Lower ratio = more profile (eyes compressed)
-        eye_compression_score = max(0, 1 - (eye_compression_ratio / 2.5))
-        
-        # ============ FEATURE 4: Mouth-nose alignment ============
-        mouth_score = 0
-        if mouth_x is not None:
-            mouth_offset = mouth_x - eye_mid_x
-            if eye_dist > 5:
-                mouth_offset_ratio = mouth_offset / eye_dist
-                # Mouth and nose should align in profile
-                alignment_diff = abs(mouth_offset_ratio - nose_offset_ratio)
-                mouth_score = max(0, abs(mouth_offset_ratio) - alignment_diff * 0.5)
-            else:
-                mouth_score = 0.5
-        
-        # ============ FEATURE 5: Ear visibility analysis ============
-        ear_score = 0
-        ear_direction_hint = 0  # -1 = left profile, +1 = right profile
-        
-        if right_ear_x is not None and left_ear_x is not None:
-            # Calculate ear visibility difference
-            right_ear_dist = abs(right_ear_x - re_x)
-            left_ear_dist = abs(left_ear_x - le_x)
+        Args:
+            landmarks: 478 MediaPipe face landmarks.
+            img_w: Image width in pixels.
+            img_h: Image height in pixels.
             
-            # In profile, one ear is much closer to its eye than the other
-            if eye_dist > 5:
-                ear_asymmetry = abs(right_ear_dist - left_ear_dist) / eye_dist
-                ear_score = min(ear_asymmetry * 2, 1.0)
-                
-                # Determine direction from ear positions
-                if right_ear_dist < left_ear_dist * 0.7:
-                    ear_direction_hint = 1  # Right profile (right ear hidden behind face)
-                elif left_ear_dist < right_ear_dist * 0.7:
-                    ear_direction_hint = -1  # Left profile (left ear hidden behind face)
-                    
-        elif right_ear_x is not None:
-            # Only right ear visible - likely right profile
-            ear_score = 0.4
-            ear_direction_hint = 1
-        elif left_ear_x is not None:
-            # Only left ear visible - likely left profile
-            ear_score = 0.4
-            ear_direction_hint = -1
-        
-        # ============ FEATURE 6: Eye-to-ear distance ratio ============
-        eye_ear_score = 0
-        if right_ear_x is not None and left_ear_x is not None:
-            re_to_rear = abs(re_x - right_ear_x)
-            le_to_lear = abs(le_x - left_ear_x)
-            
-            if max(re_to_rear, le_to_lear) > 5:
-                eye_ear_ratio = min(re_to_rear, le_to_lear) / max(re_to_rear, le_to_lear)
-                eye_ear_score = 1 - eye_ear_ratio  # Higher when asymmetric
-        
-        # ============ FEATURE 7: Face symmetry score ============
-        symmetry_score = 0
-        if right_ear_x is not None and left_ear_x is not None and mouth_x is not None:
-            # Calculate centroid of all points
-            all_x = [re_x, le_x, nose_x, mouth_x, right_ear_x, left_ear_x]
-            centroid_x = sum(all_x) / len(all_x)
-            
-            # Calculate variance of points from centroid
-            right_side = [re_x, right_ear_x]
-            left_side = [le_x, left_ear_x]
-            
-            right_spread = sum(abs(x - centroid_x) for x in right_side) / 2
-            left_spread = sum(abs(x - centroid_x) for x in left_side) / 2
-            
-            if max(right_spread, left_spread) > 5:
-                symmetry_ratio = min(right_spread, left_spread) / max(right_spread, left_spread)
-                symmetry_score = 1 - symmetry_ratio  # Higher when asymmetric
-        
-        # ============ FEATURE 8: Vertical alignment analysis ============
-        vertical_score = 0
-        if mouth_x is not None:
-            # In profile, nose and mouth align more vertically with one eye
-            nose_to_re = abs(nose_x - re_x)
-            nose_to_le = abs(nose_x - le_x)
-            
-            if max(nose_to_re, nose_to_le) > 5:
-                vertical_ratio = min(nose_to_re, nose_to_le) / max(nose_to_re, nose_to_le)
-                vertical_score = 1 - vertical_ratio
-        
-        # ============ COMBINE ALL FEATURES ============
-        # Weighted combination of all profile indicators
-        weights = {
-            'nose_offset': 0.30,
-            'eye_compression': 0.15,
-            'mouth': 0.10,
-            'ear': 0.20,
-            'eye_ear': 0.10,
-            'symmetry': 0.10,
-            'vertical': 0.05
-        }
-        
-        combined_score = (
-            abs(nose_offset_ratio) * weights['nose_offset'] +
-            eye_compression_score * weights['eye_compression'] +
-            mouth_score * weights['mouth'] +
-            ear_score * weights['ear'] +
-            eye_ear_score * weights['eye_ear'] +
-            symmetry_score * weights['symmetry'] +
-            vertical_score * weights['vertical']
+        Returns:
+            tuple: (yaw, pitch, roll, angle, direction, profile_confidence, soft_biometrics)
+        """
+        # Extract 2D pixel coordinates for the 6 canonical landmarks
+        # 1: Nose tip, 152: Chin, 33: Left eye outer, 263: Right eye outer, 61: Left mouth, 291: Right mouth
+        image_points = np.array([
+            (landmarks[1].x * img_w, landmarks[1].y * img_h),
+            (landmarks[152].x * img_w, landmarks[152].y * img_h),
+            (landmarks[33].x * img_w, landmarks[33].y * img_h),
+            (landmarks[263].x * img_w, landmarks[263].y * img_h),
+            (landmarks[61].x * img_w, landmarks[61].y * img_h),
+            (landmarks[291].x * img_w, landmarks[291].y * img_h)
+        ], dtype=np.float64)
+
+        focal_length = float(img_w)
+        center = (img_w / 2.0, img_h / 2.0)
+        camera_matrix = np.array([
+            [focal_length, 0, center[0]],
+            [0, focal_length, center[1]],
+            [0, 0, 1]
+        ], dtype=np.float64)
+        dist_coeffs = np.zeros((4, 1), dtype=np.float64)
+
+        success, rvec, _ = cv2.solvePnP(
+            self.MODEL_POINTS_3D, image_points, camera_matrix, dist_coeffs, flags=cv2.SOLVEPNP_ITERATIVE
         )
-        
-        # Determine direction
-        # Primary indicator is nose offset, ear hints provide confirmation
-        direction_score = nose_offset_ratio
-        if ear_direction_hint != 0:
-            # Boost confidence when ear visibility agrees with nose offset
-            if (ear_direction_hint > 0 and nose_offset_ratio > 0) or \
-               (ear_direction_hint < 0 and nose_offset_ratio < 0):
-                combined_score *= 1.2
-        
-        # Classify based on combined score
-        if combined_score > self.STRONG_PROFILE_THRESHOLD:
-            confidence = min(combined_score * 120, 100)
-            direction = 'right_profile' if direction_score > 0 else 'left_profile'
-        elif combined_score > self.PROFILE_THRESHOLD:
-            confidence = combined_score * 100
-            direction = 'right_profile' if direction_score > 0 else 'left_profile'
+
+        if success:
+            rmat, _ = cv2.Rodrigues(rvec)
+            angles, _, _, _, _, _ = cv2.RQDecomp3x3(rmat)
+            pitch, yaw, roll = float(angles[0]), float(angles[1]), float(angles[2])
         else:
-            confidence = (1 - combined_score) * 100
+            pitch, yaw, roll = 0.0, 0.0, 0.0
+
+        # Classify direction from Yaw angle
+        # Positive yaw = subject looking to their right (right profile)
+        # Negative yaw = subject looking to their left (left profile)
+        if yaw > self.PROFILE_THRESHOLD:
+            direction = 'right_profile'
+        elif yaw < -self.PROFILE_THRESHOLD:
+            direction = 'left_profile'
+        else:
             direction = 'frontal'
-        
-        # Calculate angle (0-90 degrees)
-        angle = min(combined_score * 120, 90)
-        
+
+        angle = min(abs(yaw), 90.0)
+
+        if direction in ['left_profile', 'right_profile']:
+            profile_confidence = min((abs(yaw) / 45.0) * 100.0, 100.0)
+        else:
+            profile_confidence = max(0.0, (1.0 - abs(yaw) / self.PROFILE_THRESHOLD) * 100.0)
+
         soft_biometrics = {
-            'nose_offset_ratio': nose_offset_ratio,
-            'eye_compression_score': eye_compression_score,
-            'ear_symmetry_score': ear_score,
-            'combined_pose_score': combined_score
+            'yaw': round(yaw, 2),
+            'pitch': round(pitch, 2),
+            'roll': round(roll, 2),
+            'head_pose_angle': round(angle, 2),
+            'direction': direction,
+            'profile_confidence': round(profile_confidence, 2)
         }
-        
-        return angle, direction, confidence, soft_biometrics
-    
+
+        return yaw, pitch, roll, angle, direction, profile_confidence, soft_biometrics
+
+    def _run_face_mesh(self, image):
+        """Pass 1: MediaPipe FaceLandmarker detection with 3D pose estimation."""
+        h, w = image.shape[:2]
+        clahe_img = self._apply_clahe(image)
+        rgb_image = cv2.cvtColor(clahe_img, cv2.COLOR_BGR2RGB)
+        mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb_image)
+
+        detection_result = self.landmarker.detect(mp_image)
+        faces = []
+
+        if not detection_result.face_landmarks:
+            return faces
+
+        for landmarks in detection_result.face_landmarks:
+            xs = [p.x * w for p in landmarks]
+            ys = [p.y * h for p in landmarks]
+
+            min_x, max_x = max(0, min(xs)), min(w, max(xs))
+            min_y, max_y = max(0, min(ys)), min(h, max(ys))
+
+            box_w = max_x - min_x
+            box_h = max_y - min_y
+
+            # Add 15% margin for full facial framing
+            pad_x = int(box_w * 0.15)
+            pad_y = int(box_h * 0.15)
+
+            x1 = max(0, int(min_x - pad_x))
+            y1 = max(0, int(min_y - pad_y))
+            x2 = min(w, int(max_x + pad_x))
+            y2 = min(h, int(max_y + pad_y))
+
+            yaw, pitch, roll, angle, direction, profile_conf, soft_metrics = self._compute_head_pose(
+                landmarks, w, h
+            )
+
+            # Keypoints for backward compatibility (left eye, right eye, nose tip, mouth, left ear, right ear)
+            keypoint_indices = [33, 263, 1, 13, 234, 454]
+            keypoints = [
+                {'x': int(landmarks[idx].x * w), 'y': int(landmarks[idx].y * h)}
+                for idx in keypoint_indices
+            ]
+
+            face = {
+                'bbox': {
+                    'x': x1,
+                    'y': y1,
+                    'w': max(1, x2 - x1),
+                    'h': max(1, y2 - y1)
+                },
+                'confidence': 0.95,
+                'direction': direction,
+                'angle': angle,
+                'angle_label': direction,  # Alias for inference.py compatibility
+                'profile_confidence': profile_conf,
+                'keypoints': keypoints,
+                'soft_biometrics': soft_metrics
+            }
+            faces.append(face)
+
+        return faces
+
+    def _run_face_mesh_flipped(self, image):
+        """Pass 2: Run FaceLandmarker on horizontally flipped image to capture extreme profile angles."""
+        h, w = image.shape[:2]
+        flipped_img = cv2.flip(image, 1)
+        flipped_faces = self._run_face_mesh(flipped_img)
+
+        unflipped_faces = []
+        for face in flipped_faces:
+            orig_bbox = face['bbox']
+            # Unflip x coordinate: x_orig = w - (x_flipped + w_bbox)
+            unflipped_x = max(0, w - (orig_bbox['x'] + orig_bbox['w']))
+
+            # Invert direction
+            if face['direction'] == 'left_profile':
+                unflipped_dir = 'right_profile'
+            elif face['direction'] == 'right_profile':
+                unflipped_dir = 'left_profile'
+            else:
+                unflipped_dir = 'frontal'
+
+            unflipped_keypoints = [
+                {'x': max(0, w - kp['x']), 'y': kp['y']}
+                for kp in face.get('keypoints', [])
+            ]
+
+            soft_bio = dict(face.get('soft_biometrics', {}))
+            if 'yaw' in soft_bio:
+                soft_bio['yaw'] = -soft_bio['yaw']
+            if 'roll' in soft_bio:
+                soft_bio['roll'] = -soft_bio['roll']
+            soft_bio['direction'] = unflipped_dir
+
+            unflipped_faces.append({
+                'bbox': {
+                    'x': unflipped_x,
+                    'y': orig_bbox['y'],
+                    'w': orig_bbox['w'],
+                    'h': orig_bbox['h']
+                },
+                'confidence': face['confidence'],
+                'direction': unflipped_dir,
+                'angle': face['angle'],
+                'angle_label': unflipped_dir,
+                'profile_confidence': face['profile_confidence'],
+                'keypoints': unflipped_keypoints,
+                'soft_biometrics': soft_bio
+            })
+
+        return unflipped_faces
+
+    def _run_haar_profile(self, image):
+        """Pass 3: OpenCV Haar Profile Cascade for extreme 90° side profiles."""
+        if self.profile_cascade is None or self.profile_cascade.empty():
+            return []
+
+        h, w = image.shape[:2]
+        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        gray_clahe = self.clahe.apply(gray)
+
+        faces = []
+
+        # Detect right profiles on original image
+        rects_orig = self.profile_cascade.detectMultiScale(
+            gray_clahe, scaleFactor=1.1, minNeighbors=4, minSize=(40, 40)
+        )
+        for (x, y, bw, bh) in rects_orig:
+            faces.append({
+                'bbox': {'x': int(x), 'y': int(y), 'w': int(bw), 'h': int(bh)},
+                'confidence': 0.75,
+                'direction': 'right_profile',
+                'angle': 90.0,
+                'angle_label': 'right_profile',
+                'profile_confidence': 90.0,
+                'keypoints': [{'x': int(x + bw / 2), 'y': int(y + bh / 2)}],
+                'soft_biometrics': {'yaw': 90.0, 'pitch': 0.0, 'roll': 0.0, 'direction': 'right_profile'}
+            })
+
+        # Detect left profiles on flipped image
+        gray_flipped = cv2.flip(gray_clahe, 1)
+        rects_flip = self.profile_cascade.detectMultiScale(
+            gray_flipped, scaleFactor=1.1, minNeighbors=4, minSize=(40, 40)
+        )
+        for (x, y, bw, bh) in rects_flip:
+            unflipped_x = max(0, w - (x + bw))
+            faces.append({
+                'bbox': {'x': int(unflipped_x), 'y': int(y), 'w': int(bw), 'h': int(bh)},
+                'confidence': 0.75,
+                'direction': 'left_profile',
+                'angle': 90.0,
+                'angle_label': 'left_profile',
+                'profile_confidence': 90.0,
+                'keypoints': [{'x': int(unflipped_x + bw / 2), 'y': int(y + bh / 2)}],
+                'soft_biometrics': {'yaw': -90.0, 'pitch': 0.0, 'roll': 0.0, 'direction': 'left_profile'}
+            })
+
+        return faces
+
+    def _run_haar_frontal(self, image):
+        """Pass 4: OpenCV Haar Frontal Cascade emergency fallback."""
+        if self.frontal_cascade is None or self.frontal_cascade.empty():
+            return []
+
+        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        gray_clahe = self.clahe.apply(gray)
+
+        rects = self.frontal_cascade.detectMultiScale(
+            gray_clahe, scaleFactor=1.1, minNeighbors=4, minSize=(40, 40)
+        )
+        faces = []
+        for (x, y, bw, bh) in rects:
+            faces.append({
+                'bbox': {'x': int(x), 'y': int(y), 'w': int(bw), 'h': int(bh)},
+                'confidence': 0.70,
+                'direction': 'frontal',
+                'angle': 0.0,
+                'angle_label': 'frontal',
+                'profile_confidence': 10.0,
+                'keypoints': [{'x': int(x + bw / 2), 'y': int(y + bh / 2)}],
+                'soft_biometrics': {'yaw': 0.0, 'pitch': 0.0, 'roll': 0.0, 'direction': 'frontal'}
+            })
+
+        return faces
+
     @staticmethod
     def _compute_iou(box1, box2):
-        """Compute IoU between two bounding boxes (x, y, w, h)."""
+        """Compute Intersection over Union (IoU) between two bounding boxes."""
         x1 = max(box1['x'], box2['x'])
         y1 = max(box1['y'], box2['y'])
         x2 = min(box1['x'] + box1['w'], box2['x'] + box2['w'])
         y2 = min(box1['y'] + box1['h'], box2['y'] + box2['h'])
-        
+
         inter = max(0, x2 - x1) * max(0, y2 - y1)
         area1 = box1['w'] * box1['h']
         area2 = box2['w'] * box2['h']
         union = area1 + area2 - inter
-        
+
         return inter / (union + 1e-6)
-    
+
     def _nms_faces(self, faces, iou_threshold=0.4):
-        """Non-Maximum Suppression to remove duplicate face detections."""
+        """Non-Maximum Suppression to eliminate duplicate face detections."""
         if len(faces) <= 1:
             return faces
-        
-        # Sort by confidence (descending)
-        faces_sorted = sorted(faces, key=lambda f: f['confidence'], reverse=True)
+
+        faces_sorted = sorted(faces, key=lambda f: f.get('confidence', 0), reverse=True)
         kept = []
-        
+
         for face in faces_sorted:
             is_duplicate = False
             for kept_face in kept:
@@ -345,102 +421,63 @@ class SideFaceDetector:
                     break
             if not is_duplicate:
                 kept.append(face)
-        
+
         return kept
-    
-    def _run_blazeface(self, image, detector_obj=None):
-        """Run a BlazeFace detector on the image, return list of face dicts."""
-        if detector_obj is None:
-            detector_obj = self.detector
-        
-        h, w = image.shape[:2]
-        rgb_image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-        mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb_image)
-        
-        result = detector_obj.detect(mp_image)
-        faces = []
-        
-        for detection in result.detections:
-            bbox = detection.bounding_box
-            score = detection.categories[0].score
-            
-            angle, direction, profile_conf, soft_metrics = self._calculate_profile_direction(
-                detection.keypoints, w, h
-            )
-            
-            face = {
-                'bbox': {
-                    'x': max(0, bbox.origin_x),
-                    'y': max(0, bbox.origin_y),
-                    'w': bbox.width,
-                    'h': bbox.height
-                },
-                'confidence': score,
-                'direction': direction,
-                'angle': angle,
-                'profile_confidence': profile_conf,
-                'keypoints': [
-                    {'x': int(kp.x * w), 'y': int(kp.y * h)} 
-                    for kp in detection.keypoints
-                ],
-                'soft_biometrics': soft_metrics
-            }
-            faces.append(face)
-        
-        return faces
-    
-    def _run_haar_profile(self, image):
-        """Removed in Phase 5: Deep Learning Face Detection upgrade."""
-        return []
-    
+
     def detect_faces(self, image, profile_only=True):
         """
-        Multi-pass face detection for maximum recall.
+        Execute 4-pass detection cascade with CLAHE preprocessing and NMS.
         
-        Pass 1: BlazeFace at normal confidence (fast, catches most faces)
-        Pass 2: BlazeFace at low confidence (catches side faces missed by Pass 1)
-        Pass 3: Haar profile cascade (catches extreme profiles BlazeFace misses)
-        
-        All passes are deduplicated via Non-Maximum Suppression (NMS).
+        Pass 1: FaceLandmarker (478 3D landmarks + solvePnP)
+        Pass 2: FaceLandmarker on horizontally flipped image
+        Pass 3: Haar Profile Cascade (left & right profiles)
+        Pass 4: Haar Frontal Cascade
         
         Args:
-            image: BGR image from OpenCV
-            profile_only: If True, only return side-facing faces
+            image: BGR image from OpenCV.
+            profile_only: If True, returns only side-facing profiles.
             
         Returns:
-            List of face dictionaries with detection info
+            list: List of standard face dictionaries.
         """
         all_faces = []
-        
-        # Pass 1: Primary BlazeFace detector
-        faces_1 = self._run_blazeface(image, self.detector)
+
+        # Pass 1: Primary FaceLandmarker detection
+        faces_1 = self._run_face_mesh(image)
         all_faces.extend(faces_1)
-        
-        # Pass 2: Low-confidence BlazeFace (only if Pass 1 found few faces)
-        if len(faces_1) < 1 and self._low_conf_detector is not None:
-            faces_2 = self._run_blazeface(image, self._low_conf_detector)
+
+        # Pass 2: Flipped FaceLandmarker (if Pass 1 found nothing)
+        if len(all_faces) == 0:
+            faces_2 = self._run_face_mesh_flipped(image)
             all_faces.extend(faces_2)
-        
+
+        # Pass 3: Haar Profile Cascade (if Pass 1 and 2 found nothing)
+        if len(all_faces) == 0:
+            faces_3 = self._run_haar_profile(image)
+            all_faces.extend(faces_3)
+
+        # Pass 4: Haar Frontal Cascade (emergency fallback)
+        if len(all_faces) == 0:
+            faces_4 = self._run_haar_frontal(image)
+            all_faces.extend(faces_4)
+
         # Deduplicate with NMS
         all_faces = self._nms_faces(all_faces, iou_threshold=0.4)
-        
-        # Filter by direction if profile_only
+
+        # Filter by direction if profile_only is requested
         if profile_only:
             all_faces = [f for f in all_faces if f['direction'] in ['left_profile', 'right_profile']]
-        
-        # Sort faces from left to right (based on x-coordinate) to ensure stable
-        # array indices frame-to-frame, preventing React UI from "swapping" labels.
+
+        # Sort faces left-to-right based on x coordinate for stable ordering
         all_faces.sort(key=lambda f: f['bbox']['x'])
-        
+
         return all_faces
-    
+
     def draw_results(self, image, faces, show_keypoints=True, show_stats=True):
-        """
-        Draw detection results on image with enhanced visuals.
-        """
+        """Draw detection bounding boxes, angles, keypoints, and statistics."""
         output = image.copy()
         h, w = output.shape[:2]
-        
+
         # Update FPS
         self.frame_count += 1
         elapsed = time.time() - self.start_time
@@ -448,249 +485,180 @@ class SideFaceDetector:
             self.fps = self.frame_count / elapsed
             self.frame_count = 0
             self.start_time = time.time()
-        
+
         for face in faces:
             bbox = face['bbox']
             direction = face['direction']
-            conf = face['confidence']
-            prof_conf = face.get('profile_confidence', 0)
+            conf = face.get('confidence', 0.0)
+            angle = face.get('angle', 0.0)
+            soft = face.get('soft_biometrics', {})
+            yaw = soft.get('yaw', angle)
+            pitch = soft.get('pitch', 0.0)
+            roll = soft.get('roll', 0.0)
+
             color = self.COLORS.get(direction, self.COLORS['unknown'])
-            
             x, y, bw, bh = bbox['x'], bbox['y'], bbox['w'], bbox['h']
-            
-            # Draw rounded rectangle effect
+
+            # Bounding box
             cv2.rectangle(output, (x, y), (x + bw, y + bh), color, 2)
-            cv2.rectangle(output, (x-1, y-1), (x + bw + 1, y + bh + 1), (0, 0, 0), 1)
-            
-            # Direction label with background
-            label = direction.replace('_', ' ').upper()
-            label_size, _ = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.6, 2)
-            
-            # Label background
-            cv2.rectangle(output, (x, y - 28), (x + label_size[0] + 10, y), color, -1)
-            cv2.putText(output, label, (x + 5, y - 8),
-                       cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
-            
+            cv2.rectangle(output, (x - 1, y - 1), (x + bw + 1, y + bh + 1), (0, 0, 0), 1)
+
+            # Direction & Angle Label
+            label = f"{direction.replace('_', ' ').upper()} ({abs(yaw):.1f}°)"
+            label_size, _ = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.55, 2)
+
+            cv2.rectangle(output, (x, max(0, y - 26)), (x + label_size[0] + 8, y), color, -1)
+            cv2.putText(output, label, (x + 4, max(12, y - 7)),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.55, (255, 255, 255), 2)
+
+            # Subtitle with Pitch and Roll
+            sub_label = f"P:{pitch:+.0f}° R:{roll:+.0f}°"
+            cv2.putText(output, sub_label, (x + 2, y + bh - 6),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.45, (255, 255, 255), 1)
+
             # Confidence bar
-            bar_width = int((conf) * bw)
-            cv2.rectangle(output, (x, y + bh + 5), (x + bar_width, y + bh + 12), color, -1)
-            cv2.rectangle(output, (x, y + bh + 5), (x + bw, y + bh + 12), color, 1)
-            
-            # Draw keypoints
-            if show_keypoints:
-                keypoint_colors = [
-                    (0, 255, 255),  # right eye - yellow
-                    (0, 255, 255),  # left eye - yellow
-                    (255, 0, 255),  # nose - magenta
-                    (255, 255, 0),  # mouth - cyan
-                    (0, 165, 255),  # right ear - orange
-                    (0, 165, 255),  # left ear - orange
-                ]
-                for i, kp in enumerate(face['keypoints']):
-                    kp_color = keypoint_colors[i] if i < len(keypoint_colors) else (255, 255, 255)
-                    cv2.circle(output, (kp['x'], kp['y']), 4, kp_color, -1)
-                    cv2.circle(output, (kp['x'], kp['y']), 5, (0, 0, 0), 1)
-        
+            bar_width = int(conf * bw)
+            cv2.rectangle(output, (x, y + bh + 4), (x + bar_width, y + bh + 10), color, -1)
+            cv2.rectangle(output, (x, y + bh + 4), (x + bw, y + bh + 10), color, 1)
+
+            # Keypoints
+            if show_keypoints and 'keypoints' in face:
+                for kp in face['keypoints']:
+                    cv2.circle(output, (kp['x'], kp['y']), 3, (0, 255, 255), -1)
+                    cv2.circle(output, (kp['x'], kp['y']), 4, (0, 0, 0), 1)
+
         # Stats overlay
         if show_stats:
-            # Create semi-transparent overlay
             overlay = output.copy()
-            cv2.rectangle(overlay, (5, 5), (220, 100), (0, 0, 0), -1)
-            cv2.addWeighted(overlay, 0.6, output, 0.4, 0, output)
-            
-            # Stats text
+            cv2.rectangle(overlay, (8, 8), (220, 105), (0, 0, 0), -1)
+            cv2.addWeighted(overlay, 0.65, output, 0.35, 0, output)
+
             left_count = sum(1 for f in faces if f['direction'] == 'left_profile')
             right_count = sum(1 for f in faces if f['direction'] == 'right_profile')
             frontal_count = sum(1 for f in faces if f['direction'] == 'frontal')
-            
-            cv2.putText(output, f"FPS: {self.fps:.1f}", (15, 28),
-                       cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 0), 2)
-            cv2.putText(output, f"Left Profiles: {left_count}", (15, 50),
-                       cv2.FONT_HERSHEY_SIMPLEX, 0.5, self.COLORS['left_profile'], 2)
-            cv2.putText(output, f"Right Profiles: {right_count}", (15, 70),
-                       cv2.FONT_HERSHEY_SIMPLEX, 0.5, self.COLORS['right_profile'], 2)
-            cv2.putText(output, f"Frontal: {frontal_count}", (15, 90),
-                       cv2.FONT_HERSHEY_SIMPLEX, 0.5, self.COLORS['frontal'], 2)
-        
+
+            cv2.putText(output, f"FPS: {self.fps:.1f}", (16, 28),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.55, (0, 255, 0), 2)
+            cv2.putText(output, f"Left Profiles:  {left_count}", (16, 50),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.48, self.COLORS['left_profile'], 2)
+            cv2.putText(output, f"Right Profiles: {right_count}", (16, 72),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.48, self.COLORS['right_profile'], 2)
+            cv2.putText(output, f"Frontal Faces:  {frontal_count}", (16, 94),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.48, self.COLORS['frontal'], 2)
+
         return output
-    
+
     def close(self):
         """Cleanup resources."""
-        self.detector = None
+        if hasattr(self, 'landmarker') and self.landmarker:
+            try:
+                self.landmarker.close()
+            except Exception:
+                pass
+            self.landmarker = None
 
 
 def run_webcam_detection(profile_only=True):
-    """
-    Real-time webcam detection with keyboard controls.
-    
-    Controls:
-        Q - Quit
-        P - Toggle profile-only mode
-        K - Toggle keypoints
-        S - Save screenshot
-    """
-    print("\n" + "=" * 50)
-    print("🎥 WEBCAM SIDE FACE DETECTION")
-    print("=" * 50)
-    print("\n🎮 Controls:")
-    print("   [Q] Quit")
-    print("   [P] Toggle Profile-Only Mode")
-    print("   [K] Toggle Keypoints")
-    print("   [S] Save Screenshot")
-    print("=" * 50)
-    
+    """Real-time webcam detection with keyboard controls."""
+    print("\n" + "=" * 55)
+    print("🎥 WEBCAM 4-PASS FACE DETECTION (MediaPipe FaceLandmarker)")
+    print("=" * 55)
+    print("Controls: [Q] Quit | [P] Toggle Profile Mode | [K] Keypoints | [S] Screenshot\n")
+
     detector = SideFaceDetector(min_detection_confidence=0.35)
     cap = cv2.VideoCapture(0)
-    
+
     if not cap.isOpened():
         print("❌ Error: Cannot open webcam!")
         return
-    
-    # Set camera properties for better performance
+
     cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
     cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
     cap.set(cv2.CAP_PROP_FPS, 30)
-    
+
     show_keypoints = True
     screenshot_count = 0
-    
-    print("\n✅ Webcam started! Turn your head left/right to detect profiles.")
-    
+
+    print("✅ Webcam active! Turn head left/right to test profile detection.")
+
     while True:
         ret, frame = cap.read()
         if not ret:
-            print("❌ Frame capture failed")
             break
-        
-        # Mirror the frame
+
         frame = cv2.flip(frame, 1)
-        
-        # Detect faces
         faces = detector.detect_faces(frame, profile_only=profile_only)
-        
-        # Draw results
         output = detector.draw_results(frame, faces, show_keypoints=show_keypoints)
-        
-        # Mode indicator
+
         mode_text = "PROFILE ONLY" if profile_only else "ALL FACES"
         mode_color = (0, 200, 255) if profile_only else (0, 255, 0)
         cv2.putText(output, f"Mode: {mode_text}", (output.shape[1] - 200, 30),
-                   cv2.FONT_HERSHEY_SIMPLEX, 0.6, mode_color, 2)
-        
-        # Show frame
-        cv2.imshow('Side Face Detection - Press Q to Quit', output)
-        
-        # Handle keyboard input
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.55, mode_color, 2)
+
+        cv2.imshow('Face Detection (Press Q to Quit)', output)
+
         key = cv2.waitKey(1) & 0xFF
-        
         if key == ord('q'):
-            print("\n👋 Exiting...")
             break
         elif key == ord('p'):
             profile_only = not profile_only
             print(f"📌 Mode: {'Profile Only' if profile_only else 'All Faces'}")
         elif key == ord('k'):
             show_keypoints = not show_keypoints
-            print(f"📌 Keypoints: {'ON' if show_keypoints else 'OFF'}")
         elif key == ord('s'):
             screenshot_count += 1
             filename = f"screenshot_{screenshot_count}.jpg"
             cv2.imwrite(filename, output)
             print(f"📸 Saved: {filename}")
-    
+
     cap.release()
     cv2.destroyAllWindows()
     detector.close()
 
 
 def run_image_detection(image_path, output_path=None, profile_only=True):
-    """Process a single image for side face detection."""
-    print(f"\n📷 Processing: {image_path}")
-    
+    """Process a single image for face and profile detection."""
     detector = SideFaceDetector(min_detection_confidence=0.35)
-    
     image = cv2.imread(image_path)
     if image is None:
-        print(f"❌ Error: Cannot read image!")
+        print(f"❌ Error: Cannot read image at {image_path}")
         return None
-    
+
     faces = detector.detect_faces(image, profile_only=profile_only)
-    
-    # Print results
-    print("\n" + "=" * 40)
-    print("📊 DETECTION RESULTS")
-    print("=" * 40)
-    
-    left = sum(1 for f in faces if f['direction'] == 'left_profile')
-    right = sum(1 for f in faces if f['direction'] == 'right_profile')
-    frontal = sum(1 for f in faces if f['direction'] == 'frontal')
-    
-    print(f"  🔵 Left Profiles:  {left}")
-    print(f"  🔴 Right Profiles: {right}")
-    if not profile_only:
-        print(f"  🟢 Frontal Faces:  {frontal}")
-    print("=" * 40)
-    
-    for i, face in enumerate(faces):
-        print(f"\n  Face {i+1}:")
-        print(f"    Direction:  {face['direction'].replace('_', ' ').title()}")
-        print(f"    Confidence: {face['confidence']:.1%}")
-    
-    # Draw and save/show
     output = detector.draw_results(image, faces)
-    
+
     if output_path:
         cv2.imwrite(output_path, output)
-        print(f"\n✅ Saved: {output_path}")
+        print(f"✅ Saved output to: {output_path}")
     else:
-        cv2.imshow('Detection Result - Press any key', output)
+        cv2.imshow('Detection Result (Press any key)', output)
         cv2.waitKey(0)
         cv2.destroyAllWindows()
-    
+
     detector.close()
     return faces
 
 
 def main():
-    """Main menu interface."""
+    """CLI Menu."""
     print("\n" + "=" * 55)
-    print("   🎯 ADVANCED SIDE FACE / PROFILE DETECTION")
-    print("   📦 Using MediaPipe (Pre-trained Model)")
+    print("   🎯 ADVANCED SIDE FACE DETECTION (4-PASS CASCADE)")
     print("=" * 55)
-    print("\n   ✅ No dataset required!")
-    print("   ✅ Detects: LEFT PROFILE | RIGHT PROFILE | FRONTAL")
-    print("\n" + "-" * 55)
-    print("   OPTIONS:")
-    print("-" * 55)
     print("   1. 🎥 Webcam - Profile faces ONLY")
-    print("   2. 🎥 Webcam - All faces (with direction)")
+    print("   2. 🎥 Webcam - All faces (Frontal & Profiles)")
     print("   3. 📷 Image  - Profile faces ONLY")
-    print("   4. 📷 Image  - All faces (with direction)")
+    print("   4. 📷 Image  - All faces")
     print("   5. 🚪 Exit")
     print("-" * 55)
-    
-    while True:
-        choice = input("\n   Enter choice (1-5): ").strip()
-        
-        if choice == '1':
-            run_webcam_detection(profile_only=True)
-        elif choice == '2':
-            run_webcam_detection(profile_only=False)
-        elif choice == '3':
-            path = input("   Image path: ").strip().strip('"')
-            save = input("   Save output? (y/n): ").strip().lower()
-            out = input("   Output path: ").strip().strip('"') if save == 'y' else None
-            run_image_detection(path, out, profile_only=True)
-        elif choice == '4':
-            path = input("   Image path: ").strip().strip('"')
-            save = input("   Save output? (y/n): ").strip().lower()
-            out = input("   Output path: ").strip().strip('"') if save == 'y' else None
-            run_image_detection(path, out, profile_only=False)
-        elif choice == '5':
-            print("\n   👋 Goodbye!\n")
-            break
-        else:
-            print("   ⚠️ Invalid choice. Try again.")
+
+    choice = input("\n   Enter choice (1-5): ").strip()
+    if choice == '1':
+        run_webcam_detection(profile_only=True)
+    elif choice == '2':
+        run_webcam_detection(profile_only=False)
+    elif choice in ('3', '4'):
+        path = input("   Image path: ").strip().strip('"')
+        run_image_detection(path, profile_only=(choice == '3'))
 
 
 if __name__ == "__main__":

@@ -25,7 +25,7 @@ PROJECT_ROOT = os.path.dirname(BACKEND_DIR)
 from model import apply_clahe, get_embedding, get_embedding_insightface, generate_augments, NUM_AUGMENTS_QUICK, EDGE_LIGHTWEIGHT
 from org_storage import get_sota_model_path, get_sota_classes_path
 from face_detection import SideFaceDetector
-from clean_dataset import _build_mediapipe_detector, _detect_with_mediapipe, EXTRA_PAD
+from scripts.clean_dataset import _build_mediapipe_detector, _detect_with_mediapipe, EXTRA_PAD
 
 
 # ============================================================================
@@ -91,10 +91,10 @@ def update_deepface_model(person_name, image_paths, model_name='Facenet512', org
     Returns:
         tuple: (new_encodings_list, new_names_list, num_added)
     """
-    # ── GPU Fast Path ──────────────────────────────────────────────────────────
+    # ── GPU Fast Path (InsightFace only) ─────────────────────────────────────
     try:
         from gpu_trainer import is_gpu_available, enroll_with_gpu
-        if is_gpu_available():
+        if model_name == 'InsightFace' and is_gpu_available():
             print(f"\n{'='*50}")
             print(f"GPU (InsightFace): Adding embeddings for '{person_name}'")
             print(f"{'='*50}")
@@ -354,7 +354,7 @@ def update_sota_model(person_name, dataset_dir=None,
     from models.sota_finetune.finetune import build_mobile_model
 
     print(f"\n{'='*50}")
-    print(f"📱 SOTA MobileNetV2: Fine-tuning for '{person_name}'")
+    print(f"SOTA MobileNetV2: Fine-tuning for '{person_name}'")
     print(f"{'='*50}")
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -370,7 +370,7 @@ def update_sota_model(person_name, dataset_dir=None,
             old_classes = [line.strip() for line in f.readlines() if line.strip()]
 
     if person_name in old_classes:
-        print(f"   ℹ️ '{person_name}' already exists in SOTA classes. Re-training...")
+        print(f"   [INFO] '{person_name}' already exists in SOTA classes. Re-training...")
     else:
         old_classes.append(person_name)
 
@@ -655,7 +655,7 @@ def add_person_fast(person_name, image_data_list, dataset_dir=None, encodings_pa
     # 3. Update Embeddings (instant -- no retrain) if we added new images
     # We update Facenet512, GhostFaceNet, AND InsightFace (primary model for live prediction)
     if saved_cleaned_paths:
-        for model_name in ['InsightFace', 'Facenet512', 'GhostFaceNet']:
+        for model_name in ['InsightFace', 'Facenet512', 'GhostFaceNet', 'VGG-Face']:
             try:
                 new_encs, new_names, num_added = update_deepface_model(person_name, saved_cleaned_paths, model_name=model_name, org_id=org_id)
                 status_parts.append(f"**{model_name}**: Added {num_added} embeddings (total: {len(new_encs)})")

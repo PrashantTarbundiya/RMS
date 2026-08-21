@@ -1,5 +1,13 @@
 import sys
 import os
+
+# Monkey-patch standard library for Gevent async mode (Must be at the very top)
+try:
+    import gevent.monkey
+    gevent.monkey.patch_all()
+except ImportError:
+    pass
+
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'  # Suppress TF warnings
 
 # Load .env file before any other imports read env vars
@@ -991,7 +999,7 @@ def create_backup(org_id):
     """Create a full system backup archive."""
     from backup_restore import create_full_backup
 
-    data = request.get_json() or {}
+    data = request.get_json(silent=True) or {}
     org_scoped = data.get('org_scoped', True)
 
     success, backup_path, manifest, error = create_full_backup(
@@ -1991,7 +1999,8 @@ training_thread_lock = threading.Lock()
 
 def process_local_training_queue():
     import sys
-    from add_person_utils import update_sota_model
+    from add_person_utils import update_sota_model, update_deepface_model
+    import glob as glob_module
     
     while not local_training_queue.empty():
         job = local_training_queue.get()
@@ -2019,13 +2028,40 @@ def process_local_training_queue():
         sys.stdout = ThreadSafeStringWriter(log_callback)
         try:
             training_status['is_training'] = True
-            training_status['progress'] = 10
+            training_status['progress'] = 5
             training_status['logs'] = [
-                "SOTA MobileNetV2: Fine-tuning started",
-                f"[INFO] Starting SOTA MobileNetV2 fine-tuning for {person_name} on local thread..."
+                f"[INFO] Starting full model retraining for {person_name}..."
             ]
             
             org_dataset_dir = get_dataset_cleaned_dir(org_id)
+            
+            # ── Phase 1: Retrain all 4 embedding models ──────────────────────
+            person_dir = os.path.join(org_dataset_dir, person_name)
+            image_paths = []
+            if os.path.exists(person_dir):
+                image_paths = glob_module.glob(os.path.join(person_dir, '**', '*.jpg'), recursive=True) + \
+                              glob_module.glob(os.path.join(person_dir, '**', '*.png'), recursive=True)
+            
+            if image_paths:
+                all_models = ['Facenet512', 'InsightFace', 'GhostFaceNet', 'VGG-Face']
+                for idx, model_name in enumerate(all_models):
+                    try:
+                        print(f"\n[{idx+1}/{len(all_models)}] Retraining {model_name} for {person_name}...")
+                        training_status['progress'] = 5 + int((idx / len(all_models)) * 45)
+                        update_deepface_model(person_name, image_paths, model_name=model_name, org_id=org_id)
+                        print(f"[OK] {model_name} embeddings updated.")
+                    except Exception as e:
+                        print(f"[WARNING] {model_name} retrain failed: {e}")
+                
+                training_status['progress'] = 50
+                print(f"\n[INFO] All embedding models updated for {person_name}.")
+            else:
+                print(f"[WARNING] No images found for {person_name} in {person_dir}. Skipping embedding retrain.")
+            
+            # ── Phase 2: SOTA MobileNetV2 fine-tuning ────────────────────────
+            print(f"\n[INFO] Starting SOTA MobileNetV2 fine-tuning for {person_name}...")
+            training_status['progress'] = 55
+            
             try:
                 import gevent.threadpool
                 pool = gevent.threadpool.ThreadPool(1)
@@ -2035,7 +2071,7 @@ def process_local_training_queue():
             
             training_status['progress'] = 100
             training_status['logs'].append("Saved updated model: best_mobile_sideface")
-            training_status['logs'].append(f"[SUCCESS] Model refinement complete for {person_name}!")
+            training_status['logs'].append(f"[SUCCESS] All models retrained for {person_name}!")
             reload_org_models(org_id)
             
             if history_job:
@@ -2148,6 +2184,19 @@ def load_edge_model(org_id=None):
 
 # Removed load_sota in favor of load_edge_model above.
 
+def load_vggface(org_id=None):
+    try:
+        from org_storage import load_encodings
+        encodings, names = load_encodings(org_id, model_name="VGG-Face")
+        if not encodings:
+            logger.info(f"VGG-Face encodings not found for org {org_id} (not yet trained)")
+            return None, None
+        logger.info(f"VGG-Face loaded for org {org_id}: {len(encodings)} encodings")
+        return encodings, names
+    except Exception as e:
+        logger.warning(f"VGG-Face encodings not loadable for org {org_id}: {e}")
+        return None, None
+
 def ensure_org_models_loaded(org_id=None):
     """Lazy-load models for a specific org on first inference request."""
     global _org_model_cache
@@ -2156,13 +2205,16 @@ def ensure_org_models_loaded(org_id=None):
         f_encs, f_names = load_facenet512(org_id)
         i_encs, i_names = load_insightface(org_id)
         e_encs, e_names = load_edge_model(org_id)
+        v_encs, v_names = load_vggface(org_id)
         _org_model_cache[org_id] = {
             'facenet512_encodings': f_encs,
             'facenet512_names': f_names,
             'insightface_encodings': i_encs,
             'insightface_names': i_names,
             'ghostfacenet_encodings': e_encs,
-            'ghostfacenet_names': e_names
+            'ghostfacenet_names': e_names,
+            'vggface_encodings': v_encs,
+            'vggface_names': v_names
         }
         logger.info(f"All models loaded for org {org_id}.")
     return _org_model_cache[org_id]
@@ -2174,13 +2226,16 @@ def reload_org_models(org_id=None):
     f_encs, f_names = load_facenet512(org_id)
     i_encs, i_names = load_insightface(org_id)
     e_encs, e_names = load_edge_model(org_id)
+    v_encs, v_names = load_vggface(org_id)
     _org_model_cache[org_id] = {
         'facenet512_encodings': f_encs,
         'facenet512_names': f_names,
         'insightface_encodings': i_encs,
         'insightface_names': i_names,
         'ghostfacenet_encodings': e_encs,
-        'ghostfacenet_names': e_names
+        'ghostfacenet_names': e_names,
+        'vggface_encodings': v_encs,
+        'vggface_names': v_names
     }
     _models_loaded = True
     logger.info("Models reloaded globally.")
@@ -2328,7 +2383,11 @@ def upload_person(org_id):
         logger.error(f"Fast enrollment error: {e}")
         return jsonify({'error': f"Failed during fast enrollment: {str(e)}"}), 500
 
-    msg = f'Person enrolled and searchable now.'
+    # Queue SOTA MobileNetV2 fine-tuning in background
+    # (fast enrollment already handled the 4 embedding models above)
+    enqueue_local_training(person_name, epochs, org_id)
+
+    msg = f'Person enrolled and searchable now. SOTA fine-tuning queued.'
     if rejected_count > 0:
         msg += f' ({rejected_count} file(s) rejected/failed)'
     return jsonify({'message': msg})
@@ -2343,15 +2402,41 @@ def get_training_queue():
 @require_auth
 @inject_org_id
 def get_training_status(org_id):
-    """Server-Sent Events endpoint to stream training logs from Celery task."""
+    """Server-Sent Events endpoint to stream training logs in real-time."""
     def generate():
-        import time
-        # GhostFaceNet generation is synchronous, so just yield success directly.
-        yield "data: GhostFaceNet: Model refinement started\n\n"
-        yield "data: Saved updated model: ghostfacenet\n\n"
-        yield "data: [INFO] Task Finished (SUCCESS)\n\n"
-        yield "event: close\ndata: close\n\n"
-        return
+        import time as _time
+        last_idx = 0
+        idle_seconds = 0
+        
+        # If no training is active and no logs exist, return immediately
+        if not training_status.get('is_training', False) and not training_status.get('logs', []):
+            yield "data: [DONE]\n\n"
+            return
+        
+        while True:
+            logs = training_status.get('logs', [])
+            is_training = training_status.get('is_training', False)
+            
+            # Yield any new log lines since last check
+            if last_idx < len(logs):
+                for i in range(last_idx, len(logs)):
+                    yield f"data: {logs[i]}\n\n"
+                last_idx = len(logs)
+                idle_seconds = 0
+            else:
+                idle_seconds += 1
+            
+            # If training is done and we've sent all logs, signal completion
+            if not is_training and last_idx >= len(logs):
+                yield "data: [DONE]\n\n"
+                return
+            
+            # Safety: close after 5 min of no new logs to free the worker
+            if idle_seconds > 300:
+                yield "data: [DONE]\n\n"
+                return
+            
+            _time.sleep(1)
 
     from flask import Response, stream_with_context
     return Response(stream_with_context(generate()), mimetype='text/event-stream')
@@ -2693,7 +2778,7 @@ def predict(org_id):
             enable_insightface = cfg.get("ENABLE_INSIGHTFACE", False)
 
             # Predict Edge (GhostFaceNet) — lightweight secondary model
-            edge_label, edge_conf = "Not Trained", 0.0
+            edge_label, edge_conf = "Disabled", 0.0
             edge_confidence_level = "rejected"
             edge_encodings = org_models.get('ghostfacenet_encodings')
             edge_names = org_models.get('ghostfacenet_names')
@@ -2708,13 +2793,15 @@ def predict(org_id):
                             angle_label=angle_label,
                             custom_threshold=camera_threshold
                         )
-                        edge_conf = max(0, (1 - dist))
+                        edge_conf = 1.0 if edge_confidence_level == 'confirmed' else max(0, (1 - dist))
                 except Exception as e:
                     logger.warning(f"Edge prediction error: {e}")
                     edge_label = "Error"
+            elif edge_encodings is None and enable_ghostfacenet:
+                edge_label = "Not Trained"
             
             # Predict Primary Model (Facenet512)
-            f_label, f_conf = "Not Trained", 0.0
+            f_label, f_conf = "Disabled", 0.0
             f_confidence_level = "rejected"
             f_encodings = org_models.get('facenet512_encodings')
             f_names = org_models.get('facenet512_names')
@@ -2729,16 +2816,40 @@ def predict(org_id):
                             angle_label=angle_label,
                             custom_threshold=camera_threshold
                         )
-                        f_conf = max(0, (1 - dist))
+                        f_conf = 1.0 if f_confidence_level == 'confirmed' else max(0, (1 - dist))
                 except Exception as e:
                     logger.warning(f"Facenet512 prediction error: {e}")
                     f_label = "Error"
+            elif f_encodings is None and enable_facenet512:
+                f_label = "Not Trained"
                     
             # Predict Secondary Model (InsightFace)
-            i_label, i_conf = "Not Trained", 0.0
+            i_label, i_conf = "Disabled", 0.0
             i_confidence_level = "rejected"
             i_encodings = org_models.get('insightface_encodings')
             i_names = org_models.get('insightface_names')
+            
+            v_label, v_conf = "Disabled", 0.0
+            v_confidence_level = "rejected"
+            v_encodings = org_models.get('vggface_encodings')
+            v_names = org_models.get('vggface_names')
+            
+            enable_vggface = cfg.get("ENABLE_VGGFACE", False)
+            
+            if v_encodings is not None and enable_vggface:
+                try:
+                    processed = apply_clahe(face_roi_cv)
+                    emb = get_embedding(processed, model_name="VGG-Face")
+                    if emb is not None:
+                        v_label, dist, v_confidence_level = find_match_knn(
+                            emb, v_encodings, v_names, 
+                            angle_label=angle_label,
+                            custom_threshold=camera_threshold
+                        )
+                        v_conf = 1.0 if v_confidence_level == 'confirmed' else max(0, (1 - dist))
+                except Exception as e:
+                    logger.warning(f"VGG-Face prediction error: {e}")
+                    v_label = "Error"
             
             if i_encodings is not None and enable_insightface:
                 try:
@@ -2750,7 +2861,7 @@ def predict(org_id):
                             angle_label=angle_label,
                             custom_threshold=camera_threshold
                         )
-                        i_conf = max(0, (1 - dist))
+                        i_conf = 1.0 if i_confidence_level == 'confirmed' else max(0, (1 - dist))
                 except Exception as e:
                     logger.warning(f"InsightFace prediction error: {e}")
                     i_label = "Error"
@@ -2759,7 +2870,8 @@ def predict(org_id):
             individual_preds = {
                 'ghostfacenet': {'label': edge_label, 'confidence': float(edge_conf), 'confidence_level': edge_confidence_level},
                 'facenet512': {'label': f_label, 'confidence': float(f_conf), 'confidence_level': f_confidence_level},
-                'insightface': {'label': i_label, 'confidence': float(i_conf), 'confidence_level': i_confidence_level}
+                'insightface': {'label': i_label, 'confidence': float(i_conf), 'confidence_level': i_confidence_level},
+                'vggface': {'label': v_label, 'confidence': float(v_conf), 'confidence_level': v_confidence_level}
             }
             ensemble_result = ensemble_predict(individual_preds, custom_threshold=camera_threshold)
 
@@ -2782,7 +2894,7 @@ def predict(org_id):
                 'predictions': individual_preds,
                 'ensemble': {
                     'label': ens_label,
-                    'confidence': ens_conf if is_confirmed else 0.0,
+                    'confidence': ens_conf,
                     'method': ensemble_result['method'],
                     'agreement': ensemble_result.get('agreement', 'N/A'),
                     'is_recognized': is_confirmed,
@@ -2938,7 +3050,8 @@ def handle_stream_frame(data):
                     'predictions': {
                         'ghostfacenet': {'label': 'SPOOF', 'confidence': 0.0, 'confidence_level': 'rejected'},
                         'facenet512': {'label': 'SPOOF', 'confidence': 0.0, 'confidence_level': 'rejected'},
-                        'insightface': {'label': 'SPOOF', 'confidence': 0.0, 'confidence_level': 'rejected'}
+                        'insightface': {'label': 'SPOOF', 'confidence': 0.0, 'confidence_level': 'rejected'},
+                        'vggface': {'label': 'SPOOF', 'confidence': 0.0, 'confidence_level': 'rejected'}
                     },
                     'ensemble': {
                         'label': 'SPOOF DETECTED',
@@ -2964,71 +3077,78 @@ def handle_stream_frame(data):
             enable_ghostfacenet = cfg.get("ENABLE_GHOSTFACENET", False)
             enable_facenet512 = cfg.get("ENABLE_FACENET512", False)
             enable_insightface = cfg.get("ENABLE_INSIGHTFACE", False)
+            enable_vggface = cfg.get("ENABLE_VGGFACE", False)
 
-            # Predict Edge (GhostFaceNet) - lightweight secondary model
-            edge_label, edge_conf = "Not Trained", 0.0
-            edge_confidence_level = "rejected"
             edge_encodings = org_models.get('ghostfacenet_encodings')
             edge_names = org_models.get('ghostfacenet_names')
-            
-            if edge_encodings is not None and enable_ghostfacenet:
-                try:
-                    processed = apply_clahe(face_roi_cv)
-                    emb = get_embedding(processed, model_name="GhostFaceNet")
-                    if emb is not None:
-                        edge_label, dist, edge_confidence_level = find_match_knn(
-                            emb, edge_encodings, edge_names, 
-                            angle_label=angle_label,
-                            custom_threshold=camera_threshold
-                        )
-                        edge_conf = max(0, (1 - dist))
-                except Exception as e:
-                    edge_label = "Error"
-
-            # Predict Primary Model (Facenet512)
-            f_label, f_conf = "Not Trained", 0.0
-            f_confidence_level = "rejected"
             f_encodings = org_models.get('facenet512_encodings')
             f_names = org_models.get('facenet512_names')
-            
-            if f_encodings is not None and enable_facenet512:
-                try:
-                    processed = apply_clahe(face_roi_cv)
-                    emb = get_embedding(processed, model_name="Facenet512")
-                    if emb is not None:
-                        f_label, dist, f_confidence_level = find_match_knn(
-                            emb, f_encodings, f_names, 
-                            angle_label=angle_label,
-                            custom_threshold=camera_threshold
-                        )
-                        f_conf = max(0, (1 - dist))
-                except Exception as e:
-                    f_label = "Error"
-                    
-            # Predict Secondary Model (InsightFace)
-            i_label, i_conf = "Not Trained", 0.0
-            i_confidence_level = "rejected"
             i_encodings = org_models.get('insightface_encodings')
             i_names = org_models.get('insightface_names')
-            
-            if i_encodings is not None and enable_insightface:
-                try:
-                    processed = apply_clahe(face_roi_cv)
-                    emb = get_embedding(processed, model_name="InsightFace")
-                    if emb is not None:
-                        i_label, dist, i_confidence_level = find_match_knn(
-                            emb, i_encodings, i_names, 
-                            angle_label=angle_label,
-                            custom_threshold=camera_threshold
-                        )
-                        i_conf = max(0, (1 - dist))
-                except Exception as e:
-                    i_label = "Error"
+            v_encodings = org_models.get('vggface_encodings')
+            v_names = org_models.get('vggface_names')
+
+            from concurrent.futures import ThreadPoolExecutor
+
+            def run_ghost():
+                label, conf, level = "Not Trained", 0.0, "rejected"
+                if edge_encodings is not None and enable_ghostfacenet:
+                    try:
+                        emb = get_embedding(apply_clahe(face_roi_cv), model_name="GhostFaceNet")
+                        if emb is not None:
+                            label, dist, level = find_match_knn(emb, edge_encodings, edge_names, angle_label=angle_label, custom_threshold=camera_threshold)
+                            conf = 1.0 if level == 'confirmed' else max(0, (1 - dist))
+                    except Exception:
+                        label = "Error"
+                return label, conf, level
+
+            def run_facenet():
+                label, conf, level = "Not Trained", 0.0, "rejected"
+                if f_encodings is not None and enable_facenet512:
+                    try:
+                        emb = get_embedding(apply_clahe(face_roi_cv), model_name="Facenet512")
+                        if emb is not None:
+                            label, dist, level = find_match_knn(emb, f_encodings, f_names, angle_label=angle_label, custom_threshold=camera_threshold)
+                            conf = 1.0 if level == 'confirmed' else max(0, (1 - dist))
+                    except Exception:
+                        label = "Error"
+                return label, conf, level
+
+            def run_insight():
+                label, conf, level = "Not Trained", 0.0, "rejected"
+                if i_encodings is not None and enable_insightface:
+                    try:
+                        emb = get_embedding(apply_clahe(face_roi_cv), model_name="InsightFace")
+                        if emb is not None:
+                            label, dist, level = find_match_knn(emb, i_encodings, i_names, angle_label=angle_label, custom_threshold=camera_threshold)
+                            conf = 1.0 if level == 'confirmed' else max(0, (1 - dist))
+                    except Exception:
+                        label = "Error"
+                return label, conf, level
+
+            def run_vgg():
+                label, conf, level = "Not Trained", 0.0, "rejected"
+                if v_encodings is not None and enable_vggface:
+                    try:
+                        emb = get_embedding(apply_clahe(face_roi_cv), model_name="VGG-Face")
+                        if emb is not None:
+                            label, dist, level = find_match_knn(emb, v_encodings, v_names, angle_label=angle_label, custom_threshold=camera_threshold)
+                            conf = 1.0 if level == 'confirmed' else max(0, (1 - dist))
+                    except Exception:
+                        label = "Error"
+                return label, conf, level
+
+            # Sequential execution to prevent TensorFlow C++ crash (Thread safety issues)
+            edge_label, edge_conf, edge_confidence_level = run_ghost()
+            f_label, f_conf, f_confidence_level = run_facenet()
+            i_label, i_conf, i_confidence_level = run_insight()
+            v_label, v_conf, v_confidence_level = run_vgg()
                     
             individual_preds = {
                 'ghostfacenet': {'label': edge_label, 'confidence': float(edge_conf), 'confidence_level': edge_confidence_level},
                 'facenet512': {'label': f_label, 'confidence': float(f_conf), 'confidence_level': f_confidence_level},
-                'insightface': {'label': i_label, 'confidence': float(i_conf), 'confidence_level': i_confidence_level}
+                'insightface': {'label': i_label, 'confidence': float(i_conf), 'confidence_level': i_confidence_level},
+                'vggface': {'label': v_label, 'confidence': float(v_conf), 'confidence_level': v_confidence_level}
             }
             ensemble_result = ensemble_predict(individual_preds, custom_threshold=camera_threshold)
 
@@ -3047,7 +3167,7 @@ def handle_stream_frame(data):
                 'predictions': individual_preds,
                 'ensemble': {
                     'label': ens_label,
-                    'confidence': ens_conf if is_confirmed else 0.0,
+                    'confidence': ens_conf,
                     'method': ensemble_result['method'],
                     'agreement': ensemble_result.get('agreement', 'N/A'),
                     'is_recognized': is_confirmed,
@@ -3199,12 +3319,12 @@ def get_dashboard_stats(org_id=None):
         total_photos += count
         
     org_models = ensure_org_models_loaded(org_id)
-    edge_encodings = org_models.get('edge_encodings')
-    deepface_encodings = org_models.get('deepface_encodings')
+    edge_encodings = org_models.get('ghostfacenet_encodings')
+    deepface_encodings = org_models.get('facenet512_encodings')
     
     requires_retrain = False
     if total_people > 0:
-        edge_trained_classes = set(org_models.get('edge_names', []))
+        edge_trained_classes = set(org_models.get('ghostfacenet_names', []))
         edge_mismatch = (edge_encodings is None) or (sorted(list(edge_trained_classes)) != expected_classes)
         requires_retrain = edge_mismatch
 
@@ -3677,7 +3797,7 @@ def edge_camera_spec_test():
 
     if run_fresh:
         try:
-            from camera_spec_evaluator import run_full_evaluation
+            from scripts.camera_spec_evaluator import run_full_evaluation
             results = run_full_evaluation()
             if results is None:
                 return jsonify({'error': 'Evaluation failed. Check that embeddings are trained.'}), 500
@@ -3712,7 +3832,7 @@ def edge_benchmark():
 
     if run_fresh:
         try:
-            from edge_benchmark_suite import run_edge_benchmarks
+            from scripts.edge_benchmark_suite import run_edge_benchmarks
             results = run_edge_benchmarks(sample_size=sample_size)
             if results is None:
                 return jsonify({'error': 'Benchmark failed. Check that embeddings are trained.'}), 500

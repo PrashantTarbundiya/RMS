@@ -29,8 +29,13 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center p-4 bg-[#010102]">
-      <div className="w-full max-w-sm card-linear shadow-2xl">
+    <div className="flex min-h-screen items-center justify-center p-4 bg-[#010102] relative overflow-hidden">
+      {/* Background Grid */}
+      <div className="absolute inset-0 opacity-[0.03]" style={{
+        backgroundImage: `linear-gradient(rgba(94,106,210,0.3) 1px, transparent 1px), linear-gradient(90deg, rgba(94,106,210,0.3) 1px, transparent 1px)`,
+        backgroundSize: '60px 60px',
+      }} />
+      <div className="w-full max-w-sm card-linear shadow-2xl relative z-10">
         <div className="space-y-4 text-center mb-6">
           <ApertureReticle active={true} className="mx-auto w-14 h-14 flex items-center justify-center" status="loading">
             <Scan className="w-6 h-6 text-[#5E6AD2]" />
@@ -108,6 +113,11 @@ export default function LoginPage() {
           <p>Don't have an account? <Link to="/register" className="text-ink hover:underline font-medium">Create Organization</Link></p>
         </div>
       </div>
+
+      {/* Branding Footer */}
+      <p className="absolute bottom-6 text-[10px] text-ink-tertiary tracking-wider uppercase z-10">
+        Powered by RMS Face AI
+      </p>
     </div>
   );
 }

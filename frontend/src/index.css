@@ -253,11 +253,13 @@
   font-size: 15px;
   transition: all 0.2s ease;
 }
-.input-linear:focus {
+.input-linear:focus,
+.input-linear:focus-within {
   outline: none;
   border-color: var(--accent-primary);
   box-shadow: 0 0 0 2px rgba(94, 106, 210, 0.2);
 }
+
 
 .button-primary {
   background-color: var(--accent-primary);
@@ -2063,3 +2065,245 @@
 .skip-btn:hover {
   color: #fff;
 }
+
+/* ── Skeleton Shimmer Animation ── */
+@keyframes shimmer {
+  0% { background-position: -400px 0; }
+  100% { background-position: 400px 0; }
+}
+
+.skeleton-shimmer {
+  background: linear-gradient(
+    90deg,
+    var(--surface-3) 25%,
+    var(--surface-4) 37%,
+    var(--surface-3) 63%
+  );
+  background-size: 800px 100%;
+  animation: shimmer 1.8s ease-in-out infinite;
+}
+
+/* ── Spin animation for RefreshCw icon ── */
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   SaaS-Level Design Utilities
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── Focus Visible Accessibility Ring ── */
+*:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: none;
+  border-color: var(--accent-primary) !important;
+  box-shadow: 0 0 0 2px rgba(94, 106, 210, 0.25);
+}
+
+button:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
+}
+
+/* ── Selection Color ── */
+::selection {
+  background: rgba(94, 106, 210, 0.35);
+  color: var(--ink);
+}
+
+::-moz-selection {
+  background: rgba(94, 106, 210, 0.35);
+  color: var(--ink);
+}
+
+/* ── Status Badge Utilities ── */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  line-height: 1.5;
+  border: 1px solid transparent;
+}
+
+.badge-success {
+  background: rgba(39, 166, 68, 0.10);
+  color: #4ade80;
+  border-color: rgba(39, 166, 68, 0.20);
+}
+
+.badge-warning {
+  background: rgba(251, 191, 36, 0.10);
+  color: #fbbf24;
+  border-color: rgba(251, 191, 36, 0.20);
+}
+
+.badge-error {
+  background: rgba(248, 113, 113, 0.10);
+  color: #f87171;
+  border-color: rgba(248, 113, 113, 0.20);
+}
+
+.badge-info {
+  background: rgba(94, 106, 210, 0.10);
+  color: #828FFF;
+  border-color: rgba(94, 106, 210, 0.20);
+}
+
+.badge-neutral {
+  background: var(--surface-2);
+  color: var(--ink-subtle);
+  border-color: var(--hairline);
+}
+
+/* ── Glass Card (Overlay Panels) ── */
+.glass-card {
+  background: rgba(15, 16, 17, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(16px) saturate(1.3);
+  -webkit-backdrop-filter: blur(16px) saturate(1.3);
+  border-radius: var(--radius-lg);
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.25),
+    inset 0 0.5px 0 rgba(255, 255, 255, 0.06);
+}
+
+/* ── Page Header Utility ── */
+.page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+
+.page-header-title {
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--ink);
+  letter-spacing: -0.4px;
+  line-height: 1.3;
+  margin: 0;
+}
+
+.page-header-desc {
+  font-size: 13px;
+  color: var(--ink-subtle);
+  margin: 4px 0 0 0;
+  line-height: 1.5;
+}
+
+/* ── Button Hover Micro-Scale ── */
+.button-primary:hover:not(:disabled) {
+  transform: translateY(-0.5px);
+  box-shadow: 0 4px 16px rgba(94, 106, 210, 0.25);
+}
+
+.button-secondary:hover:not(:disabled) {
+  transform: translateY(-0.5px);
+}
+
+/* ── Stat Card Hover Glow ── */
+.stat-card {
+  transition: border-color 0.25s ease, box-shadow 0.25s ease, transform 0.25s ease;
+}
+
+.stat-card:hover {
+  border-color: var(--hairline-strong);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  transform: translateY(-1px);
+}
+
+/* ── Confidence Color Utilities ── */
+.confidence-high { color: #4ade80; }
+.confidence-medium { color: #fbbf24; }
+.confidence-low { color: #f87171; }
+
+/* ── Smooth Page Enter Animation ── */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fadeInUp {
+  animation: fadeInUp 0.4s ease-out forwards;
+}
+
+/* ── Table Row Hover ── */
+.table-row-hover {
+  transition: background-color 0.15s ease;
+}
+
+.table-row-hover:hover {
+  background-color: rgba(255, 255, 255, 0.02);
+}
+
+/* ── Connection Status Indicators ── */
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.status-dot-online {
+  background: #4ade80;
+  box-shadow: 0 0 6px rgba(74, 222, 128, 0.4);
+  animation: pulse-dot 2s ease-in-out infinite;
+}
+
+.status-dot-offline {
+  background: #f87171;
+  box-shadow: 0 0 6px rgba(248, 113, 113, 0.4);
+}
+
+.status-dot-warning {
+  background: #fbbf24;
+  box-shadow: 0 0 6px rgba(251, 191, 36, 0.4);
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+/* ── Monospace Terminal Styling ── */
+.terminal-text {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--ink-subtle);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.terminal-text .log-error { color: #f87171; font-weight: 500; }
+.terminal-text .log-success { color: #4ade80; }
+.terminal-text .log-warning { color: #fbbf24; }
+.terminal-text .log-info { color: #828FFF; }

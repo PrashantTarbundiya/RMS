@@ -1,16 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { 
   Users, Image as ImageIcon, BarChart3, Clock, CheckCircle, 
-  AlertTriangle, Trash2, Edit2, Check, X, RefreshCw, User, Sparkles, ArrowRight 
+  AlertTriangle, Trash2, Edit2, Check, X, RefreshCw, User, Sparkles, ArrowRight, Upload, Video, Activity 
 } from 'lucide-react';
 import { API_BASE } from '../config';
 import ApertureReticle from '../components/ApertureReticle';
 
 export default function DashboardPage() {
   const { user, apiClient } = useAuth();
+  const toast = useToast();
   const [stats, setStats] = useState(null);
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -57,9 +59,10 @@ export default function DashboardPage() {
     try {
       await apiClient.put(`${API_BASE}/persons/${oldName}`, { new_name: newName.trim() });
       setEditingPerson(null);
+      toast.success(`Renamed "${oldName.replace(/_/g, ' ')}" to "${newName.trim().replace(/_/g, ' ')}"`);
       fetchDashboardData();
     } catch (err) {
-      console.error(err);
+      toast.error(err.response?.data?.error || 'Failed to rename person.');
     } finally {
       setIsActionLoading(false);
     }
@@ -70,9 +73,10 @@ export default function DashboardPage() {
     try {
       await apiClient.delete(`${API_BASE}/persons/${name}`);
       setDeletingPerson(null);
+      toast.success(`"${name.replace(/_/g, ' ')}" has been removed from the roster.`);
       fetchDashboardData();
     } catch (err) {
-      console.error(err);
+      toast.error(err.response?.data?.error || 'Failed to delete person.');
     } finally {
       setIsActionLoading(false);
     }
@@ -82,9 +86,10 @@ export default function DashboardPage() {
     try {
       await apiClient.delete(`${API_BASE}/history`);
       setHistory([]);
+      toast.success('Telemetry logs cleared successfully.');
       fetchDashboardData();
     } catch (err) {
-      console.error(err);
+      toast.error('Failed to clear history.');
     } finally {
       setIsClearHistoryModalOpen(false);
     }
@@ -192,7 +197,9 @@ export default function DashboardPage() {
       {/* Header */}
       <motion.div variants={itemVariants} className="flex justify-between items-center">
         <div>
-          <h1 className="text-headline text-ink font-semibold">System Dashboard</h1>
+          <h1 className="text-headline text-ink font-semibold">
+            {user?.name ? `Welcome back, ${user.name.split(' ')[0]}` : 'System Dashboard'}
+          </h1>
           <p className="text-ink-subtle text-caption mt-1">Real-time telemetry and management console.</p>
         </div>
         <button className="button-secondary flex items-center gap-2" onClick={() => { setLoading(true); fetchDashboardData(); }}>
@@ -275,6 +282,34 @@ export default function DashboardPage() {
         <KpiCard icon={<ImageIcon className="h-5 w-5"/>} label="Faces Processed" value={total_photos} />
         <KpiCard icon={<Clock className="h-5 w-5"/>} label="Scan Events" value={total_predictions} />
         <KpiCard icon={<CheckCircle className="h-5 w-5"/>} label="Hard Match Rate" value={`${successRate}%`} highlight={true} />
+      </motion.div>
+
+      {/* Quick Actions */}
+      <motion.div variants={itemVariants} className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <Link to="/upload" className="group p-4 bg-[#0F1011] border border-[#23252A] rounded-lg flex items-center gap-3 hover:border-[#5E6AD2]/40 hover:bg-[#5E6AD2]/5 transition-all">
+          <div className="p-2 rounded-lg bg-[#5E6AD2]/10 text-[#828FFF] group-hover:bg-[#5E6AD2]/20 transition-colors"><Upload size={18} /></div>
+          <div>
+            <div className="text-sm font-medium text-ink">Enroll Person</div>
+            <div className="text-[11px] text-ink-tertiary">Add a new face to the system</div>
+          </div>
+          <ArrowRight size={14} className="ml-auto text-ink-tertiary group-hover:text-[#828FFF] transition-colors" />
+        </Link>
+        <Link to="/test" className="group p-4 bg-[#0F1011] border border-[#23252A] rounded-lg flex items-center gap-3 hover:border-[#27A644]/40 hover:bg-[#27A644]/5 transition-all">
+          <div className="p-2 rounded-lg bg-[#27A644]/10 text-[#4ade80] group-hover:bg-[#27A644]/20 transition-colors"><Video size={18} /></div>
+          <div>
+            <div className="text-sm font-medium text-ink">Run Test</div>
+            <div className="text-[11px] text-ink-tertiary">Test recognition accuracy</div>
+          </div>
+          <ArrowRight size={14} className="ml-auto text-ink-tertiary group-hover:text-[#4ade80] transition-colors" />
+        </Link>
+        <Link to="/analytics" className="group p-4 bg-[#0F1011] border border-[#23252A] rounded-lg flex items-center gap-3 hover:border-[#FBBF24]/40 hover:bg-[#FBBF24]/5 transition-all">
+          <div className="p-2 rounded-lg bg-[#FBBF24]/10 text-[#fde68a] group-hover:bg-[#FBBF24]/20 transition-colors"><BarChart3 size={18} /></div>
+          <div>
+            <div className="text-sm font-medium text-ink">View Analytics</div>
+            <div className="text-[11px] text-ink-tertiary">Attendance trends & reports</div>
+          </div>
+          <ArrowRight size={14} className="ml-auto text-ink-tertiary group-hover:text-[#fde68a] transition-colors" />
+        </Link>
       </motion.div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

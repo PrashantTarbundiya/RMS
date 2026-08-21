@@ -1,8 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 import { BarChart3, Clock, Users, TrendingDown, Calendar, Download, RefreshCw, Loader2, Building2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { API_BASE } from '../config';
+import { SkeletonStatCards } from '../components/ui/Skeleton';
+import EmptyState from '../components/ui/EmptyState';
 
 const COLORS = ['#5E6AD2', '#60a5fa', '#4ade80', '#fbbf24', '#f87171', '#a78bfa', '#34d399', '#f472b6'];
 
@@ -187,7 +190,9 @@ function LateArrivalsPanel({ data }) {
 
 export default function AnalyticsPage() {
   const { apiClient } = useAuth();
+  const toast = useToast();
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [departments, setDepartments] = useState(null);
   const [lateArrivals, setLateArrivals] = useState(null);
   const [heatmap, setHeatmap] = useState(null);
@@ -212,8 +217,10 @@ export default function AnalyticsPage() {
       setDepartments(deptRes.data);
       setLateArrivals(lateRes.data);
       setHeatmap(heatRes.data);
+      setError(null);
     } catch (err) {
       console.error('Analytics fetch error:', err);
+      setError('Failed to load analytics data.');
     } finally {
       setLoading(false);
     }
@@ -234,8 +241,9 @@ export default function AnalyticsPage() {
       a.download = `rms_report_${new Date().toISOString().slice(0, 10)}.json`;
       a.click();
       URL.revokeObjectURL(url);
+      toast.success('JSON report exported.');
     } catch (err) {
-      console.error('Report export error:', err);
+      toast.error('Failed to export JSON report.');
     }
   };
 
@@ -253,8 +261,9 @@ export default function AnalyticsPage() {
       a.download = `rms_analytics_report_${new Date().toISOString().slice(0, 10)}.pdf`;
       a.click();
       URL.revokeObjectURL(url);
+      toast.success('PDF report downloaded.');
     } catch (err) {
-      console.error('PDF export error:', err);
+      toast.error('Failed to export PDF report.');
     }
   };
 
@@ -290,7 +299,7 @@ export default function AnalyticsPage() {
             type="date"
             value={dateRange.start}
             onChange={e => setDateRange(p => ({ ...p, start: e.target.value }))}
-            className="h-8 px-3 rounded-md bg-[#010102] border border-[#23252A] text-caption text-ink"
+            className="h-8 px-3 rounded-md bg-[#010102] border border-[#23252A] text-caption text-ink focus:border-[#5E6AD2] focus:ring-1 focus:ring-[#5E6AD2] outline-none accent-[#5E6AD2]"
           />
         </div>
         <div>
@@ -299,7 +308,7 @@ export default function AnalyticsPage() {
             type="date"
             value={dateRange.end}
             onChange={e => setDateRange(p => ({ ...p, end: e.target.value }))}
-            className="h-8 px-3 rounded-md bg-[#010102] border border-[#23252A] text-caption text-ink"
+            className="h-8 px-3 rounded-md bg-[#010102] border border-[#23252A] text-caption text-ink focus:border-[#5E6AD2] focus:ring-1 focus:ring-[#5E6AD2] outline-none accent-[#5E6AD2]"
           />
         </div>
         <div>
@@ -308,16 +317,24 @@ export default function AnalyticsPage() {
             type="time"
             value={workStart}
             onChange={e => setWorkStart(e.target.value)}
-            className="h-8 px-3 rounded-md bg-[#010102] border border-[#23252A] text-caption text-ink"
+            className="h-8 px-3 rounded-md bg-[#010102] border border-[#23252A] text-caption text-ink focus:border-[#5E6AD2] focus:ring-1 focus:ring-[#5E6AD2] outline-none accent-[#5E6AD2]"
           />
         </div>
         <button onClick={fetchAll} className="button-secondary h-8 px-4 text-caption">Apply</button>
       </div>
 
       {loading ? (
-        <div className="flex items-center justify-center py-20">
-          <Loader2 className="w-6 h-6 animate-spin text-ink-subtle" />
-          <span className="ml-3 text-ink-subtle text-caption">Loading analytics...</span>
+        <div className="space-y-6">
+          <SkeletonStatCards count={4} />
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="card-linear p-6 bg-[#0F1011] border-[#23252A] h-[200px] shimmer rounded-lg" />
+            <div className="card-linear p-6 bg-[#0F1011] border-[#23252A] h-[200px] shimmer rounded-lg" />
+          </div>
+        </div>
+      ) : error ? (
+        <div className="card-linear p-8 text-center border-[#F87171]/20 bg-[#F87171]/5">
+          <p className="text-[#F87171] text-sm mb-3">{error}</p>
+          <button onClick={() => { setLoading(true); fetchAll(); }} className="button-secondary text-caption">Retry</button>
         </div>
       ) : (
         <>

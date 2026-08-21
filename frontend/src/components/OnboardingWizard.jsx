@@ -160,8 +160,9 @@ export default function OnboardingWizard() {
   useEffect(() => {
     if (!isAdmin || isCompleted) { setIsActive(false); return; }
     const paused = sessionStorage.getItem('onboarding_paused') === 'true';
+    const dismissed = localStorage.getItem('onboarding_dismissed') === 'true';
     const currentSavedStep = onbState.step ?? 0;
-    if (paused) {
+    if (paused || dismissed) {
       setIsActive(false);
     } else if (currentSavedStep === 0 && !sessionStorage.getItem('welcome_shown')) {
       setShowWelcome(true);
@@ -336,13 +337,12 @@ export default function OnboardingWizard() {
     setShowComplete(false);
     setIsActive(false);
     cleanupTarget();
-    sessionStorage.setItem('onboarding_paused', 'true');
+    localStorage.setItem('onboarding_dismissed', 'true');
+    saveState(STEPS.length, true); // Mark as completed on backend to stop it globally
   };
 
   const nextStep = () => {
-    // If gate not passed on the last sub-step, block
-    if (isLastSubStep && !gatePassed && currentStep?.gateMsg) return;
-
+    // If gate not passed, we still allow them to proceed if they explicitly click next (no blocking).
     if (!isLastSubStep) {
       // Advance to next sub-step within the same step
       setSubStepIndex(prev => prev + 1);
@@ -507,14 +507,13 @@ export default function OnboardingWizard() {
                 </button>
                 <button
                   onClick={nextStep}
-                  disabled={isLastSubStep && !gatePassed && !!currentStep.gateMsg}
-                  className={`onb-bar-btn primary ${(isLastSubStep && !gatePassed && currentStep.gateMsg) ? 'disabled' : ''}`}
-                  style={(gatePassed || !isLastSubStep || !currentStep.gateMsg) ? { background: currentStep.color } : {}}
+                  className={`onb-bar-btn primary`}
+                  style={{ background: currentStep.color }}
                 >
                   {isLastStep && isLastSubStep ? 'Finish' : (isLastSubStep ? 'Next Step' : 'Next')} <ArrowRight className="w-3.5 h-3.5" />
                 </button>
-                <button onClick={doLater} className="onb-bar-skip" title="Pause Tour">
-                  Skip
+                <button onClick={doLater} className="onb-bar-skip" title="Skip Setup entirely">
+                  Skip Setup
                 </button>
               </div>
             </div>
@@ -709,11 +708,12 @@ export default function OnboardingWizard() {
         .onb-bar-btn.primary:hover:not(.disabled) { filter: brightness(1.1); }
         .onb-bar-btn.disabled { opacity: 0.4; cursor: not-allowed; }
         .onb-bar-skip {
-          background: none; border: none; color: #737780;
-          font-size: 11px; cursor: pointer; padding: 6px 8px;
-          margin-left: 4px;
+          background: rgba(229, 72, 77, 0.1); border: 1px solid rgba(229, 72, 77, 0.3);
+          color: #E5484D; border-radius: 8px;
+          font-size: 11px; font-weight: 600; cursor: pointer; padding: 6px 12px;
+          margin-left: 8px; transition: all 0.2s;
         }
-        .onb-bar-skip:hover { color: #A0A3AB; }
+        .onb-bar-skip:hover { background: rgba(229, 72, 77, 0.2); }
 
         /* ═══ Tooltip ═══ */
         .onb-tooltip {

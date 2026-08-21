@@ -1,11 +1,15 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { Shield, Search, Filter, ChevronLeft, ChevronRight, CheckCircle, XCircle, UserX, FileText, RefreshCw } from 'lucide-react';
+import { useToast } from '../context/ToastContext';
+import { Shield, Search, ChevronLeft, ChevronRight, CheckCircle, XCircle, UserX, FileText, RefreshCw, Download, Calendar } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { API_BASE } from '../config';
+import EmptyState from '../components/ui/EmptyState';
+import { SkeletonTable } from '../components/ui/Skeleton';
 
 export default function AuditLogsPage() {
   const { apiClient, user } = useAuth();
+  const toast = useToast();
   const [logs, setLogs] = useState([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -16,6 +20,8 @@ export default function AuditLogsPage() {
   const [sortOrder, setSortOrder] = useState('desc');
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [dateStart, setDateStart] = useState('');
+  const [dateEnd, setDateEnd] = useState('');
 
   const fetchLogs = useCallback(async () => {
     setIsLoading(true);
@@ -28,6 +34,8 @@ export default function AuditLogsPage() {
         sort: sortOrder,
       });
       if (search.trim()) params.set('search', search.trim());
+      if (dateStart) params.set('start_date', dateStart);
+      if (dateEnd) params.set('end_date', dateEnd);
 
       const res = await apiClient.get(`${API_BASE}/audit-logs?${params}`);
       setLogs(res.data.logs || []);
@@ -42,7 +50,7 @@ export default function AuditLogsPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [apiClient, logType, page, perPage, search, sortOrder]);
+  }, [apiClient, logType, page, perPage, search, sortOrder, dateStart, dateEnd]);
 
   useEffect(() => {
     fetchLogs();
@@ -58,79 +66,115 @@ export default function AuditLogsPage() {
     return () => clearTimeout(timer);
   }, [searchInput]);
 
-  const typeColors = {
-    feedback: { bg: 'rgba(59, 130, 246, 0.1)', border: 'rgba(59, 130, 246, 0.3)', text: '#60a5fa' },
-    consent: { bg: 'rgba(168, 85, 247, 0.1)', border: 'rgba(168, 85, 247, 0.3)', text: '#c084fc' },
+  const exportCSV = () => {
+    const headers = ['Type', 'Timestamp', 'Details', 'Status'];
+    const rows = logs.map(l => [
+      l.type,
+      l.timestamp ? new Date(l.timestamp).toLocaleString() : '',
+      l.type === 'feedback' ? `Predicted: ${l.predicted_name || ''}${l.correct_name ? ` → ${l.correct_name}` : ''}` : `Employee: ${l.employee_name || ''}`,
+      l.type === 'feedback' ? (l.is_correct ? 'Correct' : 'Incorrect') : (l.revoked_at ? 'Revoked' : 'Active'),
+    ]);
+    const csv = [headers.join(','), ...rows.map(r => r.map(c => `"${c}"`).join(','))].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `audit_logs_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+    toast.success(`Exported ${logs.length} audit records.`);
   };
 
+  const filterTabs = [
+    { value: 'all', label: 'All' },
+    { value: 'feedback', label: 'Feedback' },
+    { value: 'consent', label: 'Consent' },
+  ];
+
   return (
-    <div style={{ padding: '2rem', maxWidth: '1200px', margin: '0 auto' }}>
-      {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.5rem' }}>
-        <Shield size={28} style={{ color: 'var(--primary)' }} />
-        <div>
-          <h1 style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
-            Audit Logs
-          </h1>
-          <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', margin: 0 }}>
-            Feedback corrections and consent records — compliance audit trail
-          </p>
+    <motion.div 
+      initial={{ opacity: 0 }} 
+      animate={{ opacity: 1 }} 
+      className="pb-12 max-w-5xl mx-auto space-y-6 page-container"
+    >
+      {/* Page Header */}
+      <div className="page-header">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-lg bg-[#5E6AD2]/10 border border-[#5E6AD2]/20 flex items-center justify-center">
+            <Shield className="w-5 h-5 text-[#828FFF]" />
+          </div>
+          <div>
+            <h1 className="page-header-title">Audit Logs</h1>
+            <p className="page-header-desc">
+              Feedback corrections and consent records — compliance audit trail
+            </p>
+          </div>
         </div>
+        {logs.length > 0 && (
+          <button
+            onClick={exportCSV}
+            className="button-secondary flex items-center gap-1.5 text-caption h-9 px-3"
+            aria-label="Export audit logs as CSV"
+          >
+            <Download size={14} /> Export CSV
+          </button>
+        )}
       </div>
 
       {/* Filters Bar */}
-      <div style={{
-        display: 'flex', gap: '0.75rem', marginBottom: '1.5rem', flexWrap: 'wrap',
-        padding: '1rem', borderRadius: '12px',
-        background: 'var(--card-bg, #181A1F)', border: '1px solid var(--border, #23252A)',
-      }}>
-        {/* Search */}
-        <div style={{ position: 'relative', flex: '1 1 240px' }}>
-          <Search size={16} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }} />
+      <div className="card-linear p-3 flex flex-wrap items-center gap-3">
+        {/* Search Input */}
+        <div className="relative flex-1 min-w-[200px]">
+          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-tertiary" />
           <input
             type="text"
             placeholder="Search logs..."
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
-            style={{
-              width: '100%', padding: '0.5rem 0.75rem 0.5rem 2.25rem',
-              borderRadius: '8px', border: '1px solid var(--border)',
-              background: 'var(--bg-primary, #0F1011)', color: 'var(--text-primary)',
-              fontSize: '0.85rem', outline: 'none',
-            }}
+            className="input-linear w-full pl-9 pr-3 py-2 text-caption"
           />
         </div>
 
-        {/* Type Filter */}
-        <div style={{ display: 'flex', gap: '0.25rem', background: 'var(--bg-primary, #0F1011)', borderRadius: '8px', padding: '2px' }}>
-          {[
-            { value: 'all', label: 'All' },
-            { value: 'feedback', label: 'Feedback' },
-            { value: 'consent', label: 'Consent' },
-          ].map(opt => (
+        {/* Type Filter Tabs */}
+        <div className="flex gap-0.5 bg-[#0F1011] rounded-lg p-0.5">
+          {filterTabs.map(opt => (
             <button
               key={opt.value}
               onClick={() => { setLogType(opt.value); setPage(1); }}
-              style={{
-                padding: '0.4rem 0.75rem', borderRadius: '6px', border: 'none',
-                background: logType === opt.value ? 'var(--primary)' : 'transparent',
-                color: logType === opt.value ? '#fff' : 'var(--text-secondary)',
-                fontSize: '0.8rem', fontWeight: 500, cursor: 'pointer', transition: 'all 0.2s',
-              }}
+              className={`px-3 py-1.5 rounded-md text-caption font-medium transition-all cursor-pointer ${
+                logType === opt.value 
+                  ? 'bg-[#5E6AD2] text-white' 
+                  : 'text-ink-subtle hover:text-ink'
+              }`}
             >
               {opt.label}
             </button>
           ))}
         </div>
 
+        {/* Date Range */}
+        <div className="flex items-center gap-2">
+          <Calendar size={14} className="text-ink-tertiary" />
+          <input 
+            type="date" 
+            value={dateStart} 
+            onChange={e => { setDateStart(e.target.value); setPage(1); }}
+            className="input-linear py-1.5 px-2 text-caption"
+            style={{ colorScheme: 'dark' }}
+          />
+          <span className="text-caption text-ink-tertiary">to</span>
+          <input 
+            type="date" 
+            value={dateEnd} 
+            onChange={e => { setDateEnd(e.target.value); setPage(1); }}
+            className="input-linear py-1.5 px-2 text-caption"
+            style={{ colorScheme: 'dark' }}
+          />
+        </div>
+
         {/* Sort Toggle */}
         <button
           onClick={() => setSortOrder(prev => prev === 'desc' ? 'asc' : 'desc')}
-          style={{
-            padding: '0.4rem 0.75rem', borderRadius: '8px',
-            border: '1px solid var(--border)', background: 'var(--bg-primary)',
-            color: 'var(--text-secondary)', fontSize: '0.8rem', cursor: 'pointer',
-          }}
+          className="button-secondary py-1.5 px-3 text-caption cursor-pointer"
         >
           {sortOrder === 'desc' ? '↓ Newest' : '↑ Oldest'}
         </button>
@@ -138,60 +182,54 @@ export default function AuditLogsPage() {
         {/* Refresh */}
         <button
           onClick={fetchLogs}
-          style={{
-            padding: '0.4rem 0.6rem', borderRadius: '8px',
-            border: '1px solid var(--border)', background: 'var(--bg-primary)',
-            color: 'var(--text-secondary)', cursor: 'pointer',
-          }}
+          className="button-icon"
+          aria-label="Refresh audit logs"
         >
-          <RefreshCw size={16} />
+          <RefreshCw size={15} />
         </button>
       </div>
 
       {/* Error State */}
       {error && (
-        <div style={{
-          padding: '1rem', borderRadius: '8px', marginBottom: '1rem',
-          background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)',
-          color: '#f87171', fontSize: '0.85rem',
-        }}>
-          {error}
+        <div className="rounded-lg p-4 bg-red-500/10 border border-red-500/20 text-[#f87171] text-caption flex items-center gap-2">
+          <XCircle size={16} className="shrink-0" />
+          <span>{error}</span>
+          <button 
+            onClick={fetchLogs} 
+            className="ml-auto text-ink-subtle hover:text-ink text-caption underline cursor-pointer"
+          >
+            Retry
+          </button>
         </div>
       )}
 
       {/* Stats Bar */}
-      <div style={{
-        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-        marginBottom: '1rem', fontSize: '0.8rem', color: 'var(--text-secondary)',
-      }}>
+      <div className="flex justify-between items-center text-[11px] text-ink-tertiary">
         <span>{total} record{total !== 1 ? 's' : ''} found</span>
         <span>Page {page} of {totalPages}</span>
       </div>
 
       {/* Logs Table */}
-      <div style={{
-        borderRadius: '12px', overflow: 'hidden',
-        border: '1px solid var(--border)', background: 'var(--card-bg)',
-      }}>
+      <div className="rounded-xl overflow-hidden border border-[#23252A] bg-[#0F1011]">
         {isLoading ? (
-          <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
-            Loading audit logs...
-          </div>
+          <SkeletonTable rows={6} cols={4} />
         ) : logs.length === 0 ? (
-          <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
-            <FileText size={32} style={{ marginBottom: '0.5rem', opacity: 0.5 }} />
-            <p>No audit logs found.</p>
-          </div>
+          <EmptyState 
+            icon={FileText} 
+            title="No audit logs found" 
+            description="Adjust your filters or check back after some activity has been recorded."
+            action={
+              <button onClick={fetchLogs} className="button-secondary text-caption px-4 py-2 flex items-center gap-2 cursor-pointer">
+                <RefreshCw size={14} /> Refresh
+              </button>
+            }
+          />
         ) : (
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <table className="w-full">
             <thead>
-              <tr style={{ borderBottom: '1px solid var(--border)' }}>
+              <tr className="border-b border-[#23252A]">
                 {['Type', 'Timestamp', 'Details', 'Status'].map(h => (
-                  <th key={h} style={{
-                    padding: '0.75rem 1rem', textAlign: 'left',
-                    fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)',
-                    textTransform: 'uppercase', letterSpacing: '0.05em',
-                  }}>
+                  <th key={h} className="px-4 py-3 text-left text-[11px] font-semibold text-ink-tertiary uppercase tracking-wider">
                     {h}
                   </th>
                 ))}
@@ -199,88 +237,73 @@ export default function AuditLogsPage() {
             </thead>
             <tbody>
               <AnimatePresence>
-                {logs.map((log, idx) => {
-                  const colors = typeColors[log.type] || typeColors.feedback;
-                  return (
-                    <motion.tr
-                      key={log.id || idx}
-                      initial={{ opacity: 0, y: 8 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: idx * 0.02 }}
-                      style={{
-                        borderBottom: '1px solid var(--border)',
-                        transition: 'background 0.15s',
-                      }}
-                      onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.02)'}
-                      onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-                    >
-                      {/* Type Badge */}
-                      <td style={{ padding: '0.75rem 1rem' }}>
-                        <span style={{
-                          display: 'inline-block', padding: '0.2rem 0.6rem',
-                          borderRadius: '6px', fontSize: '0.7rem', fontWeight: 600,
-                          background: colors.bg, border: `1px solid ${colors.border}`,
-                          color: colors.text, textTransform: 'uppercase',
-                        }}>
-                          {log.type}
-                        </span>
-                      </td>
+                {logs.map((log, idx) => (
+                  <motion.tr
+                    key={log.id || idx}
+                    initial={{ opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: idx * 0.02 }}
+                    className="border-b border-[#23252A] table-row-hover"
+                  >
+                    {/* Type Badge */}
+                    <td className="px-4 py-3">
+                      <span className={`badge ${log.type === 'consent' ? 'badge-info' : 'badge-warning'}`}>
+                        {log.type}
+                      </span>
+                    </td>
 
-                      {/* Timestamp */}
-                      <td style={{ padding: '0.75rem 1rem', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                        {log.timestamp ? new Date(log.timestamp).toLocaleString() : '—'}
-                      </td>
+                    {/* Timestamp */}
+                    <td className="px-4 py-3 text-caption text-ink-subtle">
+                      {log.timestamp ? new Date(log.timestamp).toLocaleString() : '—'}
+                    </td>
 
-                      {/* Details */}
-                      <td style={{ padding: '0.75rem 1rem', fontSize: '0.8rem', color: 'var(--text-primary)' }}>
-                        {log.type === 'feedback' ? (
+                    {/* Details */}
+                    <td className="px-4 py-3 text-caption text-ink">
+                      {log.type === 'feedback' ? (
+                        <div>
                           <div>
-                            <div>
-                              Predicted: <strong>{log.predicted_name || '—'}</strong>
-                              {log.correct_name && (
-                                <span> → Corrected: <strong>{log.correct_name}</strong></span>
-                              )}
-                            </div>
-                            {log.message && (
-                              <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
-                                {log.message}
-                              </div>
+                            Predicted: <strong>{log.predicted_name || '—'}</strong>
+                            {log.correct_name && (
+                              <span className="text-ink-subtle"> → Corrected: <strong className="text-ink">{log.correct_name}</strong></span>
                             )}
                           </div>
-                        ) : (
+                          {log.message && (
+                            <div className="text-[11px] text-ink-tertiary mt-0.5">{log.message}</div>
+                          )}
+                        </div>
+                      ) : (
+                        <div>
                           <div>
-                            <div>
-                              Employee: <strong>{log.employee_name || '—'}</strong>
-                            </div>
-                            <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-                              {log.consent_type?.replace(/_/g, ' ')}
-                              {log.revoked_at && (
-                                <span style={{ color: '#f87171' }}> — Revoked {new Date(log.revoked_at).toLocaleDateString()}</span>
-                              )}
-                            </div>
+                            Employee: <strong>{log.employee_name || '—'}</strong>
                           </div>
-                        )}
-                      </td>
+                          <div className="text-[11px] text-ink-tertiary">
+                            {log.consent_type?.replace(/_/g, ' ')}
+                            {log.revoked_at && (
+                              <span className="text-[#f87171]"> — Revoked {new Date(log.revoked_at).toLocaleDateString()}</span>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </td>
 
-                      {/* Status */}
-                      <td style={{ padding: '0.75rem 1rem' }}>
-                        {log.type === 'feedback' ? (
-                          log.is_correct ? (
-                            <CheckCircle size={16} style={{ color: '#4ade80' }} />
-                          ) : (
-                            <XCircle size={16} style={{ color: '#f87171' }} />
-                          )
+                    {/* Status */}
+                    <td className="px-4 py-3">
+                      {log.type === 'feedback' ? (
+                        log.is_correct ? (
+                          <CheckCircle size={16} className="text-[#4ade80]" />
                         ) : (
-                          log.revoked_at ? (
-                            <UserX size={16} style={{ color: '#f87171' }} />
-                          ) : (
-                            <CheckCircle size={16} style={{ color: '#4ade80' }} />
-                          )
-                        )}
-                      </td>
-                    </motion.tr>
-                  );
-                })}
+                          <XCircle size={16} className="text-[#f87171]" />
+                        )
+                      ) : (
+                        log.revoked_at ? (
+                          <UserX size={16} className="text-[#f87171]" />
+                        ) : (
+                          <CheckCircle size={16} className="text-[#4ade80]" />
+                        )
+                      )}
+                    </td>
+                  </motion.tr>
+                ))}
               </AnimatePresence>
             </tbody>
           </table>
@@ -289,19 +312,12 @@ export default function AuditLogsPage() {
 
       {/* Pagination */}
       {totalPages > 1 && (
-        <div style={{
-          display: 'flex', justifyContent: 'center', gap: '0.5rem',
-          marginTop: '1.5rem',
-        }}>
+        <div className="flex justify-center items-center gap-1.5 pt-2">
           <button
             onClick={() => setPage(p => Math.max(1, p - 1))}
             disabled={page <= 1}
-            style={{
-              padding: '0.5rem 0.75rem', borderRadius: '8px',
-              border: '1px solid var(--border)', background: 'var(--card-bg)',
-              color: page <= 1 ? 'var(--text-secondary)' : 'var(--text-primary)',
-              cursor: page <= 1 ? 'not-allowed' : 'pointer', opacity: page <= 1 ? 0.5 : 1,
-            }}
+            className="button-icon disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+            aria-label="Previous page"
           >
             <ChevronLeft size={16} />
           </button>
@@ -313,13 +329,11 @@ export default function AuditLogsPage() {
               <button
                 key={p}
                 onClick={() => setPage(p)}
-                style={{
-                  padding: '0.5rem 0.75rem', borderRadius: '8px', minWidth: '36px',
-                  border: '1px solid var(--border)',
-                  background: p === page ? 'var(--primary)' : 'var(--card-bg)',
-                  color: p === page ? '#fff' : 'var(--text-primary)',
-                  cursor: 'pointer', fontWeight: p === page ? 700 : 400, fontSize: '0.85rem',
-                }}
+                className={`min-w-[36px] h-9 rounded-lg text-caption font-medium transition-all cursor-pointer ${
+                  p === page 
+                    ? 'bg-[#5E6AD2] text-white border border-[#5E6AD2]' 
+                    : 'bg-[#0F1011] text-ink-subtle border border-[#23252A] hover:border-[#34343A]'
+                }`}
               >
                 {p}
               </button>
@@ -329,17 +343,13 @@ export default function AuditLogsPage() {
           <button
             onClick={() => setPage(p => Math.min(totalPages, p + 1))}
             disabled={page >= totalPages}
-            style={{
-              padding: '0.5rem 0.75rem', borderRadius: '8px',
-              border: '1px solid var(--border)', background: 'var(--card-bg)',
-              color: page >= totalPages ? 'var(--text-secondary)' : 'var(--text-primary)',
-              cursor: page >= totalPages ? 'not-allowed' : 'pointer', opacity: page >= totalPages ? 0.5 : 1,
-            }}
+            className="button-icon disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+            aria-label="Next page"
           >
             <ChevronRight size={16} />
           </button>
         </div>
       )}
-    </div>
+    </motion.div>
   );
 }

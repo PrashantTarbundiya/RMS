@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 import { User, Mail, Shield, Building, Cpu, Database, Server, BarChart3, Image as ImageIcon, RefreshCw, Download, Upload, RotateCcw, CheckCircle, AlertTriangle, Info, Package, Bell } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { API_BASE } from '../config';
@@ -9,6 +10,7 @@ const ADMIN_ROLES = ['org_admin', 'platform_owner'];
 
 export default function ProfilePage() {
   const { user, apiClient } = useAuth();
+  const toast = useToast();
   const navigate = useNavigate();
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);

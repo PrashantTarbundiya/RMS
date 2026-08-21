@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { Download, Trash2, Box, Cpu, AlertTriangle, Settings, Save, CheckCircle, Info } from 'lucide-react';
+import { useToast } from '../context/ToastContext';
+import { Download, Trash2, Box, Cpu, AlertTriangle, Settings, Save, CheckCircle, Info, Archive, Upload, RotateCcw, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { API_BASE } from '../config';
 
 
 export default function ModelsPage() {
   const { apiClient } = useAuth();
+  const toast = useToast();
   const [status, setStatus] = useState({ type: '', message: '' });
   const [isExporting, setIsExporting] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
@@ -26,6 +28,10 @@ export default function ModelsPage() {
 
   const [enableGhostFaceNet, setEnableGhostFaceNet] = useState(() => {
     return localStorage.getItem('enableGhostFaceNet') === 'true'; // Default disabled
+  });
+
+  const [enableVGGFace, setEnableVGGFace] = useState(() => {
+    return localStorage.getItem('enableVGGFace') === 'true'; // Default disabled
   });
 
   const [showConfidence, setShowConfidence] = useState(() => {
@@ -53,6 +59,13 @@ export default function ModelsPage() {
     window.dispatchEvent(new Event('storage'));
   };
 
+  const handleToggleVGGFace = (checked) => {
+    setEnableVGGFace(checked);
+    localStorage.setItem('enableVGGFace', checked ? 'true' : 'false');
+    apiClient.post(`${API_BASE}/config`, { ...config, ENABLE_VGGFACE: checked, CONFIRM_THRESHOLD: threshold }).then(res => setConfig(res.data));
+    window.dispatchEvent(new Event('storage'));
+  };
+
   const handleToggleConfidence = (checked) => {
     setShowConfidence(checked);
     localStorage.setItem('showConfidence', checked ? 'true' : 'false');
@@ -75,6 +88,10 @@ export default function ModelsPage() {
          setEnableGhostFaceNet(res.data.ENABLE_GHOSTFACENET);
          localStorage.setItem('enableGhostFaceNet', res.data.ENABLE_GHOSTFACENET ? 'true' : 'false');
       }
+      if (res.data.ENABLE_VGGFACE !== undefined) {
+         setEnableVGGFace(res.data.ENABLE_VGGFACE);
+         localStorage.setItem('enableVGGFace', res.data.ENABLE_VGGFACE ? 'true' : 'false');
+      }
     }).catch(err => console.error("Failed to load config", err));
   }, [apiClient]);
 
@@ -83,21 +100,20 @@ export default function ModelsPage() {
     try {
       const res = await apiClient.post(`${API_BASE}/config`, { ...config, CONFIRM_THRESHOLD: threshold });
       setConfig(res.data);
-      setStatus({ type: 'success', message: 'Configuration saved successfully.' });
+      toast.success('Configuration saved successfully.');
     } catch (err) {
-      setStatus({ type: 'error', message: 'Failed to save configuration.' });
+      toast.error('Failed to save configuration.');
     } finally { setIsSavingConfig(false); }
   };
 
   const handleExport = async () => {
     setIsExporting(true);
-    setStatus({ type: 'info', message: 'Exporting GhostFaceNet to ONNX format. This may take a few seconds...' });
-    
+    toast.info('Exporting GhostFaceNet to ONNX format...');
     try {
       const res = await apiClient.post(`${API_BASE}/export-onnx`);
-      setStatus({ type: 'success', message: `Successfully exported ONNX model (${res.data.size_mb} MB) to ${res.data.path}` });
+      toast.success(`ONNX model exported (${res.data.size_mb} MB)`);
     } catch (err) {
-      setStatus({ type: 'error', message: err.response?.data?.error || 'Failed to export model' });
+      toast.error(err.response?.data?.error || 'Failed to export model');
     } finally { setIsExporting(false); }
   };
 
@@ -107,15 +123,53 @@ export default function ModelsPage() {
 
   const handleReset = async () => {
     setIsResetting(true);
-    setStatus({ type: 'info', message: 'Deleting all trained models and dataset...' });
-    
     try {
       const res = await apiClient.post(`${API_BASE}/models/reset`);
-      setStatus({ type: 'success', message: res.data.message });
+      toast.success(res.data.message || 'System reset complete.');
       setShowConfirm(false);
     } catch (err) {
-      setStatus({ type: 'error', message: err.response?.data?.error || 'Failed to reset models' });
+      toast.error(err.response?.data?.error || 'Failed to reset models');
     } finally { setIsResetting(false); }
+  };
+
+  // ── Backup & Restore ──
+  const [backups, setBackups] = useState([]);
+  const [backupLoading, setBackupLoading] = useState(false);
+  const [restoreLoading, setRestoreLoading] = useState(false);
+
+  const fetchBackups = async () => {
+    try {
+      const res = await apiClient.get(`${API_BASE}/backup/list`);
+      setBackups(res.data.backups || []);
+    } catch { /* ignore if not available */ }
+  };
+
+  useEffect(() => { fetchBackups(); }, []);
+
+  const createBackup = async () => {
+    setBackupLoading(true);
+    try {
+      const res = await apiClient.post(`${API_BASE}/backup/create`);
+      toast.success(res.data.message || 'Backup created successfully.');
+      fetchBackups();
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Failed to create backup.');
+    } finally { setBackupLoading(false); }
+  };
+
+  const restoreBackup = async (filename) => {
+    if (!confirm(`Restore from backup "${filename}"? This will overwrite current data.`)) return;
+    setRestoreLoading(true);
+    try {
+      const formData = new FormData();
+      // Download the backup file and re-upload for restore
+      const res = await apiClient.get(`${API_BASE}/backup/download/${filename}`, { responseType: 'blob' });
+      formData.append('backup', new Blob([res.data]), filename);
+      await apiClient.post(`${API_BASE}/backup/restore`, formData);
+      toast.success('Backup restored successfully. Reload may be needed.');
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Failed to restore backup.');
+    } finally { setRestoreLoading(false); }
   };
 
   return (
@@ -125,25 +179,7 @@ export default function ModelsPage() {
         <p className="mt-1 text-caption text-ink-subtle">Export models for edge deployment or reset the system.</p>
       </div>
 
-      <AnimatePresence>
-        {status.message && (
-          <motion.div 
-            initial={{ opacity: 0, height: 0 }} 
-            animate={{ opacity: 1, height: 'auto' }} 
-            exit={{ opacity: 0, height: 0 }}
-            className="overflow-hidden"
-          >
-            <div className={`p-4 rounded-lg flex items-center gap-3 text-sm mb-2 border ${
-              status.type === 'error' ? 'bg-[#F87171]/10 text-[#F87171] border-[#F87171]/20' : 
-              status.type === 'success' ? 'bg-[#27A644]/10 text-[#27A644] border-[#27A644]/20' : 
-              'bg-[#5E6AD2]/10 text-[#828FFF] border-[#5E6AD2]/20'
-            }`}>
-              {status.type === 'error' ? <AlertTriangle className="w-5 h-5" /> : status.type === 'success' ? <CheckCircle className="w-5 h-5" /> : <Info className="w-5 h-5" />}
-              <span className="text-caption">{status.message}</span>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {enableFacenet512 && (
@@ -260,6 +296,23 @@ export default function ModelsPage() {
 
             <div className="flex items-center justify-between p-4 bg-[#010102]/60 border border-[#23252A] rounded-lg mb-6">
               <div>
+                <label htmlFor="vggface-toggle" className="text-caption font-medium text-ink cursor-pointer">Enable VGG-Face (Legacy DeepFace)</label>
+                <p className="text-[11px] text-ink-tertiary mt-1">Run legacy VGG-Face model for comparison.</p>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input 
+                  id="vggface-toggle"
+                  type="checkbox" 
+                  className="sr-only peer" 
+                  checked={enableVGGFace} 
+                  onChange={e => handleToggleVGGFace(e.target.checked)} 
+                />
+                <div className="w-9 h-5 bg-[#141516] rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[4px] after:left-[3px] after:bg-ink-muted after:rounded-full after:h-3 after:w-3.5 after:transition-all peer-checked:bg-[#5E6AD2] border border-[#23252A]"></div>
+              </label>
+            </div>
+
+            <div className="flex items-center justify-between p-4 bg-[#010102]/60 border border-[#23252A] rounded-lg mb-6">
+              <div>
                 <label htmlFor="confidence-toggle" className="text-caption font-medium text-ink cursor-pointer">Show Confidence Percentages</label>
                 <p className="text-[11px] text-ink-tertiary mt-1">Display exact model confidence scores in the UI. Turn off for cleaner presentations.</p>
               </div>
@@ -329,13 +382,58 @@ export default function ModelsPage() {
           </div>
         </div>
 
+        {/* Backup & Restore */}
+        <div className="card-linear p-6">
+          <div>
+            <h3 className="text-body font-medium text-ink flex items-center gap-2 mb-2">
+              <Archive className="w-5 h-5 text-ink-subtle" /> Backup & Restore
+            </h3>
+            <p className="text-caption text-ink-subtle mb-6">
+              Create snapshots of your trained models and dataset. Restore from a previous backup if needed.
+            </p>
+
+            <div className="flex flex-wrap gap-3 mb-4">
+              <button onClick={createBackup} disabled={backupLoading} className="button-primary text-white flex items-center gap-2 disabled:opacity-50">
+                {backupLoading ? <Loader2 size={16} className="animate-spin text-white" /> : <Archive size={16} className="text-white" />}
+                <span className="text-button text-white">{backupLoading ? 'Creating...' : 'Create Backup'}</span>
+              </button>
+            </div>
+
+            {backups.length > 0 && (
+              <div className="space-y-2">
+                <div className="text-[11px] text-ink-subtle uppercase tracking-wider font-semibold mb-2">Available Backups</div>
+                {backups.map((b, i) => (
+                  <div key={i} className="flex items-center justify-between p-3 bg-[#010102]/50 rounded-lg border border-[#23252A]">
+                    <div className="text-caption text-ink font-mono">{typeof b === 'string' ? b : b.filename || b.name}</div>
+                    <div className="flex gap-2">
+                      <a
+                        href={`${API_BASE}/backup/download/${typeof b === 'string' ? b : b.filename || b.name}`}
+                        className="button-secondary text-[11px] py-0.5 px-2 h-7 flex items-center gap-1"
+                      >
+                        <Download size={12} /> Download
+                      </a>
+                      <button
+                        onClick={() => restoreBackup(typeof b === 'string' ? b : b.filename || b.name)}
+                        disabled={restoreLoading}
+                        className="button-secondary text-[11px] py-0.5 px-2 h-7 flex items-center gap-1 disabled:opacity-30"
+                      >
+                        <RotateCcw size={12} /> Restore
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
         <div className="border border-[#F87171]/20 bg-[#F87171]/5 rounded-lg overflow-hidden p-6">
           <div>
             <h3 className="text-body font-medium text-[#F87171] flex items-center gap-2 mb-2">
               <AlertTriangle className="w-5 h-5" /> Danger Zone
             </h3>
             <p className="text-caption text-ink-subtle mb-6">
-              Resetting the system will permanently delete all trained models (InsightFace and GhostFaceNet) and all collected identity datasets. You will need to re-register everyone.
+              Resetting the system will permanently delete all trained models and all collected identity datasets. You will need to re-register everyone.
             </p>
             
             {showConfirm ? (

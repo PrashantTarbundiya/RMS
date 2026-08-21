@@ -40,12 +40,17 @@ export default function TestPage() {
     return localStorage.getItem('enableGhostFaceNet') === 'true'; // Default disabled
   });
 
+  const [enableVGGFace, setEnableVGGFace] = useState(() => {
+    return localStorage.getItem('enableVGGFace') === 'true'; // Default disabled
+  });
+
   useEffect(() => {
     const handleStorageChange = () => {
       setShowConfidence(localStorage.getItem('showConfidence') !== 'false');
       setEnableFacenet512(localStorage.getItem('enableFacenet512') !== 'false');
       setEnableInsightFace(localStorage.getItem('enableInsightFace') !== 'false');
       setEnableGhostFaceNet(localStorage.getItem('enableGhostFaceNet') === 'true');
+      setEnableVGGFace(localStorage.getItem('enableVGGFace') === 'true');
     };
     window.addEventListener('storage', handleStorageChange);
     return () => window.removeEventListener('storage', handleStorageChange);
@@ -1049,9 +1054,15 @@ export default function TestPage() {
             
             <div className="flex gap-6 p-4 bg-[#010102]/40 rounded-lg border border-[#23252A] mb-6 items-center flex-wrap">
                 {enableFacenet512 && (
-                  <div className="flex items-center gap-2">
-                    <span className="w-2.5 h-2.5 rounded-full bg-[#5E6AD2]" />
+                  <div className="flex items-center space-x-2">
+                    <div className="w-2.5 h-2.5 rounded-full bg-blue-500"></div>
                     <span className="text-caption font-mono text-ink-subtle">Facenet512: Active</span>
+                  </div>
+                )}
+                {enableVGGFace && (
+                  <div className="flex items-center space-x-2">
+                    <div className="w-2.5 h-2.5 rounded-full bg-yellow-500"></div>
+                    <span className="text-caption font-mono text-ink-subtle">VGG-Face: Active</span>
                   </div>
                 )}
                 {enableInsightFace && (
@@ -1066,7 +1077,7 @@ export default function TestPage() {
                     <span className="text-caption font-mono text-ink-subtle">GhostFaceNet: Active</span>
                   </div>
                 )}
-                {!enableGhostFaceNet && !enableInsightFace && !enableFacenet512 && (
+                {!enableGhostFaceNet && !enableInsightFace && !enableFacenet512 && !enableVGGFace && (
                   <div className="text-caption font-mono text-[#F87171]">All Recognition Models Disabled</div>
                 )}
             </div>
@@ -1146,28 +1157,37 @@ export default function TestPage() {
                              </div>
 
                             {enableFacenet512 && face.predictions?.facenet512 && (
-                              <div className="flex flex-col gap-2 p-3 bg-[#0F1011] rounded-lg border border-[#23252A]">
+                              <div className={`flex flex-col gap-2 p-3 bg-[#0F1011] rounded-lg border ${face.predictions?.facenet512?.confidence_level === 'confirmed' ? 'border-emerald-500/30' : 'border-[#23252A]'}`}>
                                   <div className="flex justify-between text-[11px] font-mono">
                                      <span className="text-ink-tertiary">Facenet512</span>
-                                     <span className="text-ink-muted">{face.predictions?.facenet512?.label} {showConfidence && `(${(face.predictions?.facenet512?.confidence * 100).toFixed(1)}%)`}</span>
+                                     <span className={face.predictions?.facenet512?.confidence_level === 'confirmed' ? 'text-emerald-400' : 'text-red-400/70'}>{face.predictions?.facenet512?.label} {showConfidence && `(${(face.predictions?.facenet512?.confidence * 100).toFixed(1)}%)`}</span>
+                                  </div>
+                              </div>
+                            )}
+
+                            {enableVGGFace && face.predictions?.vggface && (
+                              <div className={`flex flex-col gap-2 p-3 bg-[#0F1011] rounded-lg border ${face.predictions?.vggface?.confidence_level === 'confirmed' ? 'border-emerald-500/30' : 'border-[#23252A]'}`}>
+                                  <div className="flex justify-between text-[11px] font-mono">
+                                     <span className="text-ink-tertiary">VGG-Face</span>
+                                     <span className={face.predictions?.vggface?.confidence_level === 'confirmed' ? 'text-emerald-400' : face.predictions?.vggface?.label === 'Error' ? 'text-amber-400' : 'text-red-400/70'}>{face.predictions?.vggface?.label} {showConfidence && `(${(face.predictions?.vggface?.confidence * 100).toFixed(1)}%)`}</span>
                                   </div>
                               </div>
                             )}
                             
                             {enableInsightFace && face.predictions?.insightface && (
-                              <div className="flex flex-col gap-2 p-3 bg-[#0F1011] rounded-lg border border-[#23252A]">
+                              <div className={`flex flex-col gap-2 p-3 bg-[#0F1011] rounded-lg border ${face.predictions?.insightface?.confidence_level === 'confirmed' ? 'border-emerald-500/30' : 'border-[#23252A]'}`}>
                                   <div className="flex justify-between text-[11px] font-mono">
                                      <span className="text-ink-tertiary">InsightFace</span>
-                                     <span className="text-ink-muted">{face.predictions?.insightface?.label} {showConfidence && `(${(face.predictions?.insightface?.confidence * 100).toFixed(1)}%)`}</span>
+                                     <span className={face.predictions?.insightface?.confidence_level === 'confirmed' ? 'text-emerald-400' : 'text-red-400/70'}>{face.predictions?.insightface?.label} {showConfidence && `(${(face.predictions?.insightface?.confidence * 100).toFixed(1)}%)`}</span>
                                   </div>
                               </div>
                             )}
 
                             {enableGhostFaceNet && face.predictions?.ghostfacenet && (
-                              <div className="flex flex-col gap-2 p-3 bg-[#0F1011] rounded-lg border border-[#23252A]">
+                              <div className={`flex flex-col gap-2 p-3 bg-[#0F1011] rounded-lg border ${face.predictions?.ghostfacenet?.confidence_level === 'confirmed' ? 'border-emerald-500/30' : 'border-[#23252A]'}`}>
                                   <div className="flex justify-between text-[11px] font-mono">
                                      <span className="text-ink-tertiary">GhostFaceNet</span>
-                                     <span className="text-ink-muted">{face.predictions?.ghostfacenet?.label} {showConfidence && `(${(face.predictions?.ghostfacenet?.confidence * 100).toFixed(1)}%)`}</span>
+                                     <span className={face.predictions?.ghostfacenet?.confidence_level === 'confirmed' ? 'text-emerald-400' : 'text-red-400/70'}>{face.predictions?.ghostfacenet?.label} {showConfidence && `(${(face.predictions?.ghostfacenet?.confidence * 100).toFixed(1)}%)`}</span>
                                   </div>
                               </div>
                             )}

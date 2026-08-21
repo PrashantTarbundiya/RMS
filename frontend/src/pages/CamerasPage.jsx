@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 import { Camera, Plus, Trash2, Key, Copy, Check, ShieldCheck, MapPin, Cpu, Monitor, Sun, RotateCcw, Loader2, Play } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { API_BASE } from '../config';
 
 export default function CamerasPage() {
   const { apiClient } = useAuth();
+  const toast = useToast();
   const [cameras, setCameras] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -76,6 +78,7 @@ export default function CamerasPage() {
       setNewCamLocation('');
       setShowAddModal(false);
       fetchCameras();
+      toast.success(`Camera "${res.data.camera?.name || newCamName}" registered.`);
     } catch (err) {
       setError(err.response?.data?.error || 'Failed to create camera');
     } finally {
@@ -88,8 +91,9 @@ export default function CamerasPage() {
     try {
       await apiClient.delete(`${API_BASE}/cameras/${camId}`);
       fetchCameras();
+      toast.success('Camera removed.');
     } catch (err) {
-      setError('Failed to delete camera');
+      toast.error('Failed to delete camera.');
     }
   };
 

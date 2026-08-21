@@ -1,0 +1,4 @@
+Model,Accuracy,Speed (ms),Size (MB),Edge Score
+Facenet512,59.00000000000001,0.06382536888122559,92,44
+InsightFace,100.0,0.0,174,70
+GhostFaceNet,97.5,0.09651517868041992,12,62

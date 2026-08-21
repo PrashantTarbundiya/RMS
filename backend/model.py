@@ -60,7 +60,9 @@ EMBEDDING_DIM = 512
 
 # ======================== MODEL WARM-UP ========================
 from config_utils import load_config
-if load_config().get("ENABLE_DEEPFACE", False):
+_startup_cfg = load_config()
+
+if _startup_cfg.get("ENABLE_FACENET512", False):
     print("[INFO] Warming up Facenet512 model (one-time load)...")
     _warmup_start = time.time()
     try:
@@ -76,7 +78,43 @@ if load_config().get("ENABLE_DEEPFACE", False):
     except Exception as e:
         print(f"[WARNING] Facenet512 warm-up failed: {e}")
 else:
-    print("[INFO] DeepFace / Facenet512 is disabled in settings. Skipping warm-up.")
+    print("[INFO] Facenet512 is disabled in settings. Skipping warm-up.")
+
+if _startup_cfg.get("ENABLE_VGGFACE", False):
+    print("[INFO] Warming up VGG-Face model (one-time load)...")
+    _warmup_start_vgg = time.time()
+    try:
+        _dummy_vgg = np.zeros((224, 224, 3), dtype=np.uint8)
+        DeepFace.represent(
+            img_path=_dummy_vgg,
+            model_name="VGG-Face",
+            enforce_detection=False,
+            detector_backend='skip',
+            align=False
+        )
+        print(f"[INFO] VGG-Face ready in {time.time() - _warmup_start_vgg:.1f}s")
+    except Exception as e:
+        print(f"[WARNING] VGG-Face warm-up failed: {e}")
+else:
+    print("[INFO] VGG-Face is disabled in settings. Skipping warm-up.")
+
+if _startup_cfg.get("ENABLE_GHOSTFACENET", False):
+    print("[INFO] Warming up GhostFaceNet model (one-time load)...")
+    _warmup_start_ghost = time.time()
+    try:
+        _dummy_ghost = np.zeros((112, 112, 3), dtype=np.uint8)
+        DeepFace.represent(
+            img_path=_dummy_ghost,
+            model_name="GhostFaceNet",
+            enforce_detection=False,
+            detector_backend='skip',
+            align=False
+        )
+        print(f"[INFO] GhostFaceNet ready in {time.time() - _warmup_start_ghost:.1f}s")
+    except Exception as e:
+        print(f"[WARNING] GhostFaceNet warm-up failed: {e}")
+else:
+    print("[INFO] GhostFaceNet is disabled in settings. Skipping warm-up.")
 # ===============================================================
 
 
@@ -268,6 +306,9 @@ def get_embedding(face_crop, model_name=MODEL_NAME):
 
     Returns a list[float] or None on failure.
     """
+    if model_name == 'InsightFace':
+        return get_embedding_insightface(face_crop)
+
     try:
         embedding_objs = DeepFace.represent(
             img_path=face_crop,
@@ -380,7 +421,7 @@ def _crop_face(image, detector):
 
     if not faces:
         try:
-            from clean_dataset import _build_mediapipe_detector, _detect_with_mediapipe
+            from scripts.clean_dataset import _build_mediapipe_detector, _detect_with_mediapipe
             _mp = _build_mediapipe_detector(confidence=0.20)
             if _mp:
                 boxes = _detect_with_mediapipe(_mp, image)
