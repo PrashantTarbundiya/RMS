@@ -4,6 +4,15 @@ import numpy as np
 import matplotlib.pyplot as plt
 import torch
 import os
+import sys
+
+# Path constants
+SCRIPTS_DIR = os.path.dirname(os.path.abspath(__file__))
+BACKEND_DIR = os.path.dirname(SCRIPTS_DIR)
+PROJECT_ROOT = os.path.dirname(BACKEND_DIR)
+
+if BACKEND_DIR not in sys.path:
+    sys.path.insert(0, BACKEND_DIR)
 
 # Import the specific models configured in the architecture
 try:
@@ -11,6 +20,7 @@ try:
     from deepface import DeepFace
     from models.sota_finetune.finetune import build_mobile_model
 except ImportError as e:
+    print(f"Error importing modules: {e}")
     exit(1)
 
 def generate_graphs():

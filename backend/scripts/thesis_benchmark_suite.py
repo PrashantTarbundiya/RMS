@@ -10,9 +10,15 @@ from sklearn.metrics import auc
 from thesis_report_generator import generate_report
 import sys
 
-# Add backend directory to path
-BACKEND_DIR = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, BACKEND_DIR)
+# Add backend and scripts directory to path
+SCRIPTS_DIR = os.path.dirname(os.path.abspath(__file__))
+BACKEND_DIR = os.path.dirname(SCRIPTS_DIR)
+PROJECT_ROOT = os.path.dirname(BACKEND_DIR)
+
+if BACKEND_DIR not in sys.path:
+    sys.path.insert(0, BACKEND_DIR)
+if SCRIPTS_DIR not in sys.path:
+    sys.path.insert(0, SCRIPTS_DIR)
 
 from model import get_embedding
 

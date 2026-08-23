@@ -58,6 +58,16 @@ EMBEDDING_DIM = 512
 # ===============================================================
 
 
+import sys
+
+# Ensure UTF-8 stdout on Windows to prevent UnicodeEncodeError with DeepFace logs
+if hasattr(sys.stdout, 'buffer'):
+    try:
+        sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+        sys.stderr.reconfigure(encoding='utf-8', errors='replace')
+    except Exception:
+        pass
+
 # ======================== MODEL WARM-UP ========================
 from config_utils import load_config
 _startup_cfg = load_config()
@@ -76,7 +86,8 @@ if _startup_cfg.get("ENABLE_FACENET512", False):
         )
         print(f"[INFO] Facenet512 ready in {time.time() - _warmup_start:.1f}s")
     except Exception as e:
-        print(f"[WARNING] Facenet512 warm-up failed: {e}")
+        safe_e = str(e).encode('ascii', errors='replace').decode('ascii')
+        print(f"[WARNING] Facenet512 warm-up failed: {safe_e}")
 else:
     print("[INFO] Facenet512 is disabled in settings. Skipping warm-up.")
 
@@ -94,7 +105,8 @@ if _startup_cfg.get("ENABLE_VGGFACE", False):
         )
         print(f"[INFO] VGG-Face ready in {time.time() - _warmup_start_vgg:.1f}s")
     except Exception as e:
-        print(f"[WARNING] VGG-Face warm-up failed: {e}")
+        safe_e = str(e).encode('ascii', errors='replace').decode('ascii')
+        print(f"[WARNING] VGG-Face warm-up failed: {safe_e}")
 else:
     print("[INFO] VGG-Face is disabled in settings. Skipping warm-up.")
 
@@ -112,7 +124,8 @@ if _startup_cfg.get("ENABLE_GHOSTFACENET", False):
         )
         print(f"[INFO] GhostFaceNet ready in {time.time() - _warmup_start_ghost:.1f}s")
     except Exception as e:
-        print(f"[WARNING] GhostFaceNet warm-up failed: {e}")
+        safe_e = str(e).encode('ascii', errors='replace').decode('ascii')
+        print(f"[WARNING] GhostFaceNet warm-up failed: {safe_e}")
 else:
     print("[INFO] GhostFaceNet is disabled in settings. Skipping warm-up.")
 # ===============================================================
