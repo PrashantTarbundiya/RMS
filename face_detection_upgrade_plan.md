@@ -57,7 +57,7 @@ To replace inaccurate 2D heuristics with real-world angular geometry:
 * `cv2.solvePnP(MODEL_POINTS_3D, image_points_2D, camera_matrix, dist_coeffs)`
 * `cv2.Rodrigues(rvec)` $\to$ Rotation matrix $R$.
 * `cv2.RQDecomp3x3(R)` $\to$ Euler angles:
-  * **Yaw**: Rotation around vertical Y axis ($\text{Yaw} > +15^\circ \implies \text{right\_profile}$, $\text{Yaw} < -15^\circ \implies \text{left\_profile}$, else $\text{frontal}$)
+  * **Yaw**: Rotation around vertical Y axis ($\text{Yaw} > +15^\circ \implies \text{left\_profile}$, $\text{Yaw} < -15^\circ \implies \text{right\_profile}$, else $\text{frontal}$)
   * **Pitch**: Looking up / down
   * **Roll**: Head tilt left / right
 

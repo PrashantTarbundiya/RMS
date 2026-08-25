@@ -1,12 +1,18 @@
 import os
+import sys
 import cv2
 import numpy as np
 from sklearn.datasets import fetch_lfw_people
-from face_detection import SideFaceDetector
 
 # Path constants
-BACKEND_DIR = os.path.dirname(os.path.abspath(__file__))
+SCRIPTS_DIR = os.path.dirname(os.path.abspath(__file__))
+BACKEND_DIR = os.path.dirname(SCRIPTS_DIR)
 PROJECT_ROOT = os.path.dirname(BACKEND_DIR)
+
+if BACKEND_DIR not in sys.path:
+    sys.path.insert(0, BACKEND_DIR)
+
+from face_detection import SideFaceDetector
 
 def create_directory(path):
     if not os.path.exists(path):

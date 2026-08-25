@@ -58,6 +58,16 @@ EMBEDDING_DIM = 512
 # ===============================================================
 
 
+import sys
+
+# Ensure UTF-8 stdout on Windows to prevent UnicodeEncodeError with DeepFace logs
+if hasattr(sys.stdout, 'buffer'):
+    try:
+        sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+        sys.stderr.reconfigure(encoding='utf-8', errors='replace')
+    except Exception:
+        pass
+
 # ======================== MODEL WARM-UP (LAZY) ========================
 # Models are loaded on first API call, NOT at import time.
 # This cuts server startup from ~25s to ~2s.
@@ -108,7 +118,8 @@ def warmup_models(force=False):
                 print(f"[INFO] Facenet512 ready in {time.time() - t0:.1f}s")
                 loaded.append("Facenet512")
             except Exception as e:
-                print(f"[WARNING] Facenet512 warm-up failed: {e}")
+                safe_e = str(e).encode('ascii', errors='replace').decode('ascii')
+                print(f"[WARNING] Facenet512 warm-up failed: {safe_e}")
         
         if cfg.get("ENABLE_VGGFACE", False):
             print("[INFO] Warming up VGG-Face model (one-time load)...")
@@ -125,7 +136,8 @@ def warmup_models(force=False):
                 print(f"[INFO] VGG-Face ready in {time.time() - t0:.1f}s")
                 loaded.append("VGG-Face")
             except Exception as e:
-                print(f"[WARNING] VGG-Face warm-up failed: {e}")
+                safe_e = str(e).encode('ascii', errors='replace').decode('ascii')
+                print(f"[WARNING] VGG-Face warm-up failed: {safe_e}")
         
         if cfg.get("ENABLE_GHOSTFACENET", False):
             print("[INFO] Warming up GhostFaceNet model (one-time load)...")
@@ -142,7 +154,8 @@ def warmup_models(force=False):
                 print(f"[INFO] GhostFaceNet ready in {time.time() - t0:.1f}s")
                 loaded.append("GhostFaceNet")
             except Exception as e:
-                print(f"[WARNING] GhostFaceNet warm-up failed: {e}")
+                safe_e = str(e).encode('ascii', errors='replace').decode('ascii')
+                print(f"[WARNING] GhostFaceNet warm-up failed: {safe_e}")
         
         _models_warmed_up = True
         
@@ -151,8 +164,6 @@ def warmup_models(force=False):
         else:
             print("[INFO] No DeepFace models enabled in settings. Skipping warm-up.")
 # ======================================================================
-
-
 
 
 # ======================== INSIGHTFACE ONNX ========================

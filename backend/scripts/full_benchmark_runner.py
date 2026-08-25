@@ -45,9 +45,12 @@ import csv
 import psutil
 from datetime import datetime
 
-BACKEND_DIR = os.path.dirname(os.path.abspath(__file__))
+SCRIPTS_DIR = os.path.dirname(os.path.abspath(__file__))
+BACKEND_DIR = os.path.dirname(SCRIPTS_DIR)
 PROJECT_ROOT = os.path.dirname(BACKEND_DIR)
-sys.path.insert(0, BACKEND_DIR)
+
+if BACKEND_DIR not in sys.path:
+    sys.path.insert(0, BACKEND_DIR)
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'

@@ -1,6 +1,13 @@
 import sys
 import os
 
+if hasattr(sys.stdout, 'buffer'):
+    try:
+        sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+        sys.stderr.reconfigure(encoding='utf-8', errors='replace')
+    except Exception:
+        pass
+
 # Monkey-patch standard library for Gevent async mode (Must be at the very top)
 try:
     import gevent.monkey
@@ -3355,87 +3362,99 @@ def feedback_stats():
 @require_auth
 @inject_org_id
 def get_dashboard_stats(org_id=None):
-    from org_storage import get_dataset_cleaned_dir, get_recognition_history_path
-    
-    dataset_cleaned_dir = get_dataset_cleaned_dir(org_id)
-    
-    expected_classes = []
-    if os.path.exists(dataset_cleaned_dir):
-        expected_classes = sorted([name for name in os.listdir(dataset_cleaned_dir) 
-                                   if os.path.isdir(os.path.join(dataset_cleaned_dir, name))
-                                   and name != 'orgs' and not name.startswith('.')])
-                                   
-    total_people = len(expected_classes)
-    total_photos = 0
-    photos_per_person = {}
-    
-    for p in expected_classes:
-        p_dir = os.path.join(dataset_cleaned_dir, p)
-        # Count all image files recursively in this person's directory
-        count = 0
-        if os.path.exists(p_dir):
-            for root, dirs, files in os.walk(p_dir):
-                count += sum(1 for f in files if f.lower().endswith(('.png', '.jpg', '.jpeg', '.webp', '.bmp')))
-        photos_per_person[p] = count
-        total_photos += count
+    try:
+        from org_storage import get_dataset_cleaned_dir, get_recognition_history_path
         
-    org_models = ensure_org_models_loaded(org_id)
-    edge_encodings = org_models.get('ghostfacenet_encodings')
-    deepface_encodings = org_models.get('facenet512_encodings')
-    insightface_encodings = org_models.get('insightface_encodings')
-    
-    requires_retrain = False
-    if total_people > 0:
-        trained_classes = set(org_models.get('ghostfacenet_names', []) or org_models.get('insightface_names', []) or org_models.get('facenet512_names', []))
-        has_encodings = (edge_encodings is not None) or (insightface_encodings is not None) or (deepface_encodings is not None)
-        requires_retrain = (not has_encodings) or (sorted(list(trained_classes)) != expected_classes)
+        dataset_cleaned_dir = get_dataset_cleaned_dir(org_id)
+        
+        expected_classes = []
+        if os.path.exists(dataset_cleaned_dir):
+            expected_classes = sorted([name for name in os.listdir(dataset_cleaned_dir) 
+                                       if os.path.isdir(os.path.join(dataset_cleaned_dir, name))
+                                       and name != 'orgs' and not name.startswith('.')])
+                                       
+        total_people = len(expected_classes)
+        total_photos = 0
+        photos_per_person = {}
+        
+        for p in expected_classes:
+            p_dir = os.path.join(dataset_cleaned_dir, p)
+            # Count all image files recursively in this person's directory
+            count = 0
+            if os.path.exists(p_dir):
+                for root, dirs, files in os.walk(p_dir):
+                    count += sum(1 for f in files if f.lower().endswith(('.png', '.jpg', '.jpeg', '.webp', '.bmp')))
+            photos_per_person[p] = count
+            total_photos += count
+            
+        org_models = ensure_org_models_loaded(org_id) or {}
+        edge_encodings = org_models.get('ghostfacenet_encodings')
+        deepface_encodings = org_models.get('facenet512_encodings')
+        insightface_encodings = org_models.get('insightface_encodings')
+        
+        requires_retrain = False
+        if total_people > 0:
+            edge_trained_classes = set(org_models.get('ghostfacenet_names') or [])
+            facenet_trained_classes = set(org_models.get('facenet512_names') or [])
+            insight_trained_classes = set(org_models.get('insightface_names') or [])
+            
+            trained_classes = edge_trained_classes or facenet_trained_classes or insight_trained_classes
+            has_encodings = (edge_encodings is not None) or (deepface_encodings is not None) or (insightface_encodings is not None)
+            requires_retrain = (not has_encodings) or (sorted(list(trained_classes)) != expected_classes)
 
-    # Read history for stats
-    history = []
-    history_path = get_recognition_history_path(org_id)
-    if os.path.exists(history_path):
-        try:
-            with open(history_path, 'r') as f:
-                history = json.load(f)
-        except Exception:
-            pass
-            
-    # Calculate stats
-    total_predictions = len(history)
-    success_count = sum(1 for entry in history if entry.get('status') == 'success')
-    warning_count = sum(1 for entry in history if entry.get('status') == 'warning')
-    error_count = sum(1 for entry in history if entry.get('status') == 'error')
-    
-    agreement_counts = {'2/2': 0, '1/2': 0, '0/2': 0, 'N/A': 0}
-    for entry in history:
-        agr = entry.get('agreement', 'N/A')
-        if agr in agreement_counts:
-            agreement_counts[agr] += 1
-        elif '2' in str(agr):
-            agreement_counts['2/2'] += 1
-        elif '1' in str(agr):
-            agreement_counts['1/2'] += 1
-        else:
-            agreement_counts['0/2'] += 1
-            
-    return jsonify({
-        'total_people': total_people,
-        'total_photos': total_photos,
-        'photos_per_person': photos_per_person,
-        'requires_retrain': requires_retrain,
-        'models_loaded': {
-            'deepface': deepface_encodings is not None,
-            'edge': edge_encodings is not None
-        },
-        'history_stats': {
-            'total_predictions': total_predictions,
-            'success_count': success_count,
-            'warning_count': warning_count,
-            'error_count': error_count,
-            'agreement_counts': agreement_counts
-        },
-        'recent_history': history[:10]
-    })
+        # Read history for stats
+        history = []
+        history_path = get_recognition_history_path(org_id)
+        if os.path.exists(history_path):
+            try:
+                with open(history_path, 'r') as f:
+                    history = json.load(f)
+            except Exception:
+                pass
+                
+        # Calculate stats
+        total_predictions = len(history)
+        success_count = sum(1 for entry in history if entry.get('status') == 'success')
+        warning_count = sum(1 for entry in history if entry.get('status') == 'warning')
+        error_count = sum(1 for entry in history if entry.get('status') == 'error')
+        
+        agreement_counts = {'2/2': 0, '1/2': 0, '0/2': 0, 'N/A': 0}
+        for entry in history:
+            agr = entry.get('agreement', 'N/A')
+            if agr in agreement_counts:
+                agreement_counts[agr] += 1
+            elif '2' in str(agr):
+                agreement_counts['2/2'] += 1
+            elif '1' in str(agr):
+                agreement_counts['1/2'] += 1
+            else:
+                agreement_counts['0/2'] += 1
+                
+        return jsonify({
+            'total_people': total_people,
+            'total_photos': total_photos,
+            'photos_per_person': photos_per_person,
+            'requires_retrain': requires_retrain,
+            'models_loaded': {
+                'deepface': deepface_encodings is not None,
+                'edge': edge_encodings is not None,
+                'insightface': insightface_encodings is not None
+            },
+            'history_stats': {
+                'total_predictions': total_predictions,
+                'success_count': success_count,
+                'warning_count': warning_count,
+                'error_count': error_count,
+                'agreement_counts': agreement_counts
+            },
+            'recent_history': history[:10]
+        })
+    except Exception as e:
+        logger.error(f"Error generating dashboard stats: {e}", exc_info=True)
+        return jsonify({
+            'error': 'Internal server error while fetching dashboard statistics',
+            'detail': str(e)
+        }), 500
 
 # ─── Person Management Endpoints (Rename & Delete) ───────────────────
 @app.route('/api/persons/<name>', methods=['DELETE'])

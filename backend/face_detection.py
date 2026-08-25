@@ -177,12 +177,12 @@ class SideFaceDetector:
             pitch, yaw, roll = 0.0, 0.0, 0.0
 
         # Classify direction from Yaw angle
-        # Positive yaw = subject looking to their right (right profile)
-        # Negative yaw = subject looking to their left (left profile)
+        # In canonical 3D model: positive yaw = nose moves to camera-right = subject looks LEFT
+        # Negative yaw = nose moves to camera-left = subject looks RIGHT
         if yaw > self.PROFILE_THRESHOLD:
-            direction = 'right_profile'
-        elif yaw < -self.PROFILE_THRESHOLD:
             direction = 'left_profile'
+        elif yaw < -self.PROFILE_THRESHOLD:
+            direction = 'right_profile'
         else:
             direction = 'frontal'
 
@@ -260,7 +260,11 @@ class SideFaceDetector:
                 'angle_label': direction,  # Alias for inference.py compatibility
                 'profile_confidence': profile_conf,
                 'keypoints': keypoints,
-                'soft_biometrics': soft_metrics
+                'soft_biometrics': soft_metrics,
+                'yaw': round(yaw, 2),
+                'pitch': round(pitch, 2),
+                'roll': round(roll, 2),
+                '_source': 'face_mesh'
             }
             faces.append(face)
 
@@ -292,10 +296,13 @@ class SideFaceDetector:
             ]
 
             soft_bio = dict(face.get('soft_biometrics', {}))
-            if 'yaw' in soft_bio:
-                soft_bio['yaw'] = -soft_bio['yaw']
-            if 'roll' in soft_bio:
-                soft_bio['roll'] = -soft_bio['roll']
+            unflipped_yaw = -face.get('yaw', soft_bio.get('yaw', 0.0))
+            unflipped_pitch = face.get('pitch', soft_bio.get('pitch', 0.0))
+            unflipped_roll = -face.get('roll', soft_bio.get('roll', 0.0))
+
+            soft_bio['yaw'] = round(unflipped_yaw, 2)
+            soft_bio['pitch'] = round(unflipped_pitch, 2)
+            soft_bio['roll'] = round(unflipped_roll, 2)
             soft_bio['direction'] = unflipped_dir
 
             unflipped_faces.append({
@@ -311,7 +318,11 @@ class SideFaceDetector:
                 'angle_label': unflipped_dir,
                 'profile_confidence': face['profile_confidence'],
                 'keypoints': unflipped_keypoints,
-                'soft_biometrics': soft_bio
+                'soft_biometrics': soft_bio,
+                'yaw': round(unflipped_yaw, 2),
+                'pitch': round(unflipped_pitch, 2),
+                'roll': round(unflipped_roll, 2),
+                '_source': 'face_mesh_flipped'
             })
 
         return unflipped_faces
@@ -340,7 +351,11 @@ class SideFaceDetector:
                 'angle_label': 'right_profile',
                 'profile_confidence': 90.0,
                 'keypoints': [{'x': int(x + bw / 2), 'y': int(y + bh / 2)}],
-                'soft_biometrics': {'yaw': 90.0, 'pitch': 0.0, 'roll': 0.0, 'direction': 'right_profile'}
+                'soft_biometrics': {'yaw': -90.0, 'pitch': 0.0, 'roll': 0.0, 'direction': 'right_profile'},
+                'yaw': -90.0,
+                'pitch': 0.0,
+                'roll': 0.0,
+                '_source': 'haar_profile'
             })
 
         # Detect left profiles on flipped image
@@ -358,7 +373,11 @@ class SideFaceDetector:
                 'angle_label': 'left_profile',
                 'profile_confidence': 90.0,
                 'keypoints': [{'x': int(unflipped_x + bw / 2), 'y': int(y + bh / 2)}],
-                'soft_biometrics': {'yaw': -90.0, 'pitch': 0.0, 'roll': 0.0, 'direction': 'left_profile'}
+                'soft_biometrics': {'yaw': 90.0, 'pitch': 0.0, 'roll': 0.0, 'direction': 'left_profile'},
+                'yaw': 90.0,
+                'pitch': 0.0,
+                'roll': 0.0,
+                '_source': 'haar_profile'
             })
 
         return faces
@@ -384,7 +403,11 @@ class SideFaceDetector:
                 'angle_label': 'frontal',
                 'profile_confidence': 10.0,
                 'keypoints': [{'x': int(x + bw / 2), 'y': int(y + bh / 2)}],
-                'soft_biometrics': {'yaw': 0.0, 'pitch': 0.0, 'roll': 0.0, 'direction': 'frontal'}
+                'soft_biometrics': {'yaw': 0.0, 'pitch': 0.0, 'roll': 0.0, 'direction': 'frontal'},
+                'yaw': 0.0,
+                'pitch': 0.0,
+                'roll': 0.0,
+                '_source': 'haar_frontal'
             })
 
         return faces

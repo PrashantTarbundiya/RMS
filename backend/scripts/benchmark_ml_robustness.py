@@ -1,13 +1,23 @@
 import os
+import sys
 import pickle
 import numpy as np
 from scipy.spatial.distance import cosine
 from collections import defaultdict
 import random
 
+SCRIPTS_DIR = os.path.dirname(os.path.abspath(__file__))
+BACKEND_DIR = os.path.dirname(SCRIPTS_DIR)
+PROJECT_ROOT = os.path.dirname(BACKEND_DIR)
+
+if BACKEND_DIR not in sys.path:
+    sys.path.insert(0, BACKEND_DIR)
+
 from ml_robustness import compute_adaptive_thresholds, mine_hard_negatives
 
-ENCODINGS_FILE = "encodings.pickle"
+ENCODINGS_FILE = os.path.join(BACKEND_DIR, "data", "encodings.pickle")
+if not os.path.exists(ENCODINGS_FILE) and os.path.exists(os.path.join(BACKEND_DIR, "encodings.pickle")):
+    ENCODINGS_FILE = os.path.join(BACKEND_DIR, "encodings.pickle")
 STATIC_THRESHOLD = 0.40  # Old static threshold
 
 def benchmark():
