@@ -129,7 +129,7 @@ const STEPS = [
 ];
 
 export default function OnboardingWizard() {
-  const { user, apiClient } = useAuth();
+  const { user, apiClient, updateOnboardingState } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -316,9 +316,13 @@ export default function OnboardingWizard() {
   // ─── Persistence ─────────────────────────────────────────────
   const saveState = async (newStep, completed = false) => {
     try {
-      await apiClient.post(`${API_BASE}/onboarding/state`, {
-        onboarding_state: { step: newStep, completed, updated_at: new Date().toISOString() }
-      });
+      if (updateOnboardingState) {
+        await updateOnboardingState({ step: newStep, completed, updated_at: new Date().toISOString() });
+      } else {
+        await apiClient.post(`${API_BASE}/onboarding/state`, {
+          onboarding_state: { step: newStep, completed, updated_at: new Date().toISOString() }
+        });
+      }
     } catch (err) {}
   };
 
@@ -326,6 +330,7 @@ export default function OnboardingWizard() {
   const startSetup = () => {
     setShowWelcome(false);
     sessionStorage.setItem('welcome_shown', 'true');
+    sessionStorage.removeItem('onboarding_paused');
     setStepIndex(0);
     setSubStepIndex(0);
     setIsActive(true);
@@ -337,8 +342,8 @@ export default function OnboardingWizard() {
     setShowComplete(false);
     setIsActive(false);
     cleanupTarget();
-    localStorage.setItem('onboarding_dismissed', 'true');
-    saveState(STEPS.length, true); // Mark as completed on backend to stop it globally
+    sessionStorage.setItem('onboarding_paused', 'true');
+    saveState(stepIndex, false); // Keep current step so user can resume from this step
   };
 
   const nextStep = () => {
@@ -372,12 +377,13 @@ export default function OnboardingWizard() {
     }
   };
 
-  const completeSetup = () => {
+  const completeSetup = async () => {
     setShowComplete(false);
     setIsActive(false);
     cleanupTarget();
     sessionStorage.removeItem('onboarding_paused');
-    saveState(STEPS.length, true);
+    localStorage.removeItem('onboarding_dismissed');
+    await saveState(STEPS.length, true);
     navigate('/dashboard');
   };
 

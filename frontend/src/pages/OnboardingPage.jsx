@@ -17,6 +17,7 @@ export default function OnboardingPage() {
       // Reset onboarding state so the wizard starts from the beginning
       sessionStorage.removeItem('onboarding_paused');
       sessionStorage.removeItem('welcome_shown');
+      localStorage.removeItem('onboarding_dismissed');
       try {
         await apiClient.post(`${API_BASE}/onboarding/state`, {
           onboarding_state: { step: 0, completed: false }

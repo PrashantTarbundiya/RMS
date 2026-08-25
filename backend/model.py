@@ -58,64 +58,101 @@ EMBEDDING_DIM = 512
 # ===============================================================
 
 
-# ======================== MODEL WARM-UP ========================
+# ======================== MODEL WARM-UP (LAZY) ========================
+# Models are loaded on first API call, NOT at import time.
+# This cuts server startup from ~25s to ~2s.
+# ======================================================================
 from config_utils import load_config
-_startup_cfg = load_config()
+import threading
 
-if _startup_cfg.get("ENABLE_FACENET512", False):
-    print("[INFO] Warming up Facenet512 model (one-time load)...")
-    _warmup_start = time.time()
-    try:
-        _dummy = np.zeros((160, 160, 3), dtype=np.uint8)
-        DeepFace.represent(
-            img_path=_dummy,
-            model_name=MODEL_NAME,
-            enforce_detection=False,
-            detector_backend='skip',
-            align=False
-        )
-        print(f"[INFO] Facenet512 ready in {time.time() - _warmup_start:.1f}s")
-    except Exception as e:
-        print(f"[WARNING] Facenet512 warm-up failed: {e}")
-else:
-    print("[INFO] Facenet512 is disabled in settings. Skipping warm-up.")
+_models_warmed_up = False
+_warmup_lock = threading.Lock()
 
-if _startup_cfg.get("ENABLE_VGGFACE", False):
-    print("[INFO] Warming up VGG-Face model (one-time load)...")
-    _warmup_start_vgg = time.time()
-    try:
-        _dummy_vgg = np.zeros((224, 224, 3), dtype=np.uint8)
-        DeepFace.represent(
-            img_path=_dummy_vgg,
-            model_name="VGG-Face",
-            enforce_detection=False,
-            detector_backend='skip',
-            align=False
-        )
-        print(f"[INFO] VGG-Face ready in {time.time() - _warmup_start_vgg:.1f}s")
-    except Exception as e:
-        print(f"[WARNING] VGG-Face warm-up failed: {e}")
-else:
-    print("[INFO] VGG-Face is disabled in settings. Skipping warm-up.")
 
-if _startup_cfg.get("ENABLE_GHOSTFACENET", False):
-    print("[INFO] Warming up GhostFaceNet model (one-time load)...")
-    _warmup_start_ghost = time.time()
-    try:
-        _dummy_ghost = np.zeros((112, 112, 3), dtype=np.uint8)
-        DeepFace.represent(
-            img_path=_dummy_ghost,
-            model_name="GhostFaceNet",
-            enforce_detection=False,
-            detector_backend='skip',
-            align=False
-        )
-        print(f"[INFO] GhostFaceNet ready in {time.time() - _warmup_start_ghost:.1f}s")
-    except Exception as e:
-        print(f"[WARNING] GhostFaceNet warm-up failed: {e}")
-else:
-    print("[INFO] GhostFaceNet is disabled in settings. Skipping warm-up.")
-# ===============================================================
+def warmup_models(force=False):
+    """
+    Lazily warm up face recognition models on first use.
+    
+    Called automatically on the first API request that needs embeddings.
+    Thread-safe via lock — only the first caller does the actual loading.
+    
+    Args:
+        force: If True, re-warm even if already done (for config changes).
+    """
+    global _models_warmed_up
+    
+    if _models_warmed_up and not force:
+        return
+    
+    with _warmup_lock:
+        # Double-check after acquiring lock
+        if _models_warmed_up and not force:
+            return
+        
+        cfg = load_config()
+        total_start = time.time()
+        loaded = []
+        
+        if cfg.get("ENABLE_FACENET512", False):
+            print("[INFO] Warming up Facenet512 model (one-time load)...")
+            t0 = time.time()
+            try:
+                _dummy = np.zeros((160, 160, 3), dtype=np.uint8)
+                DeepFace.represent(
+                    img_path=_dummy,
+                    model_name=MODEL_NAME,
+                    enforce_detection=False,
+                    detector_backend='skip',
+                    align=False
+                )
+                print(f"[INFO] Facenet512 ready in {time.time() - t0:.1f}s")
+                loaded.append("Facenet512")
+            except Exception as e:
+                print(f"[WARNING] Facenet512 warm-up failed: {e}")
+        
+        if cfg.get("ENABLE_VGGFACE", False):
+            print("[INFO] Warming up VGG-Face model (one-time load)...")
+            t0 = time.time()
+            try:
+                _dummy_vgg = np.zeros((224, 224, 3), dtype=np.uint8)
+                DeepFace.represent(
+                    img_path=_dummy_vgg,
+                    model_name="VGG-Face",
+                    enforce_detection=False,
+                    detector_backend='skip',
+                    align=False
+                )
+                print(f"[INFO] VGG-Face ready in {time.time() - t0:.1f}s")
+                loaded.append("VGG-Face")
+            except Exception as e:
+                print(f"[WARNING] VGG-Face warm-up failed: {e}")
+        
+        if cfg.get("ENABLE_GHOSTFACENET", False):
+            print("[INFO] Warming up GhostFaceNet model (one-time load)...")
+            t0 = time.time()
+            try:
+                _dummy_ghost = np.zeros((112, 112, 3), dtype=np.uint8)
+                DeepFace.represent(
+                    img_path=_dummy_ghost,
+                    model_name="GhostFaceNet",
+                    enforce_detection=False,
+                    detector_backend='skip',
+                    align=False
+                )
+                print(f"[INFO] GhostFaceNet ready in {time.time() - t0:.1f}s")
+                loaded.append("GhostFaceNet")
+            except Exception as e:
+                print(f"[WARNING] GhostFaceNet warm-up failed: {e}")
+        
+        _models_warmed_up = True
+        
+        if loaded:
+            print(f"[INFO] All models warmed up in {time.time() - total_start:.1f}s: {', '.join(loaded)}")
+        else:
+            print("[INFO] No DeepFace models enabled in settings. Skipping warm-up.")
+# ======================================================================
+
+
 
 
 # ======================== INSIGHTFACE ONNX ========================
@@ -301,11 +338,14 @@ def get_embedding(face_crop, model_name=MODEL_NAME):
     """
     Generate a single L2-normalized embedding using the specified model.
     
-    The model is already loaded in memory (warm-up at module level),
-    so each call takes ~100ms instead of ~20s.
+    Models are lazily loaded on first call (see warmup_models()).
+    Subsequent calls take ~100ms.
 
     Returns a list[float] or None on failure.
     """
+    # Ensure models are warmed up (no-op after first call)
+    warmup_models()
+    
     if model_name == 'InsightFace':
         return get_embedding_insightface(face_crop)
 

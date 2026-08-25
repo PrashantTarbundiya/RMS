@@ -95,9 +95,9 @@ set LOCAL_IP=%LOCAL_IP: =%
 echo  Starting Flask API server...
 start "RMS Flask API" cmd /k "%PYTHON% backend/server.py"
 
-:: Wait for server startup
-echo  Waiting 8 seconds for model loading...
-timeout /t 8 /nobreak >nul
+:: Wait for server startup (models load lazily on first request)
+echo  Waiting for server startup...
+timeout /t 3 /nobreak >nul
 
 :: Start Vite dev server
 echo.
@@ -115,6 +115,9 @@ echo     Server URL:  http://%LOCAL_IP%:5000/api
 echo.
 echo   To start the mobile app:
 echo     cd mobile ^&^& npx expo start
+echo.
+echo   TIP: For faster restarts, use dev.bat instead:
+echo     .\dev.bat  (auto-restart on file changes, no dep checks)
 echo.
 echo  ================================================
 echo   Press Ctrl+C to stop the frontend server.

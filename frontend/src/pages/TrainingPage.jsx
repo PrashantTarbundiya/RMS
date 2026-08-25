@@ -54,17 +54,8 @@ export default function TrainingPage() {
   const triggerRetrainAll = async () => {
     setIsRetrigger(true);
     try {
-      // Get all persons and retrain the first one (which triggers full pipeline)
-      const personsRes = await apiClient.get(`${API_BASE}/persons`);
-      const persons = personsRes.data?.persons || [];
-      if (persons.length === 0) {
-        toast.warning('No persons enrolled. Upload at least one person first.');
-        setIsRetrigger(false);
-        return;
-      }
-      // Trigger retrain for the first person — this retrains all models
-      await apiClient.post(`${API_BASE}/persons/${persons[0]}/retrain`);
-      toast.info('Retrain triggered. Connecting to live log stream...');
+      await apiClient.post(`${API_BASE}/train/all`);
+      toast.info('Full retraining started. Connecting to live log stream...');
       setLogs([]);
       // Reconnect to the SSE stream after a short delay
       setTimeout(connectToStream, 1500);

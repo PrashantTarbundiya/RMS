@@ -174,6 +174,22 @@ export function AuthProvider({ children }) {
     sessionStorage.removeItem('rms_refresh_token');
   }, []);
 
+  const updateOnboardingState = useCallback(async (newState) => {
+    try {
+      const res = await axios.post(`${API_BASE}/onboarding/state`, {
+        onboarding_state: newState
+      }, {
+        headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {}
+      });
+      const saved = res.data?.onboarding_state || newState;
+      setUser(prev => prev ? ({ ...prev, onboarding_state: saved }) : prev);
+      return saved;
+    } catch (e) {
+      setUser(prev => prev ? ({ ...prev, onboarding_state: newState }) : prev);
+      return newState;
+    }
+  }, [accessToken]);
+
   const value = {
     user,
     accessToken,
@@ -184,6 +200,7 @@ export function AuthProvider({ children }) {
     register,
     logout,
     apiClient,
+    updateOnboardingState,
   };
 
   return (

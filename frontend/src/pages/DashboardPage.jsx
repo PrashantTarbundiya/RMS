@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { 
   Users, Image as ImageIcon, BarChart3, Clock, CheckCircle, 
@@ -13,6 +13,7 @@ import ApertureReticle from '../components/ApertureReticle';
 export default function DashboardPage() {
   const { user, apiClient } = useAuth();
   const toast = useToast();
+  const navigate = useNavigate();
   const [stats, setStats] = useState(null);
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -232,7 +233,12 @@ export default function DashboardPage() {
             <button 
               onClick={() => {
                 sessionStorage.removeItem('onboarding_paused');
-                window.location.reload();
+                localStorage.removeItem('onboarding_dismissed');
+                sessionStorage.setItem('welcome_shown', 'true');
+                const STEP_PATHS = ['/profile', '/cameras', '/upload', '/test', '/dashboard'];
+                const currentStep = user?.onboarding_state?.step ?? 0;
+                const targetPath = STEP_PATHS[Math.min(currentStep, STEP_PATHS.length - 1)];
+                navigate(targetPath);
               }}
               className="button-primary text-caption py-1.5 px-3 text-white flex items-center gap-1.5"
             >
@@ -258,6 +264,7 @@ export default function DashboardPage() {
             <span className="flex items-center gap-1.5 text-amber-500 font-medium">
               <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
               Retraining Required
+              <Link to="/training" className="underline text-xs ml-1 text-amber-400 hover:text-amber-300">Retrain</Link>
             </span>
           ) : (
             <span className="flex items-center gap-1.5 text-emerald-500 font-medium">

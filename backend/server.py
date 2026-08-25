@@ -198,6 +198,34 @@ app.register_blueprint(employees_bp)
 from routes.analytics import analytics_bp
 app.register_blueprint(analytics_bp)
 
+# ─── Lazy Model Warm-Up (on first real request) ──────────────────────
+# Instead of blocking startup for ~15-25s loading ML models,
+# we defer it to the first API call that actually needs them.
+# Health checks and static routes skip this entirely.
+_SKIP_WARMUP_ENDPOINTS = frozenset({
+    'health_check', 'observability.health', 'static',
+    'system_check_update', 'system_info'
+})
+
+@app.before_request
+def _lazy_warmup():
+    """Trigger model warm-up on first real API request."""
+    from model import _models_warmed_up, warmup_models
+    if _models_warmed_up:
+        return  # Already warmed up, no-op
+    
+    # Skip warmup for lightweight endpoints
+    endpoint = request.endpoint or ''
+    if endpoint in _SKIP_WARMUP_ENDPOINTS:
+        return
+    
+    # Only warm up on endpoints that could need ML models
+    if request.path.startswith('/api/'):
+        import threading
+        # Run warmup in background so the first request isn't blocked
+        threading.Thread(target=warmup_models, daemon=True, name='model-warmup').start()
+
+
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'webp', 'bmp'}
 MAX_FILES_PER_UPLOAD = 20
 MAX_NAME_LENGTH = 50
@@ -1527,6 +1555,9 @@ def auth_me():
     user_data = g.current_user
 
     if not is_db_available() or user_data.get('user_id') is None:
+        from config_utils import load_config
+        cfg = load_config()
+        onb_state = cfg.get('onboarding_state', {'step': 0, 'completed': False})
         return jsonify({
             'user': {
                 'id': None,
@@ -1535,6 +1566,7 @@ def auth_me():
                 'role': 'org_admin',
                 'org_id': None,
                 'org_name': 'Local Instance',
+                'onboarding_state': onb_state,
             }
         })
 
@@ -1576,7 +1608,13 @@ def update_onboarding_state():
     new_state = data.get('onboarding_state', {})
 
     if not is_db_available() or not org_id:
-        return jsonify({'message': 'Onboarding state updated locally.', 'onboarding_state': new_state})
+        from config_utils import load_config, save_config
+        cfg = load_config()
+        current = cfg.get('onboarding_state', {})
+        if isinstance(new_state, dict):
+            current.update(new_state)
+            save_config({'onboarding_state': current})
+        return jsonify({'message': 'Onboarding state saved locally.', 'onboarding_state': current})
 
     from database.db import get_db_session
     from database.models import Organization
@@ -2042,7 +2080,26 @@ def process_local_training_queue():
                 image_paths = glob_module.glob(os.path.join(person_dir, '**', '*.jpg'), recursive=True) + \
                               glob_module.glob(os.path.join(person_dir, '**', '*.png'), recursive=True)
             
-            if image_paths:
+            if person_name == '__ALL__':
+                # ── Full Dataset Retrain ─────────────────────────────────────────
+                print(f"\n[INFO] Starting full retrain for all enrolled personnel...")
+                try:
+                    from gpu_trainer import is_gpu_available, retrain_all_gpu
+                    enc_path = get_encodings_path(org_id, 'InsightFace')
+                    print("[INFO] Generating InsightFace embeddings with GPU...")
+                    encs, names, total = retrain_all_gpu(org_dataset_dir, enc_path, num_augments=0)
+                    training_status['progress'] = 30
+                    
+                    # Sync to GhostFaceNet and Facenet512
+                    for m in ['GhostFaceNet', 'Facenet512']:
+                        m_path = get_encodings_path(org_id, m)
+                        with open(m_path, 'wb') as f:
+                            pickle.dump({'encodings': encs, 'names': names, 'model_used': m, 'version': '3.0'}, f)
+                    training_status['progress'] = 50
+                    print(f"[OK] Embeddings synced across all models for {len(set(names))} persons ({total} faces).")
+                except Exception as e:
+                    print(f"[WARNING] GPU retrain failed, fallback: {e}")
+            elif image_paths:
                 all_models = ['Facenet512', 'InsightFace', 'GhostFaceNet', 'VGG-Face']
                 for idx, model_name in enumerate(all_models):
                     try:
@@ -2267,12 +2324,15 @@ def add_log(msg):
 
 @app.route('/api/persons', methods=['GET'])
 @require_auth
-def get_persons():
+@inject_org_id
+def get_persons(org_id=None):
     """Returns a list of all trained persons."""
-    if not os.path.exists(DATASET_CLEANED_DIR):
+    dataset_cleaned_dir = get_dataset_cleaned_dir(org_id)
+    if not os.path.exists(dataset_cleaned_dir):
         return jsonify([])
-    persons = [name for name in os.listdir(DATASET_CLEANED_DIR) 
-               if os.path.isdir(os.path.join(DATASET_CLEANED_DIR, name))]
+    persons = sorted([name for name in os.listdir(dataset_cleaned_dir) 
+                      if os.path.isdir(os.path.join(dataset_cleaned_dir, name))
+                      and name != 'orgs' and not name.startswith('.')])
     return jsonify(persons)
 
 @app.route('/api/upload', methods=['POST'])
@@ -3302,7 +3362,8 @@ def get_dashboard_stats(org_id=None):
     expected_classes = []
     if os.path.exists(dataset_cleaned_dir):
         expected_classes = sorted([name for name in os.listdir(dataset_cleaned_dir) 
-                                   if os.path.isdir(os.path.join(dataset_cleaned_dir, name))])
+                                   if os.path.isdir(os.path.join(dataset_cleaned_dir, name))
+                                   and name != 'orgs' and not name.startswith('.')])
                                    
     total_people = len(expected_classes)
     total_photos = 0
@@ -3321,12 +3382,13 @@ def get_dashboard_stats(org_id=None):
     org_models = ensure_org_models_loaded(org_id)
     edge_encodings = org_models.get('ghostfacenet_encodings')
     deepface_encodings = org_models.get('facenet512_encodings')
+    insightface_encodings = org_models.get('insightface_encodings')
     
     requires_retrain = False
     if total_people > 0:
-        edge_trained_classes = set(org_models.get('ghostfacenet_names', []))
-        edge_mismatch = (edge_encodings is None) or (sorted(list(edge_trained_classes)) != expected_classes)
-        requires_retrain = edge_mismatch
+        trained_classes = set(org_models.get('ghostfacenet_names', []) or org_models.get('insightface_names', []) or org_models.get('facenet512_names', []))
+        has_encodings = (edge_encodings is not None) or (insightface_encodings is not None) or (deepface_encodings is not None)
+        requires_retrain = (not has_encodings) or (sorted(list(trained_classes)) != expected_classes)
 
     # Read history for stats
     history = []
@@ -3767,6 +3829,22 @@ def trigger_person_retrain(name, org_id):
         enqueue_local_training(name, epochs, org_id)
 
     return jsonify({'message': f"Retraining started for '{name}'."})
+
+@app.route('/api/train/all', methods=['POST'])
+@require_auth
+@require_role('org_admin')
+@inject_org_id
+def trigger_train_all(org_id=None):
+    """Triggers complete model retraining for all enrolled personnel."""
+    try:
+        data = request.get_json() or {}
+        epochs = int(data.get('epochs', 15))
+        epochs = max(1, min(epochs, 50))
+    except ValueError:
+        epochs = 15
+
+    job_id = enqueue_local_training('__ALL__', epochs, org_id)
+    return jsonify({'message': 'Full model retraining started for all personnel.', 'job_id': job_id})
 
 # ─── Global Error Handler ──────────────────────────────────────────────
 @app.errorhandler(Exception)

@@ -42,6 +42,9 @@ bcrypt>=4.1
 # ── Environment ──
 python-dotenv>=1.0
 
+# ── Development ──
+watchdog>=4.0     # File watcher for auto-restart (dev.py)
+
 # ── SaaS Operations ──
 celery>=5.3
 redis>=5.0

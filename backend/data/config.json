@@ -3,5 +3,10 @@
     "ENABLE_FACENET512": true,
     "ENABLE_INSIGHTFACE": true,
     "ENABLE_GHOSTFACENET": true,
-    "ENABLE_VGGFACE": true
+    "ENABLE_VGGFACE": true,
+    "onboarding_state": {
+        "step": 0,
+        "completed": false,
+        "updated_at": "2026-08-23T12:46:32.606Z"
+    }
 }
