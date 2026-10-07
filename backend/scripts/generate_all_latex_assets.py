@@ -53,9 +53,8 @@ def generate_accuracy_chart():
     plt.yticks(np.arange(80, 105, 5), fontsize=10)
     plt.tight_layout()
 
-    out_path = os.path.join(PROJECT_ROOT, "accuracy_chart.png")
+    out_path = os.path.join(LATEX_ASSETS_DIR, "accuracy_chart.png")
     plt.savefig(out_path, dpi=300, transparent=False, facecolor="white")
-    plt.savefig(os.path.join(LATEX_ASSETS_DIR, "accuracy_chart.png"), dpi=300, transparent=False, facecolor="white")
     plt.close()
     print(f"      Saved -> {out_path}")
 
@@ -95,9 +94,8 @@ def generate_pgvector_chart():
     ax.spines['right'].set_visible(False)
     plt.tight_layout()
 
-    out_path = os.path.join(PROJECT_ROOT, "pgvector_latency_chart.png")
+    out_path = os.path.join(LATEX_ASSETS_DIR, "pgvector_latency_chart.png")
     plt.savefig(out_path, dpi=300, transparent=False, facecolor="white")
-    plt.savefig(os.path.join(LATEX_ASSETS_DIR, "pgvector_latency_chart.png"), dpi=300, transparent=False, facecolor="white")
     plt.close()
     print(f"      Saved -> {out_path}")
 
@@ -138,9 +136,8 @@ def generate_pipeline_diagram():
     ax.text(5.5, 3.8, "End-to-End Biometric Recognition & Surveillance Architecture", ha="center", fontsize=13, fontweight="bold", color="#0F172A")
     plt.tight_layout()
 
-    out_path = os.path.join(PROJECT_ROOT, "pipeline_diagram.png")
+    out_path = os.path.join(LATEX_ASSETS_DIR, "pipeline_diagram.png")
     plt.savefig(out_path, dpi=300, transparent=False, facecolor="white")
-    plt.savefig(os.path.join(LATEX_ASSETS_DIR, "pipeline_diagram.png"), dpi=300, transparent=False, facecolor="white")
     plt.close()
     print(f"      Saved -> {out_path}")
 
@@ -184,9 +181,8 @@ def generate_pose_routing_diagram():
     ax.text(5.25, 4.65, "3D Head Pose Guided Dynamic Model Routing Pipeline", ha="center", fontsize=13, fontweight="bold", color="#0F172A")
     plt.tight_layout()
 
-    out_path = os.path.join(PROJECT_ROOT, "pose_routing_diagram.png")
+    out_path = os.path.join(LATEX_ASSETS_DIR, "pose_routing_diagram.png")
     plt.savefig(out_path, dpi=300, transparent=False, facecolor="white")
-    plt.savefig(os.path.join(LATEX_ASSETS_DIR, "pose_routing_diagram.png"), dpi=300, transparent=False, facecolor="white")
     plt.close()
     print(f"      Saved -> {out_path}")
 
@@ -252,9 +248,8 @@ def generate_ui_recognition():
     draw.rounded_rectangle([740, 620, 1130, 665], radius=10, fill="#1E293B", outline="#38BDF8", width=1)
     draw.text((760, 634), "PASSIVE LIVENESS: PASSED (MiniFASNet + EAR 0.28)", fill="#38BDF8", font_size=13)
 
-    out_path = os.path.join(PROJECT_ROOT, "ui_recognition.png")
+    out_path = os.path.join(LATEX_ASSETS_DIR, "ui_recognition.png")
     img.save(out_path, quality=95)
-    img.save(os.path.join(LATEX_ASSETS_DIR, "ui_recognition.png"), quality=95)
     print(f"      Saved -> {out_path}")
 
 
@@ -309,9 +304,8 @@ def generate_ui_enrollment():
     draw.rounded_rectangle([40, 630, 1160, 690], radius=12, fill="#1E293B", outline="#334155", width=1)
     draw.text((70, 648), "All 4 Models (ArcFace, GhostFaceNet, Facenet512, VGG) Synced Successfully!", fill="#34D399", font_size=15)
 
-    out_path = os.path.join(PROJECT_ROOT, "ui_enrollment.png")
+    out_path = os.path.join(LATEX_ASSETS_DIR, "ui_enrollment.png")
     img.save(out_path, quality=95)
-    img.save(os.path.join(LATEX_ASSETS_DIR, "ui_enrollment.png"), quality=95)
     print(f"      Saved -> {out_path}")
 
 
@@ -383,9 +377,8 @@ def generate_ui_dashboard():
         draw.text((1035, y_log + 18), conf, fill="#34D399", font_size=13)
         y_log += 68
 
-    out_path = os.path.join(PROJECT_ROOT, "ui_dashboard.png")
+    out_path = os.path.join(LATEX_ASSETS_DIR, "ui_dashboard.png")
     img.save(out_path, quality=95)
-    img.save(os.path.join(LATEX_ASSETS_DIR, "ui_dashboard.png"), quality=95)
     print(f"      Saved -> {out_path}")
 
 
@@ -401,5 +394,5 @@ if __name__ == '__main__':
     generate_ui_enrollment()
     generate_ui_dashboard()
     print("="*65)
-    print("  ALL 7 ASSETS GENERATED SUCCESSFULLY IN PROJECT ROOT & latex_assets/")
+    print("  ALL 7 ASSETS GENERATED SUCCESSFULLY IN latex_assets/")
     print("="*65)

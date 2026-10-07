@@ -7,6 +7,7 @@ __pycache__/
 dist/
 build/
 .eggs/
+.pytest_cache/
 
 # Virtual environment
 .venv/
@@ -22,6 +23,7 @@ env/
 *.task
 *.h5
 *.hdf5
+*.encrypted
 
 # Datasets
 dataset/
@@ -29,6 +31,7 @@ dataset_cleaned/
 
 # Node.js (frontend & mobile)
 node_modules/
+package-lock.json
 
 # IDE / Editor
 .vscode/
@@ -46,15 +49,28 @@ mobile/android/
 mobile/ios/
 mobile/.expo/
 mobile/dist/
+mobile/web-build/
+
+# Build output
+frontend/dist/
+
+# Databases & local sqlite
+*.db
+*.sqlite
+*.sqlite3
+
+# Update staging & backups
+backend/staging/
+backend/backups/
+version_test.txt
 
 # Misc
 *.log
 .env
-
-# Build output
-frontend/dist/
+scratch_cam*.png
 
 # Runtime data artifacts
 backend/data/class_centroids.json
 backend/data/label_map.json
 backend/data/recognition_history.json
+backend/tests/data/

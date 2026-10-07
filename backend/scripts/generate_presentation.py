@@ -20,7 +20,7 @@ from pptx.dml.color import RGBColor
 from pptx.enum.shapes import MSO_SHAPE
 
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-PPTX_PATH = os.path.join(PROJECT_ROOT, "RMS_Project_Review_Presentation.pptx")
+PPTX_PATH = os.path.join(PROJECT_ROOT, "docs", "PPT", "RMS_Project_Review_Presentation.pptx")
 
 # ==============================================================================
 # COLOR PALETTE (Enterprise Dark Navy & Emerald Accent)

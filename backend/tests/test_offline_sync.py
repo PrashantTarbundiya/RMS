@@ -11,7 +11,8 @@ import os
 import json
 import datetime
 
-sys.path.insert(0, os.path.dirname(__file__))
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 passed = 0
 failed = 0
@@ -47,7 +48,7 @@ except Exception as e:
 
 # ── Test 2: Mobile offlineQueue.js Exists ──
 print("── 2. Mobile offlineQueue.js Exists ──")
-mobile_queue_path = os.path.join(os.path.dirname(__file__), '..', 'mobile', 'src', 'services', 'offlineQueue.js')
+mobile_queue_path = os.path.join(os.path.dirname(__file__), '..', '..', 'mobile', 'src', 'services', 'offlineQueue.js')
 test("offlineQueue.js exists", os.path.exists(mobile_queue_path))
 
 if os.path.exists(mobile_queue_path):

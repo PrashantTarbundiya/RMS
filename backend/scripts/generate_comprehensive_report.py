@@ -29,7 +29,7 @@ sys.path.insert(0, BACKEND_DIR)
 
 DATASET_DIR = os.path.join(PROJECT_ROOT, 'dataset_cleaned')
 DATA_DIR = os.path.join(BACKEND_DIR, 'data')
-EXCEL_OUTPUT_PATH = os.path.join(PROJECT_ROOT, 'RMS_Model_Performance_Report.xlsx')
+EXCEL_OUTPUT_PATH = os.path.join(PROJECT_ROOT, 'docs', 'RMS_Model_Performance_Report.xlsx')
 
 
 # ============================================================================

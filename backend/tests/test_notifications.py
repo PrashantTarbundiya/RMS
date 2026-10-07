@@ -19,7 +19,8 @@ import os
 import json
 from datetime import datetime, timezone, timedelta
 
-sys.path.insert(0, os.path.dirname(__file__))
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 passed = 0
 failed = 0

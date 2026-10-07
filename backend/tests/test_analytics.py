@@ -12,7 +12,8 @@ from datetime import datetime, timezone, timedelta, time
 from collections import defaultdict
 from unittest.mock import patch, MagicMock
 
-sys.path.insert(0, os.path.dirname(__file__))
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 passed = 0
 failed = 0
