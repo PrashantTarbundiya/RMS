@@ -1,0 +1,30 @@
+# Dependencies (installed fresh inside container)
+node_modules/
+
+# Build output (built inside container)
+dist/
+
+# Environment files
+.env
+.env.production
+
+# IDE / Editor
+.vscode/
+.idea/
+*.swp
+
+# OS files
+Thumbs.db
+.DS_Store
+
+# Git
+.git/
+.gitignore
+
+# Dev tools
+fix_imports.py
+
+# Data files (not needed for frontend build)
+*.pickle
+*.tflite
+dataset/

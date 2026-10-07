@@ -1,15 +1,70 @@
-waitress>=3.0.1
-python-dotenv>=1.2.2
+# ===================================================
+# RMS Face AI v2.0 - Backend Dependencies (Docker)
+# ===================================================
+# This is the complete list used by the backend Dockerfile.
+# Python: 3.10+ required
+# ===================================================
+
+# ── Core ML ──
+opencv-python>=4.8,<5.0
+mediapipe>=0.10
+deepface>=0.0.79
+tf-keras>=2.15
+numpy>=1.24
+scikit-learn>=1.3
+
+# ── PyTorch (Custom CNN + MobileNetV2) ──
+torch>=2.0
+torchvision>=0.15
+
+# ── Image Processing ──
+Pillow>=10.0
+
+# ── API Server ──
+flask>=3.0
+flask-cors>=4.0
+gunicorn>=21.0
+sentry-sdk[flask]>=1.39.0
+
+# ── WebSocket ──
 flask-socketio>=5.4.1
 gevent>=24.2.1
 gevent-websocket>=0.10.1
+
+# ── Math / Matching ──
+scipy>=1.11
+
+# ── Database & Multi-Tenancy ──
+SQLAlchemy>=2.0
+psycopg2-binary>=2.9
+alembic>=1.13
+
+# ── Authentication ──
+PyJWT>=2.8
+bcrypt>=4.1
+
+# ── Environment ──
+python-dotenv>=1.0
+
+# ── SaaS Operations ──
+celery>=5.3
+redis>=5.0
+Flask-Limiter>=3.5
+
+# ── Reporting & Analytics ──
 reportlab>=4.0.0
-cryptography>=41.0.0
-insightface>=0.7.3
-onnxruntime-gpu>=1.17.0
 matplotlib>=3.7.0
 seaborn>=0.12.0
-scikit-learn>=1.2.0
 pandas>=2.0.0
 tqdm>=4.65.0
 psutil>=5.9.0
+
+# ── Security ──
+cryptography>=41.0.0
+
+# ── ONNX Runtime (InsightFace) ──
+insightface>=0.7.3
+onnxruntime>=1.17.0
+
+# ── Production server ──
+waitress>=3.0.1

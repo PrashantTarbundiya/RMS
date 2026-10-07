@@ -50,6 +50,7 @@ mobile/dist/
 # Misc
 *.log
 .env
+.env.docker
 
 # Build output
 frontend/dist/

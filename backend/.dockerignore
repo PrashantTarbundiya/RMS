@@ -1,0 +1,53 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+.eggs/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Large model/data files (mounted via volumes at runtime)
+*.pickle
+*.pkl
+*.pth
+*.onnx
+*.tflite
+*.task
+*.h5
+*.hdf5
+
+# Datasets (mounted via volumes at runtime)
+data/
+backups/
+benchmark_output/
+staging/
+
+# Tests (not needed in production image)
+tests/
+
+# IDE / Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Environment files (injected via docker-compose)
+.env
+.env.example
+
+# OS files
+Thumbs.db
+.DS_Store
+
+# Git
+.git/
+.gitignore
+
+# License key (bind-mounted at runtime)
+license.key
