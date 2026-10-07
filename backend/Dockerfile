@@ -4,12 +4,14 @@ FROM python:3.10-slim
 # Set working directory
 WORKDIR /app
 
-# Install system dependencies (required for OpenCV and dlib)
+# Install system dependencies (required for OpenCV, dlib, psycopg2)
 RUN apt-get update && apt-get install -y \
     libgl1-mesa-glx \
     libglib2.0-0 \
+    libpq-dev \
     build-essential \
     cmake \
+    postgresql-client \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements and install
@@ -19,6 +21,10 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy the rest of the application code
 COPY . .
 
+# Copy and set entrypoint script
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
 # Expose port for Gunicorn
 EXPOSE 8000
 
@@ -26,5 +32,8 @@ EXPOSE 8000
 ENV DEPLOYMENT_MODE=local
 ENV PYTHONUNBUFFERED=1
 
-# Command to run Gunicorn
+# Entrypoint runs migrations, then hands off to CMD
+ENTRYPOINT ["/entrypoint.sh"]
+
+# Command to run Gunicorn with gevent for WebSocket support
 CMD ["gunicorn", "-c", "gunicorn.conf.py", "server:app"]

@@ -67,6 +67,7 @@ version_test.txt
 # Misc
 *.log
 .env
+.env.docker
 scratch_cam*.png
 
 # Runtime data artifacts

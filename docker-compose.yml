@@ -1,48 +1,148 @@
-version: '3.8'
+# ===================================================
+# RMS Face AI — Docker Compose (Microservices)
+# ===================================================
+# Usage:
+#   1. Copy .env.docker to .env and edit credentials
+#   2. docker-compose up --build -d
+#   3. Open http://localhost
+# ===================================================
 
 services:
+
+  # ── PostgreSQL Database ─────────────────────────────
+  postgres:
+    image: postgres:15-alpine
+    container_name: rms_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-rms}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-rms_secure_password_change_me}
+      POSTGRES_DB: ${POSTGRES_DB:-rms_db}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-rms} -d ${POSTGRES_DB:-rms_db}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - rms_internal
+
+  # ── Redis (Celery Broker + Cache) ───────────────────
   redis:
-    image: redis:alpine
+    image: redis:7-alpine
+    container_name: rms_redis
+    restart: unless-stopped
     ports:
       - "6379:6379"
     volumes:
       - redis_data:/data
-    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - rms_internal
 
+  # ── Flask API Service ───────────────────────────────
   api:
-    build: 
-      context: ./backend
-      dockerfile: Dockerfile
-    ports:
-      - "8000:8000"
-    volumes:
-      # Mount data volume for persistent sqlite/encodings/images
-      - rms_edge_data:/app/data
-      # The edge license key must be supplied via a volume or directly
-      - ./backend/license.key:/app/license.key:ro
-    environment:
-      - DEPLOYMENT_MODE=local
-      - REDIS_URL=redis://redis:6379/0
-      # - CLOUD_API_URL=https://api.my-saas.com (for hybrid)
-    depends_on:
-      - redis
-    restart: unless-stopped
-
-  celery_worker:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    command: celery -A tasks.celery_app worker --loglevel=info
+    container_name: rms_api
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
     volumes:
-      - rms_edge_data:/app/data
+      # Shared data volume: encodings, uploaded images, ML models
+      - rms_data:/app/data
+      # License key (bind-mount, read-only)
       - ./backend/license.key:/app/license.key:ro
     environment:
-      - DEPLOYMENT_MODE=local
-      - REDIS_URL=redis://redis:6379/0
+      - DATABASE_URL=${DATABASE_URL:-postgresql://rms:rms_secure_password_change_me@postgres:5432/rms_db}
+      - REDIS_URL=${REDIS_URL:-redis://redis:6379/0}
+      - CELERY_BROKER_URL=${CELERY_BROKER_URL:-redis://redis:6379/0}
+      - CELERY_RESULT_BACKEND=${CELERY_RESULT_BACKEND:-redis://redis:6379/1}
+      - SECRET_KEY=${SECRET_KEY:-change-me-to-a-random-64-char-string}
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY:-change-me-to-a-different-random-64-char-string}
+      - JWT_ACCESS_TOKEN_EXPIRES_MINUTES=${JWT_ACCESS_TOKEN_EXPIRES_MINUTES:-15}
+      - JWT_REFRESH_TOKEN_EXPIRES_DAYS=${JWT_REFRESH_TOKEN_EXPIRES_DAYS:-7}
+      - DEPLOYMENT_MODE=${DEPLOYMENT_MODE:-local}
+      - FRONTEND_URL=${FRONTEND_URL:-http://localhost}
+      - PYTHONUNBUFFERED=1
     depends_on:
-      - redis
-    restart: unless-stopped
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/api/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    networks:
+      - rms_internal
 
+  # ── Celery ML Worker ────────────────────────────────
+  ml_worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: rms_ml_worker
+    restart: unless-stopped
+    # Override the default CMD to run Celery instead of Gunicorn
+    command: celery -A tasks.celery_app worker --loglevel=info --concurrency=2
+    volumes:
+      - rms_data:/app/data
+      - ./backend/license.key:/app/license.key:ro
+    environment:
+      - DATABASE_URL=${DATABASE_URL:-postgresql://rms:rms_secure_password_change_me@postgres:5432/rms_db}
+      - REDIS_URL=${REDIS_URL:-redis://redis:6379/0}
+      - CELERY_BROKER_URL=${CELERY_BROKER_URL:-redis://redis:6379/0}
+      - CELERY_RESULT_BACKEND=${CELERY_RESULT_BACKEND:-redis://redis:6379/1}
+      - DEPLOYMENT_MODE=${DEPLOYMENT_MODE:-local}
+      - PYTHONUNBUFFERED=1
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - rms_internal
+
+  # ── Frontend (React + Nginx) ────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        # The frontend talks to the API through Nginx proxy, so relative /api
+        VITE_API_URL: /api
+    container_name: rms_frontend
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      api:
+        condition: service_healthy
+    networks:
+      - rms_internal
+
+# ── Persistent Volumes ──────────────────────────────
 volumes:
+  pg_data:
+    driver: local
   redis_data:
-  rms_edge_data:
+    driver: local
+  rms_data:
+    driver: local
+
+# ── Networks ────────────────────────────────────────
+networks:
+  rms_internal:
+    driver: bridge
