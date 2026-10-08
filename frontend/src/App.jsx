@@ -26,6 +26,7 @@ import AnalyticsPage from './pages/AnalyticsPage'
 import OnboardingPage from './pages/OnboardingPage'
 import CamerasPage from './pages/CamerasPage'
 import OnboardingWizard from './components/OnboardingWizard'
+import KioskPage from './pages/KioskPage'
 import { AnimatePresence, motion } from 'framer-motion'
 
 /**
@@ -105,6 +106,7 @@ function AnimatedRoutes() {
         <Route path="/analytics" element={<ProtectedRoute><PageWrapper><AnalyticsPage /></PageWrapper></ProtectedRoute>} />
         <Route path="/support" element={<ProtectedRoute><PageWrapper><SupportPage /></PageWrapper></ProtectedRoute>} />
         <Route path="/profile" element={<ProtectedRoute><PageWrapper><ProfilePage /></PageWrapper></ProtectedRoute>} />
+        <Route path="/kiosk" element={<ProtectedRoute><KioskPage /></ProtectedRoute>} />
         <Route path="*" element={<PageWrapper><NotFoundPage /></PageWrapper>} />
       </Routes>
     </AnimatePresence>
@@ -132,7 +134,7 @@ function PageWrapper({ children }) {
 function AppContent() {
   const location = useLocation();
   const { isAuthenticated, isMultiTenant } = useAuth();
-  const isOuterPage = ['/login', '/register', '/'].includes(location.pathname);
+  const isOuterPage = ['/login', '/register', '/', '/kiosk'].includes(location.pathname);
   const showNavbar = !isOuterPage && (isAuthenticated || isMultiTenant === false);
 
   return (

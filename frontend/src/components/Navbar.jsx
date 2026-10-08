@@ -40,6 +40,7 @@ export function Navbar() {
     { to: '/upload', label: 'Upload', icon: Upload, minRole: 'org_admin' },
     { to: '/test', label: 'Test Camera', icon: Video, minRole: 'manager' },
     { to: '/mosaic', label: 'Camera Mosaic', icon: Monitor, minRole: 'manager' },
+    { to: '/kiosk', label: 'Kiosk Mode', icon: Play, minRole: 'manager' },
     { to: '/logs', label: 'Live Logs', icon: Terminal, minRole: 'manager' },
     { to: '/analytics', label: 'Analytics', icon: BarChart3, minRole: 'org_admin' },
     { to: '/audit', label: 'Audit Logs', icon: Shield, minRole: 'org_admin' },

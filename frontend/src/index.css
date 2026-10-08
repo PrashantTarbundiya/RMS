@@ -2307,3 +2307,788 @@ button:focus-visible {
 .terminal-text .log-success { color: #4ade80; }
 .terminal-text .log-warning { color: #fbbf24; }
 .terminal-text .log-info { color: #828FFF; }
+
+/* ══════════════════════════════════════════════════════════════════════
+   KIOSK MODE — Production-Grade Biometric Authentication UI
+   ══════════════════════════════════════════════════════════════════════ */
+
+/* ── Container & Layout ─────────────────────────────────────────────── */
+.kiosk-container {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  background: var(--canvas);
+  overflow: hidden;
+  font-family: 'Inter', -apple-system, "Segoe UI", sans-serif;
+  user-select: none;
+  -webkit-user-select: none;
+  cursor: default;
+  transition: background 0.6s ease;
+}
+
+.kiosk-ambient-glow {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 600px;
+  height: 600px;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 0;
+  transition: box-shadow 0.8s ease;
+  opacity: 0.5;
+}
+
+/* ── Header Bar ─────────────────────────────────────────────────────── */
+.kiosk-header {
+  position: relative;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 24px;
+  border-bottom: 1px solid var(--hairline);
+  background: rgba(15, 16, 17, 0.85);
+  backdrop-filter: blur(20px) saturate(1.4);
+  -webkit-backdrop-filter: blur(20px) saturate(1.4);
+  flex-shrink: 0;
+}
+
+.kiosk-header-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.kiosk-header-center {
+  display: flex;
+  align-items: center;
+}
+
+.kiosk-header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.kiosk-back-link {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--ink-subtle);
+  font-size: 12px;
+  text-decoration: none;
+  padding: 4px 10px 4px 6px;
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  transition: all 0.2s ease;
+}
+
+.kiosk-back-link:hover {
+  color: var(--ink);
+  background: rgba(255,255,255,0.04);
+  border-color: var(--hairline);
+}
+
+.kiosk-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.kiosk-brand-icon {
+  width: 30px;
+  height: 30px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--hairline);
+  background: var(--canvas);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.kiosk-brand-icon span {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--accent-primary);
+}
+
+.kiosk-brand-text {
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--ink);
+  letter-spacing: -0.3px;
+}
+
+.kiosk-connection-pill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: var(--radius-pill);
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--hairline);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+}
+
+.kiosk-icon-btn {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--hairline);
+  background: transparent;
+  color: var(--ink-subtle);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.kiosk-icon-btn:hover {
+  color: var(--ink);
+  background: rgba(255,255,255,0.04);
+  border-color: var(--hairline-strong);
+}
+
+.kiosk-clock {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.kiosk-clock-icon {
+  color: var(--ink-subtle);
+}
+
+.kiosk-clock-time {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink-muted);
+  letter-spacing: 0.5px;
+}
+
+/* ── Main Content ───────────────────────────────────────────────────── */
+.kiosk-main {
+  flex: 1;
+  display: flex;
+  gap: 0;
+  overflow: hidden;
+  position: relative;
+  z-index: 5;
+}
+
+/* ── Camera Viewport ────────────────────────────────────────────────── */
+.kiosk-viewport-wrapper {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 32px;
+  position: relative;
+}
+
+.kiosk-viewport {
+  position: relative;
+  width: 100%;
+  max-width: 720px;
+  aspect-ratio: 16 / 10;
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+  border: 2px solid var(--kiosk-border-color, var(--accent-primary));
+  box-shadow:
+    0 0 0 1px rgba(0,0,0,0.3),
+    0 0 40px -10px var(--kiosk-glow, rgba(94,106,210,0.15)),
+    0 25px 60px -15px rgba(0,0,0,0.5);
+  background: #000;
+  transition: border-color 0.5s ease, box-shadow 0.5s ease;
+}
+
+/* ── Reticle Corner Brackets ────────────────────────────────────────── */
+.kiosk-reticle {
+  position: absolute;
+  width: 28px;
+  height: 28px;
+  z-index: 20;
+  pointer-events: none;
+  transition: border-color 0.5s ease;
+}
+
+.kiosk-reticle-tl {
+  top: 12px; left: 12px;
+  border-top: 2.5px solid var(--kiosk-border-color);
+  border-left: 2.5px solid var(--kiosk-border-color);
+  border-radius: 3px 0 0 0;
+}
+
+.kiosk-reticle-tr {
+  top: 12px; right: 12px;
+  border-top: 2.5px solid var(--kiosk-border-color);
+  border-right: 2.5px solid var(--kiosk-border-color);
+  border-radius: 0 3px 0 0;
+}
+
+.kiosk-reticle-bl {
+  bottom: 12px; left: 12px;
+  border-bottom: 2.5px solid var(--kiosk-border-color);
+  border-left: 2.5px solid var(--kiosk-border-color);
+  border-radius: 0 0 0 3px;
+}
+
+.kiosk-reticle-br {
+  bottom: 12px; right: 12px;
+  border-bottom: 2.5px solid var(--kiosk-border-color);
+  border-right: 2.5px solid var(--kiosk-border-color);
+  border-radius: 0 0 3px 0;
+}
+
+/* ── Scan Line ──────────────────────────────────────────────────────── */
+.kiosk-scan-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 2px;
+  z-index: 15;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    var(--kiosk-border-color, var(--accent-primary)) 20%,
+    var(--kiosk-border-color, var(--accent-primary)) 80%,
+    transparent 100%
+  );
+  box-shadow: 0 0 12px 3px var(--kiosk-glow, rgba(94,106,210,0.4));
+  pointer-events: none;
+}
+
+/* ── Camera Video ───────────────────────────────────────────────────── */
+.kiosk-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transform: scaleX(-1); /* Mirror for selfie view */
+}
+
+.kiosk-cam-error {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface-1);
+  color: var(--ink);
+}
+
+.kiosk-retry-btn {
+  margin-top: 16px;
+  padding: 8px 24px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--hairline);
+  background: var(--surface-2);
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.kiosk-retry-btn:hover {
+  border-color: var(--accent-primary);
+  background: rgba(94,106,210,0.1);
+}
+
+/* ── Face Count Badge ───────────────────────────────────────────────── */
+.kiosk-face-count {
+  position: absolute;
+  bottom: 44px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 16px;
+  border-radius: var(--radius-pill);
+  background: rgba(15,16,17,0.85);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--hairline);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ink-muted);
+  z-index: 25;
+}
+
+/* ── Result Overlays ────────────────────────────────────────────────── */
+.kiosk-result-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 32px;
+}
+
+.kiosk-result-granted {
+  background: linear-gradient(135deg, rgba(0,0,0,0.75) 0%, rgba(34,197,94,0.12) 100%);
+  backdrop-filter: blur(8px);
+}
+
+.kiosk-result-denied {
+  background: linear-gradient(135deg, rgba(0,0,0,0.75) 0%, rgba(239,68,68,0.12) 100%);
+  backdrop-filter: blur(8px);
+}
+
+.kiosk-result-spoof {
+  background: linear-gradient(135deg, rgba(0,0,0,0.75) 0%, rgba(249,115,22,0.12) 100%);
+  backdrop-filter: blur(8px);
+}
+
+.kiosk-result-icon {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 20px;
+}
+
+.kiosk-result-granted .kiosk-result-icon {
+  background: rgba(34,197,94,0.15);
+  border: 2px solid rgba(34,197,94,0.4);
+  color: #4ade80;
+  box-shadow: 0 0 40px rgba(34,197,94,0.2);
+}
+
+.kiosk-result-denied .kiosk-result-icon {
+  background: rgba(239,68,68,0.15);
+  border: 2px solid rgba(239,68,68,0.4);
+  color: #f87171;
+  box-shadow: 0 0 40px rgba(239,68,68,0.2);
+}
+
+.kiosk-result-spoof .kiosk-result-icon {
+  background: rgba(249,115,22,0.15);
+  border: 2px solid rgba(249,115,22,0.4);
+  color: #fb923c;
+  box-shadow: 0 0 40px rgba(249,115,22,0.2);
+}
+
+.kiosk-result-title {
+  font-size: 28px;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: -0.5px;
+  margin: 0 0 8px;
+  text-shadow: 0 2px 20px rgba(0,0,0,0.4);
+}
+
+.kiosk-result-subtitle {
+  font-size: 14px;
+  font-weight: 500;
+  color: rgba(255,255,255,0.7);
+  margin: 0;
+  letter-spacing: 0.3px;
+}
+
+/* ── Confidence Ring ────────────────────────────────────────────────── */
+.kiosk-confidence-ring {
+  position: relative;
+  width: 80px;
+  height: 80px;
+  margin-top: 24px;
+}
+
+.kiosk-ring-svg {
+  width: 100%;
+  height: 100%;
+}
+
+.kiosk-ring-value {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 18px;
+  color: #4ade80;
+}
+
+/* ── Idle State Overlay ─────────────────────────────────────────────── */
+.kiosk-idle-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 25;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  background: rgba(0,0,0,0.55);
+  backdrop-filter: blur(4px);
+}
+
+.kiosk-idle-icon {
+  color: var(--accent-primary);
+  margin-bottom: 20px;
+  opacity: 0.7;
+}
+
+.kiosk-idle-title {
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--ink);
+  letter-spacing: -0.3px;
+  margin: 0 0 8px;
+}
+
+.kiosk-idle-subtitle {
+  font-size: 13px;
+  color: var(--ink-subtle);
+  margin: 0;
+}
+
+/* ── Sidebar Panel ──────────────────────────────────────────────────── */
+.kiosk-sidebar {
+  width: 300px;
+  flex-shrink: 0;
+  border-left: 1px solid var(--hairline);
+  background: rgba(15,16,17,0.6);
+  backdrop-filter: blur(20px);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  overflow-y: auto;
+}
+
+/* ── Status Card ────────────────────────────────────────────────────── */
+.kiosk-status-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--hairline);
+  background: var(--surface-1);
+  transition: border-color 0.5s ease;
+}
+
+.kiosk-status-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  transition: background 0.5s ease, box-shadow 0.5s ease;
+}
+
+.kiosk-status-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.kiosk-status-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.kiosk-status-desc {
+  font-size: 11px;
+  color: var(--ink-subtle);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── Info Cards ─────────────────────────────────────────────────────── */
+.kiosk-info-card {
+  padding: 14px 16px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--hairline);
+  background: var(--surface-1);
+}
+
+.kiosk-card-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ink-subtle);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 10px;
+}
+
+.kiosk-liveness-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.kiosk-liveness-badge {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  padding: 3px 10px;
+  border-radius: var(--radius-pill);
+}
+
+.kiosk-live {
+  background: rgba(34,197,94,0.12);
+  color: #4ade80;
+  border: 1px solid rgba(34,197,94,0.3);
+}
+
+.kiosk-not-live {
+  background: rgba(239,68,68,0.12);
+  color: #f87171;
+  border: 1px solid rgba(239,68,68,0.3);
+}
+
+.kiosk-liveness-score {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-muted);
+}
+
+.kiosk-date-text {
+  font-size: 12px;
+  color: var(--ink-subtle);
+  margin: 0 0 4px;
+}
+
+.kiosk-time-large {
+  font-family: var(--font-mono);
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--ink);
+  letter-spacing: 1px;
+  margin: 0;
+}
+
+/* ── Activity Log ───────────────────────────────────────────────────── */
+.kiosk-activity-card {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.kiosk-no-activity {
+  font-size: 12px;
+  color: var(--ink-tertiary);
+  margin: 0;
+  text-align: center;
+  padding: 16px 0;
+}
+
+.kiosk-activity-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow-y: auto;
+}
+
+.kiosk-activity-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0;
+  border-bottom: 1px solid rgba(35,37,42,0.5);
+}
+
+.kiosk-activity-item:last-child {
+  border-bottom: none;
+}
+
+.kiosk-activity-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.kiosk-dot-green {
+  background: #4ade80;
+  box-shadow: 0 0 4px rgba(74,222,128,0.4);
+}
+
+.kiosk-dot-red {
+  background: #f87171;
+  box-shadow: 0 0 4px rgba(248,113,113,0.4);
+}
+
+.kiosk-activity-name {
+  flex: 1;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.kiosk-activity-time {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--ink-tertiary);
+  flex-shrink: 0;
+}
+
+/* ── Paused Banner ──────────────────────────────────────────────────── */
+.kiosk-paused-banner {
+  padding: 12px 16px;
+  border-radius: var(--radius-lg);
+  border: 1px solid rgba(251,191,36,0.3);
+  background: rgba(251,191,36,0.08);
+  text-align: center;
+  overflow: hidden;
+}
+
+.kiosk-paused-banner p {
+  font-size: 12px;
+  color: #fbbf24;
+  margin: 0 0 8px;
+  font-weight: 500;
+}
+
+.kiosk-resume-btn {
+  padding: 6px 20px;
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(251,191,36,0.4);
+  background: rgba(251,191,36,0.1);
+  color: #fbbf24;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.kiosk-resume-btn:hover {
+  background: rgba(251,191,36,0.2);
+  border-color: rgba(251,191,36,0.6);
+}
+
+/* ── Footer ─────────────────────────────────────────────────────────── */
+.kiosk-footer {
+  position: relative;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 24px;
+  border-top: 1px solid var(--hairline);
+  background: rgba(15,16,17,0.6);
+  flex-shrink: 0;
+}
+
+.kiosk-footer-text {
+  font-size: 11px;
+  color: var(--ink-tertiary);
+  letter-spacing: 0.3px;
+}
+
+.kiosk-footer-version {
+  font-family: var(--font-mono);
+  font-size: 10px;
+}
+
+/* ── Animations ─────────────────────────────────────────────────────── */
+.kiosk-pulse {
+  animation: kioskPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes kioskPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+/* ── Responsive: Tablet/Mobile Kiosk ────────────────────────────────── */
+@media (max-width: 900px) {
+  .kiosk-main {
+    flex-direction: column;
+  }
+
+  .kiosk-sidebar {
+    width: 100%;
+    border-left: none;
+    border-top: 1px solid var(--hairline);
+    padding: 16px;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 10px;
+    max-height: 200px;
+    overflow-y: auto;
+  }
+
+  .kiosk-status-card,
+  .kiosk-info-card {
+    flex: 1 1 auto;
+    min-width: 180px;
+  }
+
+  .kiosk-activity-card {
+    min-width: 100%;
+  }
+
+  .kiosk-viewport-wrapper {
+    padding: 16px;
+  }
+
+  .kiosk-viewport {
+    max-width: 100%;
+  }
+
+  .kiosk-result-title {
+    font-size: 22px;
+  }
+
+  .kiosk-time-large {
+    font-size: 18px;
+  }
+}
+
+@media (max-width: 640px) {
+  .kiosk-header {
+    padding: 10px 16px;
+  }
+
+  .kiosk-brand-text {
+    display: none;
+  }
+
+  .kiosk-back-link span {
+    display: none;
+  }
+
+  .kiosk-sidebar {
+    max-height: 160px;
+    padding: 12px;
+  }
+
+  .kiosk-viewport-wrapper {
+    padding: 10px;
+  }
+}

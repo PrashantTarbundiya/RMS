@@ -24,6 +24,16 @@ import numpy as np
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
 
+# Compatibility fix for Python 3.14 + TensorFlow 2.22 / tf_keras
+try:
+    import tensorflow.compat.v2 as _tf2
+    if hasattr(_tf2, '__internal__') and not hasattr(_tf2.__internal__, 'register_load_context_function'):
+        _tf2.__internal__.register_load_context_function = getattr(
+            _tf2.__internal__, 'register_call_context_function', lambda fn: None
+        )
+except Exception:
+    pass
+
 from deepface import DeepFace
 
 # Path constants
