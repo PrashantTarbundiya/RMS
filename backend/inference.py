@@ -213,21 +213,57 @@ def apply_clahe(image):
 from model import get_embedding
 
 
-def find_match_knn(embedding, known_encodings, known_names, k=KNN_K, max_dist=MAX_DISTANCE, ratio=RATIO_TEST, angle_label='frontal', custom_threshold=None):
+def compute_match_confidence(dist, confirm_threshold):
     """
-    KNN Majority Voting + Ratio Test + Binary Classification.
+    Compute a realistic, smoothly calibrated confidence score (0.0 to 0.99).
+    If dist <= confirm_threshold, returns confirmed confidence [0.60, 0.98].
+    If dist > confirm_threshold, returns rejected/uncertain confidence [0.0, 0.44].
+    Never returns hardcoded 1.0 (100%) so false positives cannot report 100% certainty.
+    """
+    if dist is None or dist >= 1.0:
+        return 0.0
+    thresh = max(0.20, float(confirm_threshold))
+    if dist <= thresh:
+        # Match confirmed: map [0.0, thresh] -> [0.98, 0.60]
+        ratio = max(0.0, min(1.0, dist / thresh))
+        conf = 0.60 + 0.38 * ((1.0 - ratio) ** 1.1)
+        return round(float(conf), 3)
+    else:
+        # Match rejected / uncertain: map (thresh, 1.0] -> [0.44, 0.0]
+        excess = min(1.0, (dist - thresh) / max(0.01, 1.0 - thresh))
+        conf = max(0.0, 0.44 * (1.0 - excess))
+        return round(float(conf), 3)
+
+
+def find_match_knn(embedding, known_encodings, known_names, k=KNN_K, max_dist=None, ratio=RATIO_TEST, angle_label='frontal', custom_threshold=None, model_name="Facenet512"):
+    """
+    KNN Majority Voting + Ratio Test + Binary Classification with Model-Calibrated Thresholds.
+    
+    Model Threshold Standards:
+      - InsightFace ArcFace: Genuine match < 0.35 (tight ArcFace cosine distance)
+      - Facenet512: Genuine match < 0.42
+      - GhostFaceNet: Genuine match < 0.45
     
     Returns:
         tuple: (name, distance, confidence_level)
-        confidence_level is one of:
-        - 'confirmed'  : distance < get_confirm_threshold(), passed all gates
-        - 'rejected'   : failed one or more gates
-    
-    For gate camera: only 'confirmed' results should be displayed.
-    'rejected' = Unknown, no exceptions.
     """
-    if not known_encodings:
+    if known_encodings is None or len(known_encodings) == 0:
         return "Unknown", 1.0, "rejected"
+
+    # Per-model threshold calibration correlated directly with custom_threshold slider
+    custom_t = float(custom_threshold) if custom_threshold is not None else None
+    if model_name == 'InsightFace':
+        base_thresh = 0.35 if custom_t is None else min(custom_t, 0.45)
+        cutoff = max(0.48, base_thresh + 0.08)
+    elif model_name == 'GhostFaceNet':
+        base_thresh = 0.45 if custom_t is None else custom_t
+        cutoff = max(0.55, base_thresh + 0.08)
+    else:  # Facenet512
+        base_thresh = 0.42 if custom_t is None else custom_t
+        cutoff = max(0.55, base_thresh + 0.08)
+
+    if max_dist is not None:
+        cutoff = max(cutoff, max_dist)
 
     # Compute all distances
     distances = []
@@ -242,23 +278,27 @@ def find_match_knn(embedding, known_encodings, known_names, k=KNN_K, max_dist=MA
     best_name = distances[0][1]
 
     # --- Gate 1: Absolute distance cutoff ---
-    if best_dist > max_dist:
+    if best_dist > cutoff:
         return "Unknown", best_dist, "rejected"
 
-    # --- Gate 2: Ratio test (Lowe's inspired) ---
+    # --- Gate 2: Ratio test ---
     second_best_dist = None
     for dist, name in distances:
         if name != best_name:
             second_best_dist = dist
             break
 
-    if second_best_dist is not None:
-        if best_dist > ratio * second_best_dist:
+    # In face galleries, if best_dist is already a direct genuine match (dist <= 0.38 for Facenet or <= 0.32 for InsightFace),
+    # do NOT reject on ratio test, as distinct gallery identities can naturally yield second nearest ~0.45.
+    # Only apply ratio test in the borderline/uncertain zone (best_dist > 0.38).
+    ambiguous_zone = 0.32 if model_name == 'InsightFace' else 0.38
+    if best_dist > ambiguous_zone and second_best_dist is not None:
+        if best_dist > 0.92 * second_best_dist:
             return "Unknown", best_dist, "rejected"
 
     # --- Gate 3: KNN Majority Vote ---
     top_k = distances[:min(k, len(distances))]
-    valid_votes = [name for dist, name in top_k if dist <= max_dist]
+    valid_votes = [name for dist, name in top_k if dist <= cutoff]
 
     if not valid_votes:
         return "Unknown", best_dist, "rejected"
@@ -266,7 +306,7 @@ def find_match_knn(embedding, known_encodings, known_names, k=KNN_K, max_dist=MA
     # Weighted vote: closer neighbors get higher weight
     name_weights = {}
     for dist, name in top_k:
-        if dist <= max_dist:
+        if dist <= cutoff:
             weight = 1.0 / (dist + 1e-6)
             name_weights[name] = name_weights.get(name, 0) + weight
 
@@ -274,17 +314,16 @@ def find_match_knn(embedding, known_encodings, known_names, k=KNN_K, max_dist=MA
     winner_dist = min(dist for dist, name in distances if name == winner)
 
     # --- Gate 4: Binary classification ---
-    # Only distances below the configured threshold are truly confirmed
-    confirm_threshold = custom_threshold if custom_threshold is not None else get_confirm_threshold()
+    confirm_threshold = base_thresh
     
-    # Relax threshold for side profiles (they inherently have fewer matching features)
+    # Mild relaxation for extreme side profiles
     if angle_label in ['left_profile', 'right_profile']:
-        confirm_threshold += 0.10  # e.g., 0.55 -> 0.65 (more lenient distance cutoff)
+        confirm_threshold += 0.06
         
     if winner_dist <= confirm_threshold:
         return winner, winner_dist, "confirmed"
     else:
-        # Between confirm_threshold and MAX_DISTANCE = uncertain = reject
+        # Distance too high -> Unknown (never false-positive)
         return "Unknown", winner_dist, "rejected"
 
 

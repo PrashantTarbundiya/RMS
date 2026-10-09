@@ -66,7 +66,7 @@ def get_encodings_path(org_id=None, model_name="Facenet512"):
     """
     filename = f'encodings_{model_name}.pickle' if model_name != "Facenet512" else 'encodings.pickle'
     
-    if org_id is None:
+    if org_id is None or org_id == 'default-org':
         return os.path.join(_GLOBAL_DATA_DIR, filename)
         
     org_dir = _get_org_data_dir(org_id)
@@ -76,7 +76,7 @@ def get_encodings_path(org_id=None, model_name="Facenet512"):
 
 def get_feedback_log_path(org_id=None):
     """Get path to the org's feedback_log.json."""
-    if org_id is None:
+    if org_id is None or org_id == 'default-org':
         return _GLOBAL_FEEDBACK_LOG_PATH
     org_dir = _get_org_data_dir(org_id)
     os.makedirs(org_dir, exist_ok=True)
@@ -85,7 +85,7 @@ def get_feedback_log_path(org_id=None):
 
 def get_config_path(org_id=None):
     """Get path to the org's config.json."""
-    if org_id is None:
+    if org_id is None or org_id == 'default-org':
         return _GLOBAL_CONFIG_PATH
     org_dir = _get_org_data_dir(org_id)
     os.makedirs(org_dir, exist_ok=True)
@@ -94,7 +94,7 @@ def get_config_path(org_id=None):
 
 def get_recognition_history_path(org_id=None):
     """Get path to the org's recognition_history.json."""
-    if org_id is None:
+    if org_id is None or org_id == 'default-org':
         return _GLOBAL_RECOGNITION_HISTORY_PATH
     org_dir = _get_org_data_dir(org_id)
     os.makedirs(org_dir, exist_ok=True)
@@ -112,7 +112,7 @@ def get_dataset_cleaned_dir(org_id=None):
         Absolute path to the org's cleaned dataset directory.
     """
     storage = get_storage_dir()
-    if org_id is None:
+    if org_id is None or org_id == 'default-org':
         return os.path.join(storage, 'dataset_cleaned')
     path = os.path.join(storage, 'dataset_cleaned', 'orgs', str(org_id))
     os.makedirs(path, exist_ok=True)
@@ -122,7 +122,7 @@ def get_dataset_cleaned_dir(org_id=None):
 def get_raw_dataset_dir(org_id=None):
     """Get the raw dataset directory for an organization."""
     storage = get_storage_dir()
-    if org_id is None:
+    if org_id is None or org_id == 'default-org':
         return os.path.join(storage, 'dataset')
     path = os.path.join(storage, 'dataset', 'orgs', str(org_id))
     os.makedirs(path, exist_ok=True)
@@ -131,7 +131,7 @@ def get_raw_dataset_dir(org_id=None):
 
 def get_sota_model_path(org_id=None):
     """Get the path to the org's MobileNetV2 weights (.pth)."""
-    if org_id is None:
+    if org_id is None or org_id == 'default-org':
         path = _GLOBAL_SOTA_MODEL
     else:
         path = os.path.join(_get_org_data_dir(org_id), 'sota', 'best_mobile_sideface.pth')
@@ -142,7 +142,7 @@ def get_sota_model_path(org_id=None):
 
 def get_sota_classes_path(org_id=None):
     """Get the path to the org's mobile_classes.txt."""
-    if org_id is None:
+    if org_id is None or org_id == 'default-org':
         path = _GLOBAL_SOTA_CLASSES
     else:
         path = os.path.join(_get_org_data_dir(org_id), 'sota', 'mobile_classes.txt')

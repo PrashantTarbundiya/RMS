@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
-import { Terminal as TerminalIcon, ClipboardList, CheckCircle, XCircle, Play, Clock, RefreshCw, Search, Copy, Trash2 } from 'lucide-react';
+import { Terminal as TerminalIcon, ClipboardList, CheckCircle, XCircle, Play, Clock, RefreshCw, Search, Copy, Trash2, Check, ArrowDown } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { API_BASE } from '../config';
 import EmptyState from '../components/ui/EmptyState';
+import { formatPersonName } from '../utils/format';
 
 export default function LogsPage() {
   const { apiClient } = useAuth();
@@ -16,6 +17,7 @@ export default function LogsPage() {
   const [logSearch, setLogSearch] = useState('');
   const [logFilter, setLogFilter] = useState('all'); // all, error, success, warning
   const [autoScroll, setAutoScroll] = useState(true);
+  const [copied, setCopied] = useState(false);
   const logsEndRef = useRef(null);
   const eventSourceRef = useRef(null);
 
@@ -72,13 +74,13 @@ export default function LogsPage() {
   const getStatusBadge = (status) => {
     switch (status) {
       case 'Success':
-        return <span className="inline-flex px-2 py-0.5 rounded font-mono text-[9px] font-semibold border uppercase tracking-wider bg-[#27A644]/10 text-[#27A644] border-[#27A644]/20">Success</span>;
+        return <span className="inline-flex px-2 py-0.5 rounded font-mono text-[9px] font-semibold border uppercase tracking-wider bg-emerald-500/10 text-emerald-400 border-emerald-500/20">Success</span>;
       case 'Running':
-        return <span className="inline-flex px-2 py-0.5 rounded font-mono text-[9px] font-semibold border uppercase tracking-wider bg-[#5E6AD2]/10 text-[#828FFF] border-[#5E6AD2]/20 animate-pulse">Running</span>;
+        return <span className="inline-flex px-2 py-0.5 rounded font-mono text-[9px] font-semibold border uppercase tracking-wider bg-indigo-500/10 text-indigo-400 border-indigo-500/20 animate-pulse">Running</span>;
       case 'Pending':
         return <span className="inline-flex px-2 py-0.5 rounded font-mono text-[9px] font-semibold border uppercase tracking-wider bg-[#141516] text-ink-muted border-[#23252A]">Pending</span>;
       case 'Failed':
-        return <span className="inline-flex px-2 py-0.5 rounded font-mono text-[9px] font-semibold border uppercase tracking-wider bg-[#E5484D]/10 text-[#E5484D] border-[#E5484D]/20">Failed</span>;
+        return <span className="inline-flex px-2 py-0.5 rounded font-mono text-[9px] font-semibold border uppercase tracking-wider bg-rose-500/10 text-rose-400 border-rose-500/20">Failed</span>;
       default:
         return null;
     }
@@ -86,10 +88,10 @@ export default function LogsPage() {
 
   const getStatusIcon = (status) => {
     switch (status) {
-      case 'Success': return <CheckCircle className="w-5 h-5 text-[#27A644]" />;
-      case 'Running': return <RefreshCw className="w-5 h-5 text-[#828FFF] animate-spin" />;
-      case 'Failed': return <XCircle className="w-5 h-5 text-[#E5484D]" />;
-      default: return <Clock className="w-5 h-5 text-ink-muted" />;
+      case 'Success': return <CheckCircle className="w-5 h-5 text-emerald-400 shrink-0" />;
+      case 'Running': return <RefreshCw className="w-5 h-5 text-indigo-400 animate-spin shrink-0" />;
+      case 'Failed': return <XCircle className="w-5 h-5 text-rose-400 shrink-0" />;
+      default: return <Clock className="w-5 h-5 text-ink-muted shrink-0" />;
     }
   };
 
@@ -123,22 +125,38 @@ export default function LogsPage() {
 
   const copyLogs = () => {
     navigator.clipboard.writeText(filteredLogs.join('\n')).then(() => {
+      setCopied(true);
       toast.success(`Copied ${filteredLogs.length} log lines to clipboard.`);
+      setTimeout(() => setCopied(false), 2000);
     });
   };
 
   const clearLiveLogs = () => {
     setLiveLogs([]);
-    toast.info('Live logs cleared.');
+    toast.info('Live terminal buffer cleared.');
   };
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="pb-12 max-w-6xl mx-auto space-y-6 page-container">
-      <div>
-        <h1 className="text-headline font-semibold text-ink font-display">Live Logs & Queue</h1>
-        <p className="mt-1 text-caption text-ink-subtle">
-          View background model refinement queue status, historical training jobs, and real-time execution logs.
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-headline font-semibold text-ink font-display flex items-center gap-3">
+            Live Telemetry & Logs
+            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+          </h1>
+          <p className="mt-1 text-caption text-ink-subtle">
+            Real-time inference telemetry, asynchronous model refinement queue, and training execution logs.
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={fetchQueue}
+            className="button-secondary text-caption flex items-center gap-2 h-9 px-3.5 hover:border-[#828FFF]/40 transition-colors"
+          >
+            <RefreshCw size={14} className={isLoading ? 'animate-spin' : ''} />
+            <span>Sync Queue</span>
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -147,33 +165,33 @@ export default function LogsPage() {
           <div className="flex items-center justify-between border-b border-[#23252A] pb-3">
             <h3 className="m-0 text-body font-semibold text-ink flex items-center gap-2">
               <ClipboardList className="w-4 h-4 text-ink-tertiary" /> Job History
+              <span className="text-[11px] font-mono text-ink-muted bg-[#141516] px-2 py-0.5 rounded-full border border-[#23252A]">
+                {jobs.length}
+              </span>
             </h3>
-            <button onClick={fetchQueue} className="p-1 rounded hover:bg-[#1C1D1F] text-ink-subtle hover:text-ink transition-colors">
-              <RefreshCw className="w-3.5 h-3.5" />
-            </button>
           </div>
 
-          <div className="space-y-2.5 max-h-[500px] overflow-y-auto pr-1">
+          <div className="space-y-2.5 max-h-[540px] overflow-y-auto pr-1">
             {isLoading ? (
-              <div className="text-caption text-ink-muted text-center py-8">Loading queue history...</div>
+              <div className="text-caption text-ink-muted text-center py-8">Loading queue telemetry...</div>
             ) : jobs.length === 0 ? (
-              <EmptyState icon={ClipboardList} title="No training jobs" description="Jobs will appear here when models are trained." />
+              <EmptyState icon={ClipboardList} title="No training jobs" description="Jobs will appear here as models are refined or trained." />
             ) : (
               jobs.map(job => (
                 <div
                   key={job.id}
                   onClick={() => setSelectedJobId(job.id)}
-                  className={`p-4 rounded-lg border transition-all cursor-pointer flex items-center justify-between ${
+                  className={`p-3.5 rounded-xl border transition-all cursor-pointer flex items-center justify-between ${
                     (selectedJobId === job.id || (!selectedJobId && selectedJob?.id === job.id))
-                      ? 'bg-[#141516] border-[#5E6AD2]/50 shadow-md'
-                      : 'bg-[#0F1011] border-[#23252A] hover:bg-[#141516]/50'
+                      ? 'bg-[#141516] border-[#828FFF]/50 shadow-lg shadow-[#828FFF]/5'
+                      : 'bg-[#0F1011] border-[#23252A] hover:bg-[#141516]/60 hover:border-[#2E3138]'
                   }`}
                 >
                   <div className="flex items-center gap-3 min-w-0">
                     {getStatusIcon(job.status)}
                     <div className="min-w-0">
                       <h4 className="m-0 font-medium text-xs text-ink font-display truncate">
-                        {job.person_name}
+                        {formatPersonName(job.person_name)}
                       </h4>
                       <p className="m-0 text-[10px] text-ink-muted font-mono mt-0.5">
                         ID: {job.id} • {job.timestamp}
@@ -190,51 +208,84 @@ export default function LogsPage() {
         {/* Right Side: Terminal Log Box */}
         <div className="lg:col-span-2 space-y-4">
           <div className="flex items-center justify-between border-b border-[#23252A] pb-3">
-            <h3 className="m-0 text-body font-semibold text-ink flex items-center gap-2">
-              <TerminalIcon className="w-4 h-4 text-ink-tertiary" /> Terminal Logs
+            <div className="flex items-center gap-2 flex-wrap">
+              <h3 className="m-0 text-body font-semibold text-ink flex items-center gap-2">
+                <TerminalIcon className="w-4 h-4 text-ink-tertiary" /> Terminal Console
+              </h3>
               {selectedJob && (
-                <span className="text-[11px] font-mono text-ink-muted font-normal bg-black/40 px-2 py-0.5 rounded border border-[#23252A]">
-                  Job: {selectedJob.person_name} ({selectedJob.id})
+                <span className="text-[11px] font-mono text-ink-muted bg-black/60 px-2.5 py-0.5 rounded-md border border-[#23252A]">
+                  Target: <strong className="text-ink">{formatPersonName(selectedJob.person_name)}</strong> ({selectedJob.id})
                 </span>
               )}
-            </h3>
+            </div>
             <div className="flex items-center gap-2">
               {selectedJob && getStatusBadge(selectedJob.status)}
             </div>
           </div>
 
-          {/* Search & Filter Bar */}
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="flex items-center gap-2 input-linear h-8 py-0 px-2.5 flex-1 min-w-[150px]">
-              <Search className="w-3.5 h-3.5 text-ink-tertiary shrink-0" />
-              <input
-                type="text"
-                placeholder="Search logs..."
-                className="bg-transparent border-none text-ink text-[11px] w-full focus:outline-none p-0 placeholder:text-ink-tertiary"
-                value={logSearch}
-                onChange={e => setLogSearch(e.target.value)}
-              />
+          {/* Premium Search & Action Toolbar */}
+          <div className="p-2.5 bg-[#0F1011] border border-[#23252A] rounded-xl flex flex-wrap items-center justify-between gap-2.5">
+            <div className="flex items-center gap-2 flex-1 min-w-[200px]">
+              <div className="flex items-center gap-2 bg-[#010102] border border-[#23252A] rounded-lg h-9 px-3 w-full focus-within:border-[#828FFF]/50 transition-colors">
+                <Search className="w-3.5 h-3.5 text-ink-tertiary shrink-0" />
+                <input
+                  type="text"
+                  placeholder="Filter logs by keyword..."
+                  className="bg-transparent border-none text-ink text-[12px] w-full focus:outline-none p-0 placeholder:text-ink-tertiary font-mono"
+                  value={logSearch}
+                  onChange={e => setLogSearch(e.target.value)}
+                />
+              </div>
             </div>
-            <select
-              value={logFilter}
-              onChange={e => setLogFilter(e.target.value)}
-              className="input-linear h-8 py-0 px-2.5 text-[11px] text-ink bg-[#0F1011] border border-[#23252A] rounded-md"
-            >
-              <option value="all">All Levels</option>
-              <option value="error">Errors</option>
-              <option value="warning">Warnings</option>
-              <option value="success">Success</option>
-            </select>
-            <label className="flex items-center gap-1.5 text-[11px] text-ink-tertiary cursor-pointer select-none">
-              <input type="checkbox" checked={autoScroll} onChange={e => setAutoScroll(e.target.checked)} className="accent-[#5E6AD2]" />
-              Auto-scroll
-            </label>
-            <button onClick={copyLogs} disabled={filteredLogs.length === 0} className="button-secondary text-[11px] py-0.5 px-2 h-7 flex items-center gap-1 disabled:opacity-30">
-              <Copy size={12} /> Copy
-            </button>
-            <button onClick={clearLiveLogs} disabled={liveLogs.length === 0} className="button-secondary text-[11px] py-0.5 px-2 h-7 flex items-center gap-1 disabled:opacity-30">
-              <Trash2 size={12} /> Clear
-            </button>
+
+            <div className="flex items-center gap-2 flex-wrap">
+              <select
+                value={logFilter}
+                onChange={e => setLogFilter(e.target.value)}
+                className="h-9 px-3 text-[12px] font-mono text-ink bg-[#010102] border border-[#23252A] rounded-lg focus:outline-none focus:border-[#828FFF]/50 cursor-pointer"
+              >
+                <option value="all">All Levels</option>
+                <option value="error">Errors Only</option>
+                <option value="warning">Warnings</option>
+                <option value="success">Success / OK</option>
+              </select>
+
+              <button
+                type="button"
+                onClick={() => setAutoScroll(prev => !prev)}
+                className={`h-9 px-3 rounded-lg border text-[11px] font-mono flex items-center gap-1.5 transition-colors cursor-pointer ${
+                  autoScroll
+                    ? 'bg-[#828FFF]/10 border-[#828FFF]/30 text-[#828FFF]'
+                    : 'bg-[#010102] border-[#23252A] text-ink-muted hover:text-ink'
+                }`}
+                title="Toggle automated scrolling to bottom"
+              >
+                <ArrowDown size={13} className={autoScroll ? 'text-[#828FFF]' : 'text-ink-tertiary'} />
+                <span>Auto-scroll</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={copyLogs}
+                disabled={filteredLogs.length === 0}
+                className="button-secondary h-9 px-3.5 text-[12px] flex items-center gap-1.5 disabled:opacity-40 hover:border-[#828FFF]/40 hover:text-ink transition-colors"
+                title="Copy current filtered logs to clipboard"
+              >
+                {copied ? <Check size={14} className="text-emerald-400" /> : <Copy size={14} />}
+                <span>{copied ? 'Copied' : 'Copy'}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={clearLiveLogs}
+                disabled={liveLogs.length === 0}
+                className="h-9 px-3 rounded-lg border border-[#23252A] bg-[#010102] hover:bg-rose-500/10 hover:border-rose-500/30 hover:text-rose-400 text-ink-muted text-[12px] flex items-center gap-1.5 transition-colors disabled:opacity-30 disabled:pointer-events-none"
+                title="Clear current stream buffer"
+              >
+                <Trash2 size={14} />
+                <span>Clear</span>
+              </button>
+            </div>
           </div>
 
           <div className="bg-black/60 rounded-xl p-5 font-mono text-[11px] leading-relaxed text-ink-subtle h-[500px] overflow-y-auto border border-[#23252A]/60 shadow-inner">

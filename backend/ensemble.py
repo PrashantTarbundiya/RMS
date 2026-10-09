@@ -10,12 +10,13 @@ agreement bonuses, and raw weighted-score output for informative confidence.
 """
 
 
-# Default model weights for ensemble voting
+# Default model weights for ensemble voting (Modernized: Facenet512 primary, InsightFace verifier, GhostFaceNet edge, VGG-Face deprecated)
+# Default model weights for ensemble voting (Modernized: Facenet512 primary, InsightFace verifier, GhostFaceNet & VGGFace disabled)
 DEFAULT_WEIGHTS = {
-    'facenet512': 0.30,   # Primary — Original highly accurate model
-    'insightface': 0.35,  # Secondary — Fast ArcFace model
-    'ghostfacenet': 0.15, # Edge — lightweight mobile model
-    'vggface': 0.20,      # Legacy — VGG-Face deep model
+    'facenet512': 0.65,   # Primary — Highly accurate FaceNet512
+    'insightface': 0.35,  # Secondary / Verifier — Fast ArcFace model
+    'ghostfacenet': 0.00, # Disabled — high error rate on edge frames
+    'vggface': 0.00,      # Deprecated — Slow & memory-heavy legacy model
 }
 
 # ─── Binary Recognition Thresholds ─────────────────────────────────────
@@ -31,7 +32,7 @@ DISAGREEMENT_PENALTY = 0.10   # Penalty when models disagree
 UNKNOWN_LABEL = "Unknown"
 
 # Labels that indicate a model didn't produce a real prediction
-SKIP_LABELS = frozenset({'[UNTRAINED]', 'Not Trained', 'Not Loaded', 'Error', '', 'Unknown'})
+SKIP_LABELS = frozenset({'[UNTRAINED]', 'Not Trained', 'Not Loaded', 'Error', '', 'Unknown', 'Disabled', 'SPOOF'})
 
 
 def ensemble_predict(predictions, weights=None, custom_threshold=None):
@@ -137,11 +138,16 @@ def ensemble_predict(predictions, weights=None, custom_threshold=None):
             effective_soft_threshold = SOFT_MATCH_THRESHOLD + 0.10  # e.g., 0.40
 
     # ── Single High-Confidence Override ──
-    # If single model and very confident, trust it
+    # CRITICAL SECURITY: A single model can ONLY confirm if it is a Tier-1 deep model
+    # (Facenet512 or InsightFace) with high confidence (>= 0.75). Edge/weak models alone NEVER confirm!
     if num_valid == 1:
-        single_conf = list(valid_preds.values())[0]['confidence']
-        if single_conf >= 0.80:
-            best_score = max(best_score, single_conf * 0.85)
+        solo_key = list(valid_preds.keys())[0]
+        solo_conf = list(valid_preds.values())[0]['confidence']
+        if solo_key in ['facenet512', 'insightface'] and solo_conf >= 0.65:
+            best_score = max(best_score, solo_conf)
+        else:
+            # Not trusted solo — treat as unconfirmed
+            best_score = min(best_score, effective_soft_threshold - 0.05)
 
     # Note: custom_threshold is a distance threshold used by find_match_knn.
     # The ensemble uses its own confidence-based thresholds and should NOT

@@ -46,30 +46,40 @@ def init_database(database_url=None):
         database_url = os.environ.get('DATABASE_URL')
 
     if not database_url:
-        logger.info("DATABASE_URL not set — running in single-tenant file-based mode.")
-        _db_available = False
-        return False
+        backend_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        data_dir = os.path.join(backend_dir, 'data')
+        os.makedirs(data_dir, exist_ok=True)
+        sqlite_path = os.path.join(data_dir, 'rms.db').replace('\\', '/')
+        database_url = f"sqlite:///{sqlite_path}"
+        logger.info(f"DATABASE_URL not set — using local SQLite database: {sqlite_path}")
 
     try:
         from sqlalchemy import create_engine
         from sqlalchemy.orm import sessionmaker
 
-        # Supabase uses postgresql:// but SQLAlchemy 2.0 expects postgresql+psycopg2://
-        if database_url.startswith("postgres://"):
-            database_url = database_url.replace("postgres://", "postgresql://", 1)
+        if database_url.startswith("sqlite"):
+            _engine = create_engine(
+                database_url,
+                connect_args={"check_same_thread": False},
+                echo=False,
+            )
+        else:
+            # Supabase uses postgresql:// but SQLAlchemy 2.0 expects postgresql+psycopg2://
+            if database_url.startswith("postgres://"):
+                database_url = database_url.replace("postgres://", "postgresql://", 1)
 
-        _engine = create_engine(
-            database_url,
-            pool_size=5,
-            max_overflow=10,
-            pool_timeout=30,
-            pool_recycle=1800,  # Recycle connections every 30 min (Supabase idle timeout)
-            echo=False,         # Set True for SQL debug logging
-        )
+            _engine = create_engine(
+                database_url,
+                pool_size=5,
+                max_overflow=10,
+                pool_timeout=30,
+                pool_recycle=1800,  # Recycle connections every 30 min (Supabase idle timeout)
+                echo=False,         # Set True for SQL debug logging
+            )
 
         _SessionLocal = sessionmaker(bind=_engine, autocommit=False, autoflush=False)
         _db_available = True
-        logger.info("PostgreSQL database connected successfully.")
+        logger.info("Database connected successfully.")
         return True
 
     except Exception as e:

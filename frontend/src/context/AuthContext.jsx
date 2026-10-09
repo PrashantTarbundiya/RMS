@@ -76,11 +76,12 @@ export function AuthProvider({ children }) {
         // Try to hit /api/auth/me without a token
         // In single-tenant mode, @require_auth is a no-op and returns the local admin
         const res = await axios.get(`${API_BASE}/auth/me`);
-        if (res.data?.user?.org_id === null) {
-          // Single-tenant mode — auto-login as local admin
+        if (res.data?.user?.org_id === null || res.data?.user?.id === 'local-admin' || res.data?.user?.email === 'admin@rms.local') {
+          // Local / Single-tenant dev mode — auto-login as local admin
           setIsMultiTenant(false);
           setUser(res.data.user);
-          setAccessToken(null);
+          setAccessToken('single-tenant-token');
+          sessionStorage.setItem('rms_access_token', 'single-tenant-token');
           setLoading(false);
           return;
         }
@@ -174,6 +175,41 @@ export function AuthProvider({ children }) {
     sessionStorage.removeItem('rms_refresh_token');
   }, []);
 
+  const loginLocalDev = useCallback(async () => {
+    try {
+      const res = await axios.get(`${API_BASE}/auth/me`);
+      const devUser = res.data?.user || {
+        id: 'local-admin',
+        name: 'System Administrator',
+        email: 'admin@rms.local',
+        role: 'org_admin',
+        org_id: 'default-org',
+        org_name: 'Default Organization'
+      };
+      setUser(devUser);
+      setAccessToken('single-tenant-token');
+      sessionStorage.setItem('rms_access_token', 'single-tenant-token');
+      sessionStorage.setItem('rms_refresh_token', 'single-tenant-refresh');
+      setIsMultiTenant(false);
+      return devUser;
+    } catch {
+      const fallbackUser = {
+        id: 'local-admin',
+        name: 'System Administrator',
+        email: 'admin@rms.local',
+        role: 'org_admin',
+        org_id: 'default-org',
+        org_name: 'Default Organization'
+      };
+      setUser(fallbackUser);
+      setAccessToken('single-tenant-token');
+      sessionStorage.setItem('rms_access_token', 'single-tenant-token');
+      sessionStorage.setItem('rms_refresh_token', 'single-tenant-refresh');
+      setIsMultiTenant(false);
+      return fallbackUser;
+    }
+  }, []);
+
   const updateOnboardingState = useCallback(async (newState) => {
     try {
       const res = await axios.post(`${API_BASE}/onboarding/state`, {
@@ -193,10 +229,11 @@ export function AuthProvider({ children }) {
   const value = {
     user,
     accessToken,
-    isAuthenticated: !!user,
+    isAuthenticated: !!user || isMultiTenant === false,
     isMultiTenant,
     loading,
     login,
+    loginLocalDev,
     register,
     logout,
     apiClient,

@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { API_BASE } from '../config';
 import ApertureReticle from '../components/ApertureReticle';
+import { formatPersonName } from '../utils/format';
 
 export default function DashboardPage() {
   const { user, apiClient } = useAuth();
@@ -60,7 +61,7 @@ export default function DashboardPage() {
     try {
       await apiClient.put(`${API_BASE}/persons/${oldName}`, { new_name: newName.trim() });
       setEditingPerson(null);
-      toast.success(`Renamed "${oldName.replace(/_/g, ' ')}" to "${newName.trim().replace(/_/g, ' ')}"`);
+      toast.success(`Renamed "${formatPersonName(oldName)}" to "${formatPersonName(newName.trim())}"`);
       fetchDashboardData();
     } catch (err) {
       toast.error(err.response?.data?.error || 'Failed to rename person.');
@@ -74,7 +75,7 @@ export default function DashboardPage() {
     try {
       await apiClient.delete(`${API_BASE}/persons/${name}`);
       setDeletingPerson(null);
-      toast.success(`"${name.replace(/_/g, ' ')}" has been removed from the roster.`);
+      toast.success(`"${formatPersonName(name)}" has been removed from the roster.`);
       fetchDashboardData();
     } catch (err) {
       toast.error(err.response?.data?.error || 'Failed to delete person.');
@@ -380,7 +381,7 @@ export default function DashboardPage() {
                                 className="hover:text-[#828FFF] hover:underline transition-all font-medium"
                                 title="Manage Biometric Profile"
                               >
-                                {name.replace(/_/g, ' ')}
+                                {formatPersonName(name)}
                               </Link>
                             )}
                           </td>

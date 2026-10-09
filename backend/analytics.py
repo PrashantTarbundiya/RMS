@@ -36,6 +36,9 @@ def get_department_breakdown(org_id, start_date=None, end_date=None):
             'unassigned': { ... }  # employees with no department
         }
     """
+    if not org_id:
+        org_id = 'default-org'
+
     from database.db import is_db_available, get_db_session
     if not is_db_available():
         return {'departments': [], 'unassigned': None, 'error': 'Database not available'}
@@ -137,6 +140,9 @@ def get_late_arrival_trends(org_id, work_start_hour=9, work_start_minute=0,
             'trend_by_week': [{'week': '2026-W01', 'late_count': 5, 'total': 50}, ...],
         }
     """
+    if not org_id:
+        org_id = 'default-org'
+
     from database.db import is_db_available, get_db_session
     if not is_db_available():
         return {'error': 'Database not available'}
@@ -253,6 +259,9 @@ def get_attendance_heatmap(org_id, start_date=None, end_date=None):
             'peak_day': 'Monday',
         }
     """
+    if not org_id:
+        org_id = 'default-org'
+
     from database.db import is_db_available, get_db_session
     if not is_db_available():
         return {'error': 'Database not available'}

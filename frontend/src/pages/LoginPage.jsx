@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
-import { Scan, Eye, EyeOff, ShieldAlert, LogIn } from 'lucide-react';
+import { Scan, Eye, EyeOff, ShieldAlert, LogIn, Zap, Sparkles, KeyRound } from 'lucide-react';
 import ApertureReticle from '../components/ApertureReticle';
 
 export default function LoginPage() {
-  const { login } = useAuth();
+  const { login, loginLocalDev } = useAuth();
   const navigate = useNavigate();
 
   const [email, setEmail] = useState('');
@@ -28,6 +28,25 @@ export default function LoginPage() {
     }
   };
 
+  const handleLocalDevLogin = async () => {
+    setError('');
+    setLoading(true);
+    try {
+      await loginLocalDev();
+      navigate('/dashboard');
+    } catch (err) {
+      setError('Failed to enter dev mode. Ensure backend is running.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleFillDemoAdmin = () => {
+    setEmail('admin@rms.local');
+    setPassword('admin12345');
+    setError('');
+  };
+
   return (
     <div className="flex min-h-screen items-center justify-center p-4 bg-[#010102] relative overflow-hidden">
       {/* Background Grid */}
@@ -42,8 +61,46 @@ export default function LoginPage() {
           </ApertureReticle>
           <div>
             <h2 className="text-card-title text-ink font-medium tracking-tight">Welcome Back</h2>
-            <p className="text-caption text-ink-subtle mt-1">Sign in to your organization</p>
+            <p className="text-caption text-ink-subtle mt-1">Sign in to RMS Face AI</p>
           </div>
+        </div>
+
+        {/* ─── 1-CLICK LOCAL DEV MODE ACCESS ─── */}
+        <div className="mb-5 p-3.5 rounded-xl border border-[#5E6AD2]/30 bg-gradient-to-b from-[#5E6AD2]/10 to-[#5E6AD2]/5 relative overflow-hidden">
+          <div className="flex items-start gap-2.5">
+            <div className="w-7 h-7 rounded-lg bg-[#5E6AD2]/20 border border-[#5E6AD2]/40 flex items-center justify-center shrink-0 text-[#828FFF]">
+              <Zap className="w-3.5 h-3.5 fill-[#5E6AD2]" />
+            </div>
+            <div className="flex-1">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-semibold text-white">Local System / Dev Mode</span>
+                <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">ONLINE</span>
+              </div>
+              <p className="text-[11px] text-ink-subtle mt-0.5 leading-tight">
+                Zero configuration — access full system without typing password.
+              </p>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={handleLocalDevLogin}
+            disabled={loading}
+            className="w-full mt-3 h-9 button-primary text-xs flex items-center justify-center gap-2 font-medium bg-[#5E6AD2] hover:bg-[#4E5AC0] text-white shadow-lg shadow-[#5E6AD2]/25 transition-all active:scale-[0.99]"
+          >
+            <Sparkles className="w-3.5 h-3.5 text-white" />
+            <span className="text-white font-medium">Continue in Dev Mode (No Login)</span>
+          </button>
+        </div>
+
+        {/* Divider with 'OR' */}
+        <div className="relative my-4 text-center">
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t border-[#23252A]" />
+          </div>
+          <span className="relative bg-[#0F1011] px-2.5 text-[10px] uppercase tracking-wider text-ink-tertiary font-mono">
+            Or Sign In With Password
+          </span>
         </div>
         
         <div>
@@ -62,7 +119,7 @@ export default function LoginPage() {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="admin@acme.com"
+                placeholder="admin@rms.local"
                 className="input-linear"
                 required
                 autoFocus
@@ -72,6 +129,14 @@ export default function LoginPage() {
             <div className="flex flex-col gap-1.5">
               <div className="flex items-center justify-between">
                 <label htmlFor="login-password" className="text-caption text-ink-muted font-medium">Password</label>
+                <button
+                  type="button"
+                  onClick={handleFillDemoAdmin}
+                  className="text-[10px] font-mono text-[#828FFF] hover:underline flex items-center gap-1"
+                >
+                  <KeyRound className="w-2.5 h-2.5" />
+                  <span>Auto-fill Admin</span>
+                </button>
               </div>
               <div className="relative">
                 <input
@@ -95,7 +160,7 @@ export default function LoginPage() {
 
             <button 
               type="submit" 
-              className="w-full button-primary mt-2 flex items-center justify-center gap-2" 
+              className="w-full button-secondary mt-2 flex items-center justify-center gap-2 h-9" 
               disabled={loading}
             >
               {loading ? (
@@ -103,13 +168,13 @@ export default function LoginPage() {
               ) : (
                 <>
                   <LogIn className="h-4 w-4" />
-                  <span className="text-button text-white">Sign In</span>
+                  <span className="text-button text-ink">Sign In</span>
                 </>
               )}
             </button>
           </form>
         </div>
-        <div className="mt-6 flex justify-center text-caption text-ink-subtle border-t border-hairline pt-4">
+        <div className="mt-5 flex justify-center text-caption text-ink-subtle border-t border-hairline pt-3">
           <p>Don't have an account? <Link to="/register" className="text-ink hover:underline font-medium">Create Organization</Link></p>
         </div>
       </div>

@@ -5,6 +5,7 @@ import { ArrowLeft, Trash2, Camera, UploadCloud, Video, X, CheckCircle, AlertTri
 import { motion, AnimatePresence } from 'framer-motion';
 import { API_BASE } from '../config';
 import Modal from '../components/Modal';
+import { formatPersonName } from '../utils/format';
 
 
 export default function ManagePersonPage() {
@@ -330,7 +331,7 @@ export default function ManagePersonPage() {
             )}
           </div>
           <div>
-            <h2 className="text-card-title font-semibold text-ink font-display m-0">{originalName.replace(/_/g, ' ')}</h2>
+            <h2 className="text-card-title font-semibold text-ink font-display m-0">{formatPersonName(originalName)}</h2>
             <div className="flex flex-wrap gap-2 mt-1.5 items-center">
               <span className="px-2.5 py-0.5 rounded text-[10px] font-mono font-medium bg-[#27A644]/10 text-[#27A644] border border-[#27A644]/20 uppercase">Active / Enrolled</span>
               <span className="text-[12px] text-ink-tertiary font-mono">Reference Photos: {photos.length}</span>

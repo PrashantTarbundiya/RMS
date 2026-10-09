@@ -6,6 +6,7 @@ import { Download, Calendar, Search, RefreshCw, ClipboardList, Users } from 'luc
 import { API_BASE } from '../config';
 import { SkeletonTable, SkeletonStatCards } from '../components/ui/Skeleton';
 import EmptyState from '../components/ui/EmptyState';
+import { formatPersonName } from '../utils/format';
 
 
 export default function AttendancePage() {
@@ -16,6 +17,9 @@ export default function AttendancePage() {
   const [error, setError] = useState(null);
   const [dateFilter, setDateFilter] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [sortBy, setSortBy] = useState('newest');
+  const [minConf, setMinConf] = useState(0);
 
   const fetchHistory = useCallback(async () => {
     try {
@@ -35,11 +39,67 @@ export default function AttendancePage() {
     fetchHistory();
   }, [fetchHistory]);
 
-  // Filter by date and search
+  const setQuickDate = (preset) => {
+    const today = new Date();
+    const pad = (n) => String(n).padStart(2, '0');
+    const toYMD = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+
+    if (preset === 'today') {
+      setDateFilter(toYMD(today));
+    } else if (preset === 'yesterday') {
+      const y = new Date();
+      y.setDate(y.getDate() - 1);
+      setDateFilter(toYMD(y));
+    } else if (preset === '7d') {
+      setDateFilter('last_7_days');
+    } else {
+      setDateFilter('');
+    }
+  };
+
+  // Filter by date, search, status, and confidence
   const filteredData = data.filter(record => {
-    const matchDate = !dateFilter || (record.timestamp && record.timestamp.startsWith(dateFilter));
+    // Date matching
+    let matchDate = true;
+    if (dateFilter === 'last_7_days') {
+      if (!record.timestamp) return false;
+      const t = new Date(record.timestamp).getTime();
+      const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+      matchDate = t >= sevenDaysAgo;
+    } else if (dateFilter) {
+      matchDate = record.timestamp && record.timestamp.startsWith(dateFilter);
+    }
+
+    // Search matching
     const matchSearch = !searchTerm || (record.label && record.label.toLowerCase().includes(searchTerm.toLowerCase()));
-    return matchDate && matchSearch;
+
+    // Status matching
+    let matchStatus = true;
+    const isUnknown = record.status === 'error' || record.label === 'Unknown';
+    const isConfirmed = record.confidence_level === 'confirmed' && !isUnknown;
+    const isLowConf = !isConfirmed && !isUnknown;
+
+    if (statusFilter === 'confirmed') matchStatus = isConfirmed;
+    else if (statusFilter === 'low_conf') matchStatus = isLowConf;
+    else if (statusFilter === 'unknown') matchStatus = isUnknown;
+
+    // Min confidence
+    const confVal = Math.round((record.confidence || 0) * 100);
+    const matchConf = confVal >= minConf;
+
+    return matchDate && matchSearch && matchStatus && matchConf;
+  }).sort((a, b) => {
+    if (sortBy === 'oldest') {
+      return new Date(a.timestamp || 0) - new Date(b.timestamp || 0);
+    }
+    if (sortBy === 'confidence_desc') {
+      return (b.confidence || 0) - (a.confidence || 0);
+    }
+    if (sortBy === 'confidence_asc') {
+      return (a.confidence || 0) - (b.confidence || 0);
+    }
+    // Default: newest
+    return new Date(b.timestamp || 0) - new Date(a.timestamp || 0);
   });
 
   // Group by person for summary stats
@@ -154,42 +214,128 @@ export default function AttendancePage() {
         </motion.div>
       )}
 
-      {/* Filters */}
-      <motion.div variants={itemVariants} className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-2 flex-wrap">
-          <div className="flex items-center gap-2 input-linear min-w-[200px] h-10 py-0 px-3">
-            <Calendar className="w-4 h-4 text-ink-tertiary shrink-0" />
-            <input
-              type="date"
-              className="bg-transparent border-none text-ink text-caption font-mono w-full focus:outline-none p-0 accent-[#5E6AD2]"
-              value={dateFilter}
-              onChange={(e) => setDateFilter(e.target.value)}
-              style={{ colorScheme: 'dark' }}
-            />
+      {/* Filter and Search Bar */}
+      <motion.div variants={itemVariants} className="space-y-3">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-2 flex-wrap flex-1 min-w-[280px]">
+            {/* Search Input */}
+            <div className="flex items-center gap-2 input-linear min-w-[200px] flex-1 sm:max-w-xs h-10 py-0 px-3">
+              <Search className="w-4 h-4 text-ink-tertiary shrink-0" />
+              <input
+                type="text"
+                placeholder="Filter by name..."
+                className="bg-transparent border-none text-ink text-caption w-full focus:outline-none p-0 placeholder:text-ink-tertiary"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+
+            {/* Custom Date Input */}
+            <div className="flex items-center gap-2 input-linear h-10 py-0 px-3">
+              <Calendar className="w-4 h-4 text-ink-tertiary shrink-0" />
+              <input
+                type="date"
+                className="bg-transparent border-none text-ink text-caption font-mono focus:outline-none p-0 accent-[#5E6AD2]"
+                value={dateFilter === 'last_7_days' ? '' : dateFilter}
+                onChange={(e) => setDateFilter(e.target.value)}
+                style={{ colorScheme: 'dark' }}
+              />
+            </div>
+
+            {/* Status Filter */}
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="input-linear h-10 px-3 text-caption text-ink bg-[#0F1011] border border-[#23252A] rounded-lg cursor-pointer focus:outline-none"
+            >
+              <option value="all">All Verification Statuses</option>
+              <option value="confirmed">Confirmed Only</option>
+              <option value="low_conf">Low Confidence Only</option>
+              <option value="unknown">Unmatched / Unknown Only</option>
+            </select>
+
+            {/* Sort Order */}
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              className="input-linear h-10 px-3 text-caption text-ink bg-[#0F1011] border border-[#23252A] rounded-lg cursor-pointer focus:outline-none"
+            >
+              <option value="newest">Sort: Newest First</option>
+              <option value="oldest">Sort: Oldest First</option>
+              <option value="confidence_desc">Sort: Highest Confidence</option>
+              <option value="confidence_asc">Sort: Lowest Confidence</option>
+            </select>
+
+            {(dateFilter || searchTerm || statusFilter !== 'all' || sortBy !== 'newest') && (
+              <button
+                onClick={() => {
+                  setDateFilter('');
+                  setSearchTerm('');
+                  setStatusFilter('all');
+                  setSortBy('newest');
+                }}
+                className="button-secondary text-caption py-1.5 px-3 h-10 text-ink-subtle hover:text-ink"
+              >
+                Reset Filters
+              </button>
+            )}
           </div>
-          <div className="flex items-center gap-2 input-linear min-w-[180px] h-10 py-0 px-3">
-            <Search className="w-4 h-4 text-ink-tertiary shrink-0" />
-            <input
-              type="text"
-              placeholder="Search by name..."
-              className="bg-transparent border-none text-ink text-caption w-full focus:outline-none p-0 placeholder:text-ink-tertiary"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
-          {(dateFilter || searchTerm) && (
-            <button onClick={() => { setDateFilter(''); setSearchTerm(''); }} className="button-secondary text-caption py-1.5 px-3 h-10">
-              Clear
+
+          {/* Export Actions */}
+          <div className="flex items-center gap-2 shrink-0">
+            <button onClick={exportCSV} className="button-secondary flex items-center gap-2 h-10 text-caption py-1.5 px-3">
+              <Download className="w-4 h-4" /> CSV
             </button>
-          )}
+            <button onClick={exportPDF} className="button-primary text-white flex items-center gap-2 h-10 text-caption py-1.5 px-4">
+              <Download className="w-4 h-4 text-white" /> PDF
+            </button>
+          </div>
         </div>
-        <div className="flex items-center gap-2">
-          <button onClick={exportCSV} className="button-secondary flex items-center gap-2 h-9 text-caption py-1.5 px-3">
-            <Download className="w-4 h-4" /> CSV
+
+        {/* Quick Date Presets */}
+        <div className="flex items-center gap-2 flex-wrap text-caption text-ink-subtle">
+          <span className="text-[11px] uppercase tracking-wider text-ink-tertiary font-mono">Date Preset:</span>
+          <button
+            onClick={() => setQuickDate('all')}
+            className={`px-2.5 py-1 rounded-md text-xs font-medium transition-all ${
+              !dateFilter ? 'bg-[#5E6AD2]/20 text-[#828FFF] border border-[#5E6AD2]/40' : 'bg-[#141516] border border-[#23252A] hover:border-[#383A42]'
+            }`}
+          >
+            All Time
           </button>
-          <button onClick={exportPDF} className="button-primary text-white flex items-center gap-2 h-9 text-caption py-1.5 px-4">
-            <Download className="w-4 h-4 text-white" /> PDF
+          <button
+            onClick={() => setQuickDate('today')}
+            className={`px-2.5 py-1 rounded-md text-xs font-medium transition-all ${
+              dateFilter && dateFilter === new Date().toISOString().split('T')[0]
+                ? 'bg-[#5E6AD2]/20 text-[#828FFF] border border-[#5E6AD2]/40'
+                : 'bg-[#141516] border border-[#23252A] hover:border-[#383A42]'
+            }`}
+          >
+            Today
           </button>
+          <button
+            onClick={() => setQuickDate('yesterday')}
+            className={`px-2.5 py-1 rounded-md text-xs font-medium transition-all ${
+              dateFilter && dateFilter !== 'last_7_days' && dateFilter !== new Date().toISOString().split('T')[0]
+                ? 'bg-[#5E6AD2]/20 text-[#828FFF] border border-[#5E6AD2]/40'
+                : 'bg-[#141516] border border-[#23252A] hover:border-[#383A42]'
+            }`}
+          >
+            Yesterday
+          </button>
+          <button
+            onClick={() => setQuickDate('7d')}
+            className={`px-2.5 py-1 rounded-md text-xs font-medium transition-all ${
+              dateFilter === 'last_7_days'
+                ? 'bg-[#5E6AD2]/20 text-[#828FFF] border border-[#5E6AD2]/40'
+                : 'bg-[#141516] border border-[#23252A] hover:border-[#383A42]'
+            }`}
+          >
+            Past 7 Days
+          </button>
+          <span className="text-xs text-ink-tertiary ml-auto font-mono">
+            Showing {filteredData.length} of {data.length} records
+          </span>
         </div>
       </motion.div>
 
@@ -231,7 +377,7 @@ export default function AttendancePage() {
                         {record.timestamp ? new Date(record.timestamp).toLocaleString([], { dateStyle: 'short', timeStyle: 'medium' }) : '—'}
                       </td>
                       <td className="px-6 py-3.5 font-medium text-ink group-hover:text-[#828FFF] transition-colors">
-                        {(record.label || 'Unknown').replace(/_/g, ' ')}
+                        {formatPersonName(record.label)}
                       </td>
                       <td className="px-6 py-3.5 text-ink-muted font-mono">
                         {record.confidence !== undefined ? `${(record.confidence * 100).toFixed(1)}%` : '—'}

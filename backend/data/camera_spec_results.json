@@ -1,0 +1,168 @@
+{
+  "resolution": [
+    {
+      "config": "1080p @ 1.5m",
+      "face_px": 240,
+      "distance": "1.5m",
+      "accuracy": 98.6,
+      "avg_latency_ms": 112.4,
+      "tested": 140,
+      "correct": 138,
+      "passed": true
+    },
+    {
+      "config": "1080p @ 3.0m",
+      "face_px": 120,
+      "distance": "3.0m",
+      "accuracy": 97.1,
+      "avg_latency_ms": 108.2,
+      "tested": 140,
+      "correct": 136,
+      "passed": true
+    },
+    {
+      "config": "720p @ 2.0m",
+      "face_px": 100,
+      "distance": "2.0m",
+      "accuracy": 95.7,
+      "avg_latency_ms": 98.6,
+      "tested": 140,
+      "correct": 134,
+      "passed": true
+    },
+    {
+      "config": "720p @ 4.0m",
+      "face_px": 60,
+      "distance": "4.0m",
+      "accuracy": 89.3,
+      "avg_latency_ms": 94.1,
+      "tested": 140,
+      "correct": 125,
+      "passed": false
+    },
+    {
+      "config": "480p @ 1.5m",
+      "face_px": 80,
+      "distance": "1.5m",
+      "accuracy": 92.1,
+      "avg_latency_ms": 86.5,
+      "tested": 140,
+      "correct": 129,
+      "passed": false
+    },
+    {
+      "config": "480p @ 3.0m",
+      "face_px": 40,
+      "distance": "3.0m",
+      "accuracy": 74.3,
+      "avg_latency_ms": 82.0,
+      "tested": 140,
+      "correct": 104,
+      "passed": false
+    }
+  ],
+  "lighting": [
+    {
+      "condition": "Office Ambient (400-500 lux)",
+      "gamma": 1.0,
+      "noise_std": 0.0,
+      "accuracy": 98.6,
+      "tested": 100,
+      "correct": 98,
+      "passed": true
+    },
+    {
+      "condition": "Dim Corridor (100-200 lux)",
+      "gamma": 0.6,
+      "noise_std": 5.0,
+      "accuracy": 94.0,
+      "tested": 100,
+      "correct": 94,
+      "passed": true
+    },
+    {
+      "condition": "Low-Light Entryway (<50 lux)",
+      "gamma": 0.35,
+      "noise_std": 12.0,
+      "accuracy": 82.0,
+      "tested": 100,
+      "correct": 82,
+      "passed": false
+    },
+    {
+      "condition": "Backlit / Window Glare",
+      "gamma": 1.6,
+      "noise_std": 2.0,
+      "accuracy": 91.0,
+      "tested": 100,
+      "correct": 91,
+      "passed": true
+    }
+  ],
+  "angle": [
+    {
+      "angle": "Frontal (0°)",
+      "accuracy": 99.1,
+      "tested": 112,
+      "correct": 111,
+      "passed": true
+    },
+    {
+      "angle": "Slight Yaw (±15°)",
+      "accuracy": 96.8,
+      "tested": 94,
+      "correct": 91,
+      "passed": true
+    },
+    {
+      "angle": "Moderate Yaw (±30°)",
+      "accuracy": 92.3,
+      "tested": 78,
+      "correct": 72,
+      "passed": true
+    },
+    {
+      "angle": "Profile / Extreme (>45°)",
+      "accuracy": 78.6,
+      "tested": 56,
+      "correct": 44,
+      "passed": false
+    }
+  ],
+  "fps": [
+    {
+      "fps": 60,
+      "accuracy": 98.6,
+      "blur_score": 284.2,
+      "latency_ms": 16.7,
+      "passed": true
+    },
+    {
+      "fps": 30,
+      "accuracy": 97.4,
+      "blur_score": 210.5,
+      "latency_ms": 33.3,
+      "passed": true
+    },
+    {
+      "fps": 15,
+      "accuracy": 91.2,
+      "blur_score": 142.1,
+      "latency_ms": 66.7,
+      "passed": true
+    },
+    {
+      "fps": 10,
+      "accuracy": 82.5,
+      "blur_score": 95.0,
+      "latency_ms": 100.0,
+      "passed": false
+    }
+  ],
+  "far_frr": {
+    "FAR": 0.04,
+    "FRR": 1.25,
+    "EER": 0.65,
+    "unknown_rejection_rate": 99.2
+  }
+}

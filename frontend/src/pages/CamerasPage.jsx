@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
-import { Camera, Plus, Trash2, Key, Copy, Check, ShieldCheck, MapPin, Cpu, Monitor, Sun, RotateCcw, Loader2, Play } from 'lucide-react';
+import { Camera, Plus, Trash2, Key, Copy, Check, ShieldCheck, MapPin, Cpu, Monitor, Sun, RotateCcw, Loader2, Play, Search } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { API_BASE } from '../config';
 
@@ -17,6 +17,8 @@ export default function CamerasPage() {
   const [submitting, setSubmitting] = useState(false);
   const [createdCam, setCreatedCam] = useState(null);
   const [copiedKey, setCopiedKey] = useState(false);
+  const [cameraSearch, setCameraSearch] = useState('');
+  const [cameraStatusFilter, setCameraStatusFilter] = useState('all');
 
   // Edge benchmark state
   const [edgeResults, setEdgeResults] = useState(null);
@@ -154,6 +156,38 @@ export default function CamerasPage() {
         </motion.div>
       )}
 
+      {/* Camera Search & Filter Bar */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-2 flex-wrap flex-1 max-w-md">
+          <div className="flex items-center gap-2 input-linear w-full h-10 py-0 px-3">
+            <Search className="w-4 h-4 text-ink-tertiary shrink-0" />
+            <input
+              type="text"
+              placeholder="Search cameras by name or location..."
+              className="bg-transparent border-none text-ink text-caption w-full focus:outline-none p-0 placeholder:text-ink-tertiary"
+              value={cameraSearch}
+              onChange={(e) => setCameraSearch(e.target.value)}
+            />
+            {cameraSearch && (
+              <button onClick={() => setCameraSearch('')} className="text-ink-tertiary hover:text-ink text-xs">
+                Clear
+              </button>
+            )}
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <select
+            value={cameraStatusFilter}
+            onChange={(e) => setCameraStatusFilter(e.target.value)}
+            className="input-linear h-10 px-3 text-caption text-ink bg-[#0F1011] border border-[#23252A] rounded-lg cursor-pointer focus:outline-none"
+          >
+            <option value="all">All Devices ({cameras.length})</option>
+            <option value="active">Active Devices</option>
+            <option value="offline">Offline Devices</option>
+          </select>
+        </div>
+      </div>
+
       <div data-tour="camera-list" className="card-linear">
         {loading ? (
           <div className="py-12 text-center text-ink-tertiary text-caption">Loading cameras...</div>
@@ -165,9 +199,37 @@ export default function CamerasPage() {
               Add your first physical kiosk or security camera feed to begin scanning.
             </p>
           </div>
+        ) : cameras.filter(cam => {
+            const matchSearch = !cameraSearch || 
+              cam.name?.toLowerCase().includes(cameraSearch.toLowerCase()) || 
+              cam.location?.toLowerCase().includes(cameraSearch.toLowerCase());
+            const matchStatus = cameraStatusFilter === 'all' || 
+              (cameraStatusFilter === 'active' && cam.is_active !== false) ||
+              (cameraStatusFilter === 'offline' && cam.is_active === false);
+            return matchSearch && matchStatus;
+          }).length === 0 ? (
+          <div className="py-8 text-center space-y-2">
+            <p className="text-caption text-ink-subtle">No cameras match your search or filter.</p>
+            <button
+              onClick={() => { setCameraSearch(''); setCameraStatusFilter('all'); }}
+              className="button-secondary text-xs py-1 px-3"
+            >
+              Reset Filters
+            </button>
+          </div>
         ) : (
           <div className="divide-y divide-[#23252A]">
-            {cameras.map((cam) => (
+            {cameras
+              .filter(cam => {
+                const matchSearch = !cameraSearch || 
+                  cam.name?.toLowerCase().includes(cameraSearch.toLowerCase()) || 
+                  cam.location?.toLowerCase().includes(cameraSearch.toLowerCase());
+                const matchStatus = cameraStatusFilter === 'all' || 
+                  (cameraStatusFilter === 'active' && cam.is_active !== false) ||
+                  (cameraStatusFilter === 'offline' && cam.is_active === false);
+                return matchSearch && matchStatus;
+              })
+              .map((cam) => (
               <div key={cam.id} className="py-4 flex items-center justify-between first:pt-0 last:pb-0">
                 <div className="flex items-center gap-3">
                   <div className="p-2.5 rounded-lg bg-[#141516] border border-[#23252A] text-ink-muted">

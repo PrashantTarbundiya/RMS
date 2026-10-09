@@ -3,14 +3,15 @@ import { useAuth } from '../context/AuthContext';
 import { API_BASE } from '../config';
 import { io } from 'socket.io-client';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Shield, ShieldCheck, ShieldAlert, ShieldX, Scan, Wifi, WifiOff, Clock, ChevronLeft, Settings, Maximize, Minimize, Eye, Volume2 } from 'lucide-react';
+import { Shield, ShieldCheck, ShieldAlert, ShieldX, Scan, Wifi, WifiOff, Clock, ChevronLeft, Settings, Maximize, Minimize, Eye, Volume2, Users } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { formatPersonName } from '../utils/format';
 
 // ─── Constants ─────────────────────────────────────────────────────────
 const IDLE_TIMEOUT_MS = 30000;       // 30s until screensaver
-const RESULT_DISPLAY_MS = 4000;      // Show result for 4s
-const FRAME_INTERVAL_WS = 350;      // WebSocket frame rate
-const FRAME_INTERVAL_HTTP = 2500;    // HTTP polling fallback rate
+const RESULT_DISPLAY_MS = 2600;      // Show result for 2.6s (crisp and swift)
+const FRAME_INTERVAL_WS = 150;       // WebSocket frame rate pacing (zero queue backlog)
+const FRAME_INTERVAL_HTTP = 800;     // HTTP polling fallback rate
 const SCAN_LINE_DURATION = 2.2;      // Scan animation speed (s)
 const MAX_CONSECUTIVE_UNKNOWNS = 8;  // Auto-pause after 8 unknowns
 
@@ -48,6 +49,8 @@ export default function KioskPage() {
   const streamRef = useRef(null);
   const socketRef = useRef(null);
   const liveLoopRef = useRef(null);
+  const inFlightTimerRef = useRef(null);
+  const sendFrameRef = useRef(null);
   const idleTimerRef = useRef(null);
   const resultTimerRef = useRef(null);
   const isRequestInFlightRef = useRef(false);
@@ -60,6 +63,14 @@ export default function KioskPage() {
   useEffect(() => { statusRef.current = status; }, [status]);
   useEffect(() => { consecutiveUnknownsRef.current = consecutiveUnknowns; }, [consecutiveUnknowns]);
   useEffect(() => { isPausedRef.current = isPaused; }, [isPaused]);
+
+  // Response-driven pacing: schedule next frame with clean debouncing
+  const scheduleNextCapture = useCallback((delay = 100) => {
+    if (liveLoopRef.current) clearTimeout(liveLoopRef.current);
+    liveLoopRef.current = setTimeout(() => {
+      sendFrameRef.current?.();
+    }, delay);
+  }, []);
 
   // ─── Clock ─────────────────────────────────────────────────────
   useEffect(() => {
@@ -82,8 +93,12 @@ export default function KioskPage() {
       streamRef.current = stream;
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
-        videoRef.current.play();
-        setWebcamReady(true);
+        videoRef.current.onloadedmetadata = () => {
+          videoRef.current?.play().catch(err => {
+            if (err.name !== 'AbortError') console.warn('Webcam play error:', err);
+          });
+          setWebcamReady(true);
+        };
       }
     } catch (err) {
       if (err.name === 'NotAllowedError') setWebcamError('Camera permission denied');
@@ -93,9 +108,13 @@ export default function KioskPage() {
   }, []);
 
   const stopWebcam = useCallback(() => {
+    if (videoRef.current) {
+      videoRef.current.onloadedmetadata = null;
+      videoRef.current.pause();
+      videoRef.current.srcObject = null;
+    }
     streamRef.current?.getTracks().forEach(t => t.stop());
     streamRef.current = null;
-    if (videoRef.current) videoRef.current.srcObject = null;
     setWebcamReady(false);
   }, []);
 
@@ -128,8 +147,12 @@ export default function KioskPage() {
 
   // ─── Process Recognition Result ────────────────────────────────
   const processResult = useCallback((data) => {
+    const rawCount = data?.total_faces_detected !== undefined 
+      ? data.total_faces_detected 
+      : (data?.faces ? data.faces.length : 0);
+    setFacesDetected(rawCount);
+
     if (!data?.faces || data.faces.length === 0) {
-      setFacesDetected(0);
       // No face detected — go to scanning (waiting)
       if (statusRef.current !== STATUS.GRANTED && statusRef.current !== STATUS.DENIED && statusRef.current !== STATUS.SPOOF) {
         setStatus(STATUS.SCANNING);
@@ -137,7 +160,6 @@ export default function KioskPage() {
       return;
     }
 
-    setFacesDetected(data.faces.length);
     const primary = data.faces[0];
     const ensemble = primary?.ensemble;
     const livenessData = primary?.liveness;
@@ -158,23 +180,28 @@ export default function KioskPage() {
       resultTimerRef.current = setTimeout(() => {
         setStatus(STATUS.SCANNING);
         setRecognizedName('');
+        isRequestInFlightRef.current = false;
+        scheduleNextCapture(100);
       }, RESULT_DISPLAY_MS);
       return;
     }
 
     // CONFIRMED (ACCESS GRANTED)
     if (ensemble.is_confirmed) {
+      const cleanName = formatPersonName(ensemble.label);
       setStatus(STATUS.GRANTED);
-      setRecognizedName(ensemble.label);
+      setRecognizedName(cleanName);
       setConfidence(Math.round((ensemble.confidence || 0) * 100));
       setConsecutiveUnknowns(0);
-      addLog(ensemble.label, true);
+      addLog(cleanName, true);
       // Auto-reset
       if (resultTimerRef.current) clearTimeout(resultTimerRef.current);
       resultTimerRef.current = setTimeout(() => {
         setStatus(STATUS.SCANNING);
         setRecognizedName('');
         setConfidence(0);
+        isRequestInFlightRef.current = false;
+        scheduleNextCapture(100);
       }, RESULT_DISPLAY_MS);
       return;
     }
@@ -193,6 +220,7 @@ export default function KioskPage() {
       setTimeout(() => {
         setIsPaused(false);
         setConsecutiveUnknowns(0);
+        scheduleNextCapture(100);
       }, 10000);
     }
 
@@ -200,8 +228,10 @@ export default function KioskPage() {
     resultTimerRef.current = setTimeout(() => {
       setStatus(STATUS.SCANNING);
       setRecognizedName('');
+      isRequestInFlightRef.current = false;
+      scheduleNextCapture(100);
     }, RESULT_DISPLAY_MS);
-  }, [addLog]);
+  }, [addLog, scheduleNextCapture]);
 
   // ─── WebSocket Connection ──────────────────────────────────────
   useEffect(() => {
@@ -214,6 +244,7 @@ export default function KioskPage() {
     socket.on('connect', () => setSocketConnected(true));
     socket.on('disconnect', () => setSocketConnected(false));
     socket.on('prediction_result', (data) => {
+      if (inFlightTimerRef.current) clearTimeout(inFlightTimerRef.current);
       isRequestInFlightRef.current = false;
       if (data.error) {
         console.error('[Kiosk] WS prediction error:', data.error);
@@ -221,6 +252,10 @@ export default function KioskPage() {
         processResult(data);
       }
       resetIdleTimer();
+      // Paced response-driven capture: only capture the NEXT frame after current one is returned!
+      if (statusRef.current === STATUS.SCANNING || statusRef.current === STATUS.IDLE) {
+        scheduleNextCapture(FRAME_INTERVAL_WS);
+      }
     });
     socketRef.current = socket;
     return () => {
@@ -228,53 +263,92 @@ export default function KioskPage() {
       socketRef.current = null;
       setSocketConnected(false);
     };
-  }, [webcamReady, processResult, resetIdleTimer]);
+  }, [webcamReady, processResult, resetIdleTimer, scheduleNextCapture]);
 
   // ─── Live Frame Capture & Send ─────────────────────────────────
   const sendFrame = useCallback(async () => {
     if (!videoRef.current || !webcamReady || isRequestInFlightRef.current || isPausedRef.current) return;
-    // Don't send frames during result display
+    // Don't send frames during access granted/denied/spoof cooldown display
     if (statusRef.current === STATUS.GRANTED || statusRef.current === STATUS.DENIED || statusRef.current === STATUS.SPOOF) return;
+    if (!videoRef.current.videoWidth || !videoRef.current.videoHeight) return;
 
     isRequestInFlightRef.current = true;
+
+    // Safety watchdog: if server stalls or message drops, release lock after 2200ms
+    if (inFlightTimerRef.current) clearTimeout(inFlightTimerRef.current);
+    inFlightTimerRef.current = setTimeout(() => {
+      if (isRequestInFlightRef.current) {
+        isRequestInFlightRef.current = false;
+        if (statusRef.current === STATUS.SCANNING || statusRef.current === STATUS.IDLE) {
+          scheduleNextCapture(150);
+        }
+      }
+    }, 2200);
+
     // Switch to scanning state on first frame
     if (statusRef.current === STATUS.IDLE) {
       setStatus(STATUS.SCANNING);
     }
 
     try {
+      const rawW = videoRef.current.videoWidth || 640;
+      const rawH = videoRef.current.videoHeight || 480;
+      // High-performance downscale to max 640px wide while preserving aspect ratio
+      const scale = Math.min(1, 640 / Math.max(rawW, 640));
+      const targetW = Math.round(rawW * scale);
+      const targetH = Math.round(rawH * scale);
+
       const canvas = document.createElement('canvas');
-      canvas.width = videoRef.current.videoWidth || 1280;
-      canvas.height = videoRef.current.videoHeight || 720;
+      canvas.width = targetW;
+      canvas.height = targetH;
       const ctx = canvas.getContext('2d');
-      ctx.drawImage(videoRef.current, 0, 0);
+      ctx.drawImage(videoRef.current, 0, 0, targetW, targetH);
 
       if (socketConnected && socketRef.current?.connected) {
-        const base64 = canvas.toDataURL('image/jpeg', 0.80);
+        const base64 = canvas.toDataURL('image/jpeg', 0.65);
         socketRef.current.emit('stream_frame', {
           image: base64,
-          token: sessionStorage.getItem('rms_access_token')
+          token: sessionStorage.getItem('rms_access_token'),
+          single_focus: true,
+          kiosk_mode: true
         });
       } else {
         // HTTP fallback
-        const blob = await new Promise(r => canvas.toBlob(r, 'image/jpeg', 0.80));
-        if (!blob) { isRequestInFlightRef.current = false; return; }
+        const blob = await new Promise(r => canvas.toBlob(r, 'image/jpeg', 0.65));
+        if (!blob) {
+          isRequestInFlightRef.current = false;
+          scheduleNextCapture(200);
+          return;
+        }
         const formData = new FormData();
         formData.append('image', new File([blob], 'kiosk_frame.jpg', { type: 'image/jpeg' }));
         formData.append('test_mode', 'true');
+        formData.append('single_focus', 'true');
+        formData.append('kiosk_mode', 'true');
         const res = await apiClient.post(`${API_BASE}/predict`, formData, {
           headers: { 'Content-Type': 'multipart/form-data' },
-          timeout: 8000,
+          timeout: 6000,
         });
-        processResult(res.data);
+        if (inFlightTimerRef.current) clearTimeout(inFlightTimerRef.current);
         isRequestInFlightRef.current = false;
+        processResult(res.data);
         resetIdleTimer();
+        if (statusRef.current === STATUS.SCANNING || statusRef.current === STATUS.IDLE) {
+          scheduleNextCapture(FRAME_INTERVAL_HTTP);
+        }
       }
     } catch (err) {
       console.error('[Kiosk] Frame error:', err);
+      if (inFlightTimerRef.current) clearTimeout(inFlightTimerRef.current);
       isRequestInFlightRef.current = false;
+      scheduleNextCapture(300);
     }
-  }, [webcamReady, socketConnected, apiClient, processResult, resetIdleTimer]);
+  }, [webcamReady, socketConnected, apiClient, processResult, resetIdleTimer, scheduleNextCapture]);
+
+  // Keep sendFrameRef up to date
+  useEffect(() => {
+    sendFrameRef.current = sendFrame;
+  }, [sendFrame]);
 
   // ─── Frame Loop ────────────────────────────────────────────────
   useEffect(() => {
@@ -282,19 +356,13 @@ export default function KioskPage() {
       if (liveLoopRef.current) { clearTimeout(liveLoopRef.current); liveLoopRef.current = null; }
       return;
     }
-    const scheduleNext = () => {
-      const delay = socketConnected ? FRAME_INTERVAL_WS : FRAME_INTERVAL_HTTP;
-      liveLoopRef.current = setTimeout(() => {
-        sendFrame();
-        scheduleNext();
-      }, delay);
-    };
-    sendFrame();
-    scheduleNext();
+    // Kick off first frame
+    scheduleNextCapture(250);
     return () => {
       if (liveLoopRef.current) { clearTimeout(liveLoopRef.current); liveLoopRef.current = null; }
+      if (inFlightTimerRef.current) { clearTimeout(inFlightTimerRef.current); inFlightTimerRef.current = null; }
     };
-  }, [webcamReady, isPaused, socketConnected, sendFrame]);
+  }, [webcamReady, isPaused, scheduleNextCapture]);
 
   // ─── Fullscreen Toggle ─────────────────────────────────────────
   const toggleFullscreen = useCallback(() => {
@@ -546,13 +614,36 @@ export default function KioskPage() {
                 </motion.div>
               )}
             </AnimatePresence>
+            {/* Multi-Person Security Banner */}
+            <AnimatePresence>
+              {facesDetected > 1 && status === STATUS.SCANNING && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  className="kiosk-multi-person-banner"
+                >
+                  <Users size={14} className="text-amber-400 shrink-0" />
+                  <span>Single-person security: Focusing on primary person ({facesDetected} detected)</span>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
 
           {/* Face Count Badge */}
           {facesDetected > 0 && status === STATUS.SCANNING && (
-            <div className="kiosk-face-count">
-              <Eye size={13} />
-              <span>{facesDetected} face{facesDetected > 1 ? 's' : ''} detected</span>
+            <div className={`kiosk-face-count ${facesDetected > 1 ? 'kiosk-multi-face-warning' : ''}`}>
+              {facesDetected > 1 ? (
+                <>
+                  <Users size={13} className="text-amber-400" />
+                  <span className="text-amber-400 font-medium">{facesDetected} faces · Primary Subject Locked</span>
+                </>
+              ) : (
+                <>
+                  <Eye size={13} />
+                  <span>1 face detected</span>
+                </>
+              )}
             </div>
           )}
         </div>

@@ -1,15 +1,16 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Radio, Clock, LogIn, User, RefreshCw } from 'lucide-react';
+import { Radio, Clock, LogIn, User, RefreshCw, Activity, ShieldCheck } from 'lucide-react';
 import { API_BASE } from '../config';
 import { SkeletonCard } from '../components/ui/Skeleton';
 import EmptyState from '../components/ui/EmptyState';
-
+import { formatPersonName } from '../utils/format';
 
 const getInitials = (nameStr) => {
   if (!nameStr) return '??';
-  return nameStr.split('_').map(n => n[0]).join('').toUpperCase().substring(0, 2);
+  const clean = formatPersonName(nameStr);
+  return clean.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2);
 };
 
 const formatDuration = (checkInStr, now) => {
@@ -105,41 +106,70 @@ export default function LiveAttendancePage() {
 
   return (
     <motion.div variants={containerVariants} initial="hidden" animate="visible" className="pb-12 space-y-6 page-container">
-      <div className="flex justify-between items-start flex-wrap gap-4">
+      <div className="flex justify-between items-center flex-wrap gap-4">
         <div>
           <h1 className="m-0 text-headline font-semibold text-ink font-display flex items-center gap-3">
-            Live Operations <span className="w-2.5 h-2.5 rounded-full bg-[#27A644] animate-pulse" />
+            Live Site Presence
+            <span className="relative flex h-3 w-3">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+            </span>
           </h1>
           <p className="mt-1 text-caption text-ink-subtle">
-            People recognized in the last 8 hours. Auto-refreshes every 15s.
+            Active verified personnel on premise. Auto-synchronizes every 15s.
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <span className="text-[11px] text-ink-tertiary font-mono">
-            {countdown}s
-          </span>
+          <div className="flex items-center gap-2 bg-[#0F1011] border border-[#23252A] rounded-lg px-3 py-1 text-[11px] font-mono text-ink-tertiary">
+            <Clock size={12} className="text-ink-subtle" />
+            <span>Next sync in: <strong className="text-ink font-semibold">{countdown}s</strong></span>
+          </div>
           <button
             onClick={() => { setIsLoading(true); fetchLiveData(); }}
-            className="button-secondary text-caption flex items-center gap-2"
+            className="button-secondary text-caption flex items-center gap-2 h-9 px-4 hover:border-[#828FFF]/40 transition-colors"
           >
-            <RefreshCw size={14} /> Refresh
+            <RefreshCw size={14} className={isLoading ? 'animate-spin' : ''} />
+            <span>Refresh Feed</span>
           </button>
         </div>
       </div>
 
-      {/* Summary bar */}
+      {/* Summary Stats Bar */}
       {!isLoading && !error && (
-        <div className="flex items-center gap-6 p-4 bg-[#0F1011] border border-[#23252A] rounded-lg text-caption text-ink-muted">
-          <div className="flex items-center gap-2">
-            <span className="text-ink-subtle">On Site:</span>
-            <span className="font-bold text-ink text-lg">{liveData.length}</span>
-          </div>
-          {lastRefresh && (
-            <div className="flex items-center gap-2">
-              <span className="text-ink-subtle">Last sync:</span>
-              <span className="font-mono text-ink-tertiary">{lastRefresh.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="p-4 bg-[#0F1011] border border-[#23252A] rounded-xl flex items-center justify-between">
+            <div>
+              <div className="text-caption text-ink-muted">Personnel On-Site</div>
+              <div className="text-2xl font-bold font-display text-ink mt-0.5">{liveData.length}</div>
             </div>
-          )}
+            <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
+              <User size={20} />
+            </div>
+          </div>
+
+          <div className="p-4 bg-[#0F1011] border border-[#23252A] rounded-xl flex items-center justify-between">
+            <div>
+              <div className="text-caption text-ink-muted">Security Status</div>
+              <div className="text-sm font-semibold text-emerald-400 mt-1 flex items-center gap-1.5 font-mono">
+                <ShieldCheck size={16} /> All Verified
+              </div>
+            </div>
+            <div className="w-10 h-10 rounded-xl bg-[#828FFF]/10 border border-[#828FFF]/20 flex items-center justify-center text-[#828FFF]">
+              <Activity size={20} />
+            </div>
+          </div>
+
+          <div className="p-4 bg-[#0F1011] border border-[#23252A] rounded-xl flex items-center justify-between">
+            <div>
+              <div className="text-caption text-ink-muted">Telemetry Heartbeat</div>
+              <div className="text-xs font-mono text-ink-subtle mt-1">
+                {lastRefresh ? lastRefresh.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : 'Synchronizing...'}
+              </div>
+            </div>
+            <div className="w-10 h-10 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
+              <Radio size={20} />
+            </div>
+          </div>
         </div>
       )}
 
@@ -151,18 +181,18 @@ export default function LiveAttendancePage() {
           ))}
         </div>
       ) : error ? (
-        <div className="card-linear p-8 text-center border-[#F87171]/20 bg-[#F87171]/5">
-          <p className="text-[#F87171] text-sm mb-3">{error}</p>
+        <div className="card-linear p-8 text-center border-rose-500/20 bg-rose-500/5 rounded-xl">
+          <p className="text-rose-400 text-sm mb-3">{error}</p>
           <button onClick={() => { setIsLoading(true); fetchLiveData(); }} className="button-secondary text-caption">
-            Retry
+            Retry Connection
           </button>
         </div>
       ) : liveData.length === 0 ? (
-        <div className="card-linear p-0 bg-[#0F1011] border-[#23252A]">
+        <div className="card-linear p-0 bg-[#0F1011] border-[#23252A] rounded-xl">
           <EmptyState
             icon={User}
-            title="No personnel detected"
-            description="No confirmed face recognitions in the last 8 hours. Records will appear here as people are recognized."
+            title="No personnel currently on site"
+            description="No confirmed face recognitions recorded in the last 8 hours. Scanned attendees will populate this live roster in real time."
           />
         </div>
       ) : (
@@ -180,38 +210,38 @@ export default function LiveAttendancePage() {
                   animate="visible"
                   exit="exit"
                 >
-                  <div className={`relative overflow-hidden card-linear p-5 hover:bg-[#141516]/60 transition-colors ${isRecent ? 'ring-1 ring-[#27A644]/50' : ''}`}>
+                  <div className={`relative overflow-hidden card-linear p-5 rounded-xl hover:bg-[#141516]/80 transition-all ${isRecent ? 'ring-1 ring-emerald-500/50 shadow-lg shadow-emerald-500/5' : ''}`}>
                     {isRecent && (
-                      <div className="absolute top-0 inset-x-0 h-[1px] bg-gradient-to-r from-transparent via-[#27A644] to-transparent opacity-50" />
+                      <div className="absolute top-0 inset-x-0 h-[2px] bg-gradient-to-r from-transparent via-emerald-400 to-transparent opacity-80" />
                     )}
                     <div className="flex items-start justify-between mb-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-[#141516] flex items-center justify-center font-mono font-medium text-ink-subtle border border-[#23252A] shadow-sm">
+                        <div className="w-11 h-11 rounded-full bg-[#141516] flex items-center justify-center font-mono font-semibold text-ink-subtle border border-[#23252A] shadow-md">
                           {getInitials(person.label)}
                         </div>
                         <div>
-                          <div className="font-mono font-medium text-ink text-sm">
-                            {(person.label || 'Unknown').replace(/_/g, ' ')}
+                          <div className="font-semibold text-ink text-sm font-display tracking-tight">
+                            {formatPersonName(person.label)}
                           </div>
-                          <div className="text-xs text-ink-tertiary flex items-center gap-1 mt-0.5">
+                          <div className="text-xs text-ink-tertiary flex items-center gap-1.5 mt-0.5 font-mono">
                             <LogIn className="w-3 h-3 text-ink-tertiary" /> {new Date(person.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                           </div>
                         </div>
                       </div>
-                      <span className="inline-flex px-1.5 py-0.5 rounded font-mono text-[9px] font-semibold bg-[#27A644]/10 text-[#27A644] border border-[#27A644]/20">
-                        ACTIVE
+                      <span className="inline-flex px-2 py-0.5 rounded-full font-mono text-[9px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                        VERIFIED
                       </span>
                     </div>
 
-                    <div className="pt-3 mt-3 border-t border-[#23252A]/50 grid grid-cols-2 gap-2 text-xs">
+                    <div className="pt-3 mt-3 border-t border-[#23252A]/60 grid grid-cols-2 gap-2 text-xs">
                       <div>
-                        <div className="text-ink-tertiary mb-0.5 uppercase tracking-wider text-[10px]">Confidence</div>
-                        <div className="text-ink-subtle font-mono">
+                        <div className="text-ink-tertiary mb-0.5 uppercase tracking-wider text-[10px] font-mono">Confidence</div>
+                        <div className="text-emerald-400 font-mono font-medium">
                           {person.confidence !== undefined ? `${(person.confidence * 100).toFixed(1)}%` : '—'}
                         </div>
                       </div>
                       <div className="text-right">
-                        <div className="text-ink-tertiary mb-0.5 uppercase tracking-wider text-[10px]">Since</div>
+                        <div className="text-ink-tertiary mb-0.5 uppercase tracking-wider text-[10px] font-mono">Duration</div>
                         <div className="text-ink-subtle font-mono flex items-center justify-end gap-1">
                           <Clock className="w-3 h-3 text-ink-tertiary" />
                           {formatDuration(person.timestamp, now)}

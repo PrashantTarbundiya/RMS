@@ -2625,6 +2625,36 @@ button:focus-visible {
   font-weight: 500;
   color: var(--ink-muted);
   z-index: 25;
+  transition: all 0.25s ease;
+}
+
+.kiosk-multi-face-warning {
+  border-color: rgba(245, 158, 11, 0.4) !important;
+  background: rgba(30, 24, 10, 0.92) !important;
+  color: #fbbf24 !important;
+  box-shadow: 0 4px 14px rgba(245, 158, 11, 0.15);
+}
+
+.kiosk-multi-person-banner {
+  position: absolute;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 16px;
+  border-radius: var(--radius-pill);
+  background: rgba(28, 20, 8, 0.92);
+  border: 1px solid rgba(245, 158, 11, 0.45);
+  backdrop-filter: blur(14px);
+  font-size: 12px;
+  font-weight: 600;
+  color: #fbbf24;
+  letter-spacing: 0.01em;
+  z-index: 28;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+  pointer-events: none;
 }
 
 /* ── Result Overlays ────────────────────────────────────────────────── */

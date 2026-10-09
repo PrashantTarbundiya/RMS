@@ -2,11 +2,11 @@
     "CONFIRM_THRESHOLD": 0.55,
     "ENABLE_FACENET512": true,
     "ENABLE_INSIGHTFACE": true,
-    "ENABLE_GHOSTFACENET": true,
-    "ENABLE_VGGFACE": true,
+    "ENABLE_GHOSTFACENET": false,
+    "ENABLE_VGGFACE": false,
     "onboarding_state": {
         "step": 0,
         "completed": false,
-        "updated_at": "2026-10-08T04:48:08.284Z"
+        "updated_at": "2026-10-08T07:33:37.872Z"
     }
 }
