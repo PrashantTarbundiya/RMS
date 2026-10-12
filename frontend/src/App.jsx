@@ -127,6 +127,9 @@ function PageWrapper({ children }) {
   );
 }
 
+import { PwaProvider } from './context/PwaContext'
+import PwaBanner from './components/ui/PwaBanner'
+
 /**
  * AppContent — the inner app that has access to AuthContext.
  * Controls whether the Navbar is shown (hidden on login/register pages).
@@ -141,6 +144,7 @@ function AppContent() {
     <div className="app-container">
       {showNavbar && <Navbar />}
       {showNavbar && <OnboardingWizard />}
+      <PwaBanner />
       <main className={showNavbar ? "main-content" : "main-content-fullscreen"} style={{ display: 'flex', flexDirection: 'column' }}>
         {showNavbar && <NetworkBanner />}
         <div style={{ flex: 1 }}>
@@ -157,7 +161,9 @@ function App() {
       <ErrorBoundary>
         <AuthProvider>
           <ToastProvider>
-            <AppContent />
+            <PwaProvider>
+              <AppContent />
+            </PwaProvider>
           </ToastProvider>
         </AuthProvider>
       </ErrorBoundary>

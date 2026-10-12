@@ -1,0 +1,55 @@
+{
+  "id": "rms-face-ai-pwa",
+  "name": "RMS Face AI — Biometric Attendance & Security",
+  "short_name": "RMS Face AI",
+  "description": "Enterprise-grade facial recognition, biometric attendance tracking, and multi-camera kiosk security system.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
+  "background_color": "#0B1120",
+  "theme_color": "#0B1120",
+  "orientation": "any",
+  "categories": ["business", "productivity", "utilities"],
+  "icons": [
+    {
+      "src": "/pwa-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/pwa-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "/maskable-icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Kiosk Mode",
+      "short_name": "Kiosk",
+      "description": "Launch full-screen biometric kiosk scanner",
+      "url": "/kiosk",
+      "icons": [{ "src": "/pwa-192x192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Live Attendance",
+      "short_name": "Live Feed",
+      "description": "Monitor active employee check-ins",
+      "url": "/attendance/live",
+      "icons": [{ "src": "/pwa-192x192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Test Console",
+      "short_name": "Test",
+      "description": "Live multi-model inference playground",
+      "url": "/test",
+      "icons": [{ "src": "/pwa-192x192.png", "sizes": "192x192" }]
+    }
+  ]
+}
