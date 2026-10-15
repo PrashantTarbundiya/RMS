@@ -66,8 +66,8 @@ version_test.txt
 
 # Misc
 *.log
+# .env is ignored, but templates (.env.example, .env.docker) are tracked
 .env
-.env.docker
 scratch_cam*.png
 
 # Runtime data artifacts

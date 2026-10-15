@@ -5,12 +5,10 @@ import multiprocessing
 # Bind to 0.0.0.0 for external access
 bind = "0.0.0.0:8000"
 
-# Use gevent or eventlet if doing heavy async, 
-# but for PyTorch/OpenCV workloads, synchronous workers or gthread are better 
-# to avoid GIL contention and thread-safety issues with CV2.
-worker_class = "gthread"
-workers = multiprocessing.cpu_count() * 2 + 1
-threads = 4
+# Use GeventWebSocketWorker for Flask-SocketIO WebSocket support with gevent async_mode
+worker_class = "geventwebsocket.gunicorn.workers.GeventWebSocketWorker"
+workers = 2
+worker_connections = 1000
 
 # Timeouts: Retraining can take some time, but we moved it to Celery.
 # The longest request should be bulk upload or model inference.

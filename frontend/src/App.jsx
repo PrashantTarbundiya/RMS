@@ -28,6 +28,8 @@ import CamerasPage from './pages/CamerasPage'
 import OnboardingWizard from './components/OnboardingWizard'
 import KioskPage from './pages/KioskPage'
 import { AnimatePresence, motion } from 'framer-motion'
+import { PwaProvider } from './context/PwaContext'
+import PwaBanner from './components/ui/PwaBanner'
 
 /**
  * ProtectedRoute — redirects unauthenticated users to /login.
@@ -126,9 +128,6 @@ function PageWrapper({ children }) {
     </motion.div>
   );
 }
-
-import { PwaProvider } from './context/PwaContext'
-import PwaBanner from './components/ui/PwaBanner'
 
 /**
  * AppContent — the inner app that has access to AuthContext.
