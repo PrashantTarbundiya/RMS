@@ -85,8 +85,8 @@ Best for: **Academic evaluations, client proof-of-concept demos, and zero-budget
 3. Configure the settings:
    - **Root Directory:** *(leave blank)*
    - **Environment:** `Python`
-   - **Build Command:** `pip install -r requirements.txt`
-   - **Start Command:** `cd backend && gunicorn -k geventwebsocket.gunicorn.workers.GeventWebSocketWorker server:app --bind 0.0.0.0:$PORT --timeout 300 --workers 1`
+   - **Build Command:** `pip install -r requirements-render.txt`
+   - **Start Command:** `cd backend && gunicorn -k geventwebsocket.gunicorn.workers.GeventWebSocketWorker server:app --bind 0.0.0.0:$PORT --timeout 300 --workers 1 --worker-connections 100 --max-requests 100 --max-requests-jitter 10`
    - **Plan:** `Free`
 4. In **Advanced** $\rightarrow$ **Environment Variables**, add:
    - `DEPLOYMENT_MODE` = `cloud`

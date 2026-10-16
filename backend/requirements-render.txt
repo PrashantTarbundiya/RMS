@@ -1,0 +1,60 @@
+# ===================================================
+# RMS Face AI — Render Free Tier (512MB RAM) Dependencies
+# ===================================================
+# This file EXCLUDES heavy packages not needed for cloud inference:
+#   - torch / torchvision    (~800MB RAM — only needed for MobileNetV2 training)
+#   - insightface package    (~100MB — we use onnxruntime directly for ArcFace)
+#   - waitress               (Windows-only server, not used on Linux)
+#   - watchdog               (File watcher, not needed in cloud)
+# ===================================================
+
+# ── Core ML & Computer Vision (Inference Only) ──
+opencv-python-headless>=4.8,<5.0
+mediapipe>=0.10
+deepface>=0.0.79
+tf-keras>=2.15
+numpy>=1.24
+scikit-learn>=1.3
+scipy>=1.11
+Pillow>=10.0
+
+# ── ONNX Runtime (InsightFace ArcFace inference without full insightface pkg) ──
+onnxruntime>=1.17.0
+
+# ── API Server, WebSockets & Networking ──
+flask>=3.0
+flask-cors>=4.0
+flask-socketio>=5.4.1
+gunicorn>=21.0
+gevent>=24.2.1
+gevent-websocket>=0.10.1
+
+# ── Database & Multi-Tenancy ──
+SQLAlchemy>=2.0
+psycopg2-binary>=2.9
+alembic>=1.13
+Flask-SQLAlchemy>=3.1
+
+# ── Authentication & Cryptography ──
+PyJWT>=2.8
+bcrypt>=4.1
+cryptography>=41.0.0
+
+# ── Environment & Utilities ──
+python-dotenv>=1.0
+psutil>=5.9.0
+tqdm>=4.65.0
+
+# ── Reporting, Analytics & Benchmarking ──
+pandas>=2.0.0
+matplotlib>=3.7.0
+seaborn>=0.12.0
+reportlab>=4.0.0
+openpyxl>=3.1.0
+python-pptx>=0.6.21
+
+# ── SaaS Operations & Observability ──
+celery>=5.3
+redis>=5.0
+Flask-Limiter>=3.5
+sentry-sdk[flask]>=1.39.0

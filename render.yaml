@@ -3,11 +3,13 @@ services:
     name: rms-face-ai-backend
     runtime: python
     plan: free
-    buildCommand: pip install -r requirements.txt
+    buildCommand: pip install -r requirements-render.txt
     startCommand: cd backend && gunicorn -k geventwebsocket.gunicorn.workers.GeventWebSocketWorker server:app --bind 0.0.0.0:$PORT --timeout 300 --workers 1 --worker-connections 100 --max-requests 100 --max-requests-jitter 10
     envVars:
       - key: PYTHON_VERSION
         value: 3.10.13
+      - key: DEPLOYMENT_MODE
+        value: cloud
       - key: MALLOC_ARENA_MAX
         value: "2"
       - key: OMP_NUM_THREADS
