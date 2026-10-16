@@ -118,21 +118,51 @@ limiter = Limiter(
     storage_uri=limiter_storage
 )
 
-# Environment-aware CORS: restrict origins in production
+# Environment-aware CORS: allow local development, configured FRONTEND_URL, and all Vercel deployments
 allowed_origins = [
     'http://localhost:5173',
     'http://127.0.0.1:5173',
     'http://localhost:3000',
+    re.compile(r"^https:\/\/.*\.vercel\.app$"),
 ]
 frontend_url = os.environ.get('FRONTEND_URL')
 if frontend_url:
-    allowed_origins.append(frontend_url.rstrip('/'))
+    for u in frontend_url.split(','):
+        u = u.strip().rstrip('/')
+        if u and u != 'https://your-app.vercel.app' and u not in allowed_origins:
+            allowed_origins.append(u)
 
-# In development (no FRONTEND_URL set), allow all origins for convenience
-if frontend_url:
-    CORS(app, origins=allowed_origins, supports_credentials=True)
-else:
-    CORS(app)  # Wide open for local development
+CORS(app, origins=allowed_origins, supports_credentials=True, allow_headers=["Content-Type", "Authorization", "X-Org-Id", "X-API-Key", "X-Requested-With"], methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"])
+
+@app.before_request
+def handle_preflight_cors():
+    if request.method == "OPTIONS":
+        origin = request.headers.get("Origin", "")
+        response = Response()
+        is_allowed = False
+        if origin.startswith("http://localhost:") or origin.startswith("http://127.0.0.1:"):
+            is_allowed = True
+        elif origin.endswith(".vercel.app") or (frontend_url and origin in frontend_url):
+            is_allowed = True
+        
+        if is_allowed:
+            response.headers["Access-Control-Allow-Origin"] = origin
+            response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS, PATCH"
+            response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, X-Org-Id, X-API-Key, X-Requested-With"
+            response.headers["Access-Control-Allow-Credentials"] = "true"
+            response.headers["Access-Control-Max-Age"] = "86400"
+            return response
+
+@app.after_request
+def add_cors_headers_after(response):
+    origin = request.headers.get("Origin")
+    if origin:
+        if origin.startswith("http://localhost:") or origin.startswith("http://127.0.0.1:") or origin.endswith(".vercel.app") or (frontend_url and origin in frontend_url):
+            response.headers["Access-Control-Allow-Origin"] = origin
+            response.headers["Access-Control-Allow-Credentials"] = "true"
+            response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS, PATCH"
+            response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, X-Org-Id, X-API-Key, X-Requested-With"
+    return response
 
 app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024  # 50 MB max upload
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-secret-key')
