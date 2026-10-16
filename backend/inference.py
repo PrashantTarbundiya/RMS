@@ -8,7 +8,6 @@ import queue
 import collections
 from scipy.spatial.distance import cosine
 from collections import Counter, OrderedDict
-from face_detection import SideFaceDetector
 from config_utils import get_confirm_threshold
 
 # Path constants

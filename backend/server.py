@@ -11,7 +11,8 @@ if hasattr(sys.stdout, 'buffer'):
 # Monkey-patch standard library for Gevent async mode (Must be at the very top)
 try:
     import gevent.monkey
-    gevent.monkey.patch_all()
+    if not gevent.monkey.is_module_patched('os'):
+        gevent.monkey.patch_all()
 except ImportError:
     pass
 

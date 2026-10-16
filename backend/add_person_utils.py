@@ -19,8 +19,6 @@ PROJECT_ROOT = os.path.dirname(BACKEND_DIR)
 # Reuse existing pipeline functions
 from model import apply_clahe, get_embedding, get_embedding_insightface, generate_augments, NUM_AUGMENTS_QUICK, EDGE_LIGHTWEIGHT
 from org_storage import get_sota_model_path, get_sota_classes_path
-from face_detection import SideFaceDetector
-from scripts.clean_dataset import _build_mediapipe_detector, _detect_with_mediapipe, EXTRA_PAD
 
 
 # ============================================================================
@@ -260,6 +258,7 @@ def recompute_person_embeddings(person_name):
     existing_names = filtered_names
     
     # Detector setup
+    from face_detection import SideFaceDetector
     detector = SideFaceDetector()
     new_count = 0
     
@@ -507,7 +506,12 @@ def _get_mp_detector():
     """Return a cached MediaPipe BlazeFace detector (confidence=0.30 for max recall)."""
     global _mp_face_detector
     if _mp_face_detector is None:
-        _mp_face_detector = _build_mediapipe_detector(confidence=0.30)
+        try:
+            from scripts.clean_dataset import _build_mediapipe_detector
+            _mp_face_detector = _build_mediapipe_detector(confidence=0.30)
+        except Exception as e:
+            print(f"   [Warning] Could not initialize MediaPipe detector: {e}")
+            _mp_face_detector = None
     return _mp_face_detector
 
 
@@ -528,9 +532,15 @@ def clean_and_save_face(img_bgr, output_path, margin_ratio=0.20):
     detector = _get_mp_detector()
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
 
+    extra_pad = 10
     if detector is not None:
         # --- MediaPipe path ---
-        faces = _detect_with_mediapipe(detector, img_bgr)
+        try:
+            from scripts.clean_dataset import _detect_with_mediapipe, EXTRA_PAD
+            extra_pad = EXTRA_PAD
+            faces = _detect_with_mediapipe(detector, img_bgr)
+        except Exception:
+            faces = []
     else:
         base_dir = os.path.dirname(os.path.abspath(__file__))
         cascade_file = os.path.join(base_dir, 'haarcascade_frontalface_default.xml')
@@ -555,8 +565,8 @@ def clean_and_save_face(img_bgr, output_path, margin_ratio=0.20):
     (x, y, w, h) = max(faces, key=lambda f: f[2] * f[3])
 
     # Add margin: percentage + fixed 10px boundary on all sides
-    margin_x = int(w * margin_ratio) + EXTRA_PAD
-    margin_y = int(h * margin_ratio) + EXTRA_PAD
+    margin_x = int(w * margin_ratio) + extra_pad
+    margin_y = int(h * margin_ratio) + extra_pad
     x1 = max(0, x - margin_x)
     y1 = max(0, y - margin_y)
     x2 = min(img_bgr.shape[1], x + w + margin_x)
