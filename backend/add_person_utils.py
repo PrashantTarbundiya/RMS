@@ -10,11 +10,6 @@ import cv2
 import pickle
 import shutil
 import numpy as np
-import torch
-import torch.nn as nn
-import torch.optim as optim
-from torchvision import datasets, transforms
-from torch.utils.data import DataLoader, Subset
 from PIL import Image
 
 # Path constants
@@ -351,7 +346,16 @@ def update_sota_model(person_name, dataset_dir=None,
     4. Fine-tune on entire dataset for a few epochs
     5. Save updated model + mobile_classes.txt
     """
-    from models.sota_finetune.finetune import build_mobile_model
+    try:
+        import torch
+        import torch.nn as nn
+        import torch.optim as optim
+        from torchvision import datasets, transforms
+        from torch.utils.data import DataLoader, Subset
+        from models.sota_finetune.finetune import build_mobile_model
+    except ImportError as e:
+        print(f"   [Warning] PyTorch/Torchvision not installed ({e}). SOTA MobileNetV2 training is disabled in cloud inference mode.")
+        return False
 
     print(f"\n{'='*50}")
     print(f"SOTA MobileNetV2: Fine-tuning for '{person_name}'")
