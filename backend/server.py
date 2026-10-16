@@ -15,7 +15,16 @@ try:
 except ImportError:
     pass
 
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'  # Suppress TF warnings
+# Memory and thread limits for constrained environments (e.g. Render 512MB free tier)
+os.environ['OMP_NUM_THREADS'] = '1'
+os.environ['OPENBLAS_NUM_THREADS'] = '1'
+os.environ['MKL_NUM_THREADS'] = '1'
+os.environ['NUMEXPR_NUM_THREADS'] = '1'
+os.environ['TF_NUM_INTRAOP_THREADS'] = '1'
+os.environ['TF_NUM_INTEROP_THREADS'] = '1'
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
+os.environ['MALLOC_ARENA_MAX'] = '2'
 
 # Load .env file before any other imports read env vars
 from dotenv import load_dotenv
@@ -42,15 +51,12 @@ BACKEND_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = os.path.dirname(BACKEND_DIR)
 sys.path.insert(0, BACKEND_DIR)
 
-from models.sota_finetune.finetune import build_mobile_model, export_to_onnx
 from model import apply_clahe, get_embedding, get_embedding_tta
 from inference import find_match_knn, compute_match_confidence
-import torch
 import cv2
 import pickle
 import numpy as np
 from PIL import Image
-from torchvision import transforms
 from ensemble import ensemble_predict
 from feedback_learner import (
     generate_prediction_id, store_prediction_for_feedback,
@@ -2209,9 +2215,22 @@ logger.info("Initializing Face Detection and Recognition Models...")
 _org_model_cache = {}  # { org_id: { 'deepface_encodings', 'deepface_names', 'sota_model', 'sota_classes', 'sota_transform', 'sota_device', 'sota_loaded' } }
 face_cascade = None
 
-# ─── Deep Learning Face Detector ──────────────────────────────────────────
-from face_detection import SideFaceDetector
-face_detector = SideFaceDetector(min_detection_confidence=0.45)
+# ─── Deep Learning Face Detector (Lazy Loaded on first detection) ────────
+_face_detector = None
+
+def get_face_detector():
+    global _face_detector
+    if _face_detector is None:
+        logger.info("Lazy-loading SideFaceDetector on first request...")
+        from face_detection import SideFaceDetector
+        _face_detector = SideFaceDetector(min_detection_confidence=0.45)
+    return _face_detector
+
+class _LazyFaceDetectorProxy:
+    def __getattr__(self, name):
+        return getattr(get_face_detector(), name)
+
+face_detector = _LazyFaceDetectorProxy()
 
 def load_facenet512(org_id=None):
     """Load primary model encodings: Facenet512 (Original highly accurate model)."""

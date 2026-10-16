@@ -24,17 +24,23 @@ import numpy as np
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
 
-# Compatibility fix for Python 3.14 + TensorFlow 2.22 / tf_keras
-try:
-    import tensorflow.compat.v2 as _tf2
-    if hasattr(_tf2, '__internal__') and not hasattr(_tf2.__internal__, 'register_load_context_function'):
-        _tf2.__internal__.register_load_context_function = getattr(
-            _tf2.__internal__, 'register_call_context_function', lambda fn: None
-        )
-except Exception:
-    pass
+_deepface_module = None
 
-from deepface import DeepFace
+def _get_deepface():
+    """Lazily import DeepFace and TensorFlow only when embedding calculation is needed."""
+    global _deepface_module
+    if _deepface_module is None:
+        try:
+            import tensorflow.compat.v2 as _tf2
+            if hasattr(_tf2, '__internal__') and not hasattr(_tf2.__internal__, 'register_load_context_function'):
+                _tf2.__internal__.register_load_context_function = getattr(
+                    _tf2.__internal__, 'register_call_context_function', lambda fn: None
+                )
+        except Exception:
+            pass
+        from deepface import DeepFace
+        _deepface_module = DeepFace
+    return _deepface_module
 
 # Path constants
 BACKEND_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -118,7 +124,7 @@ def warmup_models(force=False):
             t0 = time.time()
             try:
                 _dummy = np.zeros((160, 160, 3), dtype=np.uint8)
-                DeepFace.represent(
+                _get_deepface().represent(
                     img_path=_dummy,
                     model_name=MODEL_NAME,
                     enforce_detection=False,
@@ -136,7 +142,7 @@ def warmup_models(force=False):
             t0 = time.time()
             try:
                 _dummy_vgg = np.zeros((224, 224, 3), dtype=np.uint8)
-                DeepFace.represent(
+                _get_deepface().represent(
                     img_path=_dummy_vgg,
                     model_name="VGG-Face",
                     enforce_detection=False,
@@ -202,7 +208,8 @@ def _load_insightface_session():
     try:
         import onnxruntime as ort
         so = ort.SessionOptions()
-        so.intra_op_num_threads = os.cpu_count() or 4
+        so.intra_op_num_threads = min(os.cpu_count() or 1, 2)
+        so.inter_op_num_threads = 1
         so.graph_optimization_level = ort.GraphOptimizationLevel.ORT_ENABLE_ALL
         so.log_severity_level = 3
 
@@ -214,7 +221,7 @@ def _load_insightface_session():
         # Warm up with a dummy inference
         dummy = np.zeros((1, 3, 112, 112), dtype=np.float32)
         _insightface_session.run(None, {_insightface_session.get_inputs()[0].name: dummy})
-        print(f"[INFO] InsightFace ArcFace ONNX ready (CPU, {os.cpu_count()} threads)")
+        print(f"[INFO] InsightFace ArcFace ONNX ready (CPU, max 2 threads)")
         return _insightface_session
     except ImportError:
         print("[WARNING] onnxruntime not installed. InsightFace unavailable.")
@@ -255,10 +262,6 @@ def get_embedding_insightface(face_crop):
     except Exception as e:
         print(f"[WARNING] InsightFace embedding failed: {e}")
         return None
-
-# Eagerly load InsightFace session at startup for instant first-call
-print("[INFO] Loading InsightFace ArcFace model...")
-_load_insightface_session()
 # ===================================================================
 
 
@@ -371,7 +374,7 @@ def get_embedding(face_crop, model_name=MODEL_NAME):
         return get_embedding_insightface(face_crop)
 
     try:
-        embedding_objs = DeepFace.represent(
+        embedding_objs = _get_deepface().represent(
             img_path=face_crop,
             model_name=model_name,
             enforce_detection=False,
