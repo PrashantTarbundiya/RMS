@@ -17,6 +17,11 @@ RUN apt-get update && apt-get install -y \
 
 # Copy requirements and install
 COPY requirements.txt .
+
+# Install CPU-only PyTorch first (saves >2 GB of disk space vs default CUDA wheels)
+RUN pip install --no-cache-dir torch torchvision --index-url https://download.pytorch.org/whl/cpu
+
+# Install remaining requirements
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy the rest of the application code
