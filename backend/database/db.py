@@ -76,6 +76,13 @@ def init_database(database_url=None):
                 pool_recycle=300,  # Recycle connections every 5 min (prevents cloud pooler dropouts)
                 pool_pre_ping=True, # Auto-detect dead connections immediately
                 echo=False,
+                connect_args={
+                    'connect_timeout': 10,
+                    'keepalives': 1,
+                    'keepalives_idle': 30,
+                    'keepalives_interval': 10,
+                    'keepalives_count': 3,
+                },
             )
 
         _SessionLocal = sessionmaker(bind=_engine, autocommit=False, autoflush=False)

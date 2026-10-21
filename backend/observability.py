@@ -104,6 +104,27 @@ def init_observability(app):
             'timestamp': datetime.now(timezone.utc).isoformat(),
         })
         response.status_code = 500
+
+        # Ensure CORS headers are present on error responses too —
+        # without them, browsers block the response entirely and show
+        # misleading "CORS error" instead of the real 500 error.
+        try:
+            origin = request.headers.get('Origin', '')
+            if origin:
+                import os as _os
+                frontend_url = _os.environ.get('FRONTEND_URL', '')
+                is_allowed = (
+                    origin.startswith('http://localhost:')
+                    or origin.startswith('http://127.0.0.1:')
+                    or origin.endswith('.vercel.app')
+                    or (frontend_url and origin in frontend_url)
+                )
+                if is_allowed:
+                    response.headers['Access-Control-Allow-Origin'] = origin
+                    response.headers['Access-Control-Allow-Credentials'] = 'true'
+        except Exception:
+            pass
+
         return response
 
     # 5. Internal Health Monitoring Endpoint
