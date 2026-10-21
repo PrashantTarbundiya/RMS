@@ -49,11 +49,20 @@ export default function RegisterPage() {
       navigate('/dashboard');
     } catch (err) {
       const isConflictStatus = err.response?.status === 409;
-      const errorMsg =
+      let errorMsg =
         err.response?.data?.error ||
         err.response?.data?.message ||
-        (typeof err.response?.data === 'string' ? err.response.data : null) ||
-        'Registration failed. Please check your details and try again.';
+        (typeof err.response?.data === 'string' ? err.response.data : null);
+
+      if (!errorMsg) {
+        if (err.code === 'ECONNABORTED' || err.message?.includes('timeout')) {
+          errorMsg = 'Request timed out. The cloud backend may be waking up from sleep. Please wait a few seconds and try again.';
+        } else if (!err.response) {
+          errorMsg = 'Cannot reach backend server. Please verify your connection and that the service is running.';
+        } else {
+          errorMsg = 'Registration failed. Please check your details and try again.';
+        }
+      }
 
       if (isConflictStatus || errorMsg.toLowerCase().includes('already exists')) {
         setConflict({

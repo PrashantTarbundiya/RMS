@@ -190,17 +190,24 @@ if deployment_mode == 'hybrid':
 
 db_connected = init_database()
 if db_connected:
-    def _bg_init_db():
+    try:
+        create_tables()
+        from database.seed import seed_database
+        seed_database()
+        logger.info("Database tables and seed verified.")
+    except Exception as e:
+        logger.warning(f"Database init warning: {e}")
+    finally:
+        # Crucial: Dispose engine connections in master before Gunicorn forks workers,
+        # ensuring no inherited file descriptors or mutex locks are shared across processes.
         try:
-            create_tables()
-            from database.seed import seed_database
-            seed_database()
-            logger.info("Database tables and seed verified in background.")
-        except Exception as e:
-            logger.warning(f"Database background init warning: {e}")
-
-    threading.Thread(target=_bg_init_db, daemon=True).start()
-    logger.info("Database connected. Table check running in background.")
+            from database.db import get_engine
+            eng = get_engine()
+            if eng is not None:
+                eng.dispose(close=False)
+                logger.info("Master process database connection pool cleanly disposed before worker fork.")
+        except Exception as disp_err:
+            logger.warning(f"Engine disposal warning: {disp_err}")
 else:
     logger.info("Single-tenant mode: using local file storage.")
 

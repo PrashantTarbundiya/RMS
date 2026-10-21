@@ -25,6 +25,24 @@ logger = logging.getLogger('rms-api')
 _engine = None
 _SessionLocal = None
 _db_available = False
+_engine_pid = None
+
+
+def _ensure_worker_engine():
+    """
+    Check if current PID matches the PID that initialized the engine pool.
+    If different (e.g. child worker after os.fork()), safely dispose the
+    inherited pool with close=False to prevent socket deadlocks across processes.
+    """
+    global _engine, _engine_pid
+    curr_pid = os.getpid()
+    if _engine is not None and _engine_pid != curr_pid:
+        logger.info(f"Fork/PID change detected ({_engine_pid} -> {curr_pid}). Disposing inherited DB pool.")
+        try:
+            _engine.dispose(close=False)
+        except Exception as e:
+            logger.warning(f"Error during post-fork engine disposal: {e}")
+        _engine_pid = curr_pid
 
 
 def init_database(database_url=None):
@@ -40,7 +58,7 @@ def init_database(database_url=None):
     Returns:
         bool: True if database was successfully initialized, False otherwise.
     """
-    global _engine, _SessionLocal, _db_available
+    global _engine, _SessionLocal, _db_available, _engine_pid
 
     if database_url is None:
         database_url = os.environ.get('DATABASE_URL')
@@ -113,8 +131,9 @@ def init_database(database_url=None):
             )
 
         _SessionLocal = sessionmaker(bind=_engine, autocommit=False, autoflush=False)
+        _engine_pid = os.getpid()
         _db_available = True
-        logger.info("Database connected successfully.")
+        logger.info(f"Database connected successfully (engine initialized for PID {_engine_pid}).")
         return True
 
     except Exception as e:
@@ -162,6 +181,7 @@ def get_db():
     """
     if not _db_available or _SessionLocal is None:
         return None
+    _ensure_worker_engine()
     return _SessionLocal()
 
 
@@ -182,6 +202,7 @@ def get_db_session():
         yield None
         return
 
+    _ensure_worker_engine()
     session = _SessionLocal()
     try:
         yield session

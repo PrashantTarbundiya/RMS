@@ -172,7 +172,7 @@ export function AuthProvider({ children }) {
 
   // ─── Auth Actions ────────────────────────────────────────────────────
   const login = useCallback(async (email, password) => {
-    const res = await axios.post(`${API_BASE}/auth/login`, { email, password }, { timeout: 15000 });
+    const res = await axios.post(`${API_BASE}/auth/login`, { email, password }, { timeout: 75000 });
     const { access_token, refresh_token, user: userData } = res.data;
 
     setAccessToken(access_token);
@@ -190,7 +190,7 @@ export function AuthProvider({ children }) {
       email,
       password,
       name,
-    }, { timeout: 15000 });
+    }, { timeout: 75000 });
     const { access_token, refresh_token, user: userData } = res.data;
 
     setAccessToken(access_token);
