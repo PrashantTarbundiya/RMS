@@ -257,7 +257,8 @@ app.register_blueprint(analytics_bp)
 # Health checks and static routes skip this entirely.
 _SKIP_WARMUP_ENDPOINTS = frozenset({
     'health_check', 'observability.health', 'static',
-    'system_check_update', 'system_info'
+    'system_check_update', 'system_info',
+    'root_index', 'favicon',
 })
 
 @app.before_request
@@ -296,6 +297,22 @@ def _allowed_file(file_obj):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 _VALID_NAME_PATTERN = re.compile(r'^[A-Za-z0-9_-]+$')
+
+# ─── Root & Favicon (prevent 404 noise) ───────────────────────────────
+@app.route('/', methods=['GET'])
+def root_index():
+    """Root endpoint — confirms the API is live. Used by Render health checks."""
+    from version import APP_VERSION
+    return jsonify({
+        'status': 'ok',
+        'service': 'RMS Face AI API',
+        'version': APP_VERSION,
+    })
+
+@app.route('/favicon.ico', methods=['GET'])
+def favicon():
+    """Return 204 No Content for favicon requests to silence browser 404s."""
+    return Response(status=204)
 
 # ─── Health & Connectivity Endpoints ──────────────────────────────────
 @app.route('/api/health', methods=['GET'])
