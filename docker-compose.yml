@@ -53,6 +53,7 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
+    image: rms_api:latest
     container_name: rms_api
     restart: unless-stopped
     ports:
@@ -94,9 +95,7 @@ services:
 
   # ── Celery ML Worker ────────────────────────────────
   ml_worker:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
+    image: rms_api:latest
     container_name: rms_ml_worker
     restart: unless-stopped
     command: celery -A tasks.celery_app worker --loglevel=info --concurrency=1
