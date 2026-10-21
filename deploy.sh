@@ -11,7 +11,8 @@ echo "=========================================================="
 
 # 1. Pull latest code from GitHub
 echo "[1/4] Pulling latest code changes from origin/main..."
-git pull origin main
+git fetch origin main
+git reset --hard origin/main
 
 # 2. Ensure environment file exists
 if [ ! -f .env ]; then
