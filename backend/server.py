@@ -1485,12 +1485,12 @@ def auth_register():
                 status=SubscriptionStatus.trial,
             )
             db.add(sub)
-            db.flush()
+            db.commit()  # Commit Organization, User, and Subscription immediately
 
             # Initialize file storage and seed pre-trained benchmark weights for this org
             initialize_org_storage(org.id)
             try:
-                seed_org_default_weights(org.id)
+                seed_org_default_weights(org.id, db_session=db)
             except Exception as seed_err:
                 logger.warning(f"Failed to auto-seed base weights on registration: {seed_err}")
 
@@ -2813,7 +2813,7 @@ def reset_models(org_id):
         return jsonify({'error': str(e)}), 500
 
 
-def seed_org_default_weights(org_id):
+def seed_org_default_weights(org_id, db_session=None):
     """
     Seeds default pre-trained AI weights (Facenet512, InsightFace, GhostFaceNet)
     and benchmark employees into an organization's directory and database.
@@ -2851,26 +2851,32 @@ def seed_org_default_weights(org_id):
     from database.db import is_db_available, get_db_session
     from database.models import Employee
     if is_db_available() and org_id and org_id != 'default-org':
+        def _insert_roster(session):
+            existing = {e.name for e in session.query(Employee).filter_by(org_id=org_id).all()}
+            templates = session.query(Employee).filter_by(org_id='default-org').all()
+            for t in templates:
+                if t.name not in existing:
+                    code = t.employee_code.replace('RMS-', '')
+                    session.add(Employee(
+                        id=f"emp-{org_id[:8]}-{code}",
+                        org_id=org_id,
+                        name=t.name,
+                        employee_code=f"{t.employee_code}-{org_id[:4].upper()}",
+                        department=t.department or 'Engineering',
+                        email=f"{t.name.lower()}@{org_id[:6]}.local",
+                        status='active',
+                        image_count=t.image_count or 10
+                    ))
+            session.commit()
+            logger.info(f"Seeded benchmark employees for org {org_id}")
+
         try:
-            with get_db_session() as db:
-                if db is not None:
-                    existing = {e.name for e in db.query(Employee).filter_by(org_id=org_id).all()}
-                    templates = db.query(Employee).filter_by(org_id='default-org').all()
-                    for t in templates:
-                        if t.name not in existing:
-                            code = t.employee_code.replace('RMS-', '')
-                            db.add(Employee(
-                                id=f"emp-{org_id[:8]}-{code}",
-                                org_id=org_id,
-                                name=t.name,
-                                employee_code=f"{t.employee_code}-{org_id[:4].upper()}",
-                                department=t.department or 'Engineering',
-                                email=f"{t.name.lower()}@{org_id[:6]}.local",
-                                status='active',
-                                image_count=t.image_count or 10
-                            ))
-                    db.commit()
-                    logger.info(f"Seeded benchmark employees for org {org_id}")
+            if db_session is not None:
+                _insert_roster(db_session)
+            else:
+                with get_db_session() as db:
+                    if db is not None:
+                        _insert_roster(db)
         except Exception as db_err:
             logger.warning(f"Failed to seed benchmark employees for org {org_id}: {db_err}")
 

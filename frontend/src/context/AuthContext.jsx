@@ -68,7 +68,7 @@ export function AuthProvider({ children }) {
   const apiClient = useMemo(() => {
     const instance = axios.create({
       baseURL: API_BASE.replace(/\/api\/?$/, ''),
-      timeout: 15000,
+      timeout: 60000,
     });
 
     instance.interceptors.request.use((config) => {

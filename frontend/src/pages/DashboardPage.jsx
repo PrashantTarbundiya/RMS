@@ -41,21 +41,42 @@ export default function DashboardPage() {
 
   const fetchDashboardData = async () => {
     try {
-      setError('');
-      const [statsRes, historyRes] = await Promise.all([
+      const [statsRes, historyRes] = await Promise.allSettled([
         apiClient.get(`${API_BASE}/dashboard`),
         apiClient.get(`${API_BASE}/history`)
       ]);
-      setStats(statsRes.data);
-      setHistory(historyRes.data);
-      try {
-        sessionStorage.setItem('rms_cached_stats', JSON.stringify(statsRes.data));
-        sessionStorage.setItem('rms_cached_history', JSON.stringify(historyRes.data));
-      } catch {}
+
+      if (statsRes.status === 'fulfilled') {
+        setStats(statsRes.value.data);
+        setError('');
+        try {
+          sessionStorage.setItem('rms_cached_stats', JSON.stringify(statsRes.value.data));
+        } catch {}
+      }
+
+      if (historyRes.status === 'fulfilled') {
+        setHistory(historyRes.value.data);
+        try {
+          sessionStorage.setItem('rms_cached_history', JSON.stringify(historyRes.value.data));
+        } catch {}
+      }
+
+      if (statsRes.status === 'rejected') {
+        const err = statsRes.reason;
+        console.warn('Dashboard fetch warning:', err);
+        if (!stats) {
+          const isTimeout = err?.code === 'ECONNABORTED' || err?.message?.includes('timeout');
+          setError(
+            isTimeout
+              ? 'Cloud backend is warming up. Syncing dashboard data...'
+              : 'Connecting to biometric engine. Retrying...'
+          );
+        }
+      }
     } catch (err) {
       console.error(err);
       if (!stats) {
-        setError('Failed to fetch dashboard data. Ensure the system is online.');
+        setError('Connecting to backend services...');
       }
     } finally {
       setLoading(false);
