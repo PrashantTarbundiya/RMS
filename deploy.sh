@@ -26,12 +26,14 @@ fi
 
 # 3. Build and launch containers
 echo "[2/4] Building and launching containers..."
-docker compose build --pull
+docker builder prune -f
+docker compose build
 docker compose up -d --remove-orphans
 
-# 4. Clean up dangling images to keep disk clean (protects 10-30GB free tier disk)
+# 4. Clean up dangling images to keep disk clean (protects free tier disk)
 echo "[3/4] Cleaning old dangling Docker images..."
 docker image prune -f
+docker builder prune -f
 
 # 5. Health Check
 echo "[4/4] Verifying health status..."

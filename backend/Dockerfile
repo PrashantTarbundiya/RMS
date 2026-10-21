@@ -4,15 +4,11 @@ FROM python:3.10-slim
 # Set working directory
 WORKDIR /app
 
-# Install system dependencies (required for OpenCV, libpq, curl for healthchecks)
-RUN apt-get update && apt-get install -y \
+# Install system dependencies (required for OpenCV & curl for healthchecks)
+RUN apt-get update && apt-get install -y --no-install-recommends \
     libgl1 \
     libglib2.0-0 \
-    libpq-dev \
-    build-essential \
-    cmake \
     curl \
-    postgresql-client \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements and install
