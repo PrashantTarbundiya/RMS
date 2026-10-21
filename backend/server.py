@@ -9,12 +9,17 @@ if hasattr(sys.stdout, 'buffer'):
         pass
 
 # Monkey-patch standard library for Gevent async mode (Must be at the very top)
+# thread=False preserves native POSIX threads for TensorFlow C++ extensions & psycopg2
 try:
     import gevent.monkey
     if not gevent.monkey.is_module_patched('os'):
-        gevent.monkey.patch_all()
+        gevent.monkey.patch_all(thread=False)
 except ImportError:
     pass
+
+# Force CPU mode for headless cloud containers (eliminates CUDA 303 error & status 139 segfaults)
+if os.environ.get('CUDA_VISIBLE_DEVICES') is None:
+    os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
 
 # Memory and thread limits for constrained environments (e.g. Render 512MB free tier)
 os.environ['OMP_NUM_THREADS'] = '1'
@@ -315,6 +320,15 @@ def favicon():
     return Response(status=204)
 
 # ─── Health & Connectivity Endpoints ──────────────────────────────────
+@app.route('/', methods=['GET'])
+def root():
+    """Root endpoint for cloud platform health checks & port detection."""
+    return jsonify({
+        'status': 'online',
+        'service': 'RMS Face AI API',
+        'version': '5.0.0'
+    }), 200
+
 @app.route('/api/health', methods=['GET'])
 def health_check():
     """Quick health check for connectivity testing. Includes app version."""

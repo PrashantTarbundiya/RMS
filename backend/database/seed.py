@@ -81,6 +81,8 @@ def seed_database():
             # 3. Employees from dataset_cleaned/
             departments = ["Engineering", "AI Research", "Product Design", "Operations", "Quality Assurance"]
             existing_employees = {e.name: e for e in db.query(Employee).filter_by(org_id="default-org").all()}
+            existing_ids = {e[0] for e in db.query(Employee.id).all()}
+            existing_codes = {e[0] for e in db.query(Employee.employee_code).all()}
             
             created_employees = []
             if os.path.exists(DATASET_DIR):
@@ -100,11 +102,25 @@ def seed_database():
                     dept = departments[(idx - 1) % len(departments)]
                     emp = existing_employees.get(folder_name)
                     if not emp:
+                        emp_id = f"emp-{idx:04d}"
+                        id_counter = idx
+                        while emp_id in existing_ids:
+                            id_counter += 1
+                            emp_id = f"emp-{id_counter:04d}"
+                        existing_ids.add(emp_id)
+
+                        code = f"RMS-{idx:03d}"
+                        code_counter = idx
+                        while code in existing_codes:
+                            code_counter += 1
+                            code = f"RMS-{code_counter:03d}"
+                        existing_codes.add(code)
+
                         emp = Employee(
-                            id=f"emp-{idx:04d}",
+                            id=emp_id,
                             org_id="default-org",
                             name=folder_name,
-                            employee_code=f"RMS-{idx:03d}",
+                            employee_code=code,
                             department=dept,
                             email=f"{folder_name.replace(' ', '.').lower()}@rms.local",
                             status=EmployeeStatus.active,

@@ -3,6 +3,7 @@ services:
     name: rms-face-ai-backend
     runtime: python
     plan: free
+    healthCheckPath: /api/ping
     buildCommand: pip install -r requirements-render.txt && (pip uninstall -y opencv-python opencv-contrib-python || true)
     startCommand: cd backend && gunicorn -k geventwebsocket.gunicorn.workers.GeventWebSocketWorker server:app --bind 0.0.0.0:$PORT --timeout 300 --workers 1 --worker-connections 100 --max-requests 100 --max-requests-jitter 10
     envVars:
@@ -10,6 +11,10 @@ services:
         value: 3.10.13
       - key: DEPLOYMENT_MODE
         value: cloud
+      - key: CUDA_VISIBLE_DEVICES
+        value: "-1"
+      - key: TF_CPP_MIN_LOG_LEVEL
+        value: "3"
       - key: MALLOC_ARENA_MAX
         value: "2"
       - key: OMP_NUM_THREADS
@@ -26,3 +31,11 @@ services:
         value: postgresql://postgres.nxftqojgzrrbkxdytgcn:J028jwcLobE7z4CZ@aws-0-ap-southeast-1.pooler.supabase.com:5432/postgres?sslmode=require
       - key: FRONTEND_URL
         value: https://rms-seven-lake.vercel.app
+      - key: SECRET_KEY
+        value: 3d4a379c981564bb5428c615a59436ca13adabc1c7ce0bc48a8ae0d2cba85c5c
+      - key: JWT_SECRET_KEY
+        value: ee27b0b7df34b222ca98e7711076bd8775235ea7b2ca58a6282a94a74298cbcf
+      - key: JWT_ACCESS_TOKEN_EXPIRES_MINUTES
+        value: "30"
+      - key: JWT_REFRESH_TOKEN_EXPIRES_DAYS
+        value: "7"
