@@ -72,9 +72,10 @@ def init_database(database_url=None):
                 database_url,
                 pool_size=5,
                 max_overflow=10,
-                pool_timeout=30,
-                pool_recycle=1800,  # Recycle connections every 30 min (Supabase idle timeout)
-                echo=False,         # Set True for SQL debug logging
+                pool_timeout=15,
+                pool_recycle=300,  # Recycle connections every 5 min (prevents cloud pooler dropouts)
+                pool_pre_ping=True, # Auto-detect dead connections immediately
+                echo=False,
             )
 
         _SessionLocal = sessionmaker(bind=_engine, autocommit=False, autoflush=False)

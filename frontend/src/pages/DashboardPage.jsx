@@ -15,9 +15,19 @@ export default function DashboardPage() {
   const { user, apiClient } = useAuth();
   const toast = useToast();
   const navigate = useNavigate();
-  const [stats, setStats] = useState(null);
-  const [history, setHistory] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState(() => {
+    try {
+      const cached = sessionStorage.getItem('rms_cached_stats');
+      return cached ? JSON.parse(cached) : null;
+    } catch { return null; }
+  });
+  const [history, setHistory] = useState(() => {
+    try {
+      const cached = sessionStorage.getItem('rms_cached_history');
+      return cached ? JSON.parse(cached) : [];
+    } catch { return []; }
+  });
+  const [loading, setLoading] = useState(!stats);
   const [error, setError] = useState('');
   const [dismissChecklist, setDismissChecklist] = useState(false);
   
@@ -38,9 +48,15 @@ export default function DashboardPage() {
       ]);
       setStats(statsRes.data);
       setHistory(historyRes.data);
+      try {
+        sessionStorage.setItem('rms_cached_stats', JSON.stringify(statsRes.data));
+        sessionStorage.setItem('rms_cached_history', JSON.stringify(historyRes.data));
+      } catch {}
     } catch (err) {
       console.error(err);
-      setError('Failed to fetch dashboard data. Ensure the system is online.');
+      if (!stats) {
+        setError('Failed to fetch dashboard data. Ensure the system is online.');
+      }
     } finally {
       setLoading(false);
     }

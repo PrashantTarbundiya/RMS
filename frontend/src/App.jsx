@@ -69,10 +69,11 @@ function ProtectedRoute({ children }) {
  */
 function GuestRoute({ children }) {
   const { isAuthenticated, loading } = useAuth();
+  const hasToken = !!(sessionStorage.getItem('rms_access_token') || localStorage.getItem('rms_access_token'));
 
-  if (loading) return null;
+  if (loading && hasToken) return null;
 
-  if (isAuthenticated) {
+  if (isAuthenticated && !loading) {
     return <Navigate to="/dashboard" replace />;
   }
 

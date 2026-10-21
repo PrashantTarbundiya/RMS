@@ -47,7 +47,7 @@ def hash_password(plain_password):
     Returns:
         str: The bcrypt hash (safe to store in the database).
     """
-    salt = bcrypt.gensalt(rounds=12)
+    salt = bcrypt.gensalt(rounds=10)
     hashed = bcrypt.hashpw(plain_password.encode('utf-8'), salt)
     return hashed.decode('utf-8')
 

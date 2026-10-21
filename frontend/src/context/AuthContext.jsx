@@ -17,20 +17,60 @@ import { API_BASE } from '../config';
 
 const AuthContext = createContext(null);
 
+const getStoredToken = () => sessionStorage.getItem('rms_access_token') || localStorage.getItem('rms_access_token') || null;
+const getStoredRefresh = () => sessionStorage.getItem('rms_refresh_token') || localStorage.getItem('rms_refresh_token') || null;
+const getStoredUser = () => {
+  try {
+    const raw = sessionStorage.getItem('rms_user') || localStorage.getItem('rms_user');
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+};
+
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null);
-  const [accessToken, setAccessToken] = useState(null);
-  const [refreshToken, setRefreshToken] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [isMultiTenant, setIsMultiTenant] = useState(null); // null = unknown
+  const initialToken = useMemo(() => getStoredToken(), []);
+  const initialRefresh = useMemo(() => getStoredRefresh(), []);
+  const initialUser = useMemo(() => getStoredUser(), []);
+
+  const [user, setUser] = useState(initialUser);
+  const [accessToken, setAccessToken] = useState(initialToken);
+  const [refreshToken, setRefreshToken] = useState(initialRefresh);
+  // Fast loading: if no stored token, loading is false immediately (0ms wait for login/landing pages)
+  const [loading, setLoading] = useState(!!initialToken);
+  const [isMultiTenant, setIsMultiTenant] = useState(true);
+
+  const saveTokens = useCallback((access, refresh, userData) => {
+    if (access) {
+      localStorage.setItem('rms_access_token', access);
+      sessionStorage.setItem('rms_access_token', access);
+    }
+    if (refresh) {
+      localStorage.setItem('rms_refresh_token', refresh);
+      sessionStorage.setItem('rms_refresh_token', refresh);
+    }
+    if (userData) {
+      localStorage.setItem('rms_user', JSON.stringify(userData));
+      sessionStorage.setItem('rms_user', JSON.stringify(userData));
+    }
+  }, []);
+
+  const clearTokens = useCallback(() => {
+    localStorage.removeItem('rms_access_token');
+    localStorage.removeItem('rms_refresh_token');
+    localStorage.removeItem('rms_user');
+    sessionStorage.removeItem('rms_access_token');
+    sessionStorage.removeItem('rms_refresh_token');
+    sessionStorage.removeItem('rms_user');
+  }, []);
 
   // ─── Axios Instance with Auth Header ─────────────────────────────────
   const apiClient = useMemo(() => {
     const instance = axios.create({
       baseURL: API_BASE.replace(/\/api\/?$/, ''),
+      timeout: 15000,
     });
 
-    // Request interceptor: attach Bearer token
     instance.interceptors.request.use((config) => {
       const token = accessToken;
       if (token) {
@@ -39,7 +79,6 @@ export function AuthProvider({ children }) {
       return config;
     });
 
-    // Response interceptor: handle 401 by refreshing
     instance.interceptors.response.use(
       (response) => response,
       async (error) => {
@@ -50,14 +89,14 @@ export function AuthProvider({ children }) {
           try {
             const res = await axios.post(`${API_BASE}/auth/refresh`, {
               refresh_token: refreshToken,
-            });
+            }, { timeout: 6000 });
             const newToken = res.data.access_token;
             setAccessToken(newToken);
             setUser(res.data.user);
+            saveTokens(newToken, refreshToken, res.data.user);
             originalRequest.headers.Authorization = `Bearer ${newToken}`;
             return instance(originalRequest);
           } catch (refreshError) {
-            // Refresh also failed — force logout
             logout();
             return Promise.reject(refreshError);
           }
@@ -67,84 +106,83 @@ export function AuthProvider({ children }) {
     );
 
     return instance;
-  }, [accessToken, refreshToken]);
+  }, [accessToken, refreshToken, saveTokens]);
 
-  // ─── Check if backend is running in multi-tenant mode ────────────────
+  const logout = useCallback(() => {
+    setAccessToken(null);
+    setRefreshToken(null);
+    setUser(null);
+    clearTokens();
+  }, [clearTokens]);
+
+  // ─── Fast Initial Session Hydration & Pre-warm ───────────────────────
   useEffect(() => {
-    const checkMode = async (retries = 5) => {
-      try {
-        // Try to hit /api/auth/me without a token
-        // In single-tenant mode, @require_auth is a no-op and returns the local admin
-        const res = await axios.get(`${API_BASE}/auth/me`);
-        if (res.data?.user?.org_id === null || res.data?.user?.id === 'local-admin' || res.data?.user?.email === 'admin@rms.local') {
-          // Local / Single-tenant dev mode — auto-login as local admin
-          setIsMultiTenant(false);
-          setUser(res.data.user);
-          setAccessToken('single-tenant-token');
-          sessionStorage.setItem('rms_access_token', 'single-tenant-token');
-          setLoading(false);
-          return;
-        }
-      } catch (err) {
-        if (err.response?.status === 401) {
-          // Multi-tenant mode — need real auth
-          setIsMultiTenant(true);
-        } else if (!err.response && retries > 0) {
-          // Network error (connection refused / backend starting up), retry in 2s
-          setTimeout(() => checkMode(retries - 1), 2000);
-          return; // don't continue to sessionStorage check yet
-        }
-      }
+    // Pre-warm backend asynchronously so Render wake-up starts immediately in background
+    axios.get(`${API_BASE}/ping`, { timeout: 4000 }).catch(() => {});
 
-      // Check for persisted tokens in sessionStorage
-      const savedToken = sessionStorage.getItem('rms_access_token');
-      const savedRefresh = sessionStorage.getItem('rms_refresh_token');
-      if (savedToken && savedRefresh) {
-        setAccessToken(savedToken);
-        setRefreshToken(savedRefresh);
-        try {
-          const res = await axios.get(`${API_BASE}/auth/me`, {
-            headers: { Authorization: `Bearer ${savedToken}` },
-          });
+    // Local dev bypass check
+    const isLocalHost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    if (import.meta.env.VITE_BYPASS_AUTH === 'true' && isLocalHost && !initialToken) {
+      loginLocalDev();
+      setLoading(false);
+      return;
+    }
+
+    if (!initialToken) {
+      setLoading(false);
+      return;
+    }
+
+    // Validate stored token in background with tight timeout
+    axios.get(`${API_BASE}/auth/me`, {
+      headers: { Authorization: `Bearer ${initialToken}` },
+      timeout: 5000,
+    })
+      .then((res) => {
+        if (res.data?.user) {
           setUser(res.data.user);
-          setIsMultiTenant(true);
-        } catch {
-          // Token expired — try refresh
+          saveTokens(null, null, res.data.user);
+        }
+      })
+      .catch(async (err) => {
+        if (err.response?.status === 401 && initialRefresh) {
           try {
             const refreshRes = await axios.post(`${API_BASE}/auth/refresh`, {
-              refresh_token: savedRefresh,
-            });
-            setAccessToken(refreshRes.data.access_token);
-            setUser(refreshRes.data.user);
-            sessionStorage.setItem('rms_access_token', refreshRes.data.access_token);
+              refresh_token: initialRefresh,
+            }, { timeout: 5000 });
+            const newToken = refreshRes.data.access_token;
+            const newUser = refreshRes.data.user;
+            setAccessToken(newToken);
+            setUser(newUser);
+            saveTokens(newToken, initialRefresh, newUser);
           } catch {
-            // Refresh also failed — clear everything
-            sessionStorage.removeItem('rms_access_token');
-            sessionStorage.removeItem('rms_refresh_token');
+            logout();
           }
+        } else if (!err.response) {
+          // Timeout / server spinning up — keep cached user so dashboard stays available
+          console.warn('Network timeout during auth check, using cached credentials');
+        } else {
+          logout();
         }
-      }
-      setLoading(false);
-    };
-
-    checkMode();
-  }, []);
+      })
+      .finally(() => {
+        setLoading(false);
+      });
+  }, [initialToken, initialRefresh, saveTokens, logout]);
 
   // ─── Auth Actions ────────────────────────────────────────────────────
   const login = useCallback(async (email, password) => {
-    const res = await axios.post(`${API_BASE}/auth/login`, { email, password });
+    const res = await axios.post(`${API_BASE}/auth/login`, { email, password }, { timeout: 15000 });
     const { access_token, refresh_token, user: userData } = res.data;
 
     setAccessToken(access_token);
     setRefreshToken(refresh_token);
     setUser(userData);
     setIsMultiTenant(userData.org_id !== null);
-
-    sessionStorage.setItem('rms_access_token', access_token);
-    sessionStorage.setItem('rms_refresh_token', refresh_token);
+    saveTokens(access_token, refresh_token, userData);
 
     return userData;
-  }, []);
+  }, [saveTokens]);
 
   const register = useCallback(async (orgName, email, password, name) => {
     const res = await axios.post(`${API_BASE}/auth/register`, {
@@ -152,63 +190,34 @@ export function AuthProvider({ children }) {
       email,
       password,
       name,
-    });
+    }, { timeout: 15000 });
     const { access_token, refresh_token, user: userData } = res.data;
 
     setAccessToken(access_token);
     setRefreshToken(refresh_token);
     setUser(userData);
     setIsMultiTenant(userData.org_id !== null);
-
-    sessionStorage.setItem('rms_access_token', access_token);
-    sessionStorage.setItem('rms_refresh_token', refresh_token);
+    saveTokens(access_token, refresh_token, userData);
 
     return userData;
-  }, []);
-
-  const logout = useCallback(() => {
-    setAccessToken(null);
-    setRefreshToken(null);
-    setUser(null);
-
-    sessionStorage.removeItem('rms_access_token');
-    sessionStorage.removeItem('rms_refresh_token');
-  }, []);
+  }, [saveTokens]);
 
   const loginLocalDev = useCallback(async () => {
-    try {
-      const res = await axios.get(`${API_BASE}/auth/me`);
-      const devUser = res.data?.user || {
-        id: 'local-admin',
-        name: 'System Administrator',
-        email: 'admin@rms.local',
-        role: 'org_admin',
-        org_id: 'default-org',
-        org_name: 'Default Organization'
-      };
-      setUser(devUser);
-      setAccessToken('single-tenant-token');
-      sessionStorage.setItem('rms_access_token', 'single-tenant-token');
-      sessionStorage.setItem('rms_refresh_token', 'single-tenant-refresh');
-      setIsMultiTenant(false);
-      return devUser;
-    } catch {
-      const fallbackUser = {
-        id: 'local-admin',
-        name: 'System Administrator',
-        email: 'admin@rms.local',
-        role: 'org_admin',
-        org_id: 'default-org',
-        org_name: 'Default Organization'
-      };
-      setUser(fallbackUser);
-      setAccessToken('single-tenant-token');
-      sessionStorage.setItem('rms_access_token', 'single-tenant-token');
-      sessionStorage.setItem('rms_refresh_token', 'single-tenant-refresh');
-      setIsMultiTenant(false);
-      return fallbackUser;
-    }
-  }, []);
+    const devUser = {
+      id: 'local-admin',
+      name: 'System Administrator',
+      email: 'admin@rms.local',
+      role: 'org_admin',
+      org_id: 'default-org',
+      org_name: 'Default Organization'
+    };
+    setUser(devUser);
+    setAccessToken('single-tenant-token');
+    saveTokens('single-tenant-token', 'single-tenant-refresh', devUser);
+    setIsMultiTenant(false);
+    setLoading(false);
+    return devUser;
+  }, [saveTokens]);
 
   const updateOnboardingState = useCallback(async (newState) => {
     try {
