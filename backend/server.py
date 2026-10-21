@@ -696,7 +696,7 @@ def export_analytics_pdf(org_id):
         io.BytesIO(pdf_bytes),
         mimetype='application/pdf',
         as_attachment=True,
-        download_name=f'rms_analytics_report_{datetime.now().strftime("%Y%m%d")}.pdf'
+        download_name=f'rms_analytics_report_{dt.now().strftime("%Y%m%d")}.pdf'
     )
 
 
@@ -1466,8 +1466,12 @@ def auth_register():
             db.add(sub)
             db.flush()
 
-            # Initialize file storage for this org
+            # Initialize file storage and seed pre-trained benchmark weights for this org
             initialize_org_storage(org.id)
+            try:
+                seed_org_default_weights(org.id)
+            except Exception as seed_err:
+                logger.warning(f"Failed to auto-seed base weights on registration: {seed_err}")
 
             # Generate tokens
             access_token = create_access_token(user.id, org.id, user.role)
@@ -2156,22 +2160,42 @@ def process_local_training_queue():
             if person_name == '__ALL__':
                 # ── Full Dataset Retrain ─────────────────────────────────────────
                 print(f"\n[INFO] Starting full retrain for all enrolled personnel...")
-                try:
-                    from gpu_trainer import is_gpu_available, retrain_all_gpu
-                    enc_path = get_encodings_path(org_id, 'InsightFace')
-                    print("[INFO] Generating InsightFace embeddings with GPU...")
-                    encs, names, total = retrain_all_gpu(org_dataset_dir, enc_path, num_augments=0)
-                    training_status['progress'] = 30
-                    
-                    # Sync to GhostFaceNet and Facenet512
-                    for m in ['GhostFaceNet', 'Facenet512']:
-                        m_path = get_encodings_path(org_id, m)
-                        with open(m_path, 'wb') as f:
-                            pickle.dump({'encodings': encs, 'names': names, 'model_used': m, 'version': '3.0'}, f)
-                    training_status['progress'] = 50
-                    print(f"[OK] Embeddings synced across all models for {len(set(names))} persons ({total} faces).")
-                except Exception as e:
-                    print(f"[WARNING] GPU retrain failed, fallback: {e}")
+                retrain_success = False
+                
+                # Check if org has any custom persons in dataset
+                org_persons = [d for d in os.listdir(org_dataset_dir) if os.path.isdir(os.path.join(org_dataset_dir, d)) and not d.startswith('.')] if os.path.exists(org_dataset_dir) else []
+                
+                if not org_persons:
+                    print("[INFO] Org dataset directory is empty. Seeding benchmark pre-trained weights...")
+                    seed_org_default_weights(org_id)
+                    retrain_success = True
+                    training_status['progress'] = 80
+                else:
+                    try:
+                        from gpu_trainer import is_gpu_available, retrain_all_gpu
+                        enc_path = get_encodings_path(org_id, 'InsightFace')
+                        print("[INFO] Generating InsightFace embeddings...")
+                        encs, names, total = retrain_all_gpu(org_dataset_dir, enc_path, num_augments=0)
+                        retrain_success = True
+                        training_status['progress'] = 40
+                        print(f"[OK] InsightFace embeddings generated for {len(set(names))} persons ({total} faces).")
+                    except Exception as e:
+                        print(f"[WARNING] GPU/ONNX batch retrain notice: {e}. Running robust per-person fallback...")
+
+                    # Per-person generation for all active models to ensure proper vector space separation
+                    for p in org_persons:
+                        p_dir = os.path.join(org_dataset_dir, p)
+                        p_imgs = glob_module.glob(os.path.join(p_dir, '**', '*.jpg'), recursive=True) + \
+                                 glob_module.glob(os.path.join(p_dir, '**', '*.png'), recursive=True)
+                        if p_imgs:
+                            for m in ['InsightFace', 'Facenet512', 'GhostFaceNet']:
+                                try:
+                                    update_deepface_model(p, p_imgs, model_name=m, org_id=org_id)
+                                except Exception as m_err:
+                                    logger.warning(f"Failed to generate {m} embeddings for {p}: {m_err}")
+
+                    training_status['progress'] = 75
+                    retrain_success = True
             elif image_paths:
                 all_models = ['Facenet512', 'InsightFace', 'GhostFaceNet']
                 for idx, model_name in enumerate(all_models):
@@ -2761,6 +2785,96 @@ def reset_models(org_id):
         return jsonify({'message': f'Reset successful. Removed: {", ".join(removed) if removed else "Nothing to remove"}'})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+
+def seed_org_default_weights(org_id):
+    """
+    Seeds default pre-trained AI weights (Facenet512, InsightFace, GhostFaceNet)
+    and benchmark employees into an organization's directory and database.
+    """
+    from org_storage import get_encodings_path, _GLOBAL_DATA_DIR
+    import shutil
+
+    org_data_dir = os.path.dirname(get_encodings_path(org_id, 'Facenet512'))
+    os.makedirs(org_data_dir, exist_ok=True)
+
+    copied = []
+    total_encs = 0
+    total_names = 0
+
+    models_to_copy = [
+        ('encodings.pickle', get_encodings_path(org_id, 'Facenet512')),
+        ('encodings_InsightFace.pickle', get_encodings_path(org_id, 'InsightFace')),
+        ('encodings_GhostFaceNet.pickle', get_encodings_path(org_id, 'GhostFaceNet')),
+    ]
+
+    for src_name, dst_path in models_to_copy:
+        src_path = os.path.join(_GLOBAL_DATA_DIR, src_name)
+        if os.path.exists(src_path):
+            try:
+                shutil.copy2(src_path, dst_path)
+                copied.append(src_name)
+                with open(dst_path, 'rb') as f:
+                    data = pickle.load(f)
+                    total_encs = max(total_encs, len(data.get('encodings', [])))
+                    total_names = max(total_names, len(set(data.get('names', []))))
+            except Exception as copy_err:
+                logger.warning(f"Failed to copy {src_name} to org {org_id}: {copy_err}")
+
+    # Seed employee roster in database if available
+    from database.db import is_db_available, get_db_session
+    from database.models import Employee
+    if is_db_available() and org_id and org_id != 'default-org':
+        try:
+            with get_db_session() as db:
+                if db is not None:
+                    existing = {e.name for e in db.query(Employee).filter_by(org_id=org_id).all()}
+                    templates = db.query(Employee).filter_by(org_id='default-org').all()
+                    for t in templates:
+                        if t.name not in existing:
+                            code = t.employee_code.replace('RMS-', '')
+                            db.add(Employee(
+                                id=f"emp-{org_id[:8]}-{code}",
+                                org_id=org_id,
+                                name=t.name,
+                                employee_code=f"{t.employee_code}-{org_id[:4].upper()}",
+                                department=t.department or 'Engineering',
+                                email=f"{t.name.lower()}@{org_id[:6]}.local",
+                                status='active',
+                                image_count=t.image_count or 10
+                            ))
+                    db.commit()
+                    logger.info(f"Seeded benchmark employees for org {org_id}")
+        except Exception as db_err:
+            logger.warning(f"Failed to seed benchmark employees for org {org_id}: {db_err}")
+
+    reload_org_models(org_id)
+    return total_names, total_encs, copied
+
+
+@app.route('/api/models/import-defaults', methods=['POST'])
+@app.route('/api/org/seed-defaults', methods=['POST'])
+@require_auth
+@require_role('org_admin')
+@inject_org_id
+def import_default_weights_endpoint(org_id):
+    """
+    API endpoint: Import 70 benchmark persons and pre-trained AI weights
+    (Facenet512, InsightFace, GhostFaceNet) into the current organization.
+    """
+    try:
+        total_names, total_encs, copied = seed_org_default_weights(org_id)
+        return jsonify({
+            'success': True,
+            'message': f'Successfully imported {total_names} benchmark persons and {total_encs} embeddings into your organization.',
+            'persons_count': total_names,
+            'encodings_count': total_encs,
+            'models': copied
+        })
+    except Exception as e:
+        logger.error(f"Error importing default weights for org {org_id}: {e}", exc_info=True)
+        return jsonify({'error': f"Failed to import default weights: {str(e)}"}), 500
+
 
 @app.route('/api/predict', methods=['POST'])
 @limiter.limit("5000 per minute")

@@ -15,7 +15,7 @@ export default function TrainingPage() {
   const [isTraining, setIsTraining] = useState(false);
   const [isRetrigger, setIsRetrigger] = useState(false);
   const [autoScroll, setAutoScroll] = useState(true);
-  const logsEndRef = useRef(null);
+  const terminalContainerRef = useRef(null);
   const eventSourceRef = useRef(null);
 
   const connectToStream = () => {
@@ -46,10 +46,10 @@ export default function TrainingPage() {
   }, []);
 
   useEffect(() => {
-    if (autoScroll) {
-      logsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (autoScroll && terminalContainerRef.current) {
+      terminalContainerRef.current.scrollTop = terminalContainerRef.current.scrollHeight;
     }
-  }, [logs, autoScroll]);
+  }, [logs.length, autoScroll]);
 
   const triggerRetrainAll = async () => {
     setIsRetrigger(true);
@@ -205,7 +205,7 @@ export default function TrainingPage() {
           </div>
         </div>
 
-        <div className="bg-black/60 rounded-xl p-5 font-mono text-[11px] leading-relaxed text-ink-subtle h-[500px] overflow-y-auto border border-[#23252A]/60 shadow-inner">
+        <div ref={terminalContainerRef} className="bg-black/60 rounded-xl p-5 font-mono text-[11px] leading-relaxed text-ink-subtle h-[500px] overflow-y-auto border border-[#23252A]/60 shadow-inner">
           {logs.length === 0 ? (
             <EmptyState
               icon={Terminal}
@@ -228,7 +228,6 @@ export default function TrainingPage() {
                 </div>
               ))
           )}
-          <div ref={logsEndRef} />
         </div>
       </div>
     </motion.div>

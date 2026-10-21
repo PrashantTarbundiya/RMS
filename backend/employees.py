@@ -100,7 +100,8 @@ def bulk_upload(org_id):
                             person_name,
                             image_data_list,
                             dataset_dir=org_dataset_dir,
-                            encodings_path=org_encodings_path
+                            encodings_path=org_encodings_path,
+                            org_id=org_id
                         )
                         successes.append(person_name)
                     except Exception as e:

@@ -18,7 +18,7 @@ export default function LogsPage() {
   const [logFilter, setLogFilter] = useState('all'); // all, error, success, warning
   const [autoScroll, setAutoScroll] = useState(true);
   const [copied, setCopied] = useState(false);
-  const logsEndRef = useRef(null);
+  const terminalContainerRef = useRef(null);
   const eventSourceRef = useRef(null);
 
   // Fetch training queue history
@@ -61,12 +61,12 @@ export default function LogsPage() {
     };
   }, []);
 
-  // Auto-scroll logs
+  // Auto-scroll logs: scrolls strictly inside terminal container, NEVER scrolls the page
   useEffect(() => {
-    if (autoScroll) {
-      logsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (autoScroll && terminalContainerRef.current) {
+      terminalContainerRef.current.scrollTop = terminalContainerRef.current.scrollHeight;
     }
-  }, [liveLogs, selectedJobId, jobs, autoScroll]);
+  }, [liveLogs.length, selectedJobId, autoScroll]);
 
   // Find the selected job
   const selectedJob = jobs.find(j => j.id === selectedJobId) || jobs[0];
@@ -239,16 +239,23 @@ export default function LogsPage() {
             </div>
 
             <div className="flex items-center gap-2 flex-wrap">
-              <select
-                value={logFilter}
-                onChange={e => setLogFilter(e.target.value)}
-                className="h-9 px-3 text-[12px] font-mono text-ink bg-[#010102] border border-[#23252A] rounded-lg focus:outline-none focus:border-[#828FFF]/50 cursor-pointer"
-              >
-                <option value="all">All Levels</option>
-                <option value="error">Errors Only</option>
-                <option value="warning">Warnings</option>
-                <option value="success">Success / OK</option>
-              </select>
+              <div className="relative">
+                <select
+                  value={logFilter}
+                  onChange={e => setLogFilter(e.target.value)}
+                  className="h-9 pl-3 pr-8 text-[12px] font-mono text-ink bg-[#010102] border border-[#23252A] rounded-lg focus:outline-none focus:border-[#828FFF]/50 cursor-pointer appearance-none"
+                >
+                  <option value="all">All Levels</option>
+                  <option value="error">Errors Only</option>
+                  <option value="warning">Warnings</option>
+                  <option value="success">Success / OK</option>
+                </select>
+                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-ink-tertiary">
+                  <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 20 20">
+                    <path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"/>
+                  </svg>
+                </div>
+              </div>
 
               <button
                 type="button"
@@ -288,7 +295,7 @@ export default function LogsPage() {
             </div>
           </div>
 
-          <div className="bg-black/60 rounded-xl p-5 font-mono text-[11px] leading-relaxed text-ink-subtle h-[500px] overflow-y-auto border border-[#23252A]/60 shadow-inner">
+          <div ref={terminalContainerRef} className="bg-black/60 rounded-xl p-5 font-mono text-[11px] leading-relaxed text-ink-subtle h-[500px] overflow-y-auto border border-[#23252A]/60 shadow-inner">
             {filteredLogs.length === 0 ? (
               <EmptyState
                 icon={TerminalIcon}
@@ -311,7 +318,6 @@ export default function LogsPage() {
                 </div>
               ))
             )}
-            <div ref={logsEndRef} />
           </div>
         </div>
       </div>

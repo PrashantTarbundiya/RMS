@@ -70,6 +70,11 @@ def init_database(database_url=None):
             elif database_url.startswith("postgresql://") and not database_url.startswith("postgresql+"):
                 database_url = database_url.replace("postgresql://", "postgresql+psycopg2://", 1)
 
+            # Supabase port 6543 is transaction pooler (pgbouncer) which aborts SQLAlchemy rollback/session resets.
+            # Port 5432 is the session pooler which supports full connection pooling and migrations.
+            if "pooler.supabase.com:6543" in database_url:
+                database_url = database_url.replace("pooler.supabase.com:6543", "pooler.supabase.com:5432")
+
             # Auto-enable sslmode=require for Supabase cloud connections if missing
             if "supabase.com" in database_url and "sslmode" not in database_url:
                 separator = "&" if "?" in database_url else "?"

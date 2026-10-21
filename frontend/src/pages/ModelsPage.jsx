@@ -132,6 +132,22 @@ export default function ModelsPage() {
     } finally { setIsResetting(false); }
   };
 
+  const [isImportingDefaults, setIsImportingDefaults] = useState(false);
+
+  const handleImportDefaults = async () => {
+    setIsImportingDefaults(true);
+    toast.info('Importing 70 benchmark persons & pre-trained AI weights...');
+    try {
+      const res = await apiClient.post(`${API_BASE}/models/import-defaults`);
+      toast.success(res.data.message || 'Benchmark dataset & AI weights imported successfully!');
+      setTimeout(() => window.location.reload(), 1200);
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Failed to import benchmark weights.');
+    } finally {
+      setIsImportingDefaults(false);
+    }
+  };
+
   // ── Backup & Restore ──
   const [backups, setBackups] = useState([]);
   const [backupLoading, setBackupLoading] = useState(false);
@@ -357,6 +373,32 @@ export default function ModelsPage() {
                 InsightFace is currently disabled. Face recognition runs strictly using the GhostFaceNet model with a default confidence threshold of <span className="font-mono font-semibold text-ink">0.80</span>.
               </div>
             )}
+          </div>
+        </div>
+
+        {/* Benchmark Foundation & Pre-trained Weights */}
+        <div className="card-linear p-6 border border-[#5E6AD2]/30 bg-gradient-to-b from-[#5E6AD2]/10 to-transparent">
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <span className="px-2 py-0.5 rounded text-[10px] font-mono font-semibold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">RECOMMENDED</span>
+              <h3 className="text-body font-medium text-ink flex items-center gap-2">
+                <Box className="w-5 h-5 text-[#828FFF]" /> Benchmark Dataset & Pre-Trained AI Weights
+              </h3>
+            </div>
+            <p className="text-caption text-ink-subtle mb-6 leading-relaxed">
+              Import 70 pre-cleaned benchmark personnel and 1,042 pre-computed 512-d embeddings (Facenet512, InsightFace, GhostFaceNet) directly into your organization. Gives your team an immediate high-accuracy foundation so live recognition works instantly without an empty roster.
+            </p>
+            
+            <div className="flex flex-wrap gap-3">
+              <button 
+                onClick={handleImportDefaults} 
+                disabled={isImportingDefaults} 
+                className="button-primary bg-[#5E6AD2] hover:bg-[#4E5AC0] text-white flex items-center gap-2 font-medium shadow-lg shadow-[#5E6AD2]/25"
+              >
+                {isImportingDefaults ? <Loader2 className="w-4 h-4 animate-spin text-white" /> : <Upload className="w-4 h-4 text-white" />}
+                <span className="text-button text-white">{isImportingDefaults ? 'Importing Weights...' : 'Import 70 Personnel & AI Weights'}</span>
+              </button>
+            </div>
           </div>
         </div>
 

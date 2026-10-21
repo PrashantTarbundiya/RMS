@@ -160,7 +160,7 @@ def warmup_models(force=False):
             t0 = time.time()
             try:
                 _dummy_ghost = np.zeros((112, 112, 3), dtype=np.uint8)
-                DeepFace.represent(
+                _get_deepface().represent(
                     img_path=_dummy_ghost,
                     model_name="GhostFaceNet",
                     enforce_detection=False,

@@ -5,8 +5,8 @@
     "ENABLE_GHOSTFACENET": false,
     "ENABLE_VGGFACE": false,
     "onboarding_state": {
-        "step": 0,
         "completed": false,
+        "step": 0,
         "updated_at": "2026-10-08T07:33:37.872Z"
     }
 }

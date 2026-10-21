@@ -19,6 +19,7 @@ PROJECT_ROOT = os.path.dirname(BACKEND_DIR)
 # Reuse existing pipeline functions
 from model import apply_clahe, get_embedding, get_embedding_insightface, generate_augments, NUM_AUGMENTS_QUICK, EDGE_LIGHTWEIGHT
 from org_storage import get_sota_model_path, get_sota_classes_path
+from face_detection import SideFaceDetector
 
 
 # ============================================================================
@@ -602,11 +603,14 @@ def add_person_fast(person_name, image_data_list, dataset_dir=None, encodings_pa
 
     person_name = person_name.strip().replace(" ", "_")
 
-    # Raw images go to dataset/{name}/{angle}/
-    raw_base = 'dataset'
-
-    # Cleaned face crops go to dataset_cleaned/{name}/{angle}/
-    cleaned_base = dataset_dir
+    # Resolve per-organization dataset paths
+    if org_id and org_id != 'default-org':
+        from org_storage import get_raw_dataset_dir, get_dataset_cleaned_dir
+        raw_base = get_raw_dataset_dir(org_id)
+        cleaned_base = dataset_dir if dataset_dir is not None else get_dataset_cleaned_dir(org_id)
+    else:
+        raw_base = os.path.join(PROJECT_ROOT, 'dataset')
+        cleaned_base = dataset_dir if dataset_dir is not None else os.path.join(PROJECT_ROOT, 'dataset_cleaned')
 
     saved_cleaned_paths = []
     

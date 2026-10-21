@@ -123,14 +123,14 @@ export default function AuditLogsPage() {
       {/* Filters Bar */}
       <div className="card-linear p-3 flex flex-wrap items-center gap-3">
         {/* Search Input */}
-        <div className="relative flex-1 min-w-[200px]">
-          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-tertiary" />
+        <div className="flex items-center gap-2 bg-[#010102] border border-[#23252A] rounded-lg h-9 px-3 flex-1 min-w-[220px] focus-within:border-[#828FFF]/50 transition-colors">
+          <Search size={14} className="text-ink-tertiary shrink-0" />
           <input
             type="text"
             placeholder="Search logs..."
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
-            className="input-linear w-full pl-9 pr-3 py-2 text-caption"
+            className="bg-transparent border-none text-ink text-caption w-full focus:outline-none p-0 placeholder:text-ink-tertiary"
           />
         </div>
 

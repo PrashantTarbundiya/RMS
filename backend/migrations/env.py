@@ -20,6 +20,9 @@ if database_url:
     elif database_url.startswith("postgresql://") and not database_url.startswith("postgresql+"):
         database_url = database_url.replace("postgresql://", "postgresql+psycopg2://", 1)
 
+    if "pooler.supabase.com:6543" in database_url:
+        database_url = database_url.replace("pooler.supabase.com:6543", "pooler.supabase.com:5432")
+
     if "supabase.com" in database_url and "sslmode" not in database_url:
         separator = "&" if "?" in database_url else "?"
         database_url = f"{database_url}{separator}sslmode=require"
