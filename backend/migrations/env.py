@@ -14,9 +14,15 @@ config = context.config
 # This allows us to keep credentials out of alembic.ini
 database_url = os.environ.get("DATABASE_URL")
 if database_url:
-    # Handle Supabase/Heroku-style postgres:// prefix
+    # Handle Supabase/Heroku-style postgres:// prefix and ensure psycopg2 driver is used
     if database_url.startswith("postgres://"):
-        database_url = database_url.replace("postgres://", "postgresql://", 1)
+        database_url = database_url.replace("postgres://", "postgresql+psycopg2://", 1)
+    elif database_url.startswith("postgresql://") and not database_url.startswith("postgresql+"):
+        database_url = database_url.replace("postgresql://", "postgresql+psycopg2://", 1)
+
+    if "supabase.com" in database_url and "sslmode" not in database_url:
+        separator = "&" if "?" in database_url else "?"
+        database_url = f"{database_url}{separator}sslmode=require"
     try:
         from urllib.parse import urlsplit, parse_qsl, urlencode, urlunsplit
         parts = urlsplit(database_url)

@@ -1,7 +1,7 @@
 {
     "CONFIRM_THRESHOLD": 0.55,
     "ENABLE_FACENET512": true,
-    "ENABLE_INSIGHTFACE": true,
+    "ENABLE_INSIGHTFACE": false,
     "ENABLE_GHOSTFACENET": false,
     "ENABLE_VGGFACE": false,
     "onboarding_state": {

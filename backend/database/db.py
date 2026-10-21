@@ -64,9 +64,16 @@ def init_database(database_url=None):
                 echo=False,
             )
         else:
-            # Supabase uses postgresql:// but SQLAlchemy 2.0 expects postgresql+psycopg2://
+            # Supabase uses postgres:// or postgresql://, but SQLAlchemy 2.0 requires postgresql+psycopg2://
             if database_url.startswith("postgres://"):
-                database_url = database_url.replace("postgres://", "postgresql://", 1)
+                database_url = database_url.replace("postgres://", "postgresql+psycopg2://", 1)
+            elif database_url.startswith("postgresql://") and not database_url.startswith("postgresql+"):
+                database_url = database_url.replace("postgresql://", "postgresql+psycopg2://", 1)
+
+            # Auto-enable sslmode=require for Supabase cloud connections if missing
+            if "supabase.com" in database_url and "sslmode" not in database_url:
+                separator = "&" if "?" in database_url else "?"
+                database_url = f"{database_url}{separator}sslmode=require"
 
             # Strip unsupported connection query parameters (e.g. ?pgbouncer=true from Supabase/Prisma)
             # which cause psycopg2.ProgrammingError: invalid connection option "pgbouncer"

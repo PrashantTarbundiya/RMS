@@ -20,5 +20,9 @@ services:
         value: "1"
       - key: LAZY_LOAD_MODELS
         value: "true"
+      - key: DATABASE_URL
+        value: postgresql://postgres.nxftqojgzrrbkxdytgcn:J028jwcLobE7z4CZ@aws-0-ap-southeast-1.pooler.supabase.com:5432/postgres?sslmode=require
+      - key: DIRECT_URL
+        value: postgresql://postgres.nxftqojgzrrbkxdytgcn:J028jwcLobE7z4CZ@aws-0-ap-southeast-1.pooler.supabase.com:5432/postgres?sslmode=require
       - key: FRONTEND_URL
         value: https://rms-seven-lake.vercel.app
