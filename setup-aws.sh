@@ -14,10 +14,22 @@ echo "[1/5] Updating system packages..."
 sudo apt-get update && sudo apt-get upgrade -y
 sudo apt-get install -y curl git ufw htop ca-certificates gnupg lsb-release
 
-# 2. Configure 4GB Swap Space (Essential for ML stability on 1GB RAM Free Tier)
-echo "[2/5] Configuring 4GB swap space for ML stability..."
+# 2. Configure Swap Space (Essential for ML stability on 1GB RAM Free Tier)
+echo "[2/5] Configuring swap space for ML stability..."
 if [ ! -f /swapfile ]; then
-    sudo fallocate -l 4G /swapfile || sudo dd if=/dev/zero of=/swapfile bs=1M count=4096
+    AVAIL_MB=$(df -m / | awk 'NR==2 {print $4}')
+    if [ "$AVAIL_MB" -gt 12000 ]; then
+        SWAP_SIZE="4G"
+        SWAP_COUNT=4096
+    elif [ "$AVAIL_MB" -gt 5000 ]; then
+        SWAP_SIZE="2G"
+        SWAP_COUNT=2048
+    else
+        SWAP_SIZE="1536M"
+        SWAP_COUNT=1536
+    fi
+    echo "Allocating ${SWAP_SIZE} swap based on ${AVAIL_MB}MB available disk..."
+    sudo fallocate -l $SWAP_SIZE /swapfile || sudo dd if=/dev/zero of=/swapfile bs=1M count=$SWAP_COUNT
     sudo chmod 600 /swapfile
     sudo mkswap /swapfile
     sudo swapon /swapfile
