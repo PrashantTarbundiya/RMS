@@ -9,7 +9,7 @@
 # ===================================================
 
 # ── Core ML & Computer Vision (Inference Only) ──
-opencv-contrib-python-headless>=4.8,<5.0
+opencv-python-headless>=4.8,<5.0
 mediapipe>=0.10
 tensorflow-cpu>=2.15,<2.16
 deepface>=0.0.79
