@@ -68,6 +68,21 @@ def init_database(database_url=None):
             if database_url.startswith("postgres://"):
                 database_url = database_url.replace("postgres://", "postgresql://", 1)
 
+            # Strip unsupported connection query parameters (e.g. ?pgbouncer=true from Supabase/Prisma)
+            # which cause psycopg2.ProgrammingError: invalid connection option "pgbouncer"
+            try:
+                from urllib.parse import urlsplit, parse_qsl, urlencode, urlunsplit
+                parts = urlsplit(database_url)
+                if parts.query:
+                    query_params = parse_qsl(parts.query, keep_blank_values=True)
+                    filtered = [
+                        (k, v) for k, v in query_params
+                        if k.lower() not in ('pgbouncer', 'connection_limit', 'pool_timeout')
+                    ]
+                    database_url = urlunsplit((parts.scheme, parts.netloc, parts.path, urlencode(filtered), parts.fragment))
+            except Exception as parse_err:
+                logger.warning(f"Failed to sanitize database URL query params: {parse_err}")
+
             _engine = create_engine(
                 database_url,
                 pool_size=5,

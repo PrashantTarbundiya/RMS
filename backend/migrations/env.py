@@ -17,6 +17,18 @@ if database_url:
     # Handle Supabase/Heroku-style postgres:// prefix
     if database_url.startswith("postgres://"):
         database_url = database_url.replace("postgres://", "postgresql://", 1)
+    try:
+        from urllib.parse import urlsplit, parse_qsl, urlencode, urlunsplit
+        parts = urlsplit(database_url)
+        if parts.query:
+            query_params = parse_qsl(parts.query, keep_blank_values=True)
+            filtered = [
+                (k, v) for k, v in query_params
+                if k.lower() not in ('pgbouncer', 'connection_limit', 'pool_timeout')
+            ]
+            database_url = urlunsplit((parts.scheme, parts.netloc, parts.path, urlencode(filtered), parts.fragment))
+    except Exception:
+        pass
     config.set_main_option("sqlalchemy.url", database_url)
 
 # Interpret the config file for Python logging.
