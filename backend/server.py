@@ -2188,7 +2188,10 @@ def process_local_training_queue():
                         p_imgs = glob_module.glob(os.path.join(p_dir, '**', '*.jpg'), recursive=True) + \
                                  glob_module.glob(os.path.join(p_dir, '**', '*.png'), recursive=True)
                         if p_imgs:
-                            for m in ['InsightFace', 'Facenet512', 'GhostFaceNet']:
+                            active_m = ['Facenet512']
+                            if CONFIG.get('ENABLE_INSIGHTFACE', False):
+                                active_m.append('InsightFace')
+                            for m in active_m:
                                 try:
                                     update_deepface_model(p, p_imgs, model_name=m, org_id=org_id)
                                 except Exception as m_err:
@@ -2197,11 +2200,13 @@ def process_local_training_queue():
                     training_status['progress'] = 75
                     retrain_success = True
             elif image_paths:
-                all_models = ['Facenet512', 'InsightFace', 'GhostFaceNet']
-                for idx, model_name in enumerate(all_models):
+                active_models = ['Facenet512']
+                if CONFIG.get('ENABLE_INSIGHTFACE', False):
+                    active_models.append('InsightFace')
+                for idx, model_name in enumerate(active_models):
                     try:
-                        print(f"\n[{idx+1}/{len(all_models)}] Enrolling {model_name} for {person_name}...")
-                        training_status['progress'] = 10 + int((idx / len(all_models)) * 75)
+                        print(f"\n[{idx+1}/{len(active_models)}] Enrolling {model_name} for {person_name}...")
+                        training_status['progress'] = 10 + int((idx / len(active_models)) * 75)
                         update_deepface_model(person_name, image_paths, model_name=model_name, org_id=org_id)
                         print(f"[OK] {model_name} embeddings updated successfully.")
                     except Exception as e:
@@ -3050,36 +3055,12 @@ def predict(org_id):
                     return str(val).lower() in ('true', '1', 'yes')
                 return cfg.get(cfg_key, default_val)
 
-            enable_ghostfacenet = _resolve_flag("enable_ghostfacenet", "ENABLE_GHOSTFACENET", True)
+            enable_ghostfacenet = _resolve_flag("enable_ghostfacenet", "ENABLE_GHOSTFACENET", False)
             enable_facenet512 = _resolve_flag("enable_facenet512", "ENABLE_FACENET512", True)
-            enable_insightface = _resolve_flag("enable_insightface", "ENABLE_INSIGHTFACE", True)
+            enable_insightface = _resolve_flag("enable_insightface", "ENABLE_INSIGHTFACE", False)
             enable_vggface = _resolve_flag("enable_vggface", "ENABLE_VGGFACE", False)
 
-            # Predict Edge (GhostFaceNet) — lightweight secondary model
-            edge_label, edge_conf = "Disabled", 0.0
-            edge_confidence_level = "rejected"
-            edge_encodings = org_models.get('ghostfacenet_encodings')
-            edge_names = org_models.get('ghostfacenet_names')
-            
-            if edge_encodings is not None and enable_ghostfacenet:
-                try:
-                    processed = apply_clahe(face_roi_cv)
-                    emb = get_embedding(processed, model_name="GhostFaceNet")
-                    if emb is not None:
-                        edge_label, dist, edge_confidence_level = find_match_knn(
-                            emb, edge_encodings, edge_names, 
-                            angle_label=angle_label,
-                            custom_threshold=camera_threshold,
-                            model_name="GhostFaceNet"
-                        )
-                        edge_conf = compute_match_confidence(dist, 0.45 if camera_threshold is None else camera_threshold)
-                except Exception as e:
-                    logger.warning(f"Edge prediction error: {e}")
-                    edge_label = "Error"
-            elif edge_encodings is None and enable_ghostfacenet:
-                edge_label = "Not Trained"
-            
-            # Predict Primary Model (Facenet512)
+            # Predict Primary Model (Facenet512) — Primary high-accuracy model
             f_label, f_conf = "Disabled", 0.0
             f_confidence_level = "rejected"
             f_encodings = org_models.get('facenet512_encodings')
@@ -3103,32 +3084,11 @@ def predict(org_id):
             elif f_encodings is None and enable_facenet512:
                 f_label = "Not Trained"
                     
-            # Predict Secondary Model (InsightFace ArcFace)
+            # Predict Secondary Model (InsightFace ArcFace) — Optional consensus verifier
             i_label, i_conf = "Disabled", 0.0
             i_confidence_level = "rejected"
             i_encodings = org_models.get('insightface_encodings')
             i_names = org_models.get('insightface_names')
-            
-            v_label, v_conf = "Disabled", 0.0
-            v_confidence_level = "rejected"
-            v_encodings = org_models.get('vggface_encodings')
-            v_names = org_models.get('vggface_names')
-            
-            if v_encodings is not None and enable_vggface:
-                try:
-                    processed = apply_clahe(face_roi_cv)
-                    emb = get_embedding(processed, model_name="VGG-Face")
-                    if emb is not None:
-                        v_label, dist, v_confidence_level = find_match_knn(
-                            emb, v_encodings, v_names, 
-                            angle_label=angle_label,
-                            custom_threshold=camera_threshold,
-                            model_name="VGG-Face"
-                        )
-                        v_conf = compute_match_confidence(dist, 0.50 if camera_threshold is None else camera_threshold)
-                except Exception as e:
-                    logger.warning(f"VGG-Face prediction error: {e}")
-                    v_label = "Error"
             
             if i_encodings is not None and enable_insightface:
                 try:
@@ -3145,14 +3105,61 @@ def predict(org_id):
                 except Exception as e:
                     logger.warning(f"InsightFace prediction error: {e}")
                     i_label = "Error"
-                    
-            # --- Ensemble Vote ---
-            individual_preds = {
-                'ghostfacenet': {'label': edge_label, 'confidence': float(edge_conf), 'confidence_level': edge_confidence_level},
-                'facenet512': {'label': f_label, 'confidence': float(f_conf), 'confidence_level': f_confidence_level},
-                'insightface': {'label': i_label, 'confidence': float(i_conf), 'confidence_level': i_confidence_level},
-                'vggface': {'label': v_label, 'confidence': float(v_conf), 'confidence_level': v_confidence_level}
-            }
+
+            # Optional Legacy Models (GhostFaceNet / VGG-Face) — only if explicitly enabled
+            edge_label, edge_conf = "Disabled", 0.0
+            edge_confidence_level = "rejected"
+            if enable_ghostfacenet:
+                edge_encodings = org_models.get('ghostfacenet_encodings')
+                edge_names = org_models.get('ghostfacenet_names')
+                if edge_encodings is not None:
+                    try:
+                        processed = apply_clahe(face_roi_cv)
+                        emb = get_embedding(processed, model_name="GhostFaceNet")
+                        if emb is not None:
+                            edge_label, dist, edge_confidence_level = find_match_knn(
+                                emb, edge_encodings, edge_names, 
+                                angle_label=angle_label,
+                                custom_threshold=camera_threshold,
+                                model_name="GhostFaceNet"
+                            )
+                            edge_conf = compute_match_confidence(dist, 0.45 if camera_threshold is None else camera_threshold)
+                    except Exception as e:
+                        logger.warning(f"Edge prediction error: {e}")
+                        edge_label = "Error"
+
+            v_label, v_conf = "Disabled", 0.0
+            v_confidence_level = "rejected"
+            if enable_vggface:
+                v_encodings = org_models.get('vggface_encodings')
+                v_names = org_models.get('vggface_names')
+                if v_encodings is not None:
+                    try:
+                        processed = apply_clahe(face_roi_cv)
+                        emb = get_embedding(processed, model_name="VGG-Face")
+                        if emb is not None:
+                            v_label, dist, v_confidence_level = find_match_knn(
+                                emb, v_encodings, v_names, 
+                                angle_label=angle_label,
+                                custom_threshold=camera_threshold,
+                                model_name="VGG-Face"
+                            )
+                            v_conf = compute_match_confidence(dist, 0.50 if camera_threshold is None else camera_threshold)
+                    except Exception as e:
+                        logger.warning(f"VGG-Face prediction error: {e}")
+                        v_label = "Error"
+
+            # --- Ensemble Vote: strictly populate only enabled models ---
+            individual_preds = {}
+            if enable_facenet512:
+                individual_preds['facenet512'] = {'label': f_label, 'confidence': float(f_conf), 'confidence_level': f_confidence_level}
+            if enable_insightface:
+                individual_preds['insightface'] = {'label': i_label, 'confidence': float(i_conf), 'confidence_level': i_confidence_level}
+            if enable_ghostfacenet:
+                individual_preds['ghostfacenet'] = {'label': edge_label, 'confidence': float(edge_conf), 'confidence_level': edge_confidence_level}
+            if enable_vggface:
+                individual_preds['vggface'] = {'label': v_label, 'confidence': float(v_conf), 'confidence_level': v_confidence_level}
+
             ensemble_result = ensemble_predict(individual_preds, custom_threshold=camera_threshold)
 
             # Binary classification: CONFIRMED or NOT FOUND

@@ -673,7 +673,13 @@ def add_person_fast(person_name, image_data_list, dataset_dir=None, encodings_pa
     # 3. Update Embeddings (instant -- no retrain) if we added new images
     # We update Facenet512, GhostFaceNet, AND InsightFace (primary model for live prediction)
     if saved_cleaned_paths:
-        for model_name in ['InsightFace', 'Facenet512', 'GhostFaceNet', 'VGG-Face']:
+        from config_utils import load_config
+        cfg = load_config()
+        active_models = ['Facenet512']
+        if cfg.get('ENABLE_INSIGHTFACE', False):
+            active_models.append('InsightFace')
+
+        for model_name in active_models:
             try:
                 new_encs, new_names, num_added = update_deepface_model(person_name, saved_cleaned_paths, model_name=model_name, org_id=org_id)
                 status_parts.append(f"**{model_name}**: Added {num_added} embeddings (total: {len(new_encs)})")

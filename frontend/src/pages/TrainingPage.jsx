@@ -66,38 +66,30 @@ export default function TrainingPage() {
     }
   };
 
+  const enableInsightFace = localStorage.getItem('enableInsightFace') === 'true';
+
   const extractProgress = () => {
     let facenet512 = 0;
     let insightface = 0;
-    let ghostfacenet = 0;
-    let vggface = 0;
-    let sotaPercent = 0;
 
     logs.forEach(line => {
       if (line.includes('Retraining Facenet512') || line.includes('Facenet512')) facenet512 = Math.max(facenet512, 30);
-      if (line.includes('[OK] Facenet512')) facenet512 = 100;
+      if (line.includes('[OK] Facenet512') || line.includes('Facenet512 embeddings updated')) facenet512 = 100;
       if (line.includes('Retraining InsightFace') || line.includes('InsightFace')) insightface = Math.max(insightface, 30);
-      if (line.includes('[OK] InsightFace')) insightface = 100;
-      if (line.includes('Retraining GhostFaceNet') || line.includes('GhostFaceNet')) ghostfacenet = Math.max(ghostfacenet, 30);
-      if (line.includes('[OK] GhostFaceNet')) ghostfacenet = 100;
-      if (line.includes('Retraining VGG-Face') || line.includes('VGG-Face')) vggface = Math.max(vggface, 30);
-      if (line.includes('[OK] VGG-Face')) vggface = 100;
-      if (line.includes('SOTA') || line.includes('MobileNetV2') || line.includes('fine-tun')) sotaPercent = Math.max(sotaPercent, 10);
-      if (line.includes('[SUCCESS]')) sotaPercent = 100;
-      // Parse epoch progress for SOTA
-      const match = line.match(/\[(\d+)\/(\d+)\]/);
-      if (match && sotaPercent > 0 && sotaPercent < 100) {
-        sotaPercent = Math.min(99, 10 + Math.floor((parseInt(match[1]) / parseInt(match[2])) * 85));
+      if (line.includes('[OK] InsightFace') || line.includes('InsightFace embeddings updated')) insightface = 100;
+      if (line.includes('[SUCCESS]') || line.includes('Models updated')) {
+        facenet512 = 100;
+        insightface = 100;
       }
     });
 
     if (isTraining && facenet512 === 0 && logs.length > 0) facenet512 = 5;
 
-    return { facenet512, insightface, ghostfacenet, vggface, sotaPercent };
+    return { facenet512, insightface };
   };
 
-  const { facenet512, insightface, ghostfacenet, vggface, sotaPercent } = extractProgress();
-  const allDone = facenet512 === 100 && insightface === 100 && ghostfacenet === 100 && vggface === 100 && sotaPercent === 100;
+  const { facenet512, insightface } = extractProgress();
+  const allDone = facenet512 === 100 && (!enableInsightFace || insightface === 100);
 
   const clearLogs = () => {
     setLogs([]);
@@ -116,7 +108,9 @@ export default function TrainingPage() {
         <div>
           <h1 className="text-headline font-semibold text-ink font-display">Model Refinement</h1>
           <p className="text-sm text-ink-subtle mt-1 max-w-xl">
-            Retrains all 4 embedding models and the SOTA MobileNetV2 classifier.
+            {enableInsightFace
+              ? 'Retrains primary Facenet512 512-d embeddings and InsightFace verifier.'
+              : 'Retrains authoritative Facenet512 512-d embeddings across all personnel.'}
           </p>
         </div>
         <button
@@ -125,17 +119,16 @@ export default function TrainingPage() {
           className="button-primary text-white flex items-center gap-2 h-10 px-5 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {isRetrigger ? <Loader2 size={16} className="animate-spin text-white" /> : <Play size={16} className="text-white" />}
-          {isTraining ? 'Training in Progress…' : 'Retrain All Models'}
+          {isTraining ? 'Training in Progress…' : 'Retrain Active Models'}
         </button>
       </div>
 
       {/* Model Progress Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        <ModelProgressCard title="Facenet512" subtitle="Primary Embedding" percent={facenet512} isTraining={isTraining && facenet512 < 100} />
-        <ModelProgressCard title="InsightFace ArcFace" subtitle="ArcFace ONNX" percent={insightface} isTraining={isTraining && insightface < 100} />
-        <ModelProgressCard title="GhostFaceNet" subtitle="Edge Optimized" percent={ghostfacenet} isTraining={isTraining && ghostfacenet < 100} />
-        <ModelProgressCard title="VGG-Face" subtitle="Deep 4096-d" percent={vggface} isTraining={isTraining && vggface < 100} />
-        <ModelProgressCard title="SOTA MobileNetV2" subtitle="Classifier Fine-tune" percent={sotaPercent} isTraining={isTraining && sotaPercent < 100} />
+      <div className={`grid grid-cols-1 ${enableInsightFace ? 'sm:grid-cols-2' : ''} gap-4`}>
+        <ModelProgressCard title="Facenet512" subtitle="Primary 512-d Embedding" percent={facenet512} isTraining={isTraining && facenet512 < 100} />
+        {enableInsightFace && (
+          <ModelProgressCard title="InsightFace ArcFace" subtitle="Secondary ArcFace Verifier" percent={insightface} isTraining={isTraining && insightface < 100} />
+        )}
       </div>
 
       {/* Training Complete Banner */}
@@ -148,35 +141,18 @@ export default function TrainingPage() {
                   <CheckCircle className="w-6 h-6 text-[#27A644]" />
                   <div>
                     <h3 className="m-0 text-[#27A644] text-lg font-medium">Training Complete</h3>
-                    <p className="m-0 mt-1 text-ink-subtle text-caption">All models have been successfully updated.</p>
+                    <p className="m-0 mt-1 text-ink-subtle text-caption">Active facial recognition models have been successfully updated.</p>
                   </div>
                 </div>
 
                 <div className="grid gap-4">
                   <div className="p-4 bg-black/30 rounded-lg border border-[#23252A]">
                     <h4 className="m-0 mb-3 text-sm flex items-center gap-2 text-ink-subtle font-semibold uppercase tracking-wider text-[11px]">
-                      <Terminal className="w-4 h-4 text-ink-tertiary" /> Core Models
+                      <Terminal className="w-4 h-4 text-ink-tertiary" /> Encodings & Weights
                     </h4>
                     <div className="flex gap-2 flex-wrap">
                       <a href={`${API_BASE}/download-file?name=encodings.pickle`} className="button-primary text-white text-caption flex items-center gap-2 h-9">
-                        <Download className="w-4 h-4 text-white" /> encodings.pickle
-                      </a>
-                      <a href={`${API_BASE}/download-file?name=best_mobile_sideface.pth`} className="button-primary text-white text-caption flex items-center gap-2 h-9">
-                        <Download className="w-4 h-4 text-white" /> best_mobile_sideface.pth
-                      </a>
-                    </div>
-                  </div>
-
-                  <div className="p-4 bg-black/30 rounded-lg border border-[#23252A]">
-                    <h4 className="m-0 mb-3 text-sm flex items-center gap-2 text-ink-subtle font-semibold uppercase tracking-wider text-[11px]">
-                      <Activity className="w-4 h-4 text-ink-tertiary" /> Edge Exports (ONNX)
-                    </h4>
-                    <div className="flex gap-2 flex-wrap">
-                      <a href={`${API_BASE}/download-file?name=sideface_mobile.onnx`} className="button-secondary text-caption flex items-center gap-2 h-9">
-                        <Download className="w-4 h-4" /> sideface_mobile.onnx
-                      </a>
-                      <a href={`${API_BASE}/download-file?name=facenet512.onnx`} className="button-secondary text-caption flex items-center gap-2 h-9">
-                        <Download className="w-4 h-4" /> facenet512.onnx
+                        <Download className="w-4 h-4 text-white" /> encodings.pickle (Facenet512)
                       </a>
                     </div>
                   </div>

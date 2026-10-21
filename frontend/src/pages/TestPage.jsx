@@ -34,15 +34,7 @@ export default function TestPage() {
   });
 
   const [enableInsightFace, setEnableInsightFace] = useState(() => {
-    return localStorage.getItem('enableInsightFace') !== 'false';
-  });
-
-  const [enableGhostFaceNet, setEnableGhostFaceNet] = useState(() => {
-    return localStorage.getItem('enableGhostFaceNet') === 'true'; // Default disabled
-  });
-
-  const [enableVGGFace, setEnableVGGFace] = useState(() => {
-    return localStorage.getItem('enableVGGFace') === 'true'; // Default disabled
+    return localStorage.getItem('enableInsightFace') === 'true'; // Default disabled unless explicitly turned on
   });
 
   useEffect(() => {
@@ -57,14 +49,6 @@ export default function TestPage() {
           setEnableInsightFace(res.data.ENABLE_INSIGHTFACE);
           localStorage.setItem('enableInsightFace', res.data.ENABLE_INSIGHTFACE ? 'true' : 'false');
         }
-        if (res.data.ENABLE_GHOSTFACENET !== undefined) {
-          setEnableGhostFaceNet(res.data.ENABLE_GHOSTFACENET);
-          localStorage.setItem('enableGhostFaceNet', res.data.ENABLE_GHOSTFACENET ? 'true' : 'false');
-        }
-        if (res.data.ENABLE_VGGFACE !== undefined) {
-          setEnableVGGFace(res.data.ENABLE_VGGFACE);
-          localStorage.setItem('enableVGGFace', res.data.ENABLE_VGGFACE ? 'true' : 'false');
-        }
         if (res.data.CONFIRM_THRESHOLD !== undefined) {
           setCustomThreshold(res.data.CONFIRM_THRESHOLD);
         }
@@ -74,9 +58,7 @@ export default function TestPage() {
     const handleStorageChange = () => {
       setShowConfidence(localStorage.getItem('showConfidence') !== 'false');
       setEnableFacenet512(localStorage.getItem('enableFacenet512') !== 'false');
-      setEnableInsightFace(localStorage.getItem('enableInsightFace') !== 'false');
-      setEnableGhostFaceNet(localStorage.getItem('enableGhostFaceNet') === 'true');
-      setEnableVGGFace(localStorage.getItem('enableVGGFace') === 'true');
+      setEnableInsightFace(localStorage.getItem('enableInsightFace') === 'true');
     };
     window.addEventListener('storage', handleStorageChange);
     return () => window.removeEventListener('storage', handleStorageChange);
@@ -90,8 +72,8 @@ export default function TestPage() {
     const payload = {};
     if (modelKey === 'enableFacenet512') payload.ENABLE_FACENET512 = newVal;
     if (modelKey === 'enableInsightFace') payload.ENABLE_INSIGHTFACE = newVal;
-    if (modelKey === 'enableGhostFaceNet') payload.ENABLE_GHOSTFACENET = newVal;
-    if (modelKey === 'enableVGGFace') payload.ENABLE_VGGFACE = newVal;
+    payload.ENABLE_GHOSTFACENET = false;
+    payload.ENABLE_VGGFACE = false;
     apiClient.post(`${API_BASE}/config`, payload).catch(() => {});
   };
   const [feedbackContext, setFeedbackContext] = useState(null);
@@ -318,8 +300,8 @@ export default function TestPage() {
         formData.append('threshold', customThreshold);
         formData.append('enable_facenet512', enableFacenet512);
         formData.append('enable_insightface', enableInsightFace);
-        formData.append('enable_ghostfacenet', enableGhostFaceNet);
-        formData.append('enable_vggface', enableVGGFace);
+        formData.append('enable_ghostfacenet', 'false');
+        formData.append('enable_vggface', 'false');
         
         const res = await apiClient.post(`${API_BASE}/predict`, formData, {
           headers: { 'Content-Type': 'multipart/form-data' },
@@ -441,8 +423,8 @@ export default function TestPage() {
           formData.append('threshold', customThreshold);
           formData.append('enable_facenet512', enableFacenet512);
           formData.append('enable_insightface', enableInsightFace);
-          formData.append('enable_ghostfacenet', enableGhostFaceNet);
-          formData.append('enable_vggface', enableVGGFace);
+          formData.append('enable_ghostfacenet', 'false');
+          formData.append('enable_vggface', 'false');
           try {
             const res = await apiClient.post(`${API_BASE}/predict`, formData, {
               headers: { 'Content-Type': 'multipart/form-data' },
@@ -475,7 +457,7 @@ export default function TestPage() {
       setLoading(false);
       setError('Failed to capture photo: ' + err.message);
     }
-  }, [webcamReady, stopWebcam, apiClient]);
+  }, [webcamReady, stopWebcam, apiClient, customThreshold, enableFacenet512, enableInsightFace]);
 
   const switchToUpload = useCallback(() => {
     stopWebcam();
@@ -500,8 +482,8 @@ export default function TestPage() {
     formData.append('threshold', customThreshold);
     formData.append('enable_facenet512', enableFacenet512);
     formData.append('enable_insightface', enableInsightFace);
-    formData.append('enable_ghostfacenet', enableGhostFaceNet);
-    formData.append('enable_vggface', enableVGGFace);
+    formData.append('enable_ghostfacenet', 'false');
+    formData.append('enable_vggface', 'false');
 
     try {
       const res = await apiClient.post(`${API_BASE}/predict`, formData, {
@@ -1110,69 +1092,29 @@ export default function TestPage() {
               </div>
             )}
             
-            {/* Interactive Model Toggle Toolbar */}
+            {/* Active Model Status Toolbar (Strictly only show enabled models) */}
             <div className="flex gap-2 p-3 bg-[#010102]/60 rounded-xl border border-[#23252A] mb-6 items-center flex-wrap">
-                <span className="text-[11px] font-mono text-ink-tertiary uppercase tracking-wider mr-1">Models:</span>
+                <span className="text-[11px] font-mono text-ink-tertiary uppercase tracking-wider mr-1">Active Model Engine:</span>
                 
-                {/* Facenet512 Toggle */}
-                <button
-                  type="button"
-                  onClick={() => toggleModel('enableFacenet512', enableFacenet512, setEnableFacenet512)}
-                  className={`flex items-center gap-2 px-2.5 py-1 rounded-lg text-[11px] font-mono border transition-all ${
-                    enableFacenet512 
-                      ? 'bg-blue-500/10 border-blue-500/40 text-blue-400 font-semibold' 
-                      : 'bg-[#141516] border-[#23252A] text-ink-subtle opacity-60 hover:opacity-100'
-                  }`}
-                  title="Click to toggle Facenet512 (Primary)"
-                >
-                  <span className={`w-2 h-2 rounded-full ${enableFacenet512 ? 'bg-blue-400 shadow-sm shadow-blue-400/50' : 'bg-gray-600'}`} />
-                  <span>Facenet512 {enableFacenet512 ? '(On)' : '(Off)'}</span>
-                </button>
+                {enableFacenet512 && (
+                  <div
+                    className="flex items-center gap-2 px-2.5 py-1 rounded-lg text-[11px] font-mono border bg-blue-500/10 border-blue-500/40 text-blue-400 font-semibold"
+                    title="Facenet512 (Primary High-Accuracy Model)"
+                  >
+                    <span className="w-2 h-2 rounded-full bg-blue-400 shadow-sm shadow-blue-400/50" />
+                    <span>Facenet512 (Primary)</span>
+                  </div>
+                )}
 
-                {/* InsightFace Toggle */}
-                <button
-                  type="button"
-                  onClick={() => toggleModel('enableInsightFace', enableInsightFace, setEnableInsightFace)}
-                  className={`flex items-center gap-2 px-2.5 py-1 rounded-lg text-[11px] font-mono border transition-all ${
-                    enableInsightFace 
-                      ? 'bg-emerald-500/10 border-emerald-500/40 text-emerald-400 font-semibold' 
-                      : 'bg-[#141516] border-[#23252A] text-ink-subtle opacity-60 hover:opacity-100'
-                  }`}
-                  title="Click to toggle InsightFace ArcFace (Verifier)"
-                >
-                  <span className={`w-2 h-2 rounded-full ${enableInsightFace ? 'bg-emerald-400 shadow-sm shadow-emerald-400/50' : 'bg-gray-600'}`} />
-                  <span>InsightFace {enableInsightFace ? '(On)' : '(Off)'}</span>
-                </button>
-
-                {/* GhostFaceNet Toggle */}
-                <button
-                  type="button"
-                  onClick={() => toggleModel('enableGhostFaceNet', enableGhostFaceNet, setEnableGhostFaceNet)}
-                  className={`flex items-center gap-2 px-2.5 py-1 rounded-lg text-[11px] font-mono border transition-all ${
-                    enableGhostFaceNet 
-                      ? 'bg-purple-500/10 border-purple-500/40 text-purple-400 font-semibold' 
-                      : 'bg-[#141516] border-[#23252A] text-ink-subtle opacity-60 hover:opacity-100'
-                  }`}
-                  title="Click to toggle GhostFaceNet (Edge Mobile)"
-                >
-                  <span className={`w-2 h-2 rounded-full ${enableGhostFaceNet ? 'bg-purple-400 shadow-sm shadow-purple-400/50' : 'bg-gray-600'}`} />
-                  <span>GhostFaceNet {enableGhostFaceNet ? '(On)' : '(Off)'}</span>
-                </button>
-
-                {/* VGG-Face Toggle */}
-                <button
-                  type="button"
-                  onClick={() => toggleModel('enableVGGFace', enableVGGFace, setEnableVGGFace)}
-                  className={`flex items-center gap-2 px-2.5 py-1 rounded-lg text-[11px] font-mono border transition-all ${
-                    enableVGGFace 
-                      ? 'bg-amber-500/10 border-amber-500/40 text-amber-400 font-semibold' 
-                      : 'bg-[#141516] border-[#23252A] text-ink-subtle opacity-60 hover:opacity-100'
-                  }`}
-                  title="Click to toggle VGG-Face (Legacy)"
-                >
-                  <span className={`w-2 h-2 rounded-full ${enableVGGFace ? 'bg-amber-400 shadow-sm shadow-amber-400/50' : 'bg-gray-600'}`} />
-                  <span>VGG-Face {enableVGGFace ? '(On)' : '(Off)'}</span>
-                </button>
+                {enableInsightFace && (
+                  <div
+                    className="flex items-center gap-2 px-2.5 py-1 rounded-lg text-[11px] font-mono border bg-emerald-500/10 border-emerald-500/40 text-emerald-400 font-semibold"
+                    title="InsightFace ArcFace (Secondary Verifier)"
+                  >
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 shadow-sm shadow-emerald-400/50" />
+                    <span>InsightFace (Secondary)</span>
+                  </div>
+                )}
             </div>
             
             <div className="flex-1 overflow-y-auto">
@@ -1248,39 +1190,20 @@ export default function TestPage() {
                                    )}
                                  </div>
                              </div>
-
-                            {enableFacenet512 && face.predictions?.facenet512 && (
+                            {enableFacenet512 && face.predictions?.facenet512 && face.predictions.facenet512.label !== 'Disabled' && (
                               <div className={`flex flex-col gap-2 p-3 bg-[#0F1011] rounded-lg border ${face.predictions?.facenet512?.confidence_level === 'confirmed' ? 'border-emerald-500/30' : 'border-[#23252A]'}`}>
                                   <div className="flex justify-between text-[11px] font-mono">
-                                     <span className="text-ink-tertiary">Facenet512</span>
-                                     <span className={face.predictions?.facenet512?.confidence_level === 'confirmed' ? 'text-emerald-400' : 'text-red-400/70'}>{formatPersonName(face.predictions?.facenet512?.label)} {showConfidence && `(${(face.predictions?.facenet512?.confidence * 100).toFixed(1)}%)`}</span>
+                                     <span className="text-ink-tertiary">Facenet512 (Primary)</span>
+                                     <span className={face.predictions?.facenet512?.confidence_level === 'confirmed' ? 'text-emerald-400 font-semibold' : 'text-red-400/70'}>{formatPersonName(face.predictions?.facenet512?.label)} {showConfidence && `(${(face.predictions?.facenet512?.confidence * 100).toFixed(1)}%)`}</span>
                                   </div>
                               </div>
                             )}
 
-                            {enableVGGFace && face.predictions?.vggface && (
-                              <div className={`flex flex-col gap-2 p-3 bg-[#0F1011] rounded-lg border ${face.predictions?.vggface?.confidence_level === 'confirmed' ? 'border-emerald-500/30' : 'border-[#23252A]'}`}>
-                                  <div className="flex justify-between text-[11px] font-mono">
-                                     <span className="text-ink-tertiary">VGG-Face</span>
-                                     <span className={face.predictions?.vggface?.confidence_level === 'confirmed' ? 'text-emerald-400' : face.predictions?.vggface?.label === 'Error' ? 'text-amber-400' : 'text-red-400/70'}>{formatPersonName(face.predictions?.vggface?.label)} {showConfidence && `(${(face.predictions?.vggface?.confidence * 100).toFixed(1)}%)`}</span>
-                                  </div>
-                              </div>
-                            )}
-                            
-                            {enableInsightFace && face.predictions?.insightface && (
+                            {enableInsightFace && face.predictions?.insightface && face.predictions.insightface.label !== 'Disabled' && (
                               <div className={`flex flex-col gap-2 p-3 bg-[#0F1011] rounded-lg border ${face.predictions?.insightface?.confidence_level === 'confirmed' ? 'border-emerald-500/30' : 'border-[#23252A]'}`}>
                                   <div className="flex justify-between text-[11px] font-mono">
-                                     <span className="text-ink-tertiary">InsightFace</span>
-                                     <span className={face.predictions?.insightface?.confidence_level === 'confirmed' ? 'text-emerald-400' : 'text-red-400/70'}>{formatPersonName(face.predictions?.insightface?.label)} {showConfidence && `(${(face.predictions?.insightface?.confidence * 100).toFixed(1)}%)`}</span>
-                                  </div>
-                              </div>
-                            )}
-
-                            {enableGhostFaceNet && face.predictions?.ghostfacenet && (
-                              <div className={`flex flex-col gap-2 p-3 bg-[#0F1011] rounded-lg border ${face.predictions?.ghostfacenet?.confidence_level === 'confirmed' ? 'border-emerald-500/30' : 'border-[#23252A]'}`}>
-                                  <div className="flex justify-between text-[11px] font-mono">
-                                     <span className="text-ink-tertiary">GhostFaceNet</span>
-                                     <span className={face.predictions?.ghostfacenet?.confidence_level === 'confirmed' ? 'text-emerald-400' : 'text-red-400/70'}>{formatPersonName(face.predictions?.ghostfacenet?.label)} {showConfidence && `(${(face.predictions?.ghostfacenet?.confidence * 100).toFixed(1)}%)`}</span>
+                                     <span className="text-ink-tertiary">InsightFace (Secondary)</span>
+                                     <span className={face.predictions?.insightface?.confidence_level === 'confirmed' ? 'text-emerald-400 font-semibold' : 'text-red-400/70'}>{formatPersonName(face.predictions?.insightface?.label)} {showConfidence && `(${(face.predictions?.insightface?.confidence * 100).toFixed(1)}%)`}</span>
                                   </div>
                               </div>
                             )}

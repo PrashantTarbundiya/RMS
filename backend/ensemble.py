@@ -13,10 +13,10 @@ agreement bonuses, and raw weighted-score output for informative confidence.
 # Default model weights for ensemble voting (Modernized: Facenet512 primary, InsightFace verifier, GhostFaceNet edge, VGG-Face deprecated)
 # Default model weights for ensemble voting (Modernized: Facenet512 primary, InsightFace verifier, GhostFaceNet & VGGFace disabled)
 DEFAULT_WEIGHTS = {
-    'facenet512': 0.65,   # Primary — Highly accurate FaceNet512
-    'insightface': 0.35,  # Secondary / Verifier — Fast ArcFace model
-    'ghostfacenet': 0.00, # Disabled — high error rate on edge frames
-    'vggface': 0.00,      # Deprecated — Slow & memory-heavy legacy model
+    'facenet512': 1.0,    # Primary — Highly accurate FaceNet512
+    'insightface': 0.35,  # Optional Secondary — Fast ArcFace model
+    'ghostfacenet': 0.00, # Disabled/Removed
+    'vggface': 0.00,      # Disabled/Removed
 }
 
 # ─── Binary Recognition Thresholds ─────────────────────────────────────
@@ -143,7 +143,7 @@ def ensemble_predict(predictions, weights=None, custom_threshold=None):
     if num_valid == 1:
         solo_key = list(valid_preds.keys())[0]
         solo_conf = list(valid_preds.values())[0]['confidence']
-        if solo_key in ['facenet512', 'insightface'] and solo_conf >= 0.65:
+        if solo_key in ['facenet512', 'insightface'] and solo_conf >= 0.45:
             best_score = max(best_score, solo_conf)
         else:
             # Not trusted solo — treat as unconfirmed
