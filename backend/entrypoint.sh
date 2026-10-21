@@ -9,23 +9,24 @@ echo "============================================"
 if [ -n "$DATABASE_URL" ]; then
     echo "[entrypoint] Waiting for PostgreSQL..."
     
-    # Extract host and port from DATABASE_URL
-    # Format: postgresql://user:pass@host:port/dbname
-    DB_HOST=$(echo "$DATABASE_URL" | sed -n 's|.*@\([^:]*\):.*|\1|p')
-    DB_PORT=$(echo "$DATABASE_URL" | sed -n 's|.*:\([0-9]*\)/.*|\1|p')
-    
-    # Default port if not found
-    DB_PORT=${DB_PORT:-5432}
-    
-    # Wait up to 30 seconds for PostgreSQL
-    for i in $(seq 1 30); do
-        if pg_isready -h "$DB_HOST" -p "$DB_PORT" -q 2>/dev/null; then
-            echo "[entrypoint] PostgreSQL is ready!"
-            break
-        fi
-        echo "[entrypoint] Waiting for PostgreSQL... ($i/30)"
-        sleep 1
-    done
+    # Verify database connection up to 15 seconds
+    python -c "
+import os, sys, time
+db_url = os.environ.get('DATABASE_URL', '')
+if not db_url.startswith('postgres'):
+    sys.exit(0)
+import psycopg2
+for i in range(15):
+    try:
+        conn = psycopg2.connect(db_url, connect_timeout=3)
+        conn.close()
+        print('[entrypoint] Database connection verified!')
+        sys.exit(0)
+    except Exception as e:
+        print(f'[entrypoint] Waiting for database connection ({i+1}/15)...')
+        time.sleep(1)
+print('[entrypoint] Proceeding with migration...')
+" || true
 
     # ── Run Alembic Migrations ──
     echo "[entrypoint] Running database migrations..."

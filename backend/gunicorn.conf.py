@@ -3,8 +3,8 @@ import logging
 
 # Gunicorn configuration for RMS Face AI (SaaS)
 
-# Read PORT dynamically from environment (Render passes $PORT, default to 5000)
-port = os.environ.get("PORT", "5000")
+# Read PORT dynamically from environment (Docker/Render pass $PORT, default to 8000)
+port = os.environ.get("PORT", "8000")
 bind = f"0.0.0.0:{port}"
 
 # Use GeventWebSocketWorker for Flask-SocketIO WebSocket support with gevent async_mode

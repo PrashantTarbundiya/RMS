@@ -60,31 +60,35 @@ services:
     volumes:
       # Shared data volume: encodings, uploaded images, ML models
       - rms_data:/app/data
-      # License key (bind-mount, read-only)
-      - ./backend/license.key:/app/license.key:ro
+      - ./dataset_cleaned:/app/dataset_cleaned
     environment:
+      - PORT=8000
       - DATABASE_URL=${DATABASE_URL:-postgresql://rms:rms_secure_password_change_me@postgres:5432/rms_db}
       - REDIS_URL=${REDIS_URL:-redis://redis:6379/0}
       - CELERY_BROKER_URL=${CELERY_BROKER_URL:-redis://redis:6379/0}
       - CELERY_RESULT_BACKEND=${CELERY_RESULT_BACKEND:-redis://redis:6379/1}
-      - SECRET_KEY=${SECRET_KEY:-change-me-to-a-random-64-char-string}
-      - JWT_SECRET_KEY=${JWT_SECRET_KEY:-change-me-to-a-different-random-64-char-string}
-      - JWT_ACCESS_TOKEN_EXPIRES_MINUTES=${JWT_ACCESS_TOKEN_EXPIRES_MINUTES:-15}
-      - JWT_REFRESH_TOKEN_EXPIRES_DAYS=${JWT_REFRESH_TOKEN_EXPIRES_DAYS:-7}
-      - DEPLOYMENT_MODE=${DEPLOYMENT_MODE:-local}
+      - SECRET_KEY=${SECRET_KEY:-3d4a379c981564bb5428c615a59436ca13adabc1c7ce0bc48a8ae0d2cba85c5c}
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY:-ee27b0b7df34b222ca98e7711076bd8775235ea7b2ca58a6282a94a74298cbcf}
+      - JWT_ACCESS_TOKEN_EXPIRES_MINUTES=${JWT_ACCESS_TOKEN_EXPIRES_MINUTES:-60}
+      - JWT_REFRESH_TOKEN_EXPIRES_DAYS=${JWT_REFRESH_TOKEN_EXPIRES_DAYS:-14}
+      - DEPLOYMENT_MODE=${DEPLOYMENT_MODE:-cloud}
       - FRONTEND_URL=${FRONTEND_URL:-http://localhost}
+      - CUDA_VISIBLE_DEVICES=-1
+      - TF_CPP_MIN_LOG_LEVEL=3
+      - OMP_NUM_THREADS=1
+      - TF_NUM_INTRAOP_THREADS=1
+      - TF_NUM_INTEROP_THREADS=1
+      - LAZY_LOAD_MODELS=true
+      - MALLOC_ARENA_MAX=2
       - PYTHONUNBUFFERED=1
     depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
+      - redis
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8000/api/health || exit 1"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 60s
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/api/ping || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
     networks:
       - rms_internal
 
@@ -95,23 +99,25 @@ services:
       dockerfile: Dockerfile
     container_name: rms_ml_worker
     restart: unless-stopped
-    # Override the default CMD to run Celery instead of Gunicorn
-    command: celery -A tasks.celery_app worker --loglevel=info --concurrency=2
+    command: celery -A tasks.celery_app worker --loglevel=info --concurrency=1
     volumes:
       - rms_data:/app/data
-      - ./backend/license.key:/app/license.key:ro
+      - ./dataset_cleaned:/app/dataset_cleaned
     environment:
       - DATABASE_URL=${DATABASE_URL:-postgresql://rms:rms_secure_password_change_me@postgres:5432/rms_db}
       - REDIS_URL=${REDIS_URL:-redis://redis:6379/0}
       - CELERY_BROKER_URL=${CELERY_BROKER_URL:-redis://redis:6379/0}
       - CELERY_RESULT_BACKEND=${CELERY_RESULT_BACKEND:-redis://redis:6379/1}
-      - DEPLOYMENT_MODE=${DEPLOYMENT_MODE:-local}
+      - DEPLOYMENT_MODE=${DEPLOYMENT_MODE:-cloud}
+      - CUDA_VISIBLE_DEVICES=-1
+      - TF_CPP_MIN_LOG_LEVEL=3
+      - OMP_NUM_THREADS=1
+      - TF_NUM_INTRAOP_THREADS=1
+      - TF_NUM_INTEROP_THREADS=1
+      - MALLOC_ARENA_MAX=2
       - PYTHONUNBUFFERED=1
     depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
+      - redis
     networks:
       - rms_internal
 
