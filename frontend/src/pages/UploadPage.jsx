@@ -195,8 +195,8 @@ export default function UploadPage() {
     setAutoPhotos(prev => [...prev, ...newEntries]);
     setStatus({ type: 'info', message: `Analyzing ${validFiles.length} photo(s) for head pose & angles...` });
 
-    // Asynchronously detect angles
-    for (const entry of newEntries) {
+    // Asynchronously detect angles in parallel
+    await Promise.all(newEntries.map(async (entry) => {
       try {
         const formData = new FormData();
         formData.append('image', entry.file);
@@ -206,8 +206,8 @@ export default function UploadPage() {
       } catch (err) {
         setAutoPhotos(prev => prev.map(p => p.id === entry.id ? { ...p, detecting: false } : p));
       }
-    }
-    setStatus({ type: 'success', message: `Loaded & classified ${validFiles.length} photo(s). Click any badge to adjust.` });
+    }));
+    setStatus({ type: 'success', message: `Loaded & auto-sorted ${validFiles.length} photo(s). Click any badge to adjust manually if desired.` });
   };
 
   const cycleAngle = (id) => {

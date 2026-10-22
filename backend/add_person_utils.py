@@ -615,7 +615,15 @@ def detect_face_angle(img_bgr):
         return 'frontal'
 
     try:
-        faces = detector.detect_detailed(img_bgr)
+        faces = detector.detect_faces(img_bgr, profile_only=False)
+        if not faces:
+            faces_flipped = detector.detect_faces(cv2.flip(img_bgr, 1), profile_only=False)
+            if faces_flipped:
+                best = max(faces_flipped, key=lambda f: f.get('bbox', {}).get('w', 0) * f.get('bbox', {}).get('h', 0))
+                yaw = -best.get('yaw', 0.0)
+                direction = 'left_profile' if yaw > 10.0 else ('right_profile' if yaw < -10.0 else 'frontal')
+                faces = [{**best, 'yaw': yaw, 'direction': direction}]
+
         if not faces:
             return 'frontal'
 
@@ -623,9 +631,9 @@ def detect_face_angle(img_bgr):
         direction = best_face.get('direction', 'frontal')
         yaw = best_face.get('yaw', 0.0)
 
-        if direction == 'left_profile' or yaw > 12.0:
+        if direction == 'left_profile' or yaw > 10.0:
             return 'left'
-        elif direction == 'right_profile' or yaw < -12.0:
+        elif direction == 'right_profile' or yaw < -10.0:
             return 'right'
         else:
             return 'frontal'

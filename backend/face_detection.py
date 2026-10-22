@@ -496,6 +496,10 @@ class SideFaceDetector:
 
         return all_faces
 
+    def detect_detailed(self, image):
+        """Execute full multi-pass detection and return all face poses/bounding boxes."""
+        return self.detect_faces(image, profile_only=False)
+
     def draw_results(self, image, faces, show_keypoints=True, show_stats=True):
         """Draw detection bounding boxes, angles, keypoints, and statistics."""
         output = image.copy()

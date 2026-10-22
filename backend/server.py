@@ -2644,7 +2644,16 @@ def detect_photo_angle():
         if detector is None:
             return jsonify({'angle': 'frontal', 'yaw': 0.0, 'confidence': 85.0})
 
-        faces = detector.detect_detailed(img_bgr)
+        faces = detector.detect_faces(img_bgr, profile_only=False)
+        if not faces:
+            # Fallback for extreme profile yaw: try horizontal flip
+            faces_flipped = detector.detect_faces(cv2.flip(img_bgr, 1), profile_only=False)
+            if faces_flipped:
+                best_flipped = max(faces_flipped, key=lambda f: f.get('bbox', {}).get('w', 0) * f.get('bbox', {}).get('h', 0))
+                yaw = -best_flipped.get('yaw', 0.0)
+                direction = 'left_profile' if yaw > 10.0 else ('right_profile' if yaw < -10.0 else 'frontal')
+                faces = [{**best_flipped, 'yaw': yaw, 'direction': direction}]
+
         if not faces:
             return jsonify({'angle': 'frontal', 'yaw': 0.0, 'confidence': 50.0, 'no_face': True})
 
@@ -2652,9 +2661,9 @@ def detect_photo_angle():
         yaw = best.get('yaw', 0.0)
         direction = best.get('direction', 'frontal')
 
-        if direction == 'left_profile' or yaw > 12.0:
+        if direction == 'left_profile' or yaw > 10.0:
             angle = 'left'
-        elif direction == 'right_profile' or yaw < -12.0:
+        elif direction == 'right_profile' or yaw < -10.0:
             angle = 'right'
         else:
             angle = 'frontal'
