@@ -27,6 +27,7 @@ fi
 
 # 3. Build and launch containers
 echo "[2/4] Building and launching containers..."
+docker system prune -f
 docker builder prune -a -f
 docker compose build
 docker compose up -d --remove-orphans

@@ -15,6 +15,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt && \
     pip install --no-cache-dir --no-deps deepface>=0.0.79 && \
+    rm -rf /usr/local/lib/python3.10/site-packages/tensorflow/include && \
+    find /usr/local/lib/python3.10/site-packages/ -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/null || true && \
+    find /usr/local/lib/python3.10/site-packages/ -name "tests" -type d -exec rm -rf {} + 2>/dev/null || true && \
     rm -rf /root/.cache /tmp/*
 
 # Copy the rest of the application code
