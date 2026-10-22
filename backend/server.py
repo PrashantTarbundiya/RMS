@@ -2929,7 +2929,9 @@ def seed_org_default_weights(org_id, db_session=None):
         src_path = os.path.join(_GLOBAL_DATA_DIR, src_name)
         if os.path.exists(src_path):
             try:
-                shutil.copy2(src_path, dst_path)
+                # Avoid SameFileError if source and target are the same (e.g. default-org)
+                if os.path.abspath(src_path) != os.path.abspath(dst_path):
+                    shutil.copy2(src_path, dst_path)
                 copied.append(src_name)
                 with open(dst_path, 'rb') as f:
                     data = pickle.load(f)
@@ -2940,26 +2942,43 @@ def seed_org_default_weights(org_id, db_session=None):
 
     # Seed employee roster in database if available
     from database.db import is_db_available, get_db_session
-    from database.models import Employee
-    if is_db_available() and org_id and org_id != 'default-org':
+    from database.models import Employee, EmployeeStatus
+    if is_db_available() and org_id:
         def _insert_roster(session):
             existing = {e.name for e in session.query(Employee).filter_by(org_id=org_id).all()}
-            templates = session.query(Employee).filter_by(org_id='default-org').all()
-            for t in templates:
-                if t.name not in existing:
-                    code = t.employee_code.replace('RMS-', '')
+            # Extract benchmark names from encodings file directly
+            benchmark_enc_path = get_encodings_path(org_id, 'Facenet512')
+            if not os.path.exists(benchmark_enc_path):
+                benchmark_enc_path = os.path.join(_GLOBAL_DATA_DIR, 'encodings.pickle')
+            
+            names = []
+            if os.path.exists(benchmark_enc_path):
+                try:
+                    with open(benchmark_enc_path, 'rb') as bf:
+                        names = sorted(list(set(pickle.load(bf).get('names', []))))
+                except Exception as bfe:
+                    logger.warning(f"Could not read names from benchmark encodings: {bfe}")
+
+            departments = ["Engineering", "AI Research", "Product Design", "Operations", "Quality Assurance"]
+            for idx, name in enumerate(names, start=1):
+                if name not in existing:
+                    clean_code_num = f"{idx:03d}"
+                    emp_code = f"RMS-{clean_code_num}" if org_id == 'default-org' else f"RMS-{clean_code_num}-{org_id[:4].upper()}"
+                    emp_id = f"emp-{clean_code_num}" if org_id == 'default-org' else f"emp-{org_id[:8]}-{clean_code_num}"
+                    clean_email = f"{name.replace(' ', '.').lower()}@{org_id[:6] if org_id != 'default-org' else 'rms'}.local"
+                    dept = departments[(idx - 1) % len(departments)]
                     session.add(Employee(
-                        id=f"emp-{org_id[:8]}-{code}",
+                        id=emp_id,
                         org_id=org_id,
-                        name=t.name,
-                        employee_code=f"{t.employee_code}-{org_id[:4].upper()}",
-                        department=t.department or 'Engineering',
-                        email=f"{t.name.lower()}@{org_id[:6]}.local",
-                        status='active',
-                        image_count=t.image_count or 10
+                        name=name,
+                        employee_code=emp_code,
+                        department=dept,
+                        email=clean_email,
+                        status=EmployeeStatus.active,
+                        image_count=10
                     ))
             session.commit()
-            logger.info(f"Seeded benchmark employees for org {org_id}")
+            logger.info(f"Seeded {len(names)} benchmark employees for org {org_id}")
 
         try:
             if db_session is not None:
@@ -3033,11 +3052,11 @@ def benchmark_status_endpoint(org_id):
         from database.db import is_db_available, get_db_session
         from database.models import Employee
         db_benchmark_count = 0
-        if is_db_available() and org_id and org_id != 'default-org':
+        if is_db_available() and org_id:
             with get_db_session() as db:
                 if db is not None:
                     db_emps = db.query(Employee).filter_by(org_id=str(org_id)).all()
-                    db_benchmark_count = sum(1 for e in db_emps if ('-RMS-' in (e.employee_code or '') or (e.id and e.id.startswith(f"emp-{org_id[:8]}-"))))
+                    db_benchmark_count = sum(1 for e in db_emps if ('-RMS-' in (e.employee_code or '') or (e.employee_code or '').startswith('RMS-') or (e.id and (e.id.startswith(f"emp-{org_id[:8]}-") or e.id.startswith("emp-")))))
                     if db_benchmark_count >= 5:
                         is_imported = True
 
@@ -3103,7 +3122,8 @@ def remove_default_weights_endpoint(org_id):
                         is_bench = (
                             e.name in benchmark_names or
                             '-RMS-' in (e.employee_code or '') or
-                            (e.id and e.id.startswith(f"emp-{org_id[:8]}-"))
+                            (e.employee_code or '').startswith('RMS-') or
+                            (e.id and (e.id.startswith(f"emp-{org_id[:8]}-") or e.id.startswith('emp-')))
                         )
                         if is_bench:
                             db.delete(e)
