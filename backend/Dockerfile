@@ -14,7 +14,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Copy requirements and install
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt && \
-    pip install --no-cache-dir --no-deps deepface>=0.0.79
+    pip install --no-cache-dir --no-deps deepface>=0.0.79 && \
+    rm -rf /root/.cache /tmp/*
 
 # Copy the rest of the application code
 COPY . .
