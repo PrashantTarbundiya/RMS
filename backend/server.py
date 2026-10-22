@@ -1480,8 +1480,8 @@ def auth_register():
             sub = Subscription(
                 org_id=org.id,
                 plan_tier=PlanTier.starter,
-                max_employees=25,
-                max_cameras=1,
+                max_employees=200,
+                max_cameras=5,
                 status=SubscriptionStatus.trial,
             )
             db.add(sub)
@@ -2505,8 +2505,9 @@ def upload_person(org_id):
     left_imgs = request.files.getlist('left_img')
     right_imgs = request.files.getlist('right_img')
     extra_files = request.files.getlist('extra_files')
+    auto_imgs = request.files.getlist('images') or request.files.getlist('photos') or request.files.getlist('files')
     
-    all_files = front_imgs + left_imgs + right_imgs + extra_files
+    all_files = front_imgs + left_imgs + right_imgs + extra_files + auto_imgs
     if len(all_files) > MAX_FILES_PER_UPLOAD:
         return jsonify({'error': f'Maximum {MAX_FILES_PER_UPLOAD} files allowed per upload'}), 400
 
@@ -2554,6 +2555,12 @@ def upload_person(org_id):
     for extra in extra_files:
         process_upload(extra, 'extra')
 
+    # Read optional client-provided angle array for auto_imgs
+    client_angles = request.form.getlist('angles') or request.form.getlist('angle_labels')
+    for idx, f in enumerate(auto_imgs):
+        label = client_angles[idx] if idx < len(client_angles) and client_angles[idx] else 'auto'
+        process_upload(f, label)
+
     if not image_data_list:
         return jsonify({'error': 'No valid images provided'}), 400
 
@@ -2580,6 +2587,31 @@ def upload_person(org_id):
         logger.error(f"Fast enrollment error: {e}")
         return jsonify({'error': f"Failed during fast enrollment: {str(e)}"}), 500
 
+    # Sync Employee into database if DB is active
+    from database.db import is_db_available, get_db_session
+    from database.models import Employee, EmployeeStatus
+    if is_db_available():
+        try:
+            with get_db_session() as db:
+                emp = db.query(Employee).filter_by(org_id=org_id, name=person_name).first()
+                if not emp:
+                    import uuid
+                    db.add(Employee(
+                        id=f"emp-{org_id[:8]}-{uuid.uuid4().hex[:6]}",
+                        org_id=org_id,
+                        name=person_name,
+                        employee_code=f"RMS-{person_name[:3].upper()}-{uuid.uuid4().hex[:4].upper()}",
+                        department='General',
+                        status=EmployeeStatus.active,
+                        image_count=len(image_data_list)
+                    ))
+                else:
+                    emp.image_count = (emp.image_count or 0) + len(image_data_list)
+                    emp.status = EmployeeStatus.active
+                db.commit()
+        except Exception as emp_db_err:
+            logger.warning(f"Could not update Employee record for {person_name}: {emp_db_err}")
+
     # Queue SOTA MobileNetV2 fine-tuning in background
     # (fast enrollment already handled the 4 embedding models above)
     enqueue_local_training(person_name, epochs, org_id)
@@ -2588,6 +2620,54 @@ def upload_person(org_id):
     if rejected_count > 0:
         msg += f' ({rejected_count} file(s) rejected/failed)'
     return jsonify({'message': msg})
+
+
+@app.route('/api/upload/detect-angle', methods=['POST'])
+@require_auth
+def detect_photo_angle():
+    """Real-time head-pose angle detector for live tagging in frontend."""
+    file = request.files.get('image') or request.files.get('file')
+    if not file or not _allowed_file(file):
+        return jsonify({'error': 'Valid image file required'}), 400
+
+    try:
+        from PIL import Image
+        import numpy as np
+        import cv2
+        from add_person_utils import get_side_face_detector
+
+        img = Image.open(file.stream).convert('RGB')
+        img = optimize_image(img)
+        img_bgr = cv2.cvtColor(np.array(img), cv2.COLOR_RGB2BGR)
+
+        detector = get_side_face_detector()
+        if detector is None:
+            return jsonify({'angle': 'frontal', 'yaw': 0.0, 'confidence': 85.0})
+
+        faces = detector.detect_detailed(img_bgr)
+        if not faces:
+            return jsonify({'angle': 'frontal', 'yaw': 0.0, 'confidence': 50.0, 'no_face': True})
+
+        best = max(faces, key=lambda f: f.get('bbox', {}).get('w', 0) * f.get('bbox', {}).get('h', 0))
+        yaw = best.get('yaw', 0.0)
+        direction = best.get('direction', 'frontal')
+
+        if direction == 'left_profile' or yaw > 12.0:
+            angle = 'left'
+        elif direction == 'right_profile' or yaw < -12.0:
+            angle = 'right'
+        else:
+            angle = 'frontal'
+
+        return jsonify({
+            'angle': angle,
+            'direction': direction,
+            'yaw': round(yaw, 1),
+            'confidence': round(best.get('confidence', 0.9) * 100, 1)
+        })
+    except Exception as e:
+        logger.warning(f"detect_photo_angle error: {e}")
+        return jsonify({'angle': 'frontal', 'yaw': 0.0, 'error': str(e)}), 200
 
 @app.route('/api/train/queue', methods=['GET'])
 @require_auth

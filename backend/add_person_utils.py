@@ -580,6 +580,61 @@ def clean_and_save_face(img_bgr, output_path, margin_ratio=0.20):
 
 
 # ============================================================================
+# AUTO ANGLE DETECTION
+# ============================================================================
+
+_shared_side_detector = None
+
+def get_side_face_detector():
+    """Lazily initialize SideFaceDetector singleton for head pose estimation."""
+    global _shared_side_detector
+    if _shared_side_detector is None:
+        try:
+            from face_detection import SideFaceDetector
+            _shared_side_detector = SideFaceDetector(min_detection_confidence=0.35)
+        except Exception as e:
+            print(f"   [Warning] Could not initialize SideFaceDetector: {e}")
+            _shared_side_detector = None
+    return _shared_side_detector
+
+
+def detect_face_angle(img_bgr):
+    """
+    Classify a face image into 'frontal', 'left', or 'right' based on 3D head pose (yaw).
+    
+    Yaw classification:
+      yaw > 12.0: facing left-profile -> 'left'
+      yaw < -12.0: facing right-profile -> 'right'
+      otherwise: 'frontal'
+    """
+    if img_bgr is None:
+        return 'frontal'
+
+    detector = get_side_face_detector()
+    if detector is None:
+        return 'frontal'
+
+    try:
+        faces = detector.detect_detailed(img_bgr)
+        if not faces:
+            return 'frontal'
+
+        best_face = max(faces, key=lambda f: f.get('bbox', {}).get('w', 0) * f.get('bbox', {}).get('h', 0))
+        direction = best_face.get('direction', 'frontal')
+        yaw = best_face.get('yaw', 0.0)
+
+        if direction == 'left_profile' or yaw > 12.0:
+            return 'left'
+        elif direction == 'right_profile' or yaw < -12.0:
+            return 'right'
+        else:
+            return 'frontal'
+    except Exception as e:
+        print(f"   [Warning] detect_face_angle error: {e}")
+        return 'frontal'
+
+
+# ============================================================================
 # MASTER FUNCTION: Save images + clean + update DeepFace (Synchronous/Fast)
 # ============================================================================
 
@@ -592,7 +647,7 @@ def add_person_fast(person_name, image_data_list, dataset_dir=None, encodings_pa
     Args:
         person_name: Name of the new person (used as folder name)
         image_data_list: List of tuples (numpy_array_RGB, angle_label)
-                         where angle_label is 'frontal', 'left', 'right', or 'extra'
+                         where angle_label is 'frontal', 'left', 'right', 'extra', or 'auto'
         dataset_dir: Path to the cleaned dataset directory
 
     Returns:
@@ -630,12 +685,16 @@ def add_person_fast(person_name, image_data_list, dataset_dir=None, encodings_pa
             if img_array is None:
                 continue
 
-            # Determine angle subfolder
-            angle = angle_label if angle_label in ('frontal', 'left', 'right') else 'extra'
-            angle_counts[angle] += 1
-
             # Convert RGB (Gradio) to BGR (OpenCV)
             img_bgr = cv2.cvtColor(np.array(img_array), cv2.COLOR_RGB2BGR)
+
+            # Determine angle subfolder (auto-detect if 'auto' or unspecified)
+            if angle_label == 'auto' or not angle_label:
+                angle = detect_face_angle(img_bgr)
+            else:
+                angle = angle_label if angle_label in ('frontal', 'left', 'right') else 'extra'
+
+            angle_counts[angle] += 1
 
             filename = f"{person_name}_{angle}_{angle_counts[angle]:03d}.jpg"
 

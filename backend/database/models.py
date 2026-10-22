@@ -316,8 +316,8 @@ class Subscription(Base):
         SQLEnum(PlanTier, name="plan_tier_enum", create_constraint=False),
         default=PlanTier.starter, nullable=False
     )
-    max_employees = Column(Integer, default=25, nullable=False)
-    max_cameras = Column(Integer, default=1, nullable=False)
+    max_employees = Column(Integer, default=200, nullable=False)
+    max_cameras = Column(Integer, default=5, nullable=False)
     status = Column(
         SQLEnum(SubscriptionStatus, name="subscription_status_enum"),
         default=SubscriptionStatus.trial, nullable=False

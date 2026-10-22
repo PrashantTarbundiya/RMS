@@ -46,10 +46,17 @@ def check_subscription_limit(org_id, new_employees_count=1):
     with get_db_session() as session:
         sub = session.query(Subscription).filter_by(org_id=org_id).first()
         if not sub:
-            # No subscription row — default to starter limits
-            max_allowed = 25
+            # No subscription row — default to starter limits (200 employees)
+            max_allowed = 200
         else:
-            max_allowed = sub.max_employees or 25
+            # Auto-upgrade starter or legacy organizations below 200
+            if not sub.max_employees or sub.max_employees < 200:
+                sub.max_employees = 200
+                try:
+                    session.commit()
+                except Exception as commit_err:
+                    session.rollback()
+            max_allowed = sub.max_employees or 200
 
             # Check subscription status
             status_msg = _check_subscription_status(sub)
@@ -258,20 +265,28 @@ def get_subscription_info(org_id):
             return {
                 'plan_tier': 'starter',
                 'status': 'trial',
-                'max_employees': 25,
+                'max_employees': 200,
                 'current_employees': current_employees,
-                'max_cameras': 1,
+                'max_cameras': 5,
                 'current_cameras': current_cameras,
                 'usage_percent_employees': round(
-                    (current_employees / 25 * 100), 1
+                    (current_employees / 200 * 100), 1
                 ),
                 'usage_percent_cameras': round(
-                    (current_cameras / 1 * 100), 1
+                    (current_cameras / 5 * 100), 1
                 ),
             }
 
-        max_emp = sub.max_employees or 25
-        max_cam = sub.max_cameras or 1
+        # Auto-upgrade starter or legacy subscriptions below 200
+        if not sub.max_employees or sub.max_employees < 200:
+            sub.max_employees = 200
+            try:
+                session.commit()
+            except Exception:
+                session.rollback()
+
+        max_emp = sub.max_employees or 200
+        max_cam = sub.max_cameras or 5
 
         return {
             'plan_tier': sub.plan_tier.value,
@@ -297,8 +312,8 @@ def get_subscription_info(org_id):
 
 # Plan tier → limits mapping (server-side source of truth)
 PLAN_LIMITS = {
-    'starter': {'max_employees': 25, 'max_cameras': 1},
-    'business': {'max_employees': 200, 'max_cameras': 10},
+    'starter': {'max_employees': 200, 'max_cameras': 5},
+    'business': {'max_employees': 500, 'max_cameras': 20},
     'enterprise': {'max_employees': 10000, 'max_cameras': 100},
 }
 

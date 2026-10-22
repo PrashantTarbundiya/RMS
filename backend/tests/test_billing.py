@@ -119,10 +119,10 @@ def test_plan_limits():
     """Test plan tier → limit mapping."""
     from billing import PLAN_LIMITS
     
-    assert PLAN_LIMITS['starter']['max_employees'] == 25
-    assert PLAN_LIMITS['starter']['max_cameras'] == 1
-    assert PLAN_LIMITS['business']['max_employees'] == 200
-    assert PLAN_LIMITS['business']['max_cameras'] == 10
+    assert PLAN_LIMITS['starter']['max_employees'] == 200
+    assert PLAN_LIMITS['starter']['max_cameras'] == 5
+    assert PLAN_LIMITS['business']['max_employees'] == 500
+    assert PLAN_LIMITS['business']['max_cameras'] == 20
     assert PLAN_LIMITS['enterprise']['max_employees'] == 10000
     assert PLAN_LIMITS['enterprise']['max_cameras'] == 100
     print("  ✓ PASS: Plan tier limits correct")
