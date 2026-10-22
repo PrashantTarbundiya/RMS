@@ -79,9 +79,9 @@ export default function HeroReticleCanvas() {
         <line x1="400" y1="275" x2="400" y2="285" stroke="#5E6AD2" strokeWidth="0.8" opacity="0.3" className="crosshair-pulse" />
 
         {/* Thin rings */}
-        <circle cx="400" cy="300" r="120" stroke="#23252A" strokeWidth="0.5" fill="none" opacity="0.3" className="ring-rotate ring-1" />
-        <circle cx="400" cy="300" r="180" stroke="#23252A" strokeWidth="0.3" fill="none" opacity="0.2" className="ring-rotate ring-2" />
-        <circle cx="400" cy="300" r="240" stroke="#5E6AD2" strokeWidth="0.3" fill="none" opacity="0.08" className="ring-rotate ring-3" />
+        <circle cx="400" cy="300" r="120" stroke="#23252A" strokeWidth="0.5" fill="none" opacity="0.3" className="ring-rotate reticle-ring-1" />
+        <circle cx="400" cy="300" r="180" stroke="#23252A" strokeWidth="0.3" fill="none" opacity="0.2" className="ring-rotate reticle-ring-2" />
+        <circle cx="400" cy="300" r="240" stroke="#5E6AD2" strokeWidth="0.3" fill="none" opacity="0.08" className="ring-rotate reticle-ring-3" />
       </svg>
     </div>
   );

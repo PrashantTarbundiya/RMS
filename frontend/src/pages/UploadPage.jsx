@@ -549,11 +549,12 @@ export default function UploadPage() {
           }
         }}
         onClick={() => setActiveField(field)}
+        style={{ transform: 'none' }}
         className={`p-4 rounded-xl border transition-all duration-200 relative ${
           isActive 
-            ? 'border-[#828FFF] bg-[#141516] shadow-lg ring-1 ring-[#828FFF]/30' 
+            ? 'border-[#828FFF] bg-[#141516] shadow-lg shadow-[#828FFF]/10' 
             : 'border-[#23252A] bg-[#191A1B] hover:border-[#34343A]'
-        } ${dragActiveField === field ? 'border-dashed border-[#828FFF] bg-[#5E6AD2]/10 scale-[1.01]' : ''}`}
+        } ${dragActiveField === field ? 'border-dashed border-[#828FFF] bg-[#5E6AD2]/10' : ''}`}
       >
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
@@ -753,8 +754,9 @@ export default function UploadPage() {
                       setShowDropdown(true);
                     }}
                     onFocus={() => setShowDropdown(true)}
+                    onBlur={() => setTimeout(() => setShowDropdown(false), 200)}
                     placeholder="e.g. John_Doe, Vatsal_Vadgama"
-                    className="input-primary w-full"
+                    className="input-linear w-full bg-[#101012] border border-[#23252A] text-ink placeholder:text-ink-tertiary focus:border-[#828FFF] focus:outline-none"
                   />
                   {showDropdown && searchQuery && (
                     <div className="absolute z-20 left-0 right-0 mt-1 bg-[#191A1B] border border-[#23252A] rounded-lg shadow-xl max-h-48 overflow-y-auto">
@@ -1183,8 +1185,9 @@ export default function UploadPage() {
                       setShowDropdown(true);
                     }}
                     onFocus={() => setShowDropdown(true)}
+                    onBlur={() => setTimeout(() => setShowDropdown(false), 200)}
                     placeholder="e.g. John_Doe, Vatsal_Vadgama"
-                    className="input-primary w-full"
+                    className="input-linear w-full bg-[#101012] border border-[#23252A] text-ink placeholder:text-ink-tertiary focus:border-[#828FFF] focus:outline-none"
                   />
                   {showDropdown && searchQuery && (
                     <div className="absolute z-20 left-0 right-0 mt-1 bg-[#191A1B] border border-[#23252A] rounded-lg shadow-xl max-h-48 overflow-y-auto">

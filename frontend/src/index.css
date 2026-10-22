@@ -244,7 +244,8 @@
 }
 
 /* Focus ring and input styling */
-.input-linear {
+.input-linear,
+.input-primary {
   background-color: var(--surface-1);
   border: 1px solid var(--hairline);
   border-radius: var(--radius-md);
@@ -254,7 +255,9 @@
   transition: all 0.2s ease;
 }
 .input-linear:focus,
-.input-linear:focus-within {
+.input-linear:focus-within,
+.input-primary:focus,
+.input-primary:focus-within {
   outline: none;
   border-color: var(--accent-primary);
   box-shadow: 0 0 0 2px rgba(94, 106, 210, 0.2);
@@ -969,13 +972,13 @@
   to { transform: rotate(360deg); }
 }
 
-.ring-1 { animation: ring-spin 90s linear infinite; transform-origin: 400px 300px; }
-.ring-2 { animation: ring-spin 120s linear infinite reverse; transform-origin: 400px 300px; }
-.ring-3 { animation: ring-spin 150s linear infinite; transform-origin: 400px 300px; }
+.reticle-ring-1 { animation: ring-spin 90s linear infinite; transform-origin: 400px 300px; }
+.reticle-ring-2 { animation: ring-spin 120s linear infinite reverse; transform-origin: 400px 300px; }
+.reticle-ring-3 { animation: ring-spin 150s linear infinite; transform-origin: 400px 300px; }
 
 @media (prefers-reduced-motion: reduce) {
   .reticle-scan-1, .reticle-scan-2, .reticle-scan-3,
-  .crosshair-pulse, .ring-1, .ring-2, .ring-3,
+  .crosshair-pulse, .reticle-ring-1, .reticle-ring-2, .reticle-ring-3,
   .scroll-indicator-dot { animation: none !important; }
 }
 
