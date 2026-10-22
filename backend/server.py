@@ -2170,6 +2170,8 @@ def process_local_training_queue():
             ]
             
             org_dataset_dir = get_dataset_cleaned_dir(org_id)
+            from config_utils import get_org_config
+            cfg = get_org_config(org_id)
             
             # ── Phase 1: Retrain all 4 embedding models ──────────────────────
             person_dir = os.path.join(org_dataset_dir, person_name)
@@ -2210,7 +2212,7 @@ def process_local_training_queue():
                                  glob_module.glob(os.path.join(p_dir, '**', '*.png'), recursive=True)
                         if p_imgs:
                             active_m = ['Facenet512']
-                            if CONFIG.get('ENABLE_INSIGHTFACE', False):
+                            if cfg.get('ENABLE_INSIGHTFACE', True):
                                 active_m.append('InsightFace')
                             for m in active_m:
                                 try:
@@ -2222,7 +2224,7 @@ def process_local_training_queue():
                     retrain_success = True
             elif image_paths:
                 active_models = ['Facenet512']
-                if CONFIG.get('ENABLE_INSIGHTFACE', False):
+                if cfg.get('ENABLE_INSIGHTFACE', True):
                     active_models.append('InsightFace')
                 for idx, model_name in enumerate(active_models):
                     try:
@@ -2997,6 +2999,128 @@ def import_default_weights_endpoint(org_id):
         return jsonify({'error': f"Failed to import default weights: {str(e)}"}), 500
 
 
+@app.route('/api/models/benchmark-status', methods=['GET'])
+@require_auth
+@inject_org_id
+def benchmark_status_endpoint(org_id):
+    """
+    Check if benchmark weights & personnel are currently present in this organization.
+    """
+    try:
+        from org_storage import get_encodings_path, _GLOBAL_DATA_DIR
+        enc_path = get_encodings_path(org_id, 'Facenet512')
+        is_imported = False
+        benchmark_count = 0
+        total_names = 0
+        
+        # 1. Check encodings pickle
+        if os.path.exists(enc_path):
+            with open(enc_path, 'rb') as f:
+                data = pickle.load(f)
+                names = set(data.get('names', []))
+                total_names = len(names)
+            global_path = os.path.join(_GLOBAL_DATA_DIR, 'encodings.pickle')
+            if os.path.exists(global_path):
+                with open(global_path, 'rb') as gf:
+                    gdata = pickle.load(gf)
+                    gnames = set(gdata.get('names', []))
+                overlap = names.intersection(gnames)
+                benchmark_count = len(overlap)
+                if benchmark_count >= 5:
+                    is_imported = True
+
+        # 2. Also check DB employee count for benchmark personnel if available
+        from database.db import is_db_available, get_db_session
+        from database.models import Employee
+        db_benchmark_count = 0
+        if is_db_available() and org_id and org_id != 'default-org':
+            with get_db_session() as db:
+                if db is not None:
+                    db_emps = db.query(Employee).filter_by(org_id=str(org_id)).all()
+                    db_benchmark_count = sum(1 for e in db_emps if ('-RMS-' in (e.employee_code or '') or (e.id and e.id.startswith(f"emp-{org_id[:8]}-"))))
+                    if db_benchmark_count >= 5:
+                        is_imported = True
+
+        return jsonify({
+            'imported': is_imported,
+            'benchmark_count': max(benchmark_count, db_benchmark_count),
+            'total_roster_count': total_names
+        })
+    except Exception as e:
+        logger.error(f"Error checking benchmark status: {e}")
+        return jsonify({'imported': False, 'benchmark_count': 0, 'error': str(e)}), 500
+
+
+@app.route('/api/models/remove-defaults', methods=['POST'])
+@app.route('/api/org/remove-defaults', methods=['POST'])
+@require_auth
+@require_role('org_admin')
+@inject_org_id
+def remove_default_weights_endpoint(org_id):
+    """
+    Remove benchmark dataset & pre-trained weights from this organization.
+    Deletes seeded benchmark personnel and removes their vector embeddings.
+    """
+    try:
+        from org_storage import get_encodings_path, _GLOBAL_DATA_DIR
+        # Get set of benchmark names
+        global_path = os.path.join(_GLOBAL_DATA_DIR, 'encodings.pickle')
+        benchmark_names = set()
+        if os.path.exists(global_path):
+            with open(global_path, 'rb') as gf:
+                benchmark_names = set(pickle.load(gf).get('names', []))
+
+        # 1. Clean pickle files for all models
+        models = ['Facenet512', 'InsightFace', 'GhostFaceNet']
+        for m in models:
+            enc_path = get_encodings_path(org_id, m)
+            if os.path.exists(enc_path):
+                try:
+                    with open(enc_path, 'rb') as f:
+                        data = pickle.load(f)
+                    encs = data.get('encodings', [])
+                    names = data.get('names', [])
+                    new_encs = []
+                    new_names = []
+                    for enc, name in zip(encs, names):
+                        if name not in benchmark_names:
+                            new_encs.append(enc)
+                            new_names.append(name)
+                    with open(enc_path, 'wb') as f:
+                        pickle.dump({'encodings': new_encs, 'names': new_names}, f)
+                except Exception as clean_err:
+                    logger.warning(f"Failed cleaning {m} encodings for org {org_id}: {clean_err}")
+
+        # 2. Clean database benchmark employees
+        from database.db import is_db_available, get_db_session
+        from database.models import Employee
+        deleted_emps = 0
+        if is_db_available() and org_id:
+            with get_db_session() as db:
+                if db is not None:
+                    db_emps = db.query(Employee).filter_by(org_id=str(org_id)).all()
+                    for e in db_emps:
+                        is_bench = (
+                            e.name in benchmark_names or
+                            '-RMS-' in (e.employee_code or '') or
+                            (e.id and e.id.startswith(f"emp-{org_id[:8]}-"))
+                        )
+                        if is_bench:
+                            db.delete(e)
+                            deleted_emps += 1
+                    db.commit()
+
+        reload_org_models(org_id)
+        return jsonify({
+            'success': True,
+            'message': f'Removed benchmark dataset and unloaded AI weights successfully.',
+            'deleted_employees': deleted_emps
+        })
+    except Exception as e:
+        logger.error(f"Error removing benchmark weights: {e}", exc_info=True)
+        return jsonify({'error': f"Failed to remove benchmark weights: {str(e)}"}), 500
+
+
 @app.route('/api/predict', methods=['POST'])
 @limiter.limit("5000 per minute")
 @require_api_key_or_auth
@@ -3624,25 +3748,100 @@ def handle_stream_frame(data):
 # ─── Recognition History Endpoints ────────────────────────────────────
 @app.route('/api/history', methods=['GET'])
 @require_auth
-def get_history():
-    """Retrieve recognition logs."""
+@inject_org_id
+def get_history(org_id):
+    """Retrieve recognition logs for the active organization."""
     history = []
-    if os.path.exists(RECOGNITION_HISTORY_PATH):
+    
+    # 1. First retrieve from PostgreSQL AttendanceLog if available
+    try:
+        from database.db import is_db_available, get_db_session
+        from database.models import AttendanceLog
+        if is_db_available() and org_id:
+            with get_db_session() as db:
+                if db is not None:
+                    db_logs = (
+                        db.query(AttendanceLog)
+                        .filter_by(org_id=str(org_id))
+                        .order_by(AttendanceLog.checkin_time.desc())
+                        .limit(200)
+                        .all()
+                    )
+                    for log in db_logs:
+                        ts = log.checkin_time.isoformat() if log.checkin_time else (log.created_at.isoformat() if log.created_at else "")
+                        conf = float(log.confidence) if log.confidence is not None else 0.0
+                        label = log.prediction_label or "Unknown"
+                        is_unk = label == 'Unknown' or not log.is_confirmed
+                        status_str = 'error' if is_unk else ('success' if conf >= 0.8 else 'warning')
+                        conf_level = 'confirmed' if (log.is_confirmed and not is_unk) else ('unknown' if is_unk else 'low_conf')
+                        history.append({
+                            'id': log.id,
+                            'timestamp': ts,
+                            'label': label,
+                            'confidence': conf,
+                            'status': status_str,
+                            'confidence_level': conf_level,
+                            'method': log.method or 'deepface',
+                            'is_confirmed': log.is_confirmed
+                        })
+    except Exception as db_err:
+        logger.warning(f"Error fetching DB history for org {org_id}: {db_err}")
+
+    # 2. Also retrieve from org's file-based recognition_history.json
+    try:
+        from org_storage import get_recognition_history_path
+        history_path = get_recognition_history_path(org_id)
+        if os.path.exists(history_path):
+            with open(history_path, 'r') as f:
+                file_history = json.load(f)
+                if isinstance(file_history, list):
+                    existing_ts = {h.get('timestamp') for h in history if h.get('timestamp')}
+                    for item in file_history:
+                        if item.get('timestamp') not in existing_ts:
+                            if 'confidence_level' not in item:
+                                is_unk = item.get('status') == 'error' or item.get('label') == 'Unknown'
+                                item['confidence_level'] = 'unknown' if is_unk else ('confirmed' if item.get('confidence', 0) >= 0.7 else 'low_conf')
+                            history.append(item)
+    except Exception as file_err:
+        logger.warning(f"Error fetching file history for org {org_id}: {file_err}")
+
+    # Fallback to global single-tenant file if both were empty and no org_id
+    if not history and not org_id and os.path.exists(RECOGNITION_HISTORY_PATH):
         try:
             with open(RECOGNITION_HISTORY_PATH, 'r') as f:
                 history = json.load(f)
         except Exception:
             pass
+
     return jsonify(history)
 
 @app.route('/api/history', methods=['DELETE'])
 @require_auth
 @require_role('org_admin')
-def clear_history():
-    """Clear recognition logs."""
+@inject_org_id
+def clear_history(org_id):
+    """Clear recognition logs for the active organization."""
     try:
-        if os.path.exists(RECOGNITION_HISTORY_PATH):
+        # Clear from database
+        from database.db import is_db_available, get_db_session
+        from database.models import AttendanceLog
+        if is_db_available() and org_id:
+            with get_db_session() as db:
+                if db is not None:
+                    db.query(AttendanceLog).filter_by(org_id=str(org_id)).delete()
+                    db.commit()
+
+        # Clear from org file
+        from org_storage import get_recognition_history_path
+        history_path = get_recognition_history_path(org_id)
+        if os.path.exists(history_path):
+            with open(history_path, 'w') as f:
+                json.dump([], f)
+
+        # Clear global if in single-tenant mode
+        if not org_id and os.path.exists(RECOGNITION_HISTORY_PATH):
             os.remove(RECOGNITION_HISTORY_PATH)
+
         return jsonify({'message': 'History cleared successfully'})
     except Exception as e:
         return jsonify({'error': str(e)}), 500

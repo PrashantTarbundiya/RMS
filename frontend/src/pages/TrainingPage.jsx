@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { Link } from 'react-router-dom';
-import { Terminal, CheckCircle, Download, Activity, Loader2, RefreshCw, Play, XCircle } from 'lucide-react';
+import { Terminal, CheckCircle, Download, Activity, Loader2, RefreshCw, Play, XCircle, Copy, Trash2, Check } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { API_BASE } from '../config';
 import EmptyState from '../components/ui/EmptyState';
@@ -15,6 +15,7 @@ export default function TrainingPage() {
   const [isTraining, setIsTraining] = useState(false);
   const [isRetrigger, setIsRetrigger] = useState(false);
   const [autoScroll, setAutoScroll] = useState(true);
+  const [copied, setCopied] = useState(false);
   const terminalContainerRef = useRef(null);
   const eventSourceRef = useRef(null);
 
@@ -98,6 +99,8 @@ export default function TrainingPage() {
 
   const copyLogs = () => {
     navigator.clipboard.writeText(logs.join('\n')).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
       toast.success('Logs copied to clipboard.');
     });
   };
@@ -172,12 +175,30 @@ export default function TrainingPage() {
             {isTraining && <span className="w-2 h-2 rounded-full bg-[#27A644] animate-pulse" />}
           </div>
           <div className="flex items-center gap-2">
-            <label className="flex items-center gap-1.5 text-[11px] text-ink-tertiary cursor-pointer select-none">
+            <label className="flex items-center gap-1.5 text-[11px] text-ink-tertiary cursor-pointer select-none mr-1">
               <input type="checkbox" checked={autoScroll} onChange={e => setAutoScroll(e.target.checked)} className="accent-[#5E6AD2]" />
               Auto-scroll
             </label>
-            <button onClick={copyLogs} disabled={logs.length === 0} className="button-secondary text-[11px] py-1 px-2 h-7 disabled:opacity-30">Copy</button>
-            <button onClick={clearLogs} disabled={logs.length === 0} className="button-secondary text-[11px] py-1 px-2 h-7 disabled:opacity-30">Clear</button>
+            <button
+              type="button"
+              onClick={copyLogs}
+              disabled={logs.length === 0}
+              className="h-7 px-2.5 rounded-md border border-[#23252A] bg-[#141516] hover:bg-[#1E2024] hover:border-[#828FFF]/40 text-ink-subtle hover:text-ink text-[11px] font-medium flex items-center gap-1.5 transition-all disabled:opacity-30 disabled:pointer-events-none"
+              title="Copy terminal logs"
+            >
+              {copied ? <Check size={12} className="text-emerald-400" /> : <Copy size={12} />}
+              <span>{copied ? 'Copied' : 'Copy'}</span>
+            </button>
+            <button
+              type="button"
+              onClick={clearLogs}
+              disabled={logs.length === 0}
+              className="h-7 px-2.5 rounded-md border border-[#23252A] bg-[#141516] hover:bg-rose-500/10 hover:border-rose-500/30 hover:text-rose-400 text-ink-muted text-[11px] font-medium flex items-center gap-1.5 transition-all disabled:opacity-30 disabled:pointer-events-none"
+              title="Clear terminal output"
+            >
+              <Trash2 size={12} />
+              <span>Clear</span>
+            </button>
           </div>
         </div>
 

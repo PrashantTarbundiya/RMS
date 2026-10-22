@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
-import { Download, Trash2, Box, Cpu, AlertTriangle, Settings, Save, CheckCircle, Info, Archive, Upload, RotateCcw, Loader2 } from 'lucide-react';
+import { Download, Trash2, Box, Cpu, AlertTriangle, Settings, Save, CheckCircle, Info, Archive, Upload, RotateCcw, Loader2, Check } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { API_BASE } from '../config';
 
@@ -16,6 +16,9 @@ export default function ModelsPage() {
   const [config, setConfig] = useState(null);
   const [threshold, setThreshold] = useState(0.35);
   const [isSavingConfig, setIsSavingConfig] = useState(false);
+
+  const [benchmarkStatus, setBenchmarkStatus] = useState({ imported: false, benchmark_count: 0, total_roster_count: 0 });
+  const [isRemovingDefaults, setIsRemovingDefaults] = useState(false);
 
   const [enableFacenet512, setEnableFacenet512] = useState(() => {
     return localStorage.getItem('enableFacenet512') !== 'false';
@@ -88,17 +91,45 @@ export default function ModelsPage() {
 
   const [isImportingDefaults, setIsImportingDefaults] = useState(false);
 
+  const fetchBenchmarkStatus = async () => {
+    try {
+      const res = await apiClient.get(`${API_BASE}/models/benchmark-status`);
+      if (res.data) setBenchmarkStatus(res.data);
+    } catch {
+      // Fallback
+    }
+  };
+
+  useEffect(() => {
+    fetchBenchmarkStatus();
+  }, []);
+
   const handleImportDefaults = async () => {
     setIsImportingDefaults(true);
     toast.info('Importing 70 benchmark persons & pre-trained AI weights...');
     try {
       const res = await apiClient.post(`${API_BASE}/models/import-defaults`);
       toast.success(res.data.message || 'Benchmark dataset & AI weights imported successfully!');
-      setTimeout(() => window.location.reload(), 1200);
+      fetchBenchmarkStatus();
     } catch (err) {
       toast.error(err.response?.data?.error || 'Failed to import benchmark weights.');
     } finally {
       setIsImportingDefaults(false);
+    }
+  };
+
+  const handleRemoveDefaults = async () => {
+    if (!window.confirm('Are you sure you want to unload the 70 benchmark personnel and weights? Your custom registered employees will NOT be affected.')) return;
+    setIsRemovingDefaults(true);
+    toast.info('Removing benchmark dataset and unloading weights...');
+    try {
+      const res = await apiClient.post(`${API_BASE}/models/remove-defaults`);
+      toast.success(res.data.message || 'Benchmark weights removed.');
+      fetchBenchmarkStatus();
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Failed to remove benchmark weights.');
+    } finally {
+      setIsRemovingDefaults(false);
     }
   };
 
@@ -286,27 +317,65 @@ export default function ModelsPage() {
         </div>
 
         {/* Benchmark Foundation & Pre-trained Weights */}
-        <div className="card-linear p-6 border border-[#5E6AD2]/30 bg-gradient-to-b from-[#5E6AD2]/10 to-transparent">
+        <div className={`card-linear p-6 border transition-all ${
+          benchmarkStatus.imported 
+            ? 'border-emerald-500/30 bg-gradient-to-b from-emerald-500/10 to-transparent' 
+            : 'border-[#5E6AD2]/30 bg-gradient-to-b from-[#5E6AD2]/10 to-transparent'
+        }`}>
           <div>
-            <div className="flex items-center gap-2 mb-2">
-              <span className="px-2 py-0.5 rounded text-[10px] font-mono font-semibold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">RECOMMENDED</span>
+            <div className="flex items-center gap-2 mb-2 flex-wrap">
+              {benchmarkStatus.imported ? (
+                <span className="px-2 py-0.5 rounded text-[10px] font-mono font-semibold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
+                  <Check className="w-3 h-3" /> ALREADY IMPORTED ({benchmarkStatus.benchmark_count || 70} PERSONNEL ACTIVE)
+                </span>
+              ) : (
+                <span className="px-2 py-0.5 rounded text-[10px] font-mono font-semibold bg-[#5E6AD2]/20 text-[#828FFF] border border-[#5E6AD2]/30">
+                  RECOMMENDED
+                </span>
+              )}
               <h3 className="text-body font-medium text-ink flex items-center gap-2">
-                <Box className="w-5 h-5 text-[#828FFF]" /> Benchmark Dataset & Pre-Trained AI Weights
+                <Box className={`w-5 h-5 ${benchmarkStatus.imported ? 'text-emerald-400' : 'text-[#828FFF]'}`} /> Benchmark Dataset & Pre-Trained AI Weights
               </h3>
             </div>
             <p className="text-caption text-ink-subtle mb-6 leading-relaxed">
-              Import 70 pre-cleaned benchmark personnel and pre-computed high-accuracy 512-d embeddings directly into your organization. Gives your team an immediate high-accuracy foundation so live recognition works instantly without an empty roster.
+              {benchmarkStatus.imported ? (
+                <>Benchmark dataset of 70 reference personnel and pre-computed 512-d embeddings is <strong>currently loaded and active</strong> in your organization's vector space. You can safely remove or unload it if you only wish to use your own proprietary employee roster.</>
+              ) : (
+                <>Import 70 pre-cleaned benchmark personnel and pre-computed high-accuracy 512-d embeddings directly into your organization. Gives your team an immediate high-accuracy foundation so live recognition works instantly without an empty roster.</>
+              )}
             </p>
             
-            <div className="flex flex-wrap gap-3">
-              <button 
-                onClick={handleImportDefaults} 
-                disabled={isImportingDefaults} 
-                className="button-primary bg-[#5E6AD2] hover:bg-[#4E5AC0] text-white flex items-center gap-2 font-medium shadow-lg shadow-[#5E6AD2]/25"
-              >
-                {isImportingDefaults ? <Loader2 className="w-4 h-4 animate-spin text-white" /> : <Upload className="w-4 h-4 text-white" />}
-                <span className="text-button text-white">{isImportingDefaults ? 'Importing Weights...' : 'Import 70 Personnel & AI Weights'}</span>
-              </button>
+            <div className="flex flex-wrap items-center gap-3">
+              {benchmarkStatus.imported ? (
+                <>
+                  <button 
+                    onClick={handleRemoveDefaults} 
+                    disabled={isRemovingDefaults} 
+                    className="h-10 px-4 rounded-lg border border-rose-500/40 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 font-medium text-caption flex items-center gap-2 transition-all disabled:opacity-50"
+                  >
+                    {isRemovingDefaults ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                    <span>{isRemovingDefaults ? 'Unloading Data...' : 'Remove / Unload Benchmark Data'}</span>
+                  </button>
+
+                  <button 
+                    onClick={handleImportDefaults} 
+                    disabled={isImportingDefaults} 
+                    className="button-secondary text-caption flex items-center gap-2 h-10 px-4"
+                  >
+                    {isImportingDefaults ? <Loader2 className="w-4 h-4 animate-spin" /> : <RotateCcw className="w-4 h-4" />}
+                    <span>Re-Sync Weights</span>
+                  </button>
+                </>
+              ) : (
+                <button 
+                  onClick={handleImportDefaults} 
+                  disabled={isImportingDefaults} 
+                  className="button-primary bg-[#5E6AD2] hover:bg-[#4E5AC0] text-white flex items-center gap-2 font-medium shadow-lg shadow-[#5E6AD2]/25"
+                >
+                  {isImportingDefaults ? <Loader2 className="w-4 h-4 animate-spin text-white" /> : <Upload className="w-4 h-4 text-white" />}
+                  <span className="text-button text-white">{isImportingDefaults ? 'Importing Weights...' : 'Import 70 Personnel & AI Weights'}</span>
+                </button>
+              )}
             </div>
           </div>
         </div>

@@ -39,17 +39,23 @@ export default function AttendancePage() {
     fetchHistory();
   }, [fetchHistory]);
 
-  const setQuickDate = (preset) => {
+  const pad = (n) => String(n).padStart(2, '0');
+  const todayYMD = () => {
     const today = new Date();
-    const pad = (n) => String(n).padStart(2, '0');
-    const toYMD = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+    return `${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`;
+  };
 
+  const yesterdayYMD = () => {
+    const y = new Date();
+    y.setDate(y.getDate() - 1);
+    return `${y.getFullYear()}-${pad(y.getMonth() + 1)}-${pad(y.getDate())}`;
+  };
+
+  const setQuickDate = (preset) => {
     if (preset === 'today') {
-      setDateFilter(toYMD(today));
+      setDateFilter(todayYMD());
     } else if (preset === 'yesterday') {
-      const y = new Date();
-      y.setDate(y.getDate() - 1);
-      setDateFilter(toYMD(y));
+      setDateFilter(yesterdayYMD());
     } else if (preset === '7d') {
       setDateFilter('last_7_days');
     } else {
@@ -59,15 +65,28 @@ export default function AttendancePage() {
 
   // Filter by date, search, status, and confidence
   const filteredData = data.filter(record => {
-    // Date matching
+    // Robust Date matching
+    const rawTs = record.timestamp || record.checkin_time || record.created_at;
     let matchDate = true;
+
     if (dateFilter === 'last_7_days') {
-      if (!record.timestamp) return false;
-      const t = new Date(record.timestamp).getTime();
-      const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
-      matchDate = t >= sevenDaysAgo;
+      if (!rawTs) return false;
+      const recDate = new Date(typeof rawTs === 'string' ? rawTs.replace(' ', 'T') : rawTs);
+      if (isNaN(recDate.getTime())) return false;
+      
+      const sevenDaysAgo = new Date();
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+      sevenDaysAgo.setHours(0, 0, 0, 0);
+      matchDate = recDate.getTime() >= sevenDaysAgo.getTime();
     } else if (dateFilter) {
-      matchDate = record.timestamp && record.timestamp.startsWith(dateFilter);
+      if (!rawTs) return false;
+      const recDate = new Date(typeof rawTs === 'string' ? rawTs.replace(' ', 'T') : rawTs);
+      if (!isNaN(recDate.getTime())) {
+        const recYMD = `${recDate.getFullYear()}-${pad(recDate.getMonth() + 1)}-${pad(recDate.getDate())}`;
+        matchDate = recYMD === dateFilter;
+      } else {
+        matchDate = String(rawTs).startsWith(dateFilter);
+      }
     }
 
     // Search matching
@@ -306,7 +325,7 @@ export default function AttendancePage() {
           <button
             onClick={() => setQuickDate('today')}
             className={`px-2.5 py-1 rounded-md text-xs font-medium transition-all ${
-              dateFilter && dateFilter === new Date().toISOString().split('T')[0]
+              dateFilter === todayYMD()
                 ? 'bg-[#5E6AD2]/20 text-[#828FFF] border border-[#5E6AD2]/40'
                 : 'bg-[#141516] border border-[#23252A] hover:border-[#383A42]'
             }`}
@@ -316,7 +335,7 @@ export default function AttendancePage() {
           <button
             onClick={() => setQuickDate('yesterday')}
             className={`px-2.5 py-1 rounded-md text-xs font-medium transition-all ${
-              dateFilter && dateFilter !== 'last_7_days' && dateFilter !== new Date().toISOString().split('T')[0]
+              dateFilter === yesterdayYMD()
                 ? 'bg-[#5E6AD2]/20 text-[#828FFF] border border-[#5E6AD2]/40'
                 : 'bg-[#141516] border border-[#23252A] hover:border-[#383A42]'
             }`}
