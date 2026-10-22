@@ -2779,6 +2779,7 @@ def download_model():
 # Maps user-facing filenames → actual disk paths.
 def _get_downloadable_files(org_id=None):
     from org_storage import get_encodings_path, get_sota_model_path, get_sota_classes_path
+    from model import _INSIGHTFACE_ONNX_PATH
     
     # Resolve org_id fallback
     target_org = org_id or 'default-org'
