@@ -281,8 +281,8 @@ export default function TestPage() {
           threshold: customThreshold,
           enable_facenet512: enableFacenet512,
           enable_insightface: enableInsightFace,
-          enable_ghostfacenet: enableGhostFaceNet,
-          enable_vggface: enableVGGFace
+          enable_ghostfacenet: false,
+          enable_vggface: false
         });
         // Note: isRequestInFlightRef is reset in the socket listener
       } else {

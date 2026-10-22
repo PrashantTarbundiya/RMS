@@ -9,11 +9,11 @@ if hasattr(sys.stdout, 'buffer'):
         pass
 
 # Monkey-patch standard library for Gevent async mode (Must be at the very top)
-# thread=False preserves native POSIX threads for TensorFlow C++ extensions & psycopg2
+# thread=False, queue=False, Event=False preserves native POSIX threads and queues for TensorFlow C++ extensions & psycopg2 & MediaPipe
 try:
     import gevent.monkey
     if not gevent.monkey.is_module_patched('os'):
-        gevent.monkey.patch_all(thread=False)
+        gevent.monkey.patch_all(thread=False, queue=False, Event=False)
 except ImportError:
     pass
 
@@ -3412,8 +3412,6 @@ def handle_stream_frame(data):
         additional_frames_raw = []
 
         org_models = ensure_org_models_loaded(org_id)
-        
-        from face_detector import face_detector
         detected_faces_info = face_detector.detect_faces(img_np, profile_only=False)
         
         faces_data = []

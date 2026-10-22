@@ -164,7 +164,22 @@ def load_encodings(org_id=None, model_name="Facenet512"):
     """
     path = get_encodings_path(org_id, model_name=model_name)
     if not os.path.exists(path):
-        return None, None
+        # Auto-seed from global benchmark encodings if org does not have its own yet
+        if org_id and org_id != 'default-org':
+            global_path = get_encodings_path(None, model_name=model_name)
+            if os.path.exists(global_path):
+                try:
+                    import shutil
+                    os.makedirs(os.path.dirname(path), exist_ok=True)
+                    shutil.copy2(global_path, path)
+                    logger.info(f"Auto-seeded {model_name} encodings from global to org {org_id}")
+                except Exception as ex:
+                    logger.warning(f"Failed to copy global {model_name} to org {org_id}: {ex}")
+                    path = global_path
+            else:
+                return None, None
+        else:
+            return None, None
     try:
         with open(path, 'rb') as f:
             data = pickle.load(f)
