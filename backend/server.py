@@ -4488,20 +4488,69 @@ def rebuild_person_embeddings(name):
         print(f"[WARNING] Failed to rebuild embeddings for {name}: {e}")
 
 # ─── Photo Management Endpoints ───────────────────────────────────────
+def _find_person_photo_dir(name, org_id=None):
+    """Finds the dataset directory containing photos for a person across org and global storage."""
+    name = (name or '').strip()
+    if not name:
+        return None
+        
+    candidates = []
+    if org_id:
+        try:
+            from org_storage import get_dataset_cleaned_dir, get_raw_dataset_dir
+            candidates.append(get_dataset_cleaned_dir(org_id))
+            candidates.append(get_raw_dataset_dir(org_id))
+        except Exception:
+            pass
+            
+    candidates.extend([
+        DATASET_CLEANED_DIR,
+        os.path.join(DATA_DIR, 'dataset_cleaned'),
+        os.path.join(PROJECT_ROOT, 'dataset'),
+        os.path.join(DATA_DIR, 'dataset')
+    ])
+    
+    name_variants = [
+        name,
+        name.replace(' ', '_'),
+        name.replace('_', ' '),
+        name.lower(),
+        name.lower().replace(' ', '_')
+    ]
+    
+    for base_dir in candidates:
+        if not base_dir or not os.path.exists(base_dir):
+            continue
+        for variant in name_variants:
+            p = os.path.join(base_dir, variant)
+            if os.path.exists(p) and os.path.isdir(p):
+                return p
+        try:
+            for item in os.listdir(base_dir):
+                if item.lower() == name.lower() or item.lower() == name.lower().replace(' ', '_'):
+                    p = os.path.join(base_dir, item)
+                    if os.path.isdir(p):
+                        return p
+        except Exception:
+            pass
+            
+    return None
+
 @app.route('/api/persons/<name>/photos', methods=['GET'])
 @require_auth
 def list_person_photos(name):
     """Lists all cleaned photo details for a person."""
     name = name.strip()
-    person_dir = os.path.join(DATASET_CLEANED_DIR, name)
-    if not os.path.exists(person_dir):
-        return jsonify({'error': 'Person not found'}), 404
+    org_id = getattr(request, 'user', {}).get('org_id') if hasattr(request, 'user') else None
+    person_dir = _find_person_photo_dir(name, org_id)
+    if not person_dir:
+        # Return empty list [] with 200 OK so UI does not throw 404 errors
+        return jsonify([])
         
     photos = []
     for root, dirs, files in os.walk(person_dir):
         for file in files:
             if file.lower().endswith(('.jpg', '.jpeg', '.png', '.webp', '.bmp')):
-                # Find relative path parts
                 rel_path = os.path.relpath(os.path.join(root, file), person_dir)
                 parts = rel_path.split(os.sep)
                 if len(parts) >= 2:
@@ -4512,12 +4561,29 @@ def list_person_photos(name):
                         'filename': filename,
                         'url': f'/api/persons/{name}/photos/{angle}/{filename}'
                     })
+                elif len(parts) == 1:
+                    photos.append({
+                        'angle': 'frontal',
+                        'filename': parts[0],
+                        'url': f'/api/persons/{name}/photos/frontal/{parts[0]}'
+                    })
     return jsonify(photos)
 
 @app.route('/api/persons/<name>/photos/<angle>/<filename>', methods=['GET'])
 @require_auth
 def get_person_photo(name, angle, filename):
     """Serves a specific cleaned photo file."""
+    org_id = getattr(request, 'user', {}).get('org_id') if hasattr(request, 'user') else None
+    person_dir = _find_person_photo_dir(name, org_id)
+    if person_dir:
+        path = os.path.join(person_dir, angle, filename)
+        if os.path.exists(path):
+            return send_file(path)
+        direct_path = os.path.join(person_dir, filename)
+        if os.path.exists(direct_path):
+            return send_file(direct_path)
+            
+    # Fallback directly to DATASET_CLEANED_DIR
     path = os.path.join(DATASET_CLEANED_DIR, name, angle, filename)
     if os.path.exists(path):
         return send_file(path)

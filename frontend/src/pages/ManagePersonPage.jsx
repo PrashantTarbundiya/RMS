@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, Trash2, Camera, UploadCloud, Video, X, CheckCircle, AlertTriangle, Info, Image as ImageIcon, RotateCw } from 'lucide-react';
+import { ArrowLeft, Trash2, Camera, UploadCloud, Video, X, CheckCircle, AlertTriangle, Info, Image as ImageIcon, RotateCw, User } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { API_BASE } from '../config';
 import Modal from '../components/Modal';
@@ -57,9 +57,10 @@ export default function ManagePersonPage() {
   const fetchPhotos = useCallback(async () => {
     try {
       const res = await apiClient.get(`${API_BASE}/persons/${originalName}/photos`);
-      setPhotos(res.data);
+      setPhotos(Array.isArray(res.data) ? res.data : []);
     } catch (err) {
-      setStatus({ type: 'error', message: 'Failed to fetch person photos.' });
+      // Gracefully treat missing photos directory as empty list
+      setPhotos([]);
     } finally { setIsLoading(false); }
   }, [originalName, apiClient]);
 
@@ -304,7 +305,7 @@ export default function ManagePersonPage() {
     );
   }
 
-  const frontalPhoto = photos.find(p => p.angle === 'frontal');
+  const frontalPhoto = Array.isArray(photos) ? photos.find(p => p.angle === 'frontal') : null;
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="pb-12 max-w-5xl mx-auto space-y-6 page-container">
