@@ -67,6 +67,24 @@ export default function TrainingPage() {
     }
   };
 
+  const handleDownloadFile = async (filename) => {
+    try {
+      toast.info(`Preparing ${filename}...`);
+      const res = await apiClient.get(`${API_BASE}/download-file?name=${filename}`, { responseType: 'blob' });
+      const url = window.URL.createObjectURL(new Blob([res.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', filename);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      toast.success(`Downloaded ${filename}`);
+    } catch (err) {
+      toast.error(err?.response?.data?.error || `Failed to download ${filename}`);
+    }
+  };
+
   const enableInsightFace = localStorage.getItem('enableInsightFace') === 'true';
 
   const extractProgress = () => {
@@ -153,10 +171,28 @@ export default function TrainingPage() {
                     <h4 className="m-0 mb-3 text-sm flex items-center gap-2 text-ink-subtle font-semibold uppercase tracking-wider text-[11px]">
                       <Terminal className="w-4 h-4 text-ink-tertiary" /> Encodings & Weights
                     </h4>
-                    <div className="flex gap-2 flex-wrap">
-                      <a href={`${API_BASE}/download-file?name=encodings.pickle`} className="button-primary text-white text-caption flex items-center gap-2 h-9">
+                    <div className="flex gap-2.5 flex-wrap">
+                      <button
+                        type="button"
+                        onClick={() => handleDownloadFile('encodings.pickle')}
+                        className="button-primary text-white text-caption flex items-center gap-2 h-9 px-3"
+                      >
                         <Download className="w-4 h-4 text-white" /> encodings.pickle (Facenet512)
-                      </a>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDownloadFile('encodings_InsightFace.pickle')}
+                        className="button-secondary text-ink text-caption flex items-center gap-2 h-9 px-3 border border-[#23252A] hover:border-[#5E6AD2]"
+                      >
+                        <Download className="w-4 h-4 text-ink-subtle" /> encodings_InsightFace.pickle
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDownloadFile('best_mobile_sideface.pth')}
+                        className="button-secondary text-ink text-caption flex items-center gap-2 h-9 px-3 border border-[#23252A] hover:border-[#5E6AD2]"
+                      >
+                        <Download className="w-4 h-4 text-ink-subtle" /> best_mobile_sideface.pth
+                      </button>
                     </div>
                   </div>
                 </div>

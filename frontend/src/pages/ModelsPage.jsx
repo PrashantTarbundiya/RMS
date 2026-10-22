@@ -138,6 +138,38 @@ export default function ModelsPage() {
   const [backupLoading, setBackupLoading] = useState(false);
   const [restoreLoading, setRestoreLoading] = useState(false);
 
+  // ── Downloadable Model Artefacts for Offline / Edge ──
+  const [downloadFiles, setDownloadFiles] = useState([]);
+  const [downloadLoading, setDownloadLoading] = useState({});
+
+  const fetchDownloadList = async () => {
+    try {
+      const res = await apiClient.get(`${API_BASE}/download-list`);
+      if (res.data?.files) setDownloadFiles(res.data.files);
+    } catch { /* ignore */ }
+  };
+
+  const handleDownloadModel = async (filename) => {
+    setDownloadLoading(prev => ({ ...prev, [filename]: true }));
+    try {
+      toast.info(`Preparing ${filename}...`);
+      const res = await apiClient.get(`${API_BASE}/download-file?name=${filename}`, { responseType: 'blob' });
+      const url = window.URL.createObjectURL(new Blob([res.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', filename);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      toast.success(`Downloaded ${filename}`);
+    } catch (err) {
+      toast.error(err?.response?.data?.error || `Failed to download ${filename}`);
+    } finally {
+      setDownloadLoading(prev => ({ ...prev, [filename]: false }));
+    }
+  };
+
   const fetchBackups = async () => {
     try {
       const res = await apiClient.get(`${API_BASE}/backup/list`);
@@ -145,7 +177,10 @@ export default function ModelsPage() {
     } catch { /* ignore if not available */ }
   };
 
-  useEffect(() => { fetchBackups(); }, []);
+  useEffect(() => { 
+    fetchBackups();
+    fetchDownloadList();
+  }, []);
 
   const createBackup = async () => {
     setBackupLoading(true);
@@ -376,6 +411,61 @@ export default function ModelsPage() {
                   <span className="text-button text-white">{isImportingDefaults ? 'Importing Weights...' : 'Import 70 Personnel & AI Weights'}</span>
                 </button>
               )}
+            </div>
+          </div>
+        </div>
+
+        {/* Offline & Edge Model Artefacts */}
+        <div className="card-linear p-6">
+          <div>
+            <h3 className="text-body font-medium text-ink flex items-center gap-2 mb-2">
+              <Download className="w-5 h-5 text-ink-subtle" /> Edge & Offline Model Exports
+            </h3>
+            <p className="text-caption text-ink-subtle mb-6">
+              Download individual trained neural network weights, vector embedding indices, and ONNX models to run offline air-gapped attendance appliances or Raspberry Pi edge devices.
+            </p>
+
+            <div className="space-y-2.5">
+              {[
+                { name: 'encodings.pickle', title: 'Facenet512 Embeddings Index', desc: '512-d KNN metric index for primary authoritative face verification.' },
+                { name: 'encodings_InsightFace.pickle', title: 'InsightFace ArcFace Embeddings', desc: '512-d ArcFace embedding index for fast secondary angle confirmation.' },
+                { name: 'best_mobile_sideface.pth', title: 'MobileNetV2 SOTA Weights', desc: 'PyTorch deep CNN weights for 90° multi-view pose & profile classification.' },
+                { name: 'w600k_mbf.onnx', title: 'InsightFace ArcFace ONNX Model', desc: 'Raw ONNX backbone model for offline CPU/GPU edge inference.' },
+                { name: 'class_centroids.json', title: 'Class Centroids', desc: 'Normalized centroids map for fast mobile & low-power edge lookup.' }
+              ].map((item, idx) => {
+                const fileInfo = downloadFiles.find(f => f.name === item.name);
+                const isAvail = fileInfo ? fileInfo.available : false;
+                const sizeStr = fileInfo && fileInfo.size_mb > 0 ? `${fileInfo.size_mb} MB` : (fileInfo && fileInfo.size_bytes > 0 ? `${Math.round(fileInfo.size_bytes / 1024)} KB` : null);
+                const isLoading = downloadLoading[item.name];
+
+                return (
+                  <div key={idx} className="flex items-center justify-between p-3.5 bg-[#010102]/50 rounded-lg border border-[#23252A] hover:border-[#2D3039] transition-all">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-caption font-medium text-ink">{item.title}</span>
+                        <code className="text-[11px] font-mono text-[#828FFF] bg-[#5E6AD2]/10 px-1.5 py-0.5 rounded">{item.name}</code>
+                        {sizeStr && <span className="text-[11px] font-mono text-ink-tertiary">({sizeStr})</span>}
+                      </div>
+                      <p className="text-[11px] text-ink-tertiary mt-0.5 m-0">{item.desc}</p>
+                    </div>
+                    <div>
+                      <button
+                        type="button"
+                        onClick={() => handleDownloadModel(item.name)}
+                        disabled={isLoading || !isAvail}
+                        className={`text-[11px] py-1.5 px-3 rounded-md flex items-center gap-1.5 font-medium transition-all ${
+                          isAvail
+                            ? 'bg-[#5E6AD2]/15 text-[#828FFF] border border-[#5E6AD2]/30 hover:bg-[#5E6AD2]/25'
+                            : 'bg-zinc-800/40 text-zinc-500 border border-zinc-800 cursor-not-allowed'
+                        }`}
+                      >
+                        {isLoading ? <Loader2 size={12} className="animate-spin" /> : <Download size={12} />}
+                        <span>{isLoading ? 'Downloading...' : isAvail ? 'Download' : 'Not Generated'}</span>
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
         </div>

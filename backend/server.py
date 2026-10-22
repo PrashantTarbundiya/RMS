@@ -2777,19 +2777,29 @@ def download_model():
 
 # ── Secure Download System ──────────────────────────────────────────────────
 # Maps user-facing filenames → actual disk paths.
-# Only files in this dict can be downloaded — prevents path traversal attacks.
-_DOWNLOADABLE_FILES = {
-    # Core trained models
-    'encodings.pickle':          os.path.join(DATA_DIR, 'encodings.pickle'),
-    'best_mobile_sideface.pth':  SOTA_MODEL_PATH,
-    'mobile_classes.txt':        os.path.join(BACKEND_DIR, 'models', 'sota_finetune', 'mobile_classes.txt'),
-    # ONNX exports (generated via Models page → Export)
-    'sideface_mobile.onnx':      os.path.join(PROJECT_ROOT, 'sideface_mobile.onnx'),
-    'facenet512.onnx':           os.path.join(PROJECT_ROOT, 'facenet512.onnx'),
-    # Mobile deployment artefacts
-    'class_centroids.json':      os.path.join(DATA_DIR, 'class_centroids.json'),
-    'label_map.json':            os.path.join(DATA_DIR, 'label_map.json'),
-}
+def _get_downloadable_files(org_id=None):
+    from org_storage import get_encodings_path, get_sota_model_path, get_sota_classes_path
+    
+    # Resolve org_id fallback
+    target_org = org_id or 'default-org'
+    
+    files = {
+        # Core trained embedding indices
+        'encodings.pickle':              get_encodings_path(target_org, 'Facenet512'),
+        'encodings_InsightFace.pickle':  get_encodings_path(target_org, 'InsightFace'),
+        'encodings_GhostFaceNet.pickle': get_encodings_path(target_org, 'GhostFaceNet'),
+        # SOTA Fine-tuned Classifier Weights
+        'best_mobile_sideface.pth':      get_sota_model_path(target_org),
+        'mobile_classes.txt':            get_sota_classes_path(target_org),
+        # Neural Network ONNX Backbones
+        'w600k_mbf.onnx':                _INSIGHTFACE_ONNX_PATH,
+        'sideface_mobile.onnx':          os.path.join(PROJECT_ROOT, 'sideface_mobile.onnx'),
+        'facenet512.onnx':               os.path.join(PROJECT_ROOT, 'facenet512.onnx'),
+        # Edge deployment metadata
+        'class_centroids.json':          os.path.join(DATA_DIR, 'class_centroids.json'),
+        'label_map.json':                os.path.join(DATA_DIR, 'label_map.json'),
+    }
+    return files
 
 # MIME types for secure Content-Type headers
 _MIME_MAP = {
@@ -2813,17 +2823,26 @@ def download_file():
       - Returns proper Content-Type and Content-Disposition headers.
     """
     filename = request.args.get('name', '').strip()
+    
+    # Extract org_id from JWT context or request
+    org_id = None
+    if hasattr(g, 'current_user') and g.current_user:
+        org_id = g.current_user.get('org_id')
+    if not org_id:
+        org_id = request.args.get('org_id')
+
+    files_map = _get_downloadable_files(org_id)
 
     # Reject empty or unknown filenames
-    if not filename or filename not in _DOWNLOADABLE_FILES:
-        allowed = sorted(_DOWNLOADABLE_FILES.keys())
+    if not filename or filename not in files_map:
+        allowed = sorted(files_map.keys())
         return jsonify({
             'error': f"Unknown file '{filename}'.",
             'allowed': allowed,
             'hint': 'Use GET /api/download-list to see available files.'
         }), 400
 
-    disk_path = _DOWNLOADABLE_FILES[filename]
+    disk_path = files_map[filename]
 
     if not os.path.exists(disk_path):
         return jsonify({
@@ -2851,8 +2870,15 @@ def download_list():
     and file sizes. The frontend can use this to show/hide download
     buttons and display file sizes.
     """
+    org_id = None
+    if hasattr(g, 'current_user') and g.current_user:
+        org_id = g.current_user.get('org_id')
+    if not org_id:
+        org_id = request.args.get('org_id')
+
+    files_map = _get_downloadable_files(org_id)
     files = []
-    for name, disk_path in sorted(_DOWNLOADABLE_FILES.items()):
+    for name, disk_path in sorted(files_map.items()):
         exists = os.path.exists(disk_path)
         size_bytes = os.path.getsize(disk_path) if exists else 0
         size_mb = round(size_bytes / (1024 * 1024), 2) if exists else 0
