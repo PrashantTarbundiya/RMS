@@ -21,13 +21,13 @@ DEFAULT_WEIGHTS = {
 
 # ─── Binary Recognition Thresholds ─────────────────────────────────────
 # Two-tier threshold system for clean 100%/Unknown output
-HARD_MATCH_THRESHOLD = 0.45    # Above this → 100% match (person detected!)
-SOFT_MATCH_THRESHOLD = 0.30    # Between soft and hard → "Possible: Name"
-# Below soft → "Unknown"
+HARD_MATCH_THRESHOLD = 0.75    # Above this (>= 75%) → Authenticated match (Access Granted)
+SOFT_MATCH_THRESHOLD = 0.55    # Between 55% and 75% → Diagnostic suggestion only (Unconfirmed)
+# Below 55% → "Unknown" (Access Denied)
 
-AGREEMENT_BONUS = 0.12         # Bonus when 2+ models agree on same name
-FULL_AGREEMENT_BONUS = 0.18   # Bonus when 3/3 models agree
-DISAGREEMENT_PENALTY = 0.10   # Penalty when models disagree
+AGREEMENT_BONUS = 0.08         # Bonus when 2+ models agree on same name
+FULL_AGREEMENT_BONUS = 0.12   # Bonus when 3/3 models agree
+DISAGREEMENT_PENALTY = 0.12   # Penalty when models disagree
 
 UNKNOWN_LABEL = "Unknown"
 
@@ -156,17 +156,17 @@ def ensemble_predict(predictions, weights=None, custom_threshold=None):
 
     # Apply Threshold Logic — always report raw weighted score as confidence
     if best_score >= effective_hard_threshold:
-        # HARD MATCH → person confirmed, show raw ensemble score
+        # HARD MATCH → person confirmed with high confidence (>= 75%), authenticated
         final_label = best_label
         final_confidence = round(best_score, 3)
         is_recognized = True
     elif best_score >= effective_soft_threshold:
-        # SOFT MATCH → possible match, show raw ensemble score
-        final_label = best_label
+        # SOFT MATCH (55% - 74%) → possible match, but NOT confirmed for biometric authentication
+        final_label = f"Uncertain: {best_label}"
         final_confidence = round(best_score, 3)
-        is_recognized = True
+        is_recognized = False
     else:
-        # BELOW THRESHOLD → Unknown, still report raw score for diagnostics
+        # BELOW THRESHOLD (< 55%) → Unknown, not recognized
         final_label = UNKNOWN_LABEL
         final_confidence = round(best_score, 3)
         is_recognized = False

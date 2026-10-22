@@ -1,5 +1,5 @@
-import React, { useState, useMemo } from 'react';
-import { NavLink, Link } from 'react-router-dom';
+import React, { useState, useMemo, useEffect } from 'react';
+import { NavLink, Link, useLocation } from 'react-router-dom';
 import { Activity, Box, Video, Home, Upload, ClipboardList, Radio, Settings, LogOut, Users, User, Menu, X, Terminal, Shield, Monitor, BarChart3, Play, Camera, Download } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { usePwa } from '../context/PwaContext';
@@ -22,6 +22,12 @@ export function Navbar() {
     return localStorage.getItem('sidebar-collapsed') === 'true';
   });
   const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const location = useLocation();
+
+  // Auto-close mobile drawer whenever route changes
+  useEffect(() => {
+    setIsMobileOpen(false);
+  }, [location.pathname]);
 
   const toggleSidebar = () => {
     setIsCollapsed(prev => {
@@ -245,13 +251,22 @@ export function Navbar() {
 
         <style>{`
           .ui-sidebar {
-            background: var(--surface-1);
-            border-right: 1px solid var(--hairline);
-            display: flex;
-            flex-direction: column;
-            width: 100%;
-            z-index: 100;
-            transition: width 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            display: none !important;
+          }
+
+          @media (min-width: 768px) {
+            .ui-sidebar {
+              background: var(--surface-1);
+              border-right: 1px solid var(--hairline);
+              display: flex !important;
+              flex-direction: column;
+              width: ${isCollapsed ? '72px' : '260px'};
+              height: 100vh;
+              position: sticky;
+              top: 0;
+              z-index: 100;
+              transition: width 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            }
           }
 
           .sidebar-header {
@@ -391,6 +406,49 @@ export function Navbar() {
             }
           }
         `}</style>
+      </nav>
+
+      {/* Mobile Bottom Navigation Bar (Mobile-First Thumb Friendly) */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-[#0F1011]/95 backdrop-blur-md border-t border-[#23252A] z-40 flex items-center justify-around px-2 shadow-2xl">
+        <NavLink 
+          to="/dashboard" 
+          className={({ isActive }) => `flex flex-col items-center justify-center gap-1 py-1 px-3 text-xs font-medium transition-colors ${isActive ? 'text-[#828FFF]' : 'text-ink-subtle hover:text-ink'}`}
+        >
+          <Activity size={18} />
+          <span className="text-[10px]">Dashboard</span>
+        </NavLink>
+
+        <NavLink 
+          to="/attendance" 
+          className={({ isActive }) => `flex flex-col items-center justify-center gap-1 py-1 px-3 text-xs font-medium transition-colors ${isActive ? 'text-[#828FFF]' : 'text-ink-subtle hover:text-ink'}`}
+        >
+          <ClipboardList size={18} />
+          <span className="text-[10px]">Attendance</span>
+        </NavLink>
+
+        <NavLink 
+          to="/kiosk" 
+          className={({ isActive }) => `flex flex-col items-center justify-center gap-1 py-1 px-3 text-xs font-medium transition-colors ${isActive ? 'text-[#828FFF]' : 'text-ink-subtle hover:text-ink'}`}
+        >
+          <Play size={18} />
+          <span className="text-[10px]">Kiosk</span>
+        </NavLink>
+
+        <NavLink 
+          to="/cameras" 
+          className={({ isActive }) => `flex flex-col items-center justify-center gap-1 py-1 px-3 text-xs font-medium transition-colors ${isActive ? 'text-[#828FFF]' : 'text-ink-subtle hover:text-ink'}`}
+        >
+          <Camera size={18} />
+          <span className="text-[10px]">Cameras</span>
+        </NavLink>
+
+        <button 
+          onClick={() => setIsMobileOpen(true)}
+          className="flex flex-col items-center justify-center gap-1 py-1 px-3 text-xs font-medium text-ink-subtle hover:text-ink transition-colors cursor-pointer"
+        >
+          <Menu size={18} />
+          <span className="text-[10px]">Menu</span>
+        </button>
       </nav>
     </>
   );

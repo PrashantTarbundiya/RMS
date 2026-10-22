@@ -27,8 +27,16 @@ RUN npm run build
 # ============================================
 FROM nginx:alpine
 
+# Install openssl and generate self-signed certificate for secure HTTPS camera support
+RUN apk add --no-cache openssl && \
+    mkdir -p /etc/nginx/ssl && \
+    openssl req -x509 -nodes -days 3650 -newkey rsa:2048 \
+    -keyout /etc/nginx/ssl/selfsigned.key \
+    -out /etc/nginx/ssl/selfsigned.crt \
+    -subj "/C=US/ST=Cloud/L=AWS/O=RMS/CN=rms-face-ai"
+
 # Remove default Nginx config
-RUN rm /etc/nginx/conf.d/default.conf
+RUN rm -f /etc/nginx/conf.d/default.conf
 
 # Copy our custom Nginx config
 COPY nginx.conf /etc/nginx/conf.d/default.conf
@@ -36,8 +44,8 @@ COPY nginx.conf /etc/nginx/conf.d/default.conf
 # Copy built static files from Stage 1
 COPY --from=builder /app/dist /usr/share/nginx/html
 
-# Expose port 80
-EXPOSE 80
+# Expose HTTP and HTTPS ports
+EXPOSE 80 443
 
 # Start Nginx
 CMD ["nginx", "-g", "daemon off;"]

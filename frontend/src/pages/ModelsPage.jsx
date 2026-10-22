@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
-import { Download, Trash2, Box, Cpu, AlertTriangle, Settings, Save, CheckCircle, Info, Archive, Upload, RotateCcw, Loader2, Check } from 'lucide-react';
+import { Download, Trash2, Box, Cpu, AlertTriangle, Settings, Save, CheckCircle, Info, Archive, Upload, RotateCcw, Loader2, Check, History, Clock } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { API_BASE } from '../config';
 
@@ -177,9 +177,23 @@ export default function ModelsPage() {
     } catch { /* ignore if not available */ }
   };
 
+  // ── Training History Log ──
+  const [trainingHistory, setTrainingHistory] = useState([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
+
+  const fetchTrainingHistory = async () => {
+    setLoadingHistory(true);
+    try {
+      const res = await apiClient.get(`${API_BASE}/models/training-history`);
+      if (res.data?.history) setTrainingHistory(res.data.history);
+    } catch { /* ignore */ }
+    finally { setLoadingHistory(false); }
+  };
+
   useEffect(() => { 
     fetchBackups();
     fetchDownloadList();
+    fetchTrainingHistory();
   }, []);
 
   const createBackup = async () => {
@@ -512,6 +526,80 @@ export default function ModelsPage() {
                 ))}
               </div>
             )}
+          </div>
+        </div>
+
+        {/* Model Training & Fine-Tuning History */}
+        <div className="card-linear p-6">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h3 className="text-body font-medium text-ink flex items-center gap-2">
+                <History className="w-5 h-5 text-[#828FFF]" /> Training & Fine-Tuning History
+              </h3>
+              <p className="text-caption text-ink-subtle mt-1">
+                Audit trail of neural network retraining sessions, enrolled personnel, sample volumes, and accuracy metrics.
+              </p>
+            </div>
+            <button
+              onClick={fetchTrainingHistory}
+              disabled={loadingHistory}
+              className="button-secondary text-caption flex items-center gap-1.5 h-8 px-3"
+            >
+              <RotateCcw className={`w-3.5 h-3.5 ${loadingHistory ? 'animate-spin' : ''}`} />
+              <span>Refresh</span>
+            </button>
+          </div>
+
+          <div className="overflow-x-auto max-h-[350px] relative rounded-lg border border-[#23252A]">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="border-b border-[#23252A] bg-[#0F1011]">
+                  <th className="py-2.5 px-4 text-[11px] text-ink-subtle uppercase tracking-wider font-semibold">Timestamp</th>
+                  <th className="py-2.5 px-4 text-[11px] text-ink-subtle uppercase tracking-wider font-semibold">Model</th>
+                  <th className="py-2.5 px-4 text-[11px] text-ink-subtle uppercase tracking-wider font-semibold">Subject</th>
+                  <th className="py-2.5 px-4 text-[11px] text-ink-subtle uppercase tracking-wider font-semibold">Samples</th>
+                  <th className="py-2.5 px-4 text-[11px] text-ink-subtle uppercase tracking-wider font-semibold">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {trainingHistory.map((item, idx) => (
+                  <tr key={idx} className="border-b border-[#23252A]/40 hover:bg-[#141516]/40 transition-colors">
+                    <td className="py-2.5 px-4 text-[11px] font-mono text-ink-tertiary whitespace-nowrap">
+                      {item.created_at ? new Date(item.created_at).toLocaleString() : 'Recent'}
+                    </td>
+                    <td className="py-2.5 px-4">
+                      <span className="text-caption font-medium text-ink">{item.model_name}</span>
+                    </td>
+                    <td className="py-2.5 px-4">
+                      <span className="text-[11px] font-mono text-[#828FFF] bg-[#5E6AD2]/10 px-2 py-0.5 rounded">
+                        {item.person_name || 'All'}
+                      </span>
+                    </td>
+                    <td className="py-2.5 px-4 text-[11px] font-mono text-ink-muted">
+                      {item.samples_count ? `${item.samples_count} photos` : 'Batch'}
+                    </td>
+                    <td className="py-2.5 px-4">
+                      {item.status === 'completed' || item.status === 'Success' ? (
+                        <span className="px-2 py-0.5 rounded text-[10px] font-mono font-medium bg-emerald-500/15 text-emerald-400 border border-emerald-500/20">
+                          SUCCESS
+                        </span>
+                      ) : (
+                        <span className="px-2 py-0.5 rounded text-[10px] font-mono font-medium bg-rose-500/15 text-rose-400 border border-rose-500/20">
+                          FAILED
+                        </span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+                {trainingHistory.length === 0 && (
+                  <tr>
+                    <td colSpan={5} className="text-center py-8 text-caption text-ink-tertiary">
+                      No model training logs recorded yet. Enroll a person or trigger retraining to view audit history.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
           </div>
         </div>
 

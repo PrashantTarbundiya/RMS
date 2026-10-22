@@ -419,3 +419,44 @@ class NotificationPreference(Base):
 
     def __repr__(self):
         return f"<NotificationPreference user={self.user_id[:8]}>"
+
+
+# ──────────────────────────────────────────────────────────────────────
+# ModelTrainingLog — History & Audit Trail for Model Retraining
+# ──────────────────────────────────────────────────────────────────────
+
+class ModelTrainingLog(Base):
+    """
+    Audit log of model retraining runs and identity enrollments.
+    Tracks model backbone, person enrolled, sample count, duration, and status.
+    """
+    __tablename__ = "model_training_logs"
+
+    id = Column(String(36), primary_key=True, default=_uuid)
+    org_id = Column(String(36), nullable=False, index=True)
+    model_name = Column(String(100), nullable=False)
+    person_name = Column(String(100), nullable=True)
+    samples_count = Column(Integer, default=0)
+    duration_seconds = Column(Float, default=0.0)
+    status = Column(String(50), default="completed")
+    metrics = Column(JSON, default=dict)
+    triggered_by = Column(String(100), default="admin")
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), index=True)
+
+    __table_args__ = (
+        Index("ix_model_training_logs_org_created", "org_id", "created_at"),
+    )
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'org_id': self.org_id,
+            'model_name': self.model_name,
+            'person_name': self.person_name,
+            'samples_count': self.samples_count,
+            'duration_seconds': self.duration_seconds,
+            'status': self.status,
+            'metrics': self.metrics or {},
+            'triggered_by': self.triggered_by,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+        }

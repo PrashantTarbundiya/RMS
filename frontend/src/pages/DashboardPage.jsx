@@ -312,12 +312,12 @@ export default function DashboardPage() {
           )}
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-ink-subtle">DeepFace:</span>
+          <span className="text-ink-subtle">Facenet512:</span>
           {models_loaded.deepface ? <span className="text-emerald-500 font-medium">Loaded</span> : <span className="text-ink-tertiary">Offline</span>}
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-ink-subtle">GhostFaceNet:</span>
-          {models_loaded.edge ? <span className="text-emerald-500 font-medium">Loaded</span> : <span className="text-ink-tertiary">Offline</span>}
+          <span className="text-ink-subtle">InsightFace:</span>
+          {models_loaded.insightface ? <span className="text-emerald-500 font-medium">Loaded</span> : <span className="text-ink-tertiary">Offline</span>}
         </div>
       </motion.div>
 

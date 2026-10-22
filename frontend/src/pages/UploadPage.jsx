@@ -103,9 +103,11 @@ export default function UploadPage() {
     const fetchPersons = async () => {
       try {
         const res = await apiClient.get(`${API_BASE}/persons`);
-        setExistingPersons(res.data);
+        const list = Array.isArray(res.data) ? res.data : (Array.isArray(res.data?.persons) ? res.data.persons : []);
+        setExistingPersons(list);
       } catch (err) {
         console.warn('Failed to load existing persons list', err);
+        setExistingPersons([]);
       }
     };
     fetchPersons();
@@ -116,7 +118,8 @@ export default function UploadPage() {
       const fetchPhotos = async () => {
         try {
           const res = await apiClient.get(`${API_BASE}/persons/${personName}/photos`);
-          setExistingPhotos(res.data);
+          const list = Array.isArray(res.data) ? res.data : (Array.isArray(res.data?.photos) ? res.data.photos : []);
+          setExistingPhotos(list);
         } catch (err) {
           setExistingPhotos([]);
         }
@@ -760,7 +763,7 @@ export default function UploadPage() {
                   />
                   {showDropdown && searchQuery && (
                     <div className="absolute z-20 left-0 right-0 mt-1 bg-[#191A1B] border border-[#23252A] rounded-lg shadow-xl max-h-48 overflow-y-auto">
-                      {existingPersons.filter(p => p.toLowerCase().includes(searchQuery.toLowerCase())).map((name, i) => (
+                      {(Array.isArray(existingPersons) ? existingPersons : []).filter(p => typeof p === 'string' && p.toLowerCase().includes((searchQuery || '').toLowerCase())).map((name, i) => (
                         <div
                           key={i}
                           onClick={() => { setPersonName(name); setSearchQuery(name); setShowDropdown(false); }}
@@ -1191,7 +1194,7 @@ export default function UploadPage() {
                   />
                   {showDropdown && searchQuery && (
                     <div className="absolute z-20 left-0 right-0 mt-1 bg-[#191A1B] border border-[#23252A] rounded-lg shadow-xl max-h-48 overflow-y-auto">
-                      {existingPersons.filter(p => p.toLowerCase().includes(searchQuery.toLowerCase())).map((name, i) => (
+                      {(Array.isArray(existingPersons) ? existingPersons : []).filter(p => typeof p === 'string' && p.toLowerCase().includes((searchQuery || '').toLowerCase())).map((name, i) => (
                         <div
                           key={i}
                           onClick={() => { setPersonName(name); setSearchQuery(name); setShowDropdown(false); }}

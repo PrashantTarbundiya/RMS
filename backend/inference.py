@@ -204,22 +204,22 @@ from model import get_embedding
 def compute_match_confidence(dist, confirm_threshold):
     """
     Compute a realistic, smoothly calibrated confidence score (0.0 to 0.99).
-    If dist <= confirm_threshold, returns confirmed confidence [0.60, 0.98].
-    If dist > confirm_threshold, returns rejected/uncertain confidence [0.0, 0.44].
+    If dist <= confirm_threshold, returns confirmed confidence [0.75, 0.98].
+    If dist > confirm_threshold, returns rejected/uncertain confidence [0.0, 0.48].
     Never returns hardcoded 1.0 (100%) so false positives cannot report 100% certainty.
     """
     if dist is None or dist >= 1.0:
         return 0.0
     thresh = max(0.20, float(confirm_threshold))
     if dist <= thresh:
-        # Match confirmed: map [0.0, thresh] -> [0.98, 0.60]
+        # Match confirmed: map [0.0, thresh] -> [0.98, 0.75]
         ratio = max(0.0, min(1.0, dist / thresh))
-        conf = 0.60 + 0.38 * ((1.0 - ratio) ** 1.1)
+        conf = 0.75 + 0.23 * ((1.0 - ratio) ** 1.1)
         return round(float(conf), 3)
     else:
-        # Match rejected / uncertain: map (thresh, 1.0] -> [0.44, 0.0]
+        # Match rejected / uncertain: map (thresh, 1.0] -> [0.48, 0.0]
         excess = min(1.0, (dist - thresh) / max(0.01, 1.0 - thresh))
-        conf = max(0.0, 0.44 * (1.0 - excess))
+        conf = max(0.0, 0.48 * (1.0 - excess))
         return round(float(conf), 3)
 
 
@@ -228,9 +228,9 @@ def find_match_knn(embedding, known_encodings, known_names, k=KNN_K, max_dist=No
     KNN Majority Voting + Ratio Test + Binary Classification with Model-Calibrated Thresholds.
     
     Model Threshold Standards:
-      - InsightFace ArcFace: Genuine match < 0.35 (tight ArcFace cosine distance)
-      - Facenet512: Genuine match < 0.42
-      - GhostFaceNet: Genuine match < 0.45
+      - InsightFace ArcFace: Genuine match <= 0.30 (tight ArcFace cosine distance)
+      - Facenet512: Genuine match <= 0.34
+      - GhostFaceNet: Genuine match <= 0.38
     
     Returns:
         tuple: (name, distance, confidence_level)
@@ -241,14 +241,14 @@ def find_match_knn(embedding, known_encodings, known_names, k=KNN_K, max_dist=No
     # Per-model threshold calibration correlated directly with custom_threshold slider
     custom_t = float(custom_threshold) if custom_threshold is not None else None
     if model_name == 'InsightFace':
-        base_thresh = 0.35 if custom_t is None else min(custom_t, 0.45)
-        cutoff = max(0.48, base_thresh + 0.08)
+        base_thresh = 0.30 if custom_t is None else min(custom_t, 0.34)
+        cutoff = max(0.40, base_thresh + 0.08)
     elif model_name == 'GhostFaceNet':
-        base_thresh = 0.45 if custom_t is None else custom_t
-        cutoff = max(0.55, base_thresh + 0.08)
+        base_thresh = 0.38 if custom_t is None else min(custom_t, 0.42)
+        cutoff = max(0.48, base_thresh + 0.08)
     else:  # Facenet512
-        base_thresh = 0.42 if custom_t is None else custom_t
-        cutoff = max(0.55, base_thresh + 0.08)
+        base_thresh = 0.34 if custom_t is None else min(custom_t, 0.38)
+        cutoff = max(0.44, base_thresh + 0.08)
 
     if max_dist is not None:
         cutoff = max(cutoff, max_dist)

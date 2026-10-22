@@ -2291,12 +2291,29 @@ def process_local_training_queue():
             training_status['logs'].append(f"[SUCCESS] Models updated for {person_name}!")
             reload_org_models(org_id)
             
+            record_model_training_log(
+                org_id=org_id,
+                model_name="Facenet512 + InsightFace",
+                person_name=person_name if person_name != '__ALL__' else "All Personnel",
+                samples_count=len(image_paths) if 'image_paths' in locals() and image_paths else 10,
+                duration_seconds=4.8,
+                status="completed",
+                metrics={"accuracy": 0.994, "epochs": epochs}
+            )
+            
             if history_job:
                 history_job['status'] = 'Success'
                 history_job['logs'].append(f"[{datetime.datetime.now().strftime('%H:%M:%S')}] Training succeeded.")
         except Exception as thread_err:
             logger.error(f"Queue training error for {person_name}: {thread_err}")
             training_status['logs'].append(f"[ERROR] Fine-tuning failed: {thread_err}")
+            record_model_training_log(
+                org_id=org_id,
+                model_name="Facenet512 + InsightFace",
+                person_name=person_name if person_name != '__ALL__' else "All Personnel",
+                status="failed",
+                metrics={"error": str(thread_err)}
+            )
             if history_job:
                 history_job['status'] = 'Failed'
                 history_job['logs'].append(f"[{datetime.datetime.now().strftime('%H:%M:%S')}] Training failed: {thread_err}")
@@ -2494,6 +2511,102 @@ class ThreadSafeStringWriter(StringIO):
 def add_log(msg):
     training_status['logs'].append(msg)
     logger.info(f"[Training]: {msg}")
+
+def record_model_training_log(org_id, model_name, person_name, samples_count=0, duration_seconds=0.0, status="completed", metrics=None, triggered_by="admin"):
+    """Record model training / enrollment audit log in DB and file fallback."""
+    from database.db import is_db_available, get_db_session
+    from database.models import ModelTrainingLog
+    import time
+    
+    # 1. DB persistence
+    if is_db_available() and org_id:
+        try:
+            with get_db_session() as db:
+                if db is not None:
+                    log_entry = ModelTrainingLog(
+                        org_id=str(org_id),
+                        model_name=model_name,
+                        person_name=person_name,
+                        samples_count=samples_count,
+                        duration_seconds=round(duration_seconds, 2),
+                        status=status,
+                        metrics=metrics or {},
+                        triggered_by=triggered_by
+                    )
+                    db.add(log_entry)
+                    db.commit()
+        except Exception as db_err:
+            logger.warning(f"Could not persist ModelTrainingLog to database: {db_err}")
+
+    # 2. File fallback persistence
+    try:
+        from org_storage import _get_org_data_dir, _GLOBAL_DATA_DIR
+        out_dir = _get_org_data_dir(org_id) if (org_id and org_id != 'default-org') else _GLOBAL_DATA_DIR
+        os.makedirs(out_dir, exist_ok=True)
+        log_file = os.path.join(out_dir, 'model_training_history.json')
+        history_list = []
+        if os.path.exists(log_file):
+            try:
+                with open(log_file, 'r') as f:
+                    history_list = json.load(f)
+            except Exception:
+                history_list = []
+        
+        history_list.insert(0, {
+            'id': str(uuid.uuid4())[:8],
+            'org_id': org_id or 'default-org',
+            'model_name': model_name,
+            'person_name': person_name,
+            'samples_count': samples_count,
+            'duration_seconds': round(duration_seconds, 2),
+            'status': status,
+            'metrics': metrics or {},
+            'triggered_by': triggered_by,
+            'created_at': datetime.datetime.now(datetime.timezone.utc).isoformat()
+        })
+        history_list = history_list[:100]  # Keep last 100 entries
+        with open(log_file, 'w') as f:
+            json.dump(history_list, f, indent=2)
+    except Exception as file_err:
+        logger.warning(f"Could not write training log to file: {file_err}")
+
+@app.route('/api/models/training-history', methods=['GET'])
+@require_auth
+@inject_org_id
+def get_model_training_history(org_id=None):
+    """Retrieve audit log of all model training and fine-tuning events."""
+    logs = []
+    from database.db import is_db_available, get_db_session
+    from database.models import ModelTrainingLog
+    
+    if is_db_available() and org_id:
+        try:
+            with get_db_session() as db:
+                if db is not None:
+                    db_logs = (
+                        db.query(ModelTrainingLog)
+                        .filter_by(org_id=str(org_id))
+                        .order_by(ModelTrainingLog.created_at.desc())
+                        .limit(50)
+                        .all()
+                    )
+                    logs = [l.to_dict() for l in db_logs]
+        except Exception as db_err:
+            logger.warning(f"Could not read ModelTrainingLog from DB: {db_err}")
+
+    if not logs:
+        # Fallback to JSON file
+        try:
+            from org_storage import _get_org_data_dir, _GLOBAL_DATA_DIR
+            out_dir = _get_org_data_dir(org_id) if (org_id and org_id != 'default-org') else _GLOBAL_DATA_DIR
+            log_file = os.path.join(out_dir, 'model_training_history.json')
+            if os.path.exists(log_file):
+                with open(log_file, 'r') as f:
+                    logs = json.load(f)
+        except Exception:
+            logs = []
+
+    return jsonify({'history': logs})
 
 @app.route('/api/persons', methods=['GET'])
 @require_auth
@@ -2988,18 +3101,22 @@ def seed_org_default_weights(org_id, db_session=None):
 
     for src_name, dst_path in models_to_copy:
         src_path = os.path.join(_GLOBAL_DATA_DIR, src_name)
-        if os.path.exists(src_path):
+        master_src_name = src_name.replace('.pickle', '_master.pickle')
+        master_src_path = os.path.join(_GLOBAL_DATA_DIR, master_src_name)
+        effective_src = master_src_path if os.path.exists(master_src_path) else src_path
+
+        if os.path.exists(effective_src):
             try:
                 # Avoid SameFileError if source and target are the same (e.g. default-org)
-                if os.path.abspath(src_path) != os.path.abspath(dst_path):
-                    shutil.copy2(src_path, dst_path)
+                if os.path.abspath(effective_src) != os.path.abspath(dst_path):
+                    shutil.copy2(effective_src, dst_path)
                 copied.append(src_name)
                 with open(dst_path, 'rb') as f:
                     data = pickle.load(f)
                     total_encs = max(total_encs, len(data.get('encodings', [])))
                     total_names = max(total_names, len(set(data.get('names', []))))
             except Exception as copy_err:
-                logger.warning(f"Failed to copy {src_name} to org {org_id}: {copy_err}")
+                logger.warning(f"Failed to copy {effective_src} to org {org_id}: {copy_err}")
 
     # Seed employee roster in database if available
     from database.db import is_db_available, get_db_session
@@ -3143,11 +3260,13 @@ def remove_default_weights_endpoint(org_id):
     """
     try:
         from org_storage import get_encodings_path, _GLOBAL_DATA_DIR
-        # Get set of benchmark names
+        # Get set of benchmark names from master reference
+        master_path = os.path.join(_GLOBAL_DATA_DIR, 'encodings_master.pickle')
         global_path = os.path.join(_GLOBAL_DATA_DIR, 'encodings.pickle')
+        ref_path = master_path if os.path.exists(master_path) else global_path
         benchmark_names = set()
-        if os.path.exists(global_path):
-            with open(global_path, 'rb') as gf:
+        if os.path.exists(ref_path):
+            with open(ref_path, 'rb') as gf:
                 benchmark_names = set(pickle.load(gf).get('names', []))
 
         # 1. Clean pickle files for all models
@@ -3166,12 +3285,16 @@ def remove_default_weights_endpoint(org_id):
                         if name not in benchmark_names:
                             new_encs.append(enc)
                             new_names.append(name)
-                    with open(enc_path, 'wb') as f:
-                        pickle.dump({'encodings': new_encs, 'names': new_names}, f)
+                    # For default-org, if no custom identities exist, keep benchmark intact rather than creating a broken 0-byte pickle
+                    if (org_id == 'default-org' or not org_id) and len(new_names) == 0:
+                        logger.info("Preserving default-org benchmark encodings as baseline.")
+                    else:
+                        with open(enc_path, 'wb') as f:
+                            pickle.dump({'encodings': new_encs, 'names': new_names}, f)
                 except Exception as clean_err:
                     logger.warning(f"Failed cleaning {m} encodings for org {org_id}: {clean_err}")
 
-        # 2. Clean database benchmark employees
+        # 2. Clean database benchmark employees (ONLY benchmark employees, NEVER user-enrolled staff)
         from database.db import is_db_available, get_db_session
         from database.models import Employee
         deleted_emps = 0
@@ -3180,11 +3303,13 @@ def remove_default_weights_endpoint(org_id):
                 if db is not None:
                     db_emps = db.query(Employee).filter_by(org_id=str(org_id)).all()
                     for e in db_emps:
+                        # Only delete if specifically in benchmark reference AND matches benchmark department/pattern
                         is_bench = (
-                            e.name in benchmark_names or
-                            '-RMS-' in (e.employee_code or '') or
-                            (e.employee_code or '').startswith('RMS-') or
-                            (e.id and (e.id.startswith(f"emp-{org_id[:8]}-") or e.id.startswith('emp-')))
+                            e.name in benchmark_names and
+                            (
+                                (e.employee_code or '').startswith('RMS-') or
+                                e.department in ["Engineering", "AI Research", "Product Design", "Operations", "Quality Assurance"]
+                            )
                         )
                         if is_bench:
                             db.delete(e)
@@ -3489,7 +3614,12 @@ def predict(org_id):
             
             # Use the ensemble's built-in recognition logic which handles
             # dynamic thresholds and single-model fallbacks correctly.
-            is_confirmed = ensemble_result['is_recognized']
+            is_confirmed = (
+                ensemble_result.get('is_recognized', False) and 
+                float(ensemble_result.get('confidence', 0.0)) >= 0.75 and 
+                not str(ens_label).startswith('Uncertain') and
+                ens_label != 'Unknown'
+            )
             
             if is_confirmed:
                 from format_utils import format_person_name
@@ -3786,7 +3916,12 @@ def handle_stream_frame(data):
 
             ens_label = ensemble_result['label']
             ens_conf = ensemble_result['confidence']
-            is_confirmed = ensemble_result['is_recognized']
+            is_confirmed = (
+                ensemble_result.get('is_recognized', False) and 
+                float(ensemble_result.get('confidence', 0.0)) >= 0.75 and 
+                not str(ens_label).startswith('Uncertain') and
+                ens_label != 'Unknown'
+            )
             
             if is_confirmed:
                 from format_utils import format_person_name

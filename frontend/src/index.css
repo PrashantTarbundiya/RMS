@@ -192,11 +192,17 @@
 
 .main-content {
   flex: 1;
-  padding: var(--space-lg);
+  padding: 14px 14px 84px 14px;
   overflow-y: auto;
   min-height: 100vh;
   background-color: var(--canvas);
-  border-left: 1px solid var(--hairline);
+}
+
+@media (min-width: 768px) {
+  .main-content {
+    padding: var(--space-lg);
+    border-left: 1px solid var(--hairline);
+  }
 }
 
 .main-content-fullscreen {

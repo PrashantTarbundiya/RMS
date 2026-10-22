@@ -84,7 +84,12 @@ export default function KioskPage() {
     setWebcamReady(false);
     try {
       if (!navigator.mediaDevices?.getUserMedia) {
-        setWebcamError('Browser does not support camera access');
+        const isHttp = window.location.protocol === 'http:' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
+        if (isHttp) {
+          setWebcamError('Camera blocked by browser security: Chrome and mobile browsers require HTTPS for camera access on AWS. Click below to switch to HTTPS.');
+        } else {
+          setWebcamError('Browser does not support camera access');
+        }
         return;
       }
       const stream = await navigator.mediaDevices.getUserMedia({
@@ -186,12 +191,16 @@ export default function KioskPage() {
       return;
     }
 
-    // CONFIRMED (ACCESS GRANTED)
-    if (ensemble.is_confirmed) {
+    // CONFIRMED (ACCESS GRANTED — High confidence >= 75% required)
+    const rawConf = ensemble.confidence || 0;
+    const confScore = Math.round(rawConf > 1 ? rawConf : rawConf * 100);
+    const isUncertain = ensemble.label?.startsWith?.('Uncertain') || ensemble.label === 'Unknown';
+
+    if (ensemble.is_confirmed && confScore >= 75 && !isUncertain) {
       const cleanName = formatPersonName(ensemble.label);
       setStatus(STATUS.GRANTED);
       setRecognizedName(cleanName);
-      setConfidence(Math.round((ensemble.confidence || 0) * 100));
+      setConfidence(confScore);
       setConsecutiveUnknowns(0);
       addLog(cleanName, true);
       // Auto-reset
@@ -512,11 +521,21 @@ export default function KioskPage() {
 
             {/* Camera Feed */}
             {webcamError ? (
-              <div className="kiosk-cam-error">
-                <ShieldAlert size={48} className="text-red-400 mb-4" />
+              <div className="kiosk-cam-error p-6 max-w-md mx-auto text-center">
+                <ShieldAlert size={48} className="text-red-400 mb-4 mx-auto" />
                 <p className="text-lg font-medium mb-1">Camera Unavailable</p>
-                <p className="text-sm text-[var(--ink-subtle)]">{webcamError}</p>
-                <button onClick={startWebcam} className="kiosk-retry-btn">Retry</button>
+                <p className="text-sm text-[var(--ink-subtle)] mb-4">{webcamError}</p>
+                <div className="flex flex-col gap-2 items-center">
+                  {window.location.protocol === 'http:' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1' && (
+                    <a 
+                      href={`https://${window.location.hostname}${window.location.port === '80' || !window.location.port ? '' : ':443'}${window.location.pathname}`}
+                      className="button-primary bg-[#5E6AD2] hover:bg-[#4E5AC0] text-white px-4 py-2 rounded-lg text-xs font-medium"
+                    >
+                      Switch to Secure HTTPS
+                    </a>
+                  )}
+                  <button onClick={startWebcam} className="kiosk-retry-btn">Retry Camera</button>
+                </div>
               </div>
             ) : (
               <video
@@ -670,7 +689,7 @@ export default function KioskPage() {
                 <span className={`kiosk-liveness-badge ${liveness.is_live ? 'kiosk-live' : 'kiosk-not-live'}`}>
                   {liveness.is_live ? 'LIVE' : 'NOT LIVE'}
                 </span>
-                <span className="kiosk-liveness-score">{Math.round((liveness.score || 0) * 100)}%</span>
+                <span className="kiosk-liveness-score">{Math.round((liveness.score || 0) > 1 ? liveness.score : (liveness.score || 0) * 100)}%</span>
               </div>
             </div>
           )}
