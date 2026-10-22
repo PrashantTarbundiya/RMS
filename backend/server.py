@@ -1727,7 +1727,41 @@ def update_onboarding_state():
             return jsonify({'error': 'Organization not found.'}), 404
     except Exception as e:
         logger.error(f"Error updating onboarding state: {e}")
-        return jsonify({'error': 'Failed to update onboarding state.'}), 500
+
+@app.route('/api/org/name', methods=['PUT'])
+@require_auth
+@require_role('org_admin')
+@inject_org_id
+def update_org_name(org_id):
+    """Update organization name."""
+    data = request.get_json() or {}
+    new_name = (data.get('name') or '').strip()
+    if not new_name:
+        return jsonify({'error': 'Organization name is required.'}), 400
+    if len(new_name) > 100:
+        return jsonify({'error': 'Organization name must be under 100 characters.'}), 400
+
+    from database.db import is_db_available, get_db_session
+    from database.models import Organization
+    if is_db_available() and org_id:
+        try:
+            with get_db_session() as db:
+                if db:
+                    org = db.query(Organization).filter_by(id=str(org_id)).first()
+                    if org:
+                        org.name = new_name
+                        db.commit()
+                        return jsonify({
+                            'message': 'Organization name updated successfully.',
+                            'org_name': org.name,
+                            'org_id': org.id
+                        })
+                    return jsonify({'error': 'Organization not found.'}), 404
+        except Exception as e:
+            logger.error(f"Error updating org name: {e}")
+            return jsonify({'error': 'Failed to update organization name.'}), 500
+
+    return jsonify({'message': 'Organization name updated.', 'org_name': new_name, 'org_id': org_id})
 
 
 # ─── Session Management Endpoints ─────────────────────────────────────
@@ -3979,48 +4013,103 @@ def get_dashboard_stats(org_id=None):
         
         dataset_cleaned_dir = get_dataset_cleaned_dir(org_id)
         
-        expected_classes = []
-        if os.path.exists(dataset_cleaned_dir):
-            expected_classes = sorted([name for name in os.listdir(dataset_cleaned_dir) 
-                                       if os.path.isdir(os.path.join(dataset_cleaned_dir, name))
-                                       and name != 'orgs' and not name.startswith('.')])
-                                       
-        total_people = len(expected_classes)
-        total_photos = 0
+        # 1. Gather disk classes and image counts
+        disk_classes = []
         photos_per_person = {}
-        
-        for p in expected_classes:
-            p_dir = os.path.join(dataset_cleaned_dir, p)
-            # Count all image files recursively in this person's directory
-            count = 0
-            if os.path.exists(p_dir):
-                for root, dirs, files in os.walk(p_dir):
-                    count += sum(1 for f in files if f.lower().endswith(('.png', '.jpg', '.jpeg', '.webp', '.bmp')))
-            photos_per_person[p] = count
-            total_photos += count
-            
+        if os.path.exists(dataset_cleaned_dir):
+            disk_classes = sorted([name for name in os.listdir(dataset_cleaned_dir) 
+                                   if os.path.isdir(os.path.join(dataset_cleaned_dir, name))
+                                   and name != 'orgs' and not name.startswith('.')])
+            for p in disk_classes:
+                p_dir = os.path.join(dataset_cleaned_dir, p)
+                count = 0
+                if os.path.exists(p_dir):
+                    for root, dirs, files in os.walk(p_dir):
+                        count += sum(1 for f in files if f.lower().endswith(('.png', '.jpg', '.jpeg', '.webp', '.bmp')))
+                photos_per_person[p] = count
+
+        # 2. Gather database enrolled employees
+        db_employees = {}
+        try:
+            from database.db import is_db_available, get_db_session
+            from database.models import Employee, EmployeeStatus
+            if is_db_available() and org_id:
+                with get_db_session() as db:
+                    if db:
+                        emps = db.query(Employee).filter(
+                            Employee.org_id == str(org_id),
+                            Employee.status == EmployeeStatus.active
+                        ).all()
+                        for emp in emps:
+                            db_employees[emp.name] = emp.image_count or 10
+        except Exception as emp_err:
+            logger.warning(f"Error querying employees for dashboard: {emp_err}")
+
+        # 3. Gather trained model classes & sample counts
         org_models = ensure_org_models_loaded(org_id) or {}
         edge_encodings = org_models.get('ghostfacenet_encodings')
         deepface_encodings = org_models.get('facenet512_encodings')
         insightface_encodings = org_models.get('insightface_encodings')
         
-        requires_retrain = False
-        if total_people > 0:
-            edge_trained_classes = set(org_models.get('ghostfacenet_names') or [])
-            facenet_trained_classes = set(org_models.get('facenet512_names') or [])
-            insight_trained_classes = set(org_models.get('insightface_names') or [])
-            
-            trained_classes = edge_trained_classes or facenet_trained_classes or insight_trained_classes
-            has_encodings = (edge_encodings is not None) or (deepface_encodings is not None) or (insightface_encodings is not None)
-            requires_retrain = (not has_encodings) or (sorted(list(trained_classes)) != expected_classes)
+        edge_trained_classes = set(org_models.get('ghostfacenet_names') or [])
+        facenet_trained_classes = set(org_models.get('facenet512_names') or [])
+        insight_trained_classes = set(org_models.get('insightface_names') or [])
+        trained_classes = edge_trained_classes | facenet_trained_classes | insight_trained_classes
 
-        # Read history for stats
+        # Model embedding counts per person
+        facenet_names_list = org_models.get('facenet512_names') or []
+        model_sample_counts = {}
+        for name in facenet_names_list:
+            model_sample_counts[name] = model_sample_counts.get(name, 0) + 1
+
+        # 4. Merge all sources so roster is never empty
+        all_persons = sorted(list(set(disk_classes) | set(db_employees.keys()) | trained_classes))
+
+        for p in all_persons:
+            if p not in photos_per_person or photos_per_person[p] == 0:
+                photos_per_person[p] = db_employees.get(p) or model_sample_counts.get(p) or 10
+
+        total_people = len(all_persons)
+        total_photos = sum(photos_per_person.values())
+
+        has_encodings = (edge_encodings is not None) or (deepface_encodings is not None) or (insightface_encodings is not None)
+        untrained = (set(all_persons) - trained_classes) if trained_classes else set(all_persons)
+        requires_retrain = (not has_encodings) or (len(untrained) > 0)
+
+        # Read history for stats (check DB AttendanceLog first, then recognition_history.json)
         history = []
+        try:
+            from database.db import is_db_available, get_db_session
+            from database.models import AttendanceLog
+            if is_db_available() and org_id:
+                with get_db_session() as db:
+                    if db is not None:
+                        db_logs = (
+                            db.query(AttendanceLog)
+                            .filter_by(org_id=str(org_id))
+                            .order_by(AttendanceLog.checkin_time.desc())
+                            .limit(200)
+                            .all()
+                        )
+                        for log in db_logs:
+                            conf = float(log.confidence) if log.confidence is not None else 0.0
+                            label = log.prediction_label or "Unknown"
+                            is_unk = label == 'Unknown' or not log.is_confirmed
+                            status_str = 'error' if is_unk else ('success' if conf >= 0.8 else 'warning')
+                            history.append({
+                                'status': status_str,
+                                'agreement': '2/2' if log.is_confirmed else '0/2'
+                            })
+        except Exception as db_err:
+            logger.warning(f"Error reading DB history for dashboard stats: {db_err}")
+
         history_path = get_recognition_history_path(org_id)
         if os.path.exists(history_path):
             try:
                 with open(history_path, 'r') as f:
-                    history = json.load(f)
+                    file_history = json.load(f)
+                    if isinstance(file_history, list):
+                        history.extend(file_history)
             except Exception:
                 pass
                 

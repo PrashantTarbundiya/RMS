@@ -24,7 +24,8 @@ import logging
 logger = logging.getLogger('rms-api')
 
 BACKEND_DIR = os.path.dirname(os.path.abspath(__file__))
-PROJECT_ROOT = os.path.dirname(BACKEND_DIR)
+# In Docker, BACKEND_DIR is /app, so PROJECT_ROOT is /app rather than '/'
+PROJECT_ROOT = BACKEND_DIR if os.path.basename(BACKEND_DIR) == 'app' else os.path.dirname(BACKEND_DIR)
 
 # Global fallback paths (single-tenant mode)
 _GLOBAL_DATA_DIR = os.path.join(BACKEND_DIR, 'data')

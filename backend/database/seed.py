@@ -135,49 +135,8 @@ def seed_database():
 
             all_employees = db.query(Employee).filter_by(org_id="default-org").all()
 
-            # 4. Attendance Logs (if table has < 10 rows)
-            log_count = db.query(AttendanceLog).filter_by(org_id="default-org").count()
-            if log_count < 10 and all_employees:
-                now = datetime.now(timezone.utc)
-                # Generate realistic checkins for the last 14 days
-                for day_offset in range(14, -1, -1):
-                    log_date = (now - timedelta(days=day_offset)).date()
-                    # Skip Sunday
-                    if log_date.weekday() == 6:
-                        continue
-
-                    for emp in all_employees:
-                        # 85% attendance rate
-                        if random.random() > 0.85:
-                            continue
-
-                        # Random checkin between 8:30 and 10:00
-                        checkin_minute = random.randint(30, 120)
-                        hour = 8 + (checkin_minute // 60)
-                        minute = checkin_minute % 60
-                        checkin_time = datetime(
-                            log_date.year, log_date.month, log_date.day,
-                            hour, minute, random.randint(0, 59),
-                            tzinfo=timezone.utc
-                        )
-
-                        is_late = (hour > 9) or (hour == 9 and minute > 15)
-                        status = AttendanceStatus.late if is_late else AttendanceStatus.on_time
-                        confidence = round(random.uniform(0.88, 0.98), 3)
-
-                        att_log = AttendanceLog(
-                            org_id="default-org",
-                            employee_id=emp.id,
-                            prediction_label=emp.name,
-                            checkin_time=checkin_time,
-                            status=status,
-                            confidence=confidence,
-                            method="Facenet512",
-                            is_confirmed=True
-                        )
-                        db.add(att_log)
-                db.flush()
-                logger.info("Generated sample attendance logs for analytics.")
+            # 4. Attendance Logs — Do NOT generate synthetic logs.
+            # Only genuine live scan events will be logged.
 
             # 5. Audit Feedback Logs (if empty, load from feedback_log.json)
             feedback_count = db.query(FeedbackLog).filter_by(org_id="default-org").count()

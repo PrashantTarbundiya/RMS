@@ -82,6 +82,7 @@ services:
       - LAZY_LOAD_MODELS=true
       - MALLOC_ARENA_MAX=2
       - PYTHONUNBUFFERED=1
+      - STORAGE_DIR=/app
     depends_on:
       - redis
     healthcheck:
@@ -115,6 +116,7 @@ services:
       - TF_NUM_INTEROP_THREADS=1
       - MALLOC_ARENA_MAX=2
       - PYTHONUNBUFFERED=1
+      - STORAGE_DIR=/app
     depends_on:
       - redis
     networks:

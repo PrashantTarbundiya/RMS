@@ -29,6 +29,28 @@ export default function ProfilePage() {
   const [notifSaving, setNotifSaving] = useState(false);
   const [notifMessage, setNotifMessage] = useState(null);
 
+  // Organization renaming state
+  const [editingOrg, setEditingOrg] = useState(false);
+  const [newOrgName, setNewOrgName] = useState(user?.org_name || '');
+  const [savingOrg, setSavingOrg] = useState(false);
+
+  const handleSaveOrgName = async () => {
+    if (!newOrgName.trim()) return;
+    setSavingOrg(true);
+    try {
+      const res = await apiClient.put(`${API_BASE}/org/name`, { name: newOrgName.trim() });
+      toast.success(res.data?.message || 'Organization updated successfully');
+      setEditingOrg(false);
+      const updatedUser = { ...user, org_name: newOrgName.trim() };
+      localStorage.setItem('rms_user', JSON.stringify(updatedUser));
+      window.location.reload();
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Failed to update organization name');
+    } finally {
+      setSavingOrg(false);
+    }
+  };
+
   useEffect(() => {
     const fetchStats = async () => {
       try {
@@ -127,7 +149,47 @@ export default function ProfilePage() {
                   <Building className="w-4 h-4" />
                   <span>Organization</span>
                 </div>
-                <span className="text-ink">{user?.org_name || 'System Local'}</span>
+                {editingOrg ? (
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      value={newOrgName}
+                      onChange={(e) => setNewOrgName(e.target.value)}
+                      className="input-linear text-caption py-1 px-2 h-7 w-44 text-ink"
+                      placeholder="Organization name"
+                      autoFocus
+                    />
+                    <button
+                      onClick={handleSaveOrgName}
+                      disabled={savingOrg}
+                      className="button-primary text-[11px] py-0.5 px-2.5 h-7"
+                    >
+                      {savingOrg ? 'Saving...' : 'Save'}
+                    </button>
+                    <button
+                      onClick={() => setEditingOrg(false)}
+                      disabled={savingOrg}
+                      className="button-secondary text-[11px] py-0.5 px-2 h-7"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <span className="text-ink font-medium">{user?.org_name || 'System Local'}</span>
+                    {isAdmin && (
+                      <button
+                        onClick={() => {
+                          setNewOrgName(user?.org_name || '');
+                          setEditingOrg(true);
+                        }}
+                        className="text-ink-subtle hover:text-[#828FFF] text-[11px] underline ml-1 cursor-pointer transition-colors"
+                      >
+                        Rename
+                      </button>
+                    )}
+                  </div>
+                )}
               </div>
 
               {isAdmin && (
