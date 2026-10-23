@@ -215,8 +215,11 @@ export default function TestPage() {
   // ─── WebSocket Connection Management ───
   useEffect(() => {
     if (mode === 'webcam') {
-      const wsUrl = API_BASE.replace('http', 'ws');
+      const wsUrl = API_BASE.startsWith('http')
+        ? API_BASE.replace(/^http/, 'ws')
+        : `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}`;
       const socket = io(wsUrl, {
+        path: '/socket.io',
         reconnectionDelayMax: 5000,
         transports: ['websocket', 'polling']
       });
