@@ -21,9 +21,9 @@ DEFAULT_WEIGHTS = {
 
 # ─── Binary Recognition Thresholds ─────────────────────────────────────
 # Two-tier threshold system for clean 100%/Unknown output
-HARD_MATCH_THRESHOLD = 0.75    # Above this (>= 75%) → Authenticated match (Access Granted)
-SOFT_MATCH_THRESHOLD = 0.55    # Between 55% and 75% → Diagnostic suggestion only (Unconfirmed)
-# Below 55% → "Unknown" (Access Denied)
+HARD_MATCH_THRESHOLD = 0.70    # Above this (>= 70%) → Authenticated match (Access Granted)
+SOFT_MATCH_THRESHOLD = 0.50    # Between 50% and 70% → Diagnostic suggestion only (Unconfirmed)
+# Below 50% → "Unknown" (Access Denied)
 
 AGREEMENT_BONUS = 0.08         # Bonus when 2+ models agree on same name
 FULL_AGREEMENT_BONUS = 0.12   # Bonus when 3/3 models agree
@@ -52,7 +52,7 @@ def ensemble_predict(predictions, weights=None, custom_threshold=None):
         predictions: dict with keys 'edge', 'deepface', each containing:
             {'label': str, 'confidence': float, 'confidence_level': str}
         weights: optional dict overriding DEFAULT_WEIGHTS
-        custom_threshold: optional float overriding the default distance threshold from the user
+        custom_threshold: optional float overriding the default confidence threshold from the user (e.g. 0.70)
 
     Returns:
         dict: {'label': str, 'confidence': float, 'method': str,
@@ -113,60 +113,72 @@ def ensemble_predict(predictions, weights=None, custom_threshold=None):
     best_voters = best_info['voters']
     num_valid = len(valid_preds)
 
+    # Base threshold: use user-defined threshold if passed, else default to 0.70
+    base_hard = HARD_MATCH_THRESHOLD
+    if custom_threshold is not None:
+        try:
+            ct = float(custom_threshold)
+            if ct > 1.0:
+                ct /= 100.0  # normalize if passed as percentage (e.g. 70 -> 0.70)
+            if 0.35 <= ct <= 0.95:
+                base_hard = ct
+        except (ValueError, TypeError):
+            pass
+
+    base_soft = max(0.40, base_hard - 0.20)
+
     # ── Agreement / Disagreement Adjustments ──
     num_agreeing = len(best_voters)
 
     if num_agreeing >= 3:
         # Full agreement — strong boost, lower threshold
         best_score = min(1.0, best_score + FULL_AGREEMENT_BONUS)
-        effective_hard_threshold = HARD_MATCH_THRESHOLD - 0.10  # Easier to match
-        effective_soft_threshold = SOFT_MATCH_THRESHOLD - 0.05
+        effective_hard_threshold = max(0.45, base_hard - 0.10)
+        effective_soft_threshold = max(0.35, base_soft - 0.05)
     elif num_agreeing >= 2:
         # Majority agreement — standard boost
         best_score = min(1.0, best_score + AGREEMENT_BONUS)
-        effective_hard_threshold = HARD_MATCH_THRESHOLD
-        effective_soft_threshold = SOFT_MATCH_THRESHOLD
+        effective_hard_threshold = base_hard
+        effective_soft_threshold = base_soft
     else:
-        # No agreement — all models said different names
+        # Single model or disagreement
         if num_valid > 1:
             best_score = max(0, best_score - DISAGREEMENT_PENALTY)
-            effective_hard_threshold = HARD_MATCH_THRESHOLD + 0.10  # Harder to match
-            effective_soft_threshold = SOFT_MATCH_THRESHOLD + 0.05
+            effective_hard_threshold = min(0.90, base_hard + 0.10)
+            effective_soft_threshold = base_soft + 0.05
         else:
-            # Single model fallback — reasonably adjust thresholds
-            effective_hard_threshold = HARD_MATCH_THRESHOLD + 0.15  # e.g., 0.60
-            effective_soft_threshold = SOFT_MATCH_THRESHOLD + 0.10  # e.g., 0.40
+            # Single model fallback — if it is a Tier-1 deep model (facenet512 or insightface),
+            # DO NOT penalize with +0.15! Keep effective_hard_threshold at base_hard (70%)!
+            solo_key = list(valid_preds.keys())[0]
+            if solo_key in ['facenet512', 'insightface']:
+                effective_hard_threshold = base_hard
+                effective_soft_threshold = base_soft
+            else:
+                effective_hard_threshold = min(0.85, base_hard + 0.10)
+                effective_soft_threshold = base_soft + 0.05
 
     # ── Single High-Confidence Override ──
-    # CRITICAL SECURITY: A single model can ONLY confirm if it is a Tier-1 deep model
-    # (Facenet512 or InsightFace) with high confidence (>= 0.75). Edge/weak models alone NEVER confirm!
     if num_valid == 1:
         solo_key = list(valid_preds.keys())[0]
         solo_conf = list(valid_preds.values())[0]['confidence']
-        if solo_key in ['facenet512', 'insightface'] and solo_conf >= 0.45:
+        if solo_key in ['facenet512', 'insightface'] and solo_conf >= 0.40:
             best_score = max(best_score, solo_conf)
         else:
-            # Not trusted solo — treat as unconfirmed
             best_score = min(best_score, effective_soft_threshold - 0.05)
-
-    # Note: custom_threshold is a distance threshold used by find_match_knn.
-    # The ensemble uses its own confidence-based thresholds and should NOT
-    # re-interpret the distance threshold. Models already gate on distance
-    # before reporting their confidence to the ensemble.
 
     # Apply Threshold Logic — always report raw weighted score as confidence
     if best_score >= effective_hard_threshold:
-        # HARD MATCH → person confirmed with high confidence (>= 75%), authenticated
+        # HARD MATCH → person confirmed with high confidence (>= 70%), authenticated
         final_label = best_label
         final_confidence = round(best_score, 3)
         is_recognized = True
     elif best_score >= effective_soft_threshold:
-        # SOFT MATCH (55% - 74%) → possible match, but NOT confirmed for biometric authentication
+        # SOFT MATCH (50% - 69%) → possible match, but NOT confirmed for biometric authentication
         final_label = f"Uncertain: {best_label}"
         final_confidence = round(best_score, 3)
         is_recognized = False
     else:
-        # BELOW THRESHOLD (< 55%) → Unknown, not recognized
+        # BELOW THRESHOLD (< 50%) → Unknown, not recognized
         final_label = UNKNOWN_LABEL
         final_confidence = round(best_score, 3)
         is_recognized = False

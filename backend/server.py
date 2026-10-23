@@ -3361,11 +3361,14 @@ def predict(org_id):
             camera_id = request.form.get('camera_id')
             
         camera_threshold = None
-        custom_t_val = request.form.get('threshold')
+        custom_t_val = request.form.get('threshold') or request.form.get('confidence_threshold') or request.args.get('threshold')
         if custom_t_val:
             try:
-                camera_threshold = float(custom_t_val)
-            except ValueError:
+                ct = float(custom_t_val)
+                if ct > 1.0:
+                    ct /= 100.0
+                camera_threshold = ct
+            except (ValueError, TypeError):
                 pass
 
         if camera_threshold is None and camera_id:
@@ -3610,13 +3613,16 @@ def predict(org_id):
 
             # Binary classification: CONFIRMED or NOT FOUND
             ens_label = ensemble_result['label']
-            ens_conf = ensemble_result['confidence']
+            ens_conf = float(ensemble_result.get('confidence', 0.0))
             
-            # Use the ensemble's built-in recognition logic which handles
-            # dynamic thresholds and single-model fallbacks correctly.
+            # Use dynamic threshold (defaults to 0.70 / 70%)
+            min_conf = camera_threshold if (camera_threshold is not None and 0.35 <= camera_threshold <= 0.95) else 0.70
+            if min_conf > 1.0:
+                min_conf /= 100.0
+
             is_confirmed = (
                 ensemble_result.get('is_recognized', False) and 
-                float(ensemble_result.get('confidence', 0.0)) >= 0.75 and 
+                ens_conf >= min_conf and 
                 not str(ens_label).startswith('Uncertain') and
                 ens_label != 'Unknown'
             )
@@ -3626,7 +3632,8 @@ def predict(org_id):
                 display_text = f"CONFIRMED: {format_person_name(ens_label)}"
             else:
                 display_text = "NOT FOUND"
-                ens_label = "Unknown"
+                if not ensemble_result.get('is_recognized', False) or str(ens_label).startswith('Uncertain'):
+                    ens_label = "Unknown"
 
             results.append({
                 'bbox': {'x': int(x), 'y': int(y), 'w': int(w), 'h': int(h)},
@@ -3753,6 +3760,15 @@ def handle_stream_frame(data):
         # Force test mode for WebSocket (Test Console)
         test_mode = True
         camera_threshold = None
+        custom_t_val = data.get('threshold') or data.get('confidence_threshold')
+        if custom_t_val:
+            try:
+                ct = float(custom_t_val)
+                if ct > 1.0:
+                    ct /= 100.0
+                camera_threshold = ct
+            except (ValueError, TypeError):
+                pass
         additional_frames_raw = []
 
         org_models = ensure_org_models_loaded(org_id)
@@ -3915,10 +3931,16 @@ def handle_stream_frame(data):
             ensemble_result = ensemble_predict(individual_preds, custom_threshold=camera_threshold)
 
             ens_label = ensemble_result['label']
-            ens_conf = ensemble_result['confidence']
+            ens_conf = float(ensemble_result.get('confidence', 0.0))
+            
+            # Use dynamic threshold (defaults to 0.70 / 70%)
+            min_conf = camera_threshold if (camera_threshold is not None and 0.35 <= camera_threshold <= 0.95) else 0.70
+            if min_conf > 1.0:
+                min_conf /= 100.0
+
             is_confirmed = (
                 ensemble_result.get('is_recognized', False) and 
-                float(ensemble_result.get('confidence', 0.0)) >= 0.75 and 
+                ens_conf >= min_conf and 
                 not str(ens_label).startswith('Uncertain') and
                 ens_label != 'Unknown'
             )
@@ -3928,7 +3950,8 @@ def handle_stream_frame(data):
                 display_text = f"CONFIRMED: {format_person_name(ens_label)}"
             else:
                 display_text = "NOT FOUND"
-                ens_label = "Unknown"
+                if not ensemble_result.get('is_recognized', False) or str(ens_label).startswith('Uncertain'):
+                    ens_label = "Unknown"
 
             results.append({
                 'bbox': {'x': int(x), 'y': int(y), 'w': int(w), 'h': int(h)},

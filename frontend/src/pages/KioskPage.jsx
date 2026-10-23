@@ -19,6 +19,7 @@ const MAX_CONSECUTIVE_UNKNOWNS = 8;  // Auto-pause after 8 unknowns
 const STATUS = {
   IDLE: 'idle',
   SCANNING: 'scanning',
+  VERIFYING: 'verifying',
   GRANTED: 'granted',
   DENIED: 'denied',
   SPOOF: 'spoof',
@@ -43,6 +44,21 @@ export default function KioskPage() {
   const [consecutiveUnknowns, setConsecutiveUnknowns] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
   const [facesDetected, setFacesDetected] = useState(0);
+
+  // Dynamic user threshold (Default: 70%)
+  const [kioskThreshold, setKioskThreshold] = useState(() => {
+    const saved = localStorage.getItem('rms_kiosk_threshold');
+    return saved ? parseInt(saved, 10) : 70;
+  });
+  const kioskThresholdRef = useRef(kioskThreshold);
+  useEffect(() => { kioskThresholdRef.current = kioskThreshold; }, [kioskThreshold]);
+
+  // Temporal consensus buffer: removes split-second fluctuations
+  const candidateBufferRef = useRef({
+    candidate: null,
+    hits: 0,
+    firstSeen: 0,
+  });
 
   // ─── Refs ──────────────────────────────────────────────────────
   const videoRef = useRef(null);
@@ -191,19 +207,23 @@ export default function KioskPage() {
       return;
     }
 
-    // CONFIRMED (ACCESS GRANTED — High confidence >= 75% required)
+    // ─── Biometric Decision Engine with Temporal Consensus ───
     const rawConf = ensemble.confidence || 0;
     const confScore = Math.round(rawConf > 1 ? rawConf : rawConf * 100);
-    const isUncertain = ensemble.label?.startsWith?.('Uncertain') || ensemble.label === 'Unknown';
+    const isUncertain = !ensemble.label || ensemble.label?.startsWith?.('Uncertain') || ensemble.label === 'Unknown';
+    const currentCandidate = (!isUncertain && ensemble.is_confirmed) ? ensemble.label : null;
+    const cleanName = currentCandidate ? formatPersonName(currentCandidate) : '';
+    const targetThresh = kioskThresholdRef.current || 70;
 
-    if (ensemble.is_confirmed && confScore >= 75 && !isUncertain) {
-      const cleanName = formatPersonName(ensemble.label);
+    // Rule 1: Ultra-high confidence (>= 90%) → Instant Confirmed Access
+    if (currentCandidate && confScore >= 90) {
+      candidateBufferRef.current = { candidate: null, hits: 0, firstSeen: 0 };
       setStatus(STATUS.GRANTED);
       setRecognizedName(cleanName);
       setConfidence(confScore);
       setConsecutiveUnknowns(0);
       addLog(cleanName, true);
-      // Auto-reset
+
       if (resultTimerRef.current) clearTimeout(resultTimerRef.current);
       resultTimerRef.current = setTimeout(() => {
         setStatus(STATUS.SCANNING);
@@ -215,31 +235,84 @@ export default function KioskPage() {
       return;
     }
 
-    // NOT RECOGNIZED (ACCESS DENIED)
-    setStatus(STATUS.DENIED);
-    setRecognizedName('Unrecognized');
-    setConfidence(0);
-    const newCount = consecutiveUnknownsRef.current + 1;
-    setConsecutiveUnknowns(newCount);
-    addLog('Unknown', false);
+    // Rule 2: Consensus Band (Between targetThresh [default 70%] and 90%)
+    // Requires 2 consecutive frames agreeing on the same identity within 2s to filter out fluctuations
+    if (currentCandidate && confScore >= targetThresh && confScore < 90) {
+      const now = Date.now();
+      const prev = candidateBufferRef.current;
 
-    // Auto-pause if too many unknowns (prevent rapid alerts)
-    if (newCount >= MAX_CONSECUTIVE_UNKNOWNS) {
-      setIsPaused(true);
-      setTimeout(() => {
-        setIsPaused(false);
-        setConsecutiveUnknowns(0);
-        scheduleNextCapture(100);
-      }, 10000);
+      if (prev.candidate === currentCandidate && (now - prev.firstSeen) < 2000) {
+        prev.hits += 1;
+        if (prev.hits >= 2) {
+          // Consensus reached! Confirmed authentic person
+          candidateBufferRef.current = { candidate: null, hits: 0, firstSeen: 0 };
+          setStatus(STATUS.GRANTED);
+          setRecognizedName(cleanName);
+          setConfidence(confScore);
+          setConsecutiveUnknowns(0);
+          addLog(cleanName, true);
+
+          if (resultTimerRef.current) clearTimeout(resultTimerRef.current);
+          resultTimerRef.current = setTimeout(() => {
+            setStatus(STATUS.SCANNING);
+            setRecognizedName('');
+            setConfidence(0);
+            isRequestInFlightRef.current = false;
+            scheduleNextCapture(100);
+          }, RESULT_DISPLAY_MS);
+          return;
+        }
+      } else {
+        // Initial frame of candidate, or candidate changed (fluctuation filtered)
+        candidateBufferRef.current = { candidate: currentCandidate, hits: 1, firstSeen: now };
+      }
+
+      // Verifying state: hold steady and immediately capture next frame for consensus check
+      setStatus(STATUS.VERIFYING);
+      setRecognizedName(cleanName);
+      setConfidence(confScore);
+      isRequestInFlightRef.current = false;
+      scheduleNextCapture(60);
+      return;
     }
 
-    if (resultTimerRef.current) clearTimeout(resultTimerRef.current);
-    resultTimerRef.current = setTimeout(() => {
-      setStatus(STATUS.SCANNING);
-      setRecognizedName('');
+    // Rule 3: Below threshold or Unrecognized (< 70%)
+    candidateBufferRef.current = { candidate: null, hits: 0, firstSeen: 0 };
+    const newCount = consecutiveUnknownsRef.current + 1;
+    setConsecutiveUnknowns(newCount);
+
+    // Only commit to Access Denied if unknown persists for 2+ consecutive frames
+    if (newCount >= 2) {
+      setStatus(STATUS.DENIED);
+      setRecognizedName('Unrecognized');
+      setConfidence(0);
+      addLog('Unknown', false);
+
+      // Auto-pause if too many unknowns (prevent rapid alerts)
+      if (newCount >= MAX_CONSECUTIVE_UNKNOWNS) {
+        setIsPaused(true);
+        setTimeout(() => {
+          setIsPaused(false);
+          setConsecutiveUnknowns(0);
+          scheduleNextCapture(100);
+        }, 10000);
+      }
+
+      if (resultTimerRef.current) clearTimeout(resultTimerRef.current);
+      resultTimerRef.current = setTimeout(() => {
+        setStatus(STATUS.SCANNING);
+        setRecognizedName('');
+        isRequestInFlightRef.current = false;
+        scheduleNextCapture(100);
+      }, RESULT_DISPLAY_MS);
+    } else {
+      // 1st transient drop: keep scanning and re-poll quickly
+      if (statusRef.current !== STATUS.VERIFYING) {
+        setStatus(STATUS.SCANNING);
+      }
       isRequestInFlightRef.current = false;
-      scheduleNextCapture(100);
-    }, RESULT_DISPLAY_MS);
+      scheduleNextCapture(80);
+    }
   }, [addLog, scheduleNextCapture]);
 
   // ─── WebSocket Connection ──────────────────────────────────────
@@ -262,8 +335,8 @@ export default function KioskPage() {
       }
       resetIdleTimer();
       // Paced response-driven capture: only capture the NEXT frame after current one is returned!
-      if (statusRef.current === STATUS.SCANNING || statusRef.current === STATUS.IDLE) {
-        scheduleNextCapture(FRAME_INTERVAL_WS);
+      if (statusRef.current === STATUS.SCANNING || statusRef.current === STATUS.IDLE || statusRef.current === STATUS.VERIFYING) {
+        scheduleNextCapture(statusRef.current === STATUS.VERIFYING ? 60 : FRAME_INTERVAL_WS);
       }
     });
     socketRef.current = socket;
@@ -288,7 +361,7 @@ export default function KioskPage() {
     inFlightTimerRef.current = setTimeout(() => {
       if (isRequestInFlightRef.current) {
         isRequestInFlightRef.current = false;
-        if (statusRef.current === STATUS.SCANNING || statusRef.current === STATUS.IDLE) {
+        if (statusRef.current === STATUS.SCANNING || statusRef.current === STATUS.IDLE || statusRef.current === STATUS.VERIFYING) {
           scheduleNextCapture(150);
         }
       }
@@ -319,7 +392,8 @@ export default function KioskPage() {
           image: base64,
           token: sessionStorage.getItem('rms_access_token'),
           single_focus: true,
-          kiosk_mode: true
+          kiosk_mode: true,
+          threshold: (kioskThresholdRef.current / 100)
         });
       } else {
         // HTTP fallback
@@ -334,6 +408,7 @@ export default function KioskPage() {
         formData.append('test_mode', 'true');
         formData.append('single_focus', 'true');
         formData.append('kiosk_mode', 'true');
+        formData.append('threshold', (kioskThresholdRef.current / 100).toFixed(2));
         const res = await apiClient.post(`${API_BASE}/predict`, formData, {
           headers: { 'Content-Type': 'multipart/form-data' },
           timeout: 6000,
@@ -342,8 +417,8 @@ export default function KioskPage() {
         isRequestInFlightRef.current = false;
         processResult(res.data);
         resetIdleTimer();
-        if (statusRef.current === STATUS.SCANNING || statusRef.current === STATUS.IDLE) {
-          scheduleNextCapture(FRAME_INTERVAL_HTTP);
+        if (statusRef.current === STATUS.SCANNING || statusRef.current === STATUS.IDLE || statusRef.current === STATUS.VERIFYING) {
+          scheduleNextCapture(statusRef.current === STATUS.VERIFYING ? 100 : FRAME_INTERVAL_HTTP);
         }
       }
     } catch (err) {
@@ -416,6 +491,14 @@ export default function KioskPage() {
       sublabel: 'Hold steady, looking at the camera',
       bgGradient: 'radial-gradient(ellipse at center, rgba(94,106,210,0.08) 0%, transparent 70%)',
     },
+    [STATUS.VERIFYING]: {
+      borderColor: '#38bdf8',
+      glowColor: 'rgba(56, 189, 248, 0.28)',
+      icon: <Scan size={30} className="kiosk-pulse text-sky-400" />,
+      label: `Verifying: ${recognizedName}...`,
+      sublabel: `Confirming consistency • ${confidence}%`,
+      bgGradient: 'radial-gradient(ellipse at center, rgba(56,189,248,0.10) 0%, transparent 70%)',
+    },
     [STATUS.GRANTED]: {
       borderColor: '#22c55e',
       glowColor: 'rgba(34, 197, 94, 0.3)',
@@ -450,7 +533,7 @@ export default function KioskPage() {
     },
   }), [recognizedName, confidence]);
 
-  const cfg = statusConfig[status];
+  const cfg = statusConfig[status] || statusConfig[STATUS.SCANNING];
 
   // ─── Formatted Time & Date ─────────────────────────────────────
   const timeStr = currentTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
@@ -475,13 +558,32 @@ export default function KioskPage() {
             <span className="kiosk-brand-text">RMS Kiosk</span>
           </div>
         </div>
-        <div className="kiosk-header-center">
+        <div className="kiosk-header-center flex items-center gap-2">
           <div className="kiosk-connection-pill">
             {socketConnected ? (
               <><Wifi size={12} className="text-green-400" /><span className="text-green-400">Live</span></>
             ) : (
               <><WifiOff size={12} className="text-amber-400" /><span className="text-amber-400">Polling</span></>
             )}
+          </div>
+          <div className="flex items-center gap-1.5 bg-[#0F1011] border border-[#23252A] rounded-lg px-2.5 py-1 text-xs">
+            <span className="text-ink-tertiary font-mono text-[11px]">Threshold:</span>
+            <select 
+              value={kioskThreshold} 
+              onChange={(e) => {
+                const val = parseInt(e.target.value, 10);
+                setKioskThreshold(val);
+                localStorage.setItem('rms_kiosk_threshold', val.toString());
+              }}
+              className="bg-transparent text-ink font-mono text-xs focus:outline-none cursor-pointer"
+            >
+              <option value="60" className="bg-[#141516] text-white">60% (Relaxed)</option>
+              <option value="65" className="bg-[#141516] text-white">65%</option>
+              <option value="70" className="bg-[#141516] text-white">70% (Standard / Default)</option>
+              <option value="75" className="bg-[#141516] text-white">75% (Balanced)</option>
+              <option value="80" className="bg-[#141516] text-white">80% (Strict)</option>
+              <option value="85" className="bg-[#141516] text-white">85% (Very Strict)</option>
+            </select>
           </div>
         </div>
         <div className="kiosk-header-right">

@@ -18,7 +18,10 @@ export default function TestPage() {
   const [results, setResults] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [customThreshold, setCustomThreshold] = useState(0.55);
+  const [customThreshold, setCustomThreshold] = useState(() => {
+    const saved = localStorage.getItem('rms_recognition_threshold');
+    return saved ? parseFloat(saved) : 0.70;
+  });
   const [webcamError, setWebcamError] = useState('');
   const [webcamReady, setWebcamReady] = useState(false);
   const [isDragActive, setIsDragActive] = useState(false);
@@ -1013,7 +1016,7 @@ export default function TestPage() {
                    <span className="text-xs font-bold text-white">Recognition Threshold</span>
                  </div>
                  <span className="font-mono text-sm font-extrabold px-3 py-0.5 rounded-lg" style={{ color: '#5E6AD2', background: 'rgba(94, 106, 210, 0.18)', border: '1px solid rgba(94, 106, 210, 0.40)' }}>
-                   {customThreshold.toFixed(2)}
+                   {Math.round(customThreshold * 100)}%
                  </span>
                </div>
 

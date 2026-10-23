@@ -103,7 +103,7 @@ class Organization(Base):
         SQLEnum(PlanTier, name="plan_tier_enum"),
         default=PlanTier.starter, nullable=False
     )
-    confirm_threshold = Column(Float, default=0.55, nullable=False)
+    confirm_threshold = Column(Float, default=0.70, nullable=False)
     onboarding_state = Column(JSON, nullable=True, default=dict)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
     updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc),

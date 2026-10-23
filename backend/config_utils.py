@@ -20,7 +20,7 @@ CONFIG_PATH = os.path.join(BACKEND_DIR, 'data', 'config.json')
 _config_lock = threading.Lock()
 
 DEFAULT_CONFIG = {
-    "CONFIRM_THRESHOLD": 0.55,
+    "CONFIRM_THRESHOLD": 0.70,
     "ENABLE_FACENET512": True,
     "ENABLE_INSIGHTFACE": True,
     "ENABLE_GHOSTFACENET": False,  # Disabled by default due to high error rate
@@ -73,7 +73,7 @@ def save_config(config_dict):
 def get_confirm_threshold():
     """Get the CONFIRM_THRESHOLD from local config (single-tenant mode)."""
     config = load_config()
-    return float(config.get("CONFIRM_THRESHOLD", 0.55))
+    return float(config.get("CONFIRM_THRESHOLD", 0.70))
 
 
 # ──────────────────────────────────────────────────────────────────────
@@ -109,7 +109,7 @@ def get_org_config(org_id):
                 return base_cfg
             result = dict(base_cfg)
             result.update({
-                "CONFIRM_THRESHOLD": org.confirm_threshold if org.confirm_threshold is not None else base_cfg.get("CONFIRM_THRESHOLD", 0.55),
+                "CONFIRM_THRESHOLD": org.confirm_threshold if org.confirm_threshold is not None else base_cfg.get("CONFIRM_THRESHOLD", 0.70),
                 "org_name": org.name,
                 "deployment_mode": org.deployment_mode.value if org.deployment_mode else "cloud",
                 "plan_tier": org.plan_tier.value if org.plan_tier else "starter",
