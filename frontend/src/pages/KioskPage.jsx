@@ -355,20 +355,21 @@ export default function KioskPage() {
     if (!videoRef.current || !webcamReady || isRequestInFlightRef.current || isPausedRef.current) return;
     // Don't send frames during access granted/denied/spoof cooldown display
     if (statusRef.current === STATUS.GRANTED || statusRef.current === STATUS.DENIED || statusRef.current === STATUS.SPOOF) return;
-    if (!videoRef.current.videoWidth || !videoRef.current.videoHeight) return;
+    if (!videoRef.current.videoWidth || !videoRef.current.videoHeight || videoRef.current.readyState < 2) return;
 
     isRequestInFlightRef.current = true;
 
-    // Safety watchdog: if server stalls or message drops, release lock after 2200ms
+    // Safety watchdog: if server stalls or message drops, release lock after 7000ms
     if (inFlightTimerRef.current) clearTimeout(inFlightTimerRef.current);
     inFlightTimerRef.current = setTimeout(() => {
       if (isRequestInFlightRef.current) {
+        console.warn('[Kiosk] Request watchdog timeout (7s), resetting lock');
         isRequestInFlightRef.current = false;
         if (statusRef.current === STATUS.SCANNING || statusRef.current === STATUS.IDLE || statusRef.current === STATUS.VERIFYING) {
-          scheduleNextCapture(150);
+          scheduleNextCapture(250);
         }
       }
-    }, 2200);
+    }, 7000);
 
     // Switch to scanning state on first frame
     if (statusRef.current === STATUS.IDLE) {
@@ -393,7 +394,11 @@ export default function KioskPage() {
         const base64 = canvas.toDataURL('image/jpeg', 0.65);
         socketRef.current.emit('stream_frame', {
           image: base64,
-          token: sessionStorage.getItem('rms_access_token'),
+          token: sessionStorage.getItem('rms_access_token') || localStorage.getItem('rms_access_token'),
+          enable_facenet512: true,
+          enable_insightface: false,
+          enable_ghostfacenet: false,
+          enable_vggface: false,
           single_focus: true,
           kiosk_mode: true,
           threshold: (kioskThresholdRef.current / 100)

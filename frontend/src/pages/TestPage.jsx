@@ -204,6 +204,7 @@ export default function TestPage() {
   const liveLoopRef = useRef(null);
   const modeRef = useRef(mode);
   const isRequestInFlightRef = useRef(false);
+  const inFlightTimerRef = useRef(null);
   const backoffDelayRef = useRef(0); // 0 = no backoff
   const socketRef = useRef(null);
   const [socketConnected, setSocketConnected] = useState(false);
@@ -232,9 +233,13 @@ export default function TestPage() {
       socket.on('disconnect', () => {
         console.warn('[TestPage] WebSocket disconnected, falling back to polling');
         setSocketConnected(false);
+        if (inFlightTimerRef.current) clearTimeout(inFlightTimerRef.current);
+        isRequestInFlightRef.current = false;
+        setLivePredicting(false);
       });
 
       socket.on('prediction_result', (data) => {
+        if (inFlightTimerRef.current) clearTimeout(inFlightTimerRef.current);
         isRequestInFlightRef.current = false;
         setLivePredicting(false);
         backoffDelayRef.current = 0;
@@ -258,6 +263,8 @@ export default function TestPage() {
         socket.disconnect();
         socketRef.current = null;
         setSocketConnected(false);
+        if (inFlightTimerRef.current) clearTimeout(inFlightTimerRef.current);
+        isRequestInFlightRef.current = false;
       };
     }
   }, [mode]);
@@ -265,9 +272,19 @@ export default function TestPage() {
   const runLivePrediction = useCallback(async () => {
     // Strict guard: skip if not in webcam mode, not ready, or a request is already in flight
     if (modeRef.current !== 'webcam' || !videoRef.current || !webcamReady || isRequestInFlightRef.current) return;
+    if (!videoRef.current.videoWidth || !videoRef.current.videoHeight || videoRef.current.readyState < 2) return;
     
     isRequestInFlightRef.current = true;
     setLivePredicting(true);
+
+    if (inFlightTimerRef.current) clearTimeout(inFlightTimerRef.current);
+    inFlightTimerRef.current = setTimeout(() => {
+      if (isRequestInFlightRef.current) {
+        console.warn('[TestPage] Live prediction watchdog timeout (6s), releasing lock');
+        isRequestInFlightRef.current = false;
+        setLivePredicting(false);
+      }
+    }, 6000);
     
     try {
       const canvas = document.createElement('canvas');
@@ -281,7 +298,7 @@ export default function TestPage() {
         const base64Image = canvas.toDataURL('image/jpeg', 0.80);
         socketRef.current.emit('stream_frame', {
           image: base64Image,
-          token: sessionStorage.getItem('rms_access_token'),
+          token: sessionStorage.getItem('rms_access_token') || localStorage.getItem('rms_access_token'),
           threshold: customThreshold,
           enable_facenet512: enableFacenet512,
           enable_insightface: enableInsightFace,
@@ -323,6 +340,7 @@ export default function TestPage() {
             naturalHeight: videoRef.current.videoHeight || 480
           });
         }
+        if (inFlightTimerRef.current) clearTimeout(inFlightTimerRef.current);
         isRequestInFlightRef.current = false;
         setLivePredicting(false);
       }
@@ -334,16 +352,17 @@ export default function TestPage() {
       } else {
         console.error("Live prediction loop error:", err);
       }
+      if (inFlightTimerRef.current) clearTimeout(inFlightTimerRef.current);
       isRequestInFlightRef.current = false;
       setLivePredicting(false);
     }
-  }, [mode, webcamReady, apiClient, socketConnected]);
+  }, [mode, webcamReady, apiClient, socketConnected, customThreshold, enableFacenet512, enableInsightFace]);
 
   useEffect(() => {
     if (mode === 'webcam' && webcamReady && !isFeedbackModalOpen) {
       const scheduleNext = () => {
         // WebSocket can handle faster frame rate; fallback is slower
-        const baseDelay = socketConnected ? 250 : 2000;
+        const baseDelay = socketConnected ? 500 : 2000;
         const delay = backoffDelayRef.current > 0 ? backoffDelayRef.current : baseDelay;
         
         liveLoopRef.current = setTimeout(() => {
@@ -366,6 +385,10 @@ export default function TestPage() {
       if (liveLoopRef.current) {
         clearTimeout(liveLoopRef.current);
         liveLoopRef.current = null;
+      }
+      if (inFlightTimerRef.current) {
+        clearTimeout(inFlightTimerRef.current);
+        inFlightTimerRef.current = null;
       }
     };
   }, [mode, webcamReady, isFeedbackModalOpen, runLivePrediction, socketConnected]);

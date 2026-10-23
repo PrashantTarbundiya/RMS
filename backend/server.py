@@ -3739,18 +3739,18 @@ def handle_stream_frame(data):
     Receives base64 encoded frame, processes it in test_mode=True, and emits results.
     """
     try:
-        from middleware import decode_auth_token
+        from auth import decode_token
         # Basic auth check - frontend should send token
         token = data.get('token')
         org_id = None
         if token:
-            payload = decode_auth_token(token)
-            if not isinstance(payload, str) and payload.get('sub'):
+            payload = decode_token(token)
+            if payload and isinstance(payload, dict) and payload.get('sub'):
                 org_id = payload.get('org_id')
                 
         # If no org_id in token, fallback to local dev default if available
         if not org_id:
-            org_id = os.environ.get('DEFAULT_ORG_ID', 'default_org')
+            org_id = os.environ.get('DEFAULT_ORG_ID', 'default-org')
 
         image_data = data.get('image')
         if not image_data:

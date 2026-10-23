@@ -338,3 +338,7 @@ def get_current_user_id():
     if user is None:
         return None
     return user.get('user_id')
+
+
+# Backwards compatibility alias for decode_token
+from auth import decode_token as decode_auth_token
