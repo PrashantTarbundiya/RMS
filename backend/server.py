@@ -2257,20 +2257,24 @@ def process_local_training_queue():
                     training_status['progress'] = 75
                     retrain_success = True
             elif image_paths:
-                active_models = ['Facenet512']
-                if cfg.get('ENABLE_INSIGHTFACE', True):
-                    active_models.append('InsightFace')
-                for idx, model_name in enumerate(active_models):
-                    try:
-                        print(f"\n[{idx+1}/{len(active_models)}] Enrolling {model_name} for {person_name}...")
-                        training_status['progress'] = 10 + int((idx / len(active_models)) * 75)
-                        update_deepface_model(person_name, image_paths, model_name=model_name, org_id=org_id)
-                        print(f"[OK] {model_name} embeddings updated successfully.")
-                    except Exception as e:
-                        print(f"[WARNING] {model_name} enrollment warning: {e}")
-                
-                training_status['progress'] = 90
-                print(f"\n[INFO] Primary & verifier embedding models ready for {person_name}.")
+                if job.get('skip_embedding_update'):
+                    training_status['progress'] = 90
+                    print(f"\n[INFO] Embeddings already enrolled via fast upload for {person_name}. Skipping redundant recomputation.")
+                else:
+                    active_models = ['Facenet512']
+                    if cfg.get('ENABLE_INSIGHTFACE', True):
+                        active_models.append('InsightFace')
+                    for idx, model_name in enumerate(active_models):
+                        try:
+                            print(f"\n[{idx+1}/{len(active_models)}] Enrolling {model_name} for {person_name}...")
+                            training_status['progress'] = 10 + int((idx / len(active_models)) * 75)
+                            update_deepface_model(person_name, image_paths, model_name=model_name, org_id=org_id)
+                            print(f"[OK] {model_name} embeddings updated successfully.")
+                        except Exception as e:
+                            print(f"[WARNING] {model_name} enrollment warning: {e}")
+                    
+                    training_status['progress'] = 90
+                    print(f"\n[INFO] Primary & verifier embedding models ready for {person_name}.")
             else:
                 print(f"[WARNING] No images found for {person_name} in {person_dir}. Skipping embedding update.")
             
@@ -2322,13 +2326,14 @@ def process_local_training_queue():
             training_status['is_training'] = False
             local_training_queue.task_done()
 
-def enqueue_local_training(person_name, epochs, org_id):
+def enqueue_local_training(person_name, epochs, org_id, skip_embedding_update=False):
     job_id = str(uuid.uuid4())[:8]
     job = {
         'id': job_id,
         'person_name': person_name,
         'epochs': epochs,
         'org_id': org_id,
+        'skip_embedding_update': skip_embedding_update,
         'status': 'Pending',
         'timestamp': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
         'logs': [f"[{datetime.datetime.now().strftime('%H:%M:%S')}] Job added to training queue."]
@@ -2761,9 +2766,8 @@ def upload_person(org_id):
         except Exception as emp_db_err:
             logger.warning(f"Could not update Employee record for {person_name}: {emp_db_err}")
 
-    # Queue SOTA MobileNetV2 fine-tuning in background
-    # (fast enrollment already handled the 4 embedding models above)
-    enqueue_local_training(person_name, epochs, org_id)
+    # Queue background SOTA training (fast enrollment already handled embedding models above)
+    enqueue_local_training(person_name, epochs, org_id, skip_embedding_update=True)
 
     msg = f'Person enrolled and searchable now. SOTA fine-tuning queued.'
     if rejected_count > 0:

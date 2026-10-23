@@ -176,6 +176,25 @@
   letter-spacing: 0px;
 }
 
+/* ── Sidebar Isolation (Mobile First) ── */
+.ui-sidebar {
+  display: none !important;
+}
+
+@media (min-width: 768px) {
+  .ui-sidebar {
+    display: flex !important;
+    flex-direction: column;
+    height: 100vh;
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    background: var(--surface-1);
+    border-right: 1px solid var(--hairline);
+    transition: width 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+}
+
 /* ── Custom Global Elements ── */
 .app-container {
   display: flex;

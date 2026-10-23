@@ -29,6 +29,18 @@ export function Navbar() {
     setIsMobileOpen(false);
   }, [location.pathname]);
 
+  // Lock background scroll when mobile drawer is open
+  useEffect(() => {
+    if (isMobileOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isMobileOpen]);
+
   const toggleSidebar = () => {
     setIsCollapsed(prev => {
       const next = !prev;
@@ -61,28 +73,36 @@ export function Navbar() {
     [userRole]
   );
 
-
   return (
     <>
       {/* Mobile Top Header (Visible only on mobile/small screens) */}
-      <div className="mobile-header md:hidden">
-        <div className="flex items-center justify-between w-full px-5 h-14 bg-[#0F1011] border-b border-[#23252A] fixed top-0 left-0 right-0 z-40">
+      <header className="mobile-header md:hidden">
+        <div className="flex items-center justify-between w-full px-4 h-14 bg-[#0F1011]/95 backdrop-blur-md border-b border-[#23252A] fixed top-0 left-0 right-0 z-40">
           <Link to="/" className="brand flex items-center gap-2">
-            <div className="w-7 h-7 rounded-md border border-border flex items-center justify-center bg-[#010102] shrink-0">
+            <div className="w-8 h-8 rounded-lg border border-border flex items-center justify-center bg-[#010102] shrink-0">
               <span className="font-mono text-primary font-bold text-xs">R</span>
             </div>
-            <span className="text-ink font-semibold tracking-tight text-sm font-display">RMS Console</span>
+            <div className="flex flex-col">
+              <span className="text-ink font-semibold tracking-tight text-xs font-display">RMS Console</span>
+              {user?.org_name && (
+                <span className="text-[10px] text-ink-subtle font-mono truncate max-w-[150px] leading-tight">
+                  {user.org_name}
+                </span>
+              )}
+            </div>
           </Link>
           <button 
-            onClick={() => setIsMobileOpen(true)}
-            className="text-ink-subtle hover:text-ink p-1.5 rounded-md hover:bg-surface-2 transition-colors cursor-pointer"
+            type="button"
+            onClick={() => setIsMobileOpen(prev => !prev)}
+            aria-label={isMobileOpen ? "Close menu" : "Open menu"}
+            className="text-ink-subtle hover:text-ink p-2 rounded-lg hover:bg-surface-2 transition-colors cursor-pointer"
           >
-            <Menu size={20} />
+            {isMobileOpen ? <X size={20} /> : <Menu size={20} />}
           </button>
         </div>
         {/* Spacer to push page content down */}
         <div className="h-14 w-full" />
-      </div>
+      </header>
 
       {/* Slide-over Mobile Drawer Navigation */}
       <AnimatePresence>

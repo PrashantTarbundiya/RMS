@@ -13,8 +13,9 @@ worker_class = "geventwebsocket.gunicorn.workers.GeventWebSocketWorker"
 # Use exactly 1 worker for free/starter cloud tiers (512MB RAM) to avoid OOM kills
 workers = int(os.environ.get("WEB_CONCURRENCY", "1"))
 worker_connections = 100
-max_requests = 100
-max_requests_jitter = 10
+# Worker lifecycle: Set high max_requests so workers do not self-terminate every 2 minutes under continuous Kiosk/Camera traffic
+max_requests = 10000
+max_requests_jitter = 1000
 
 # Request timeouts
 timeout = 300

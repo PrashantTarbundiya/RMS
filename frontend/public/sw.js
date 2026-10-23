@@ -1,5 +1,5 @@
 // RMS Face AI — Enterprise Progressive Web App Service Worker
-const CACHE_NAME = 'rms-pwa-v1.0.0';
+const CACHE_NAME = 'rms-pwa-v2.1.0';
 
 const PRECACHE_ASSETS = [
   '/',
@@ -12,7 +12,7 @@ const PRECACHE_ASSETS = [
   '/apple-touch-icon.png'
 ];
 
-// Install Event — precache core app shell
+// Install Event — precache core app shell and immediately activate
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
@@ -21,7 +21,7 @@ self.addEventListener('install', (event) => {
       });
     })
   );
-  // Do not automatically skipWaiting; wait for user confirmation or activation trigger
+  self.skipWaiting();
 });
 
 // Activate Event — cleanup outdated cache versions

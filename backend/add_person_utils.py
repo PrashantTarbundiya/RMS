@@ -110,25 +110,25 @@ def update_deepface_model(person_name, image_paths, model_name='Facenet512', org
     else:
         print("   No existing encodings found. Creating new file.")
 
-    # Detect multi-angle coverage: if the person has front/left/right images,
-    # real viewing angle diversity makes augmentation unnecessary.
+    # Multi-angle / multi-image detection:
+    # When 2 or more real photos are provided, real variations make synthetic augments unnecessary.
     has_multi_angle = False
     angle_dirs = set()
     for p in image_paths:
         parent_dir = os.path.basename(os.path.dirname(p)).lower()
         if parent_dir in ('frontal', 'front', 'left', 'right', 'front_img', 'left_img', 'right_img'):
             angle_dirs.add(parent_dir)
-    if len(angle_dirs) >= 2:
+    if len(angle_dirs) >= 2 or len(image_paths) >= 2:
         has_multi_angle = True
 
-    skip_augmentation = EDGE_LIGHTWEIGHT and has_multi_angle
+    skip_augmentation = has_multi_angle or EDGE_LIGHTWEIGHT
     if skip_augmentation:
-        print(f"   [Edge] Multi-angle photos detected ({', '.join(angle_dirs)}). Skipping synthetic augmentation.")
+        print(f"   [Fast-Path] Multi-photo enrollment detected ({len(image_paths)} image(s)). Skipping synthetic augments for maximum speed.")
     else:
-        print(f"   [Augmentation] Generating {NUM_AUGMENTS_QUICK} augments per image.")
+        print(f"   [Augmentation] Generating 1 lightweight augment per image.")
 
     # Initialize face detector
-    detector = SideFaceDetector(min_detection_confidence=0.45)  # 0.45 = balanced to reduce false positives
+    detector = SideFaceDetector(min_detection_confidence=0.45)
     
     new_count = 0
 
@@ -181,9 +181,9 @@ def update_deepface_model(person_name, image_paths, model_name='Facenet512', org
                 existing_names.append(person_name)
                 new_count += 1
 
-            # Generate embeddings for AUGMENTED variants (skip when multi-angle + edge mode)
+            # Generate embeddings for AUGMENTED variants (only for single photo enrollment)
             if not skip_augmentation:
-                augments = generate_augments(face_crop, num_augments=NUM_AUGMENTS_QUICK)
+                augments = generate_augments(face_crop, num_augments=1)
                 for aug_img in augments:
                     if model_name == 'InsightFace':
                         aug_embedding = get_embedding_insightface(aug_img)
@@ -195,6 +195,13 @@ def update_deepface_model(person_name, image_paths, model_name='Facenet512', org
                         new_count += 1
 
             print(f"   [OK] Processed: {os.path.basename(img_path)}")
+
+            # Cooperative yield so gevent event loop services incoming ping/predict requests
+            try:
+                import gevent
+                gevent.sleep(0.005)
+            except Exception:
+                pass
 
         except Exception as e:
             print(f"   [Error] Error processing {os.path.basename(img_path)}: {e}")
@@ -210,6 +217,9 @@ def update_deepface_model(person_name, image_paths, model_name='Facenet512', org
     }
     with open(encodings_path, "wb") as f:
         pickle.dump(data, f)
+
+    import gc
+    gc.collect()
 
     print(f"   [Saved] Saved {new_count} new embeddings. Total: {len(existing_encodings)}")
 
