@@ -31,8 +31,9 @@ DISAGREEMENT_PENALTY = 0.12   # Penalty when models disagree
 
 UNKNOWN_LABEL = "Unknown"
 
-# Labels that indicate a model didn't produce a real prediction
-SKIP_LABELS = frozenset({'[UNTRAINED]', 'Not Trained', 'Not Loaded', 'Error', '', 'Unknown', 'Disabled', 'SPOOF'})
+# Labels that indicate a model failed to run, was never trained, or was disabled
+INACTIVE_LABELS = frozenset({'[UNTRAINED]', 'Not Trained', 'Not Loaded', 'Error', 'Disabled', ''})
+SKIP_LABELS = INACTIVE_LABELS
 
 
 def ensemble_predict(predictions, weights=None, custom_threshold=None):
@@ -61,18 +62,19 @@ def ensemble_predict(predictions, weights=None, custom_threshold=None):
     if weights is None:
         weights = DEFAULT_WEIGHTS
 
-    # Gather valid predictions (skip untrained/error models)
-    valid_preds = {}
+    # Gather active models that actually executed inference
+    active_preds = {}
 
     for model_key in ['facenet512', 'insightface', 'ghostfacenet', 'vggface']:
         pred = predictions.get(model_key, {})
         label = pred.get('label', '')
-        conf = pred.get('confidence', 0.0)
+        conf = float(pred.get('confidence', 0.0))
 
-        if label not in SKIP_LABELS and conf >= 0:
-            valid_preds[model_key] = {'label': label, 'confidence': conf}
+        if label not in INACTIVE_LABELS:
+            active_preds[model_key] = {'label': label, 'confidence': conf}
 
-    if not valid_preds:
+    # If NO models were trained or loaded, then and only then is it 'no_valid_models'
+    if not active_preds:
         return {
             'label': UNKNOWN_LABEL,
             'confidence': 0.0,
@@ -81,9 +83,27 @@ def ensemble_predict(predictions, weights=None, custom_threshold=None):
             'is_recognized': False,
         }
 
+    num_active = len(active_preds)
+    fallback_method = 'single_model' if num_active == 1 else 'ensemble'
+
+    # Filter for models that predicted a specific identity (not Unknown, not SPOOF)
+    named_preds = {k: v for k, v in active_preds.items() if v['label'] not in ('Unknown', 'SPOOF', UNKNOWN_LABEL)}
+
+    # If all models evaluated and concluded Unknown, report Unknown with the highest candidate similarity
+    if not named_preds:
+        max_conf = max((p['confidence'] for p in active_preds.values()), default=0.0)
+        return {
+            'label': UNKNOWN_LABEL,
+            'confidence': round(max_conf, 3),
+            'method': fallback_method,
+            'agreement': f"0/{num_active}",
+            'details': predictions,
+            'is_recognized': False,
+        }
+
     # ── Dynamic Weight Redistribution ──
-    # Only consider weights for models that actually voted.
-    active_weights = {k: weights.get(k, 0.25) for k in valid_preds}
+    # Only consider weights for models that actually predicted a candidate identity
+    active_weights = {k: weights.get(k, 0.25) for k in named_preds}
     total_active_weight = sum(active_weights.values())
 
     # Normalize so active weights sum to 1.0
@@ -94,7 +114,7 @@ def ensemble_predict(predictions, weights=None, custom_threshold=None):
     # ── Tally Votes ──
     label_scores = {}
 
-    for model_key, pred in valid_preds.items():
+    for model_key, pred in named_preds.items():
         w = active_weights[model_key]
         label = pred['label']
         weighted_conf = pred['confidence'] * w
@@ -111,7 +131,7 @@ def ensemble_predict(predictions, weights=None, custom_threshold=None):
     best_info = label_scores[best_label]
     best_score = best_info['score']
     best_voters = best_info['voters']
-    num_valid = len(valid_preds)
+    num_valid = len(named_preds)
 
     # Base threshold: use user-defined threshold if passed, else default to 0.70
     base_hard = HARD_MATCH_THRESHOLD
@@ -149,7 +169,7 @@ def ensemble_predict(predictions, weights=None, custom_threshold=None):
         else:
             # Single model fallback — if it is a Tier-1 deep model (facenet512 or insightface),
             # DO NOT penalize with +0.15! Keep effective_hard_threshold at base_hard (70%)!
-            solo_key = list(valid_preds.keys())[0]
+            solo_key = list(named_preds.keys())[0]
             if solo_key in ['facenet512', 'insightface']:
                 effective_hard_threshold = base_hard
                 effective_soft_threshold = base_soft
@@ -159,8 +179,8 @@ def ensemble_predict(predictions, weights=None, custom_threshold=None):
 
     # ── Single High-Confidence Override ──
     if num_valid == 1:
-        solo_key = list(valid_preds.keys())[0]
-        solo_conf = list(valid_preds.values())[0]['confidence']
+        solo_key = list(named_preds.keys())[0]
+        solo_conf = list(named_preds.values())[0]['confidence']
         if solo_key in ['facenet512', 'insightface'] and solo_conf >= 0.40:
             best_score = max(best_score, solo_conf)
         else:

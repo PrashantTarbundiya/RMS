@@ -201,25 +201,39 @@ def apply_clahe(image):
 from model import get_embedding
 
 
-def compute_match_confidence(dist, confirm_threshold):
+def compute_match_confidence(dist, confirm_threshold=0.40):
     """
     Compute a realistic, smoothly calibrated confidence score (0.0 to 0.99).
     If dist <= confirm_threshold, returns confirmed confidence [0.70, 0.98].
-    If dist > confirm_threshold, returns rejected/uncertain confidence [0.0, 0.48].
+    If dist > confirm_threshold, returns rejected/uncertain confidence [0.0, 0.55].
     Never returns hardcoded 1.0 (100%) so false positives cannot report 100% certainty.
     """
     if dist is None or dist >= 1.0:
         return 0.0
-    thresh = max(0.20, float(confirm_threshold))
-    if dist <= thresh:
-        # Match confirmed: map [0.0, thresh] -> [0.98, 0.70]
-        ratio = max(0.0, min(1.0, dist / thresh))
+    thresh_val = float(confirm_threshold) if confirm_threshold is not None else 0.40
+    if thresh_val > 1.0:
+        thresh_val /= 100.0
+
+    # If thresh_val is >= 0.50, it is a confidence threshold (e.g. 0.70 / 0.60).
+    # Convert confidence target to distance threshold:
+    # 70% confidence target -> 0.40 distance
+    # 60% confidence target -> 0.44 distance
+    # 85% confidence target -> 0.32 distance
+    if thresh_val >= 0.50:
+        dist_thresh = 0.40 - (thresh_val - 0.70) * 0.25
+        dist_thresh = max(0.26, min(0.48, dist_thresh))
+    else:
+        dist_thresh = max(0.20, thresh_val)
+
+    if dist <= dist_thresh:
+        # Match confirmed: map [0.0, dist_thresh] -> [0.98, 0.70]
+        ratio = max(0.0, min(1.0, dist / dist_thresh))
         conf = 0.70 + 0.28 * ((1.0 - ratio) ** 1.1)
         return round(float(conf), 3)
     else:
-        # Match rejected / uncertain: map (thresh, 1.0] -> [0.48, 0.0]
-        excess = min(1.0, (dist - thresh) / max(0.01, 1.0 - thresh))
-        conf = max(0.0, 0.48 * (1.0 - excess))
+        # Match rejected / uncertain: map (dist_thresh, 1.0] -> [0.55, 0.0]
+        excess = min(1.0, (dist - dist_thresh) / max(0.01, 1.0 - dist_thresh))
+        conf = max(0.0, 0.55 * (1.0 - excess))
         return round(float(conf), 3)
 
 
@@ -246,16 +260,17 @@ def find_match_knn(embedding, known_encodings, known_names, k=KNN_K, max_dist=No
     if custom_t is not None and custom_t >= 0.50:
         # Interpreted as confidence threshold (0.50 to 0.95):
         # Higher confidence target -> tighter distance cutoff
+        # Lower confidence target (e.g. 0.60) -> more lenient distance cutoff
         if model_name == 'InsightFace':
-            base_thresh = 0.34 - (custom_t - 0.70) * 0.15
-            base_thresh = max(0.26, min(0.38, base_thresh))
+            base_thresh = 0.34 - (custom_t - 0.70) * 0.20
+            base_thresh = max(0.24, min(0.42, base_thresh))
         elif model_name == 'GhostFaceNet':
-            base_thresh = 0.40 - (custom_t - 0.70) * 0.15
-            base_thresh = max(0.32, min(0.44, base_thresh))
+            base_thresh = 0.40 - (custom_t - 0.70) * 0.20
+            base_thresh = max(0.30, min(0.48, base_thresh))
         else:  # Facenet512
-            base_thresh = 0.38 - (custom_t - 0.70) * 0.15
-            base_thresh = max(0.30, min(0.44, base_thresh))
-        cutoff = base_thresh + 0.08
+            base_thresh = 0.38 - (custom_t - 0.70) * 0.20
+            base_thresh = max(0.28, min(0.48, base_thresh))
+        cutoff = base_thresh + 0.10
     else:
         # Interpreted directly as distance threshold (< 0.50) or default
         if model_name == 'InsightFace':
@@ -328,6 +343,9 @@ def find_match_knn(embedding, known_encodings, known_names, k=KNN_K, max_dist=No
         
     if winner_dist <= confirm_threshold:
         return winner, winner_dist, "confirmed"
+    elif winner_dist <= cutoff:
+        # Close candidate within tolerance zone -> report identity with 'uncertain' level
+        return winner, winner_dist, "uncertain"
     else:
         # Distance too high -> Unknown (never false-positive)
         return "Unknown", winner_dist, "rejected"

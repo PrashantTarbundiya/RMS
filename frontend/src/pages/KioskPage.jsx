@@ -577,6 +577,7 @@ export default function KioskPage() {
               }}
               className="bg-transparent text-ink font-mono text-xs focus:outline-none cursor-pointer"
             >
+              <option value="55" className="bg-[#141516] text-white">55% (High Lenience)</option>
               <option value="60" className="bg-[#141516] text-white">60% (Relaxed)</option>
               <option value="65" className="bg-[#141516] text-white">65%</option>
               <option value="70" className="bg-[#141516] text-white">70% (Standard / Default)</option>

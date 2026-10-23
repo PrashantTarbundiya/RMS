@@ -1023,24 +1023,24 @@ export default function TestPage() {
                {/* Track with +/- */}
                <div className="flex items-center gap-2.5">
                  <button
-                   onClick={() => setCustomThreshold(prev => Math.max(0.20, parseFloat((prev - 0.05).toFixed(2))))}
+                   onClick={() => setCustomThreshold(prev => Math.max(0.50, parseFloat((prev - 0.05).toFixed(2))))}
                    className="w-8 h-8 rounded-lg flex items-center justify-center text-white text-sm font-bold transition-all hover:scale-105 active:scale-95"
                    style={{ background: 'rgba(255, 255, 255, 0.08)', border: '1px solid rgba(255, 255, 255, 0.15)' }}
                  >−</button>
 
                  <input 
                    type="range"
-                   min="0.20"
-                   max="0.90"
+                   min="0.50"
+                   max="0.95"
                    step="0.05"
                    value={customThreshold}
                    onChange={(e) => setCustomThreshold(parseFloat(e.target.value))}
                    className="flex-1 h-1.5 accent-[#5E6AD2] rounded-lg appearance-none cursor-pointer"
-                   style={{ background: `linear-gradient(to right, #5E6AD2 ${((customThreshold - 0.20) / 0.70) * 100}%, rgba(255,255,255,0.08) ${((customThreshold - 0.20) / 0.70) * 100}%)` }}
+                   style={{ background: `linear-gradient(to right, #5E6AD2 ${((customThreshold - 0.50) / 0.45) * 100}%, rgba(255,255,255,0.08) ${((customThreshold - 0.50) / 0.45) * 100}%)` }}
                  />
 
                  <button
-                   onClick={() => setCustomThreshold(prev => Math.min(0.90, parseFloat((prev + 0.05).toFixed(2))))}
+                   onClick={() => setCustomThreshold(prev => Math.min(0.95, parseFloat((prev + 0.05).toFixed(2))))}
                    className="w-8 h-8 rounded-lg flex items-center justify-center text-white text-sm font-bold transition-all hover:scale-105 active:scale-95"
                    style={{ background: 'rgba(255, 255, 255, 0.08)', border: '1px solid rgba(255, 255, 255, 0.15)' }}
                  >+</button>
@@ -1049,16 +1049,19 @@ export default function TestPage() {
                {/* Presets */}
                <div className="flex gap-1.5">
                  {[
-                   { val: 0.30, label: 'Strict', color: '#F87171' },
-                   { val: 0.45, label: 'Balanced', color: '#FBBF24' },
-                   { val: 0.55, label: 'Standard', color: '#5E6AD2' },
-                   { val: 0.70, label: 'Relaxed', color: '#27A644' },
+                   { val: 0.60, label: 'Relaxed (60%)', color: '#38BDF8' },
+                   { val: 0.65, label: 'Standard (65%)', color: '#5E6AD2' },
+                   { val: 0.70, label: 'Balanced (70%)', color: '#27A644' },
+                   { val: 0.80, label: 'Strict (80%)', color: '#F87171' },
                  ].map(p => {
                    const active = Math.abs(customThreshold - p.val) < 0.01;
                    return (
                      <button
                        key={p.val}
-                       onClick={() => setCustomThreshold(p.val)}
+                       onClick={() => {
+                        setCustomThreshold(p.val);
+                        localStorage.setItem('rms_recognition_threshold', p.val.toString());
+                      }}
                        className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-[10px] font-semibold transition-all hover:scale-[1.02] active:scale-95"
                        style={{
                          background: active ? p.color + '25' : 'rgba(255, 255, 255, 0.04)',
@@ -1221,12 +1224,17 @@ export default function TestPage() {
                                    <div className={`text-xl font-medium tracking-tight ${statusColor}`}>
                                      {displayLabel ? formatPersonName(displayLabel) : 'Unknown'}
                                    </div>
+                                   {face.ensemble?.candidate_name && !isConfirmed && (
+                                     <div className="text-[11px] font-mono text-ink-subtle mt-1">
+                                       Nearest Candidate: <span className="text-white/80 font-medium">{formatPersonName(face.ensemble.candidate_name)}</span>
+                                     </div>
+                                   )}
                                  </div>
                                </div>
 
                                  <div className="flex justify-between items-center mt-4 pt-4 border-t border-[#23252A]/50">
                                    <div className="text-[10px] text-ink-subtle font-mono tracking-wider uppercase">
-                                     MTHD: {face.ensemble?.method || 'ENSEMBLE'} {showConfidence && `| CONF: ${(displayConf * 100).toFixed(1)}%`}
+                                     MTHD: {face.ensemble?.method === 'no_valid_models' ? 'SINGLE_MODEL' : (face.ensemble?.method || 'SINGLE_MODEL').toUpperCase()} {showConfidence && `| CONF: ${(displayConf * 100).toFixed(1)}%`}
                                    </div>
                                    
                                    {face.prediction_id && !spoofed && (

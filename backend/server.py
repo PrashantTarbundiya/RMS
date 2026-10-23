@@ -3620,6 +3620,13 @@ def predict(org_id):
             if min_conf > 1.0:
                 min_conf /= 100.0
 
+            raw_label = ensemble_result.get('label', 'Unknown')
+            candidate_name = None
+            if str(raw_label).startswith('Uncertain: '):
+                candidate_name = raw_label.replace('Uncertain: ', '')
+            elif raw_label != 'Unknown':
+                candidate_name = raw_label
+
             is_confirmed = (
                 ensemble_result.get('is_recognized', False) and 
                 ens_conf >= min_conf and 
@@ -3640,8 +3647,10 @@ def predict(org_id):
                 'predictions': individual_preds,
                 'ensemble': {
                     'label': ens_label,
+                    'raw_label': raw_label,
+                    'candidate_name': candidate_name,
                     'confidence': ens_conf,
-                    'method': ensemble_result['method'],
+                    'method': ensemble_result.get('method', 'single_model'),
                     'agreement': ensemble_result.get('agreement', 'N/A'),
                     'is_recognized': is_confirmed,
                     'is_confirmed': is_confirmed,
@@ -3938,6 +3947,13 @@ def handle_stream_frame(data):
             if min_conf > 1.0:
                 min_conf /= 100.0
 
+            raw_label = ensemble_result.get('label', 'Unknown')
+            candidate_name = None
+            if str(raw_label).startswith('Uncertain: '):
+                candidate_name = raw_label.replace('Uncertain: ', '')
+            elif raw_label != 'Unknown':
+                candidate_name = raw_label
+
             is_confirmed = (
                 ensemble_result.get('is_recognized', False) and 
                 ens_conf >= min_conf and 
@@ -3958,8 +3974,10 @@ def handle_stream_frame(data):
                 'predictions': individual_preds,
                 'ensemble': {
                     'label': ens_label,
+                    'raw_label': raw_label,
+                    'candidate_name': candidate_name,
                     'confidence': ens_conf,
-                    'method': ensemble_result['method'],
+                    'method': ensemble_result.get('method', 'single_model'),
                     'agreement': ensemble_result.get('agreement', 'N/A'),
                     'is_recognized': is_confirmed,
                     'is_confirmed': is_confirmed,
