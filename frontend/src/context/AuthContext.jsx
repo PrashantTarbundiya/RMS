@@ -220,17 +220,44 @@ export function AuthProvider({ children }) {
   }, [saveTokens]);
 
   const updateOnboardingState = useCallback(async (newState) => {
+    if (typeof newState?.step === 'number') {
+      localStorage.setItem('rms_onboarding_step', String(newState.step));
+    }
+    if (newState?.completed) {
+      localStorage.setItem('rms_onboarding_completed', 'true');
+    }
+    setUser(prev => prev ? ({
+      ...prev,
+      onboarding_state: { ...(prev.onboarding_state || {}), ...newState }
+    }) : prev);
+
     try {
       const res = await axios.post(`${API_BASE}/onboarding/state`, {
         onboarding_state: newState
       }, {
         headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {}
       });
-      const saved = res.data?.onboarding_state || newState;
-      setUser(prev => prev ? ({ ...prev, onboarding_state: saved }) : prev);
-      return saved;
+      const serverState = res.data?.onboarding_state;
+      if (serverState) {
+        setUser(prev => {
+          if (!prev) return prev;
+          const currentStep = prev.onboarding_state?.step ?? 0;
+          const incomingStep = serverState.step ?? currentStep;
+          // Never allow server to roll back to an older step
+          const resolvedStep = Math.max(currentStep, incomingStep);
+          const resolvedCompleted = prev.onboarding_state?.completed || serverState.completed;
+          return {
+            ...prev,
+            onboarding_state: {
+              ...serverState,
+              step: resolvedStep,
+              completed: resolvedCompleted,
+            }
+          };
+        });
+      }
+      return serverState || newState;
     } catch (e) {
-      setUser(prev => prev ? ({ ...prev, onboarding_state: newState }) : prev);
       return newState;
     }
   }, [accessToken]);

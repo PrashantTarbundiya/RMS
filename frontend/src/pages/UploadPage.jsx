@@ -747,6 +747,7 @@ export default function UploadPage() {
                 </label>
                 <div className="relative">
                   <input
+                    data-tour="subject-name-input"
                     type="text"
                     required
                     value={personName}
@@ -759,7 +760,7 @@ export default function UploadPage() {
                     onFocus={() => setShowDropdown(true)}
                     onBlur={() => setTimeout(() => setShowDropdown(false), 200)}
                     placeholder="e.g. John_Doe, Vatsal_Vadgama"
-                    className="input-linear w-full bg-[#101012] border border-[#23252A] text-ink placeholder:text-ink-tertiary focus:border-[#828FFF] focus:outline-none"
+                    className="input-linear w-full bg-[#101012] border border-[#23252A] text-ink placeholder:text-ink-tertiary focus:border-[#2563EB] focus:outline-none"
                   />
                   {showDropdown && searchQuery && (
                     <div className="absolute z-20 left-0 right-0 mt-1 bg-[#191A1B] border border-[#23252A] rounded-lg shadow-xl max-h-48 overflow-y-auto">
@@ -819,6 +820,7 @@ export default function UploadPage() {
 
             {/* Single Unified Dropzone */}
             <div
+              data-tour="asset-allocation"
               onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
               onDragEnter={(e) => { e.preventDefault(); e.stopPropagation(); setAutoDragActive(true); }}
               onDragLeave={(e) => { e.preventDefault(); e.stopPropagation(); setAutoDragActive(false); }}
@@ -829,11 +831,11 @@ export default function UploadPage() {
                 if (e.dataTransfer.files?.length > 0) handleAutoFiles(e.dataTransfer.files);
               }}
               className={`p-8 border-2 border-dashed rounded-2xl text-center transition-all cursor-pointer ${
-                autoDragActive ? 'border-[#828FFF] bg-[#5E6AD2]/10 scale-[1.01]' : 'border-[#23252A] hover:border-[#3E424A] bg-[#141516]/60'
+                autoDragActive ? 'border-[#2563EB] bg-[#2563EB]/10 scale-[1.01]' : 'border-[#23252A] hover:border-[#3E424A] bg-[#141516]/60'
               }`}
             >
               <label className="cursor-pointer block">
-                <UploadCloud className={`w-12 h-12 mx-auto mb-3 transition-colors ${autoDragActive ? 'text-[#828FFF] animate-bounce' : 'text-ink-tertiary'}`} />
+                <UploadCloud className={`w-12 h-12 mx-auto mb-3 transition-colors ${autoDragActive ? 'text-[#3B82F6] animate-bounce' : 'text-ink-tertiary'}`} />
                 <p className="text-sm font-medium text-ink">
                   {autoDragActive ? 'Drop all photos here now!' : 'Drop all photos for this person here, or click to browse'}
                 </p>

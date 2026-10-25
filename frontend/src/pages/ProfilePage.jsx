@@ -114,7 +114,7 @@ export default function ProfilePage() {
           <h2 className="text-body font-medium text-ink font-mono">{user?.name || 'Local Operator'}</h2>
           <p className="text-[11px] text-ink-tertiary mb-4">{user?.email || 'local@admin'}</p>
           
-          <span className="px-2.5 py-0.5 rounded-full bg-[#5E6AD2]/10 text-[#828FFF] border border-[#5E6AD2]/20 uppercase tracking-widest font-mono text-[9px] font-semibold">
+          <span className="px-2.5 py-0.5 rounded-md bg-[#2563EB]/10 text-[#3B82F6] border border-[#2563EB]/20 uppercase tracking-widest font-mono text-[9px] font-semibold">
             {user?.role || 'Admin'}
           </span>
         </div>
@@ -198,6 +198,9 @@ export default function ProfilePage() {
                     onClick={async () => {
                       sessionStorage.removeItem('onboarding_paused');
                       sessionStorage.removeItem('welcome_shown');
+                      localStorage.removeItem('rms_onboarding_completed');
+                      localStorage.removeItem('rms_onboarding_dismissed');
+                      localStorage.setItem('rms_onboarding_step', '0');
                       try {
                         await apiClient.post(`${API_BASE}/onboarding/state`, {
                           onboarding_state: { step: 0, completed: false }
@@ -226,7 +229,7 @@ export default function ProfilePage() {
                   <Server className="w-4 h-4" />
                   <span>Deployment Mode</span>
                 </div>
-                <span className="px-2 py-0.5 rounded-full bg-[#5E6AD2]/10 text-[#828FFF] border border-[#5E6AD2]/20 font-mono text-[10px]">
+                <span className="px-2 py-0.5 rounded-md bg-[#2563EB]/10 text-[#3B82F6] border border-[#2563EB]/20 font-mono text-[10px]">
                   {user?.org_id ? 'Multi-Tenant (DB)' : 'Single-Tenant (Local)'}
                 </span>
               </div>

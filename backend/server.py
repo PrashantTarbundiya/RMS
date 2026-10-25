@@ -1713,20 +1713,23 @@ def update_onboarding_state():
 
     from database.db import get_db_session
     from database.models import Organization
+    from sqlalchemy.orm.attributes import flag_modified
 
     try:
         with get_db_session() as db:
             org = db.query(Organization).filter_by(id=org_id).first()
             if org:
-                current = org.onboarding_state or {}
+                current = dict(org.onboarding_state or {})
                 if isinstance(new_state, dict):
                     current.update(new_state)
                     org.onboarding_state = dict(current)
+                    flag_modified(org, 'onboarding_state')
                 db.commit()
                 return jsonify({'message': 'Onboarding state saved.', 'onboarding_state': org.onboarding_state})
             return jsonify({'error': 'Organization not found.'}), 404
     except Exception as e:
-        logger.error(f"Error updating onboarding state: {e}")
+        logger.error(f"Error updating onboarding state: {e}", exc_info=True)
+        return jsonify({'error': 'Failed to update onboarding state.'}), 500
 
 @app.route('/api/org/name', methods=['PUT'])
 @require_auth

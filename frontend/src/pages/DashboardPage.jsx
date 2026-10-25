@@ -29,7 +29,7 @@ export default function DashboardPage() {
   });
   const [loading, setLoading] = useState(!stats);
   const [error, setError] = useState('');
-  const [dismissChecklist, setDismissChecklist] = useState(false);
+  const [dismissChecklist, setDismissChecklist] = useState(() => localStorage.getItem('rms_onboarding_dismissed') === 'true');
   
   const [editingPerson, setEditingPerson] = useState(null);
   const [newName, setNewName] = useState('');
@@ -249,18 +249,20 @@ export default function DashboardPage() {
 
       {/* Resumable Onboarding Checklist Card */}
       {user?.role && ['org_admin', 'platform_owner'].includes(user.role) && 
-       user?.onboarding_state?.completed !== true && !dismissChecklist && (
+       localStorage.getItem('rms_onboarding_completed') !== 'true' &&
+       user?.onboarding_state?.completed !== true && 
+       !dismissChecklist && (
         <motion.div 
           variants={itemVariants} 
-          className="p-5 bg-[#5E6AD2]/10 border border-[#5E6AD2]/30 rounded-xl flex items-center justify-between gap-4"
+          className="p-5 bg-[#2563EB]/10 border border-[#2563EB]/30 rounded-lg flex items-center justify-between gap-4"
         >
           <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-lg bg-[#5E6AD2]/20 text-[#828FFF]">
+            <div className="p-2.5 rounded-lg bg-[#2563EB]/20 text-[#3B82F6]">
               <Sparkles className="w-5 h-5" />
             </div>
             <div>
               <h3 className="text-body font-semibold text-ink">
-                Setup Checklist (Step {(user?.onboarding_state?.step ?? 0) + 1} of 5)
+                Setup Checklist (Step {Math.min(parseInt(localStorage.getItem('rms_onboarding_step') ?? (user?.onboarding_state?.step ?? 0), 10) + 1, 5)} of 5)
               </h3>
               <p className="text-caption text-ink-subtle mt-0.5">
                 Resume your guided organization setup whenever you're ready.
@@ -271,12 +273,14 @@ export default function DashboardPage() {
             <button 
               onClick={() => {
                 sessionStorage.removeItem('onboarding_paused');
-                localStorage.removeItem('onboarding_dismissed');
+                localStorage.removeItem('rms_onboarding_dismissed');
                 sessionStorage.setItem('welcome_shown', 'true');
                 const STEP_PATHS = ['/profile', '/cameras', '/upload', '/test', '/dashboard'];
-                const currentStep = user?.onboarding_state?.step ?? 0;
-                const targetPath = STEP_PATHS[Math.min(currentStep, STEP_PATHS.length - 1)];
+                const savedStep = parseInt(localStorage.getItem('rms_onboarding_step') ?? (user?.onboarding_state?.step ?? 0), 10);
+                const currentStep = Math.min(Math.max(savedStep, 0), STEP_PATHS.length - 1);
+                const targetPath = STEP_PATHS[currentStep];
                 navigate(targetPath);
+                window.dispatchEvent(new CustomEvent('rms:start-onboarding', { detail: { step: currentStep } }));
               }}
               className="button-primary text-caption py-1.5 px-3 text-white flex items-center gap-1.5"
             >
@@ -284,9 +288,12 @@ export default function DashboardPage() {
               <ArrowRight className="w-3.5 h-3.5" />
             </button>
             <button 
-              onClick={() => setDismissChecklist(true)}
+              onClick={() => {
+                setDismissChecklist(true);
+                localStorage.setItem('rms_onboarding_dismissed', 'true');
+              }}
               className="p-1 text-ink-tertiary hover:text-ink text-xs"
-              title="Dismiss for this session"
+              title="Dismiss for this browser"
             >
               <X className="w-4 h-4 text-ink-tertiary hover:text-ink" />
             </button>
