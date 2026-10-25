@@ -721,6 +721,621 @@ def export_analytics_pdf(org_id):
     )
 
 
+# ─── Kiosk Attendance & Department Management Engine ──────────────────
+
+BENCHMARK_EXCLUDED_FRIEND_PATTERNS = [
+    r'vatsal', r'prince', r'shivam', r'dev', r'jay', r'samarth',
+    r'manan', r'rakshit', r'dhruvik', r'shiven', r'prashant'
+]
+
+def is_benchmark_excluded_friend(name):
+    if not name:
+        return False
+    name_str = str(name).lower()
+    return any(re.search(pat, name_str) for pat in BENCHMARK_EXCLUDED_FRIEND_PATTERNS)
+
+# In-memory cooldown cache: (org_id, normalized_name) -> { time, event_type, department, status, status_label, iso_time }
+_ATTENDANCE_COOLDOWN_CACHE = {}
+_ATTENDANCE_COOLDOWN_SECONDS = 45  # Cooldown between repeat logs for same identity
+
+def get_org_departments_config(org_id):
+    """Retrieve configured department work schedules for an organization."""
+    default_departments = {
+        "Engineering": {"work_start": "09:00", "work_end": "17:00", "grace_period_mins": 15},
+        "AI Research": {"work_start": "09:00", "work_end": "17:00", "grace_period_mins": 15},
+        "Product Design": {"work_start": "09:00", "work_end": "17:00", "grace_period_mins": 15},
+        "Operations": {"work_start": "08:30", "work_end": "16:30", "grace_period_mins": 15},
+        "Quality Assurance": {"work_start": "09:00", "work_end": "17:00", "grace_period_mins": 15},
+        "General": {"work_start": "09:00", "work_end": "17:00", "grace_period_mins": 15},
+    }
+    try:
+        from database.db import is_db_available, get_db_session
+        from database.models import Organization
+        if is_db_available() and org_id:
+            with get_db_session() as db:
+                org = db.query(Organization).filter_by(id=str(org_id)).first()
+                if org and org.onboarding_state and isinstance(org.onboarding_state, dict):
+                    saved_dept = org.onboarding_state.get('departments_config')
+                    if saved_dept and isinstance(saved_dept, dict):
+                        default_departments.update(saved_dept)
+    except Exception as e:
+        logger.warning(f"Error loading org department config for {org_id}: {e}")
+    return default_departments
+
+def save_org_departments_config(org_id, dept_config):
+    """Save updated department configuration for an organization."""
+    try:
+        from database.db import is_db_available, get_db_session
+        from database.models import Organization
+        from sqlalchemy.orm.attributes import flag_modified
+        if is_db_available() and org_id:
+            with get_db_session() as db:
+                org = db.query(Organization).filter_by(id=str(org_id)).first()
+                if org:
+                    state = dict(org.onboarding_state or {})
+                    existing_config = state.get('departments_config', {})
+                    existing_config.update(dept_config)
+                    state['departments_config'] = existing_config
+                    org.onboarding_state = state
+                    flag_modified(org, 'onboarding_state')
+                    db.commit()
+                    return True
+    except Exception as e:
+        logger.error(f"Error saving org department config for {org_id}: {e}")
+    return False
+
+@app.route('/api/attendance/record', methods=['POST'])
+@require_auth
+@inject_org_id
+def record_attendance(org_id):
+    """
+    Dedicated endpoint for Kiosk mode to log attendance Check-In and Check-Out.
+    Performs identity deduplication, calculates on-time vs. late arrival against
+    department schedules, computes building duration upon checkout, persists to DB,
+    and broadcasts live WebSocket updates.
+    """
+    import uuid
+    from datetime import timezone
+    data = request.get_json(silent=True) or request.form or {}
+    raw_name = (data.get('name') or data.get('label') or '').strip()
+    if not raw_name or raw_name.lower() in ('unknown', 'unrecognized', 'spoof', 'spoof detected'):
+        return jsonify({'error': 'Valid recognized name required'}), 400
+
+    clean_name = raw_name.replace('_', ' ').strip()
+    try:
+        confidence = float(data.get('confidence', 0.85))
+    except (TypeError, ValueError):
+        confidence = 0.85
+    if confidence > 1.0:
+        confidence /= 100.0
+
+    direction = (data.get('direction') or 'auto').lower()  # 'auto' | 'in' | 'out'
+    camera_id = data.get('camera_id') or 'kiosk-main'
+
+    now_utc = datetime.datetime.now(timezone.utc)
+    current_ts = time.time()
+
+    # 1. Cooldown & Deduplication check
+    cache_key = (str(org_id), clean_name.lower())
+    last_event = _ATTENDANCE_COOLDOWN_CACHE.get(cache_key)
+    if last_event and (current_ts - last_event.get('time', 0)) < _ATTENDANCE_COOLDOWN_SECONDS:
+        return jsonify({
+            'success': True,
+            'deduplicated': True,
+            'event_type': last_event.get('event_type', 'check_in'),
+            'name': clean_name,
+            'department': last_event.get('department', 'General'),
+            'status': last_event.get('status', 'on_time'),
+            'status_label': last_event.get('status_label', 'Recorded'),
+            'time': last_event.get('iso_time', now_utc.isoformat()),
+            'duration': last_event.get('duration'),
+            'message': f"Recent {last_event.get('event_type', 'attendance')} already recorded for {clean_name}"
+        })
+
+    from database.db import is_db_available, get_db_session
+    from database.models import Employee, AttendanceLog, AttendanceStatus
+
+    dept_name = 'General'
+    employee_id = None
+
+    if is_db_available() and org_id:
+        try:
+            with get_db_session() as db:
+                emp_record = (
+                    db.query(Employee)
+                    .filter(
+                        Employee.org_id == str(org_id),
+                        (Employee.name.ilike(clean_name)) | 
+                        (Employee.name.ilike(clean_name.replace(' ', '_'))) |
+                        (Employee.name.ilike(raw_name))
+                    )
+                    .first()
+                )
+                if emp_record:
+                    dept_name = emp_record.department or 'General'
+                    employee_id = emp_record.id
+                else:
+                    clean_code_num = f"{abs(hash(clean_name)) % 900 + 100:03d}"
+                    emp_record = Employee(
+                        id=f"emp-{org_id[:8]}-{uuid.uuid4().hex[:6]}",
+                        org_id=str(org_id),
+                        name=clean_name,
+                        employee_code=f"RMS-{clean_code_num}",
+                        department='General',
+                        status=EmployeeStatus.active,
+                        image_count=5
+                    )
+                    db.add(emp_record)
+                    db.commit()
+                    employee_id = emp_record.id
+                    dept_name = 'General'
+        except Exception as emp_err:
+            logger.warning(f"Error querying employee record for attendance: {emp_err}")
+
+    # 2. Get department schedule config
+    dept_configs = get_org_departments_config(org_id)
+    dept_conf = dept_configs.get(dept_name, dept_configs.get('General', {
+        'work_start': '09:00',
+        'work_end': '17:00',
+        'grace_period_mins': 15
+    }))
+
+    try:
+        sh, sm = map(int, dept_conf.get('work_start', '09:00').split(':'))
+    except Exception:
+        sh, sm = 9, 0
+    try:
+        eh, em = map(int, dept_conf.get('work_end', '17:00').split(':'))
+    except Exception:
+        eh, em = 17, 0
+    grace_mins = int(dept_conf.get('grace_period_mins', 15))
+
+    work_start_dt = now_utc.replace(hour=sh, minute=sm, second=0, microsecond=0)
+    grace_cutoff_dt = work_start_dt + datetime.timedelta(minutes=grace_mins)
+
+    # 3. Check today's history for this employee
+    today_start = now_utc.replace(hour=0, minute=0, second=0, microsecond=0)
+    event_type = 'check_in'
+    first_checkin_time = None
+    has_checkin_today = False
+
+    if is_db_available() and org_id:
+        try:
+            with get_db_session() as db:
+                today_logs = (
+                    db.query(AttendanceLog)
+                    .filter(
+                        AttendanceLog.org_id == str(org_id),
+                        AttendanceLog.checkin_time >= today_start,
+                        AttendanceLog.is_confirmed == True,
+                        (AttendanceLog.employee_id == employee_id) | (AttendanceLog.prediction_label == clean_name)
+                    )
+                    .order_by(AttendanceLog.checkin_time.asc())
+                    .all()
+                )
+                if today_logs:
+                    has_checkin_today = True
+                    first_checkin_time = today_logs[0].checkin_time
+        except Exception as log_query_err:
+            logger.warning(f"Error querying today's logs: {log_query_err}")
+
+    # Determine direction
+    if direction == 'in':
+        event_type = 'check_in'
+    elif direction == 'out':
+        event_type = 'check_out'
+    else:  # 'auto'
+        event_type = 'check_out' if has_checkin_today else 'check_in'
+
+    duration_str = None
+    minutes_late = 0
+
+    if event_type == 'check_in':
+        if now_utc > grace_cutoff_dt:
+            status = AttendanceStatus.late
+            diff_secs = (now_utc - work_start_dt).total_seconds()
+            minutes_late = max(1, int(diff_secs // 60))
+            status_label = f"Late (+{minutes_late}m)"
+        else:
+            status = AttendanceStatus.on_time
+            status_label = "On Time"
+        method_str = 'kiosk_in'
+        message = f"Welcome, {clean_name}! Check-in recorded ({status_label})."
+    else:
+        # Check-out event
+        if first_checkin_time:
+            f_time = first_checkin_time if first_checkin_time.tzinfo else first_checkin_time.replace(tzinfo=timezone.utc)
+            dur_secs = max(60, int((now_utc - f_time).total_seconds()))
+            hours = dur_secs // 3600
+            mins = (dur_secs % 3600) // 60
+            duration_str = f"{hours}h {mins}m" if hours > 0 else f"{mins}m"
+        else:
+            duration_str = "Standard Shift"
+
+        work_end_dt = now_utc.replace(hour=eh, minute=em, second=0, microsecond=0)
+        if now_utc < work_end_dt:
+            status = AttendanceStatus.early_departure
+            status_label = f"Early Exit ({duration_str})"
+        else:
+            status = AttendanceStatus.logged
+            status_label = f"Completed ({duration_str})"
+        method_str = 'kiosk_out'
+        message = f"Goodbye, {clean_name}! Check-out recorded ({status_label})."
+
+    # 4. Save to Database
+    log_id = f"att-{uuid.uuid4().hex}"
+    if is_db_available() and org_id:
+        try:
+            from database.models import Camera
+            with get_db_session() as db:
+                valid_cam_id = None
+                if camera_id:
+                    cam = db.query(Camera).filter_by(id=str(camera_id), org_id=str(org_id)).first()
+                    if cam:
+                        valid_cam_id = cam.id
+
+                new_log = AttendanceLog(
+                    id=log_id,
+                    org_id=str(org_id),
+                    employee_id=employee_id,
+                    camera_id=valid_cam_id,
+                    checkin_time=now_utc,
+                    confidence=confidence,
+                    method=method_str,
+                    status=status,
+                    prediction_label=clean_name,
+                    is_confirmed=True,
+                    synced=True
+                )
+                db.add(new_log)
+                db.commit()
+        except Exception as db_save_err:
+            logger.error(f"Error saving AttendanceLog: {db_save_err}")
+
+    # 5. Append to recognition_history.json
+    try:
+        from org_storage import get_recognition_history_path
+        hist_path = get_recognition_history_path(org_id)
+        existing_hist = []
+        if os.path.exists(hist_path):
+            with open(hist_path, 'r') as f:
+                existing_hist = json.load(f)
+                if not isinstance(existing_hist, list):
+                    existing_hist = []
+        hist_entry = {
+            'id': log_id,
+            'timestamp': now_utc.isoformat(),
+            'label': clean_name,
+            'department': dept_name,
+            'event_type': event_type,
+            'confidence': confidence,
+            'status': 'success',
+            'status_label': status_label,
+            'confidence_level': 'confirmed',
+            'method': method_str,
+            'duration': duration_str,
+            'is_confirmed': True
+        }
+        existing_hist.insert(0, hist_entry)
+        with open(hist_path, 'w') as f:
+            json.dump(existing_hist[:500], f, indent=2)
+    except Exception as file_hist_err:
+        logger.warning(f"Error saving to recognition_history.json: {file_hist_err}")
+
+    # 6. Update in-memory cooldown cache
+    _ATTENDANCE_COOLDOWN_CACHE[cache_key] = {
+        'time': current_ts,
+        'event_type': event_type,
+        'department': dept_name,
+        'status': status.value,
+        'status_label': status_label,
+        'iso_time': now_utc.isoformat(),
+        'duration': duration_str
+    }
+
+    # 7. WebSocket live emit
+    event_payload = {
+        'id': log_id,
+        'name': clean_name,
+        'department': dept_name,
+        'event_type': event_type,
+        'status': status.value,
+        'status_label': status_label,
+        'confidence': confidence,
+        'duration': duration_str,
+        'timestamp': now_utc.isoformat(),
+        'message': message
+    }
+    try:
+        socketio.emit('attendance_event', event_payload, room=org_id)
+    except Exception:
+        pass
+
+    return jsonify({
+        'success': True,
+        'id': log_id,
+        'event_type': event_type,
+        'name': clean_name,
+        'department': dept_name,
+        'status': status.value,
+        'status_label': status_label,
+        'time': now_utc.isoformat(),
+        'duration': duration_str,
+        'minutes_late': minutes_late,
+        'confidence': confidence,
+        'message': message
+    })
+
+@app.route('/api/attendance/recent', methods=['GET'])
+@require_auth
+@inject_org_id
+def get_recent_attendance(org_id):
+    """Retrieve recent check-in/check-out logs for Kiosk and Attendance feed."""
+    limit = min(int(request.args.get('limit', 20)), 100)
+    results = []
+    
+    from database.db import is_db_available, get_db_session
+    from database.models import AttendanceLog, Employee
+    if is_db_available() and org_id:
+        try:
+            with get_db_session() as db:
+                logs = (
+                    db.query(AttendanceLog, Employee.department)
+                    .outerjoin(Employee, AttendanceLog.employee_id == Employee.id)
+                    .filter(AttendanceLog.org_id == str(org_id), AttendanceLog.is_confirmed == True)
+                    .order_by(AttendanceLog.checkin_time.desc())
+                    .limit(limit)
+                    .all()
+                )
+                for log, dept in logs:
+                    ev_type = 'check_out' if log.method == 'kiosk_out' else 'check_in'
+                    st_val = log.status.value if hasattr(log.status, 'value') else str(log.status)
+                    label = log.prediction_label or 'Unknown'
+                    results.append({
+                        'id': log.id,
+                        'name': label,
+                        'department': dept or 'General',
+                        'event_type': ev_type,
+                        'status': st_val,
+                        'confidence': float(log.confidence or 0.85),
+                        'timestamp': log.checkin_time.isoformat() if log.checkin_time else None,
+                        'method': log.method or 'kiosk'
+                    })
+        except Exception as e:
+            logger.warning(f"Error fetching recent attendance: {e}")
+
+    # Fallback to recognition history file if DB had few or no rows
+    if len(results) < limit:
+        try:
+            from org_storage import get_recognition_history_path
+            hist_path = get_recognition_history_path(org_id)
+            if os.path.exists(hist_path):
+                with open(hist_path, 'r') as f:
+                    file_items = json.load(f)
+                    existing_ids = {r['id'] for r in results}
+                    for item in file_items:
+                        if item.get('id') not in existing_ids and item.get('is_confirmed'):
+                            results.append({
+                                'id': item.get('id'),
+                                'name': item.get('label') or 'Unknown',
+                                'department': item.get('department') or 'General',
+                                'event_type': item.get('event_type') or 'check_in',
+                                'status': item.get('status') or 'on_time',
+                                'confidence': float(item.get('confidence') or 0.85),
+                                'timestamp': item.get('timestamp'),
+                                'method': item.get('method') or 'kiosk'
+                            })
+                            if len(results) >= limit:
+                                break
+        except Exception:
+            pass
+
+    return jsonify(results)
+
+@app.route('/api/departments', methods=['GET'])
+@require_auth
+@inject_org_id
+def get_departments(org_id):
+    """
+    List all active departments, their configured work schedules,
+    total employee rosters, and today's attendance summary.
+    """
+    from datetime import timezone
+    dept_configs = get_org_departments_config(org_id)
+    dept_stats = {}
+    for d_name, d_conf in dept_configs.items():
+        dept_stats[d_name] = {
+            'name': d_name,
+            'work_start': d_conf.get('work_start', '09:00'),
+            'work_end': d_conf.get('work_end', '17:00'),
+            'grace_period_mins': d_conf.get('grace_period_mins', 15),
+            'total_employees': 0,
+            'checked_in_today': 0,
+            'late_today': 0,
+            'attendance_rate': 0
+        }
+
+    from database.db import is_db_available, get_db_session
+    from database.models import Employee, AttendanceLog
+    if is_db_available() and org_id:
+        try:
+            with get_db_session() as db:
+                employees = db.query(Employee).filter_by(org_id=str(org_id), status='active').all()
+                for emp in employees:
+                    d = emp.department or 'General'
+                    if d not in dept_stats:
+                        dept_stats[d] = {
+                            'name': d,
+                            'work_start': '09:00',
+                            'work_end': '17:00',
+                            'grace_period_mins': 15,
+                            'total_employees': 0,
+                            'checked_in_today': 0,
+                            'late_today': 0,
+                            'attendance_rate': 0
+                        }
+                    dept_stats[d]['total_employees'] += 1
+
+                # Today's check-ins
+                today_start = datetime.datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+                today_logs = (
+                    db.query(AttendanceLog, Employee.department)
+                    .outerjoin(Employee, AttendanceLog.employee_id == Employee.id)
+                    .filter(
+                        AttendanceLog.org_id == str(org_id),
+                        AttendanceLog.checkin_time >= today_start,
+                        AttendanceLog.is_confirmed == True
+                    )
+                    .all()
+                )
+                seen_employees = set()
+                for log, dept in today_logs:
+                    d = dept or 'General'
+                    if d in dept_stats:
+                        emp_id = log.employee_id or log.prediction_label
+                        if emp_id not in seen_employees:
+                            seen_employees.add(emp_id)
+                            dept_stats[d]['checked_in_today'] += 1
+                            st_val = log.status.value if hasattr(log.status, 'value') else str(log.status)
+                            if st_val == 'late':
+                                dept_stats[d]['late_today'] += 1
+
+                for d in dept_stats.values():
+                    tot = d['total_employees']
+                    d['attendance_rate'] = round((d['checked_in_today'] / tot * 100), 1) if tot > 0 else 0
+        except Exception as e:
+            logger.error(f"Error fetching departments data: {e}")
+
+    return jsonify({
+        'departments': list(dept_stats.values()),
+        'total_departments': len(dept_stats)
+    })
+
+@app.route('/api/departments/<dept_name>', methods=['PUT'])
+@require_auth
+@require_role('org_admin')
+@inject_org_id
+def update_department_config(org_id, dept_name):
+    """Update work start, work end, and grace period for a department."""
+    data = request.get_json(silent=True) or {}
+    work_start = data.get('work_start', '09:00')
+    work_end = data.get('work_end', '17:00')
+    try:
+        grace = int(data.get('grace_period_mins', 15))
+    except (ValueError, TypeError):
+        grace = 15
+
+    update_payload = {
+        dept_name: {
+            'work_start': work_start,
+            'work_end': work_end,
+            'grace_period_mins': grace
+        }
+    }
+    success = save_org_departments_config(org_id, update_payload)
+    if success:
+        return jsonify({'success': True, 'message': f'Department {dept_name} settings updated.', 'config': update_payload[dept_name]})
+    return jsonify({'error': 'Failed to save department configuration.'}), 500
+
+@app.route('/api/employees', methods=['GET'])
+@require_auth
+@inject_org_id
+def list_employees_roster(org_id):
+    """List all employees in the organization with their department and status."""
+    from database.db import is_db_available, get_db_session
+    from database.models import Employee, AttendanceLog
+    from sqlalchemy import func
+    if not is_db_available() or not org_id:
+        return jsonify({'employees': []})
+
+    dept_filter = request.args.get('department')
+    search_query = request.args.get('search', '').strip().lower()
+
+    try:
+        with get_db_session() as db:
+            query = db.query(Employee).filter_by(org_id=str(org_id))
+            if dept_filter and dept_filter != 'all':
+                query = query.filter_by(department=dept_filter)
+            if search_query:
+                query = query.filter(Employee.name.ilike(f"%{search_query}%"))
+
+            employees = query.order_by(Employee.name.asc()).all()
+            
+            # Get latest check-in time for each employee
+            emp_ids = [e.id for e in employees]
+            last_seen_map = {}
+            if emp_ids:
+                recent_logs = (
+                    db.query(AttendanceLog.employee_id, func.max(AttendanceLog.checkin_time))
+                    .filter(AttendanceLog.employee_id.in_(emp_ids), AttendanceLog.is_confirmed == True)
+                    .group_by(AttendanceLog.employee_id)
+                    .all()
+                )
+                for eid, max_time in recent_logs:
+                    last_seen_map[eid] = max_time.isoformat() if max_time else None
+
+            result = []
+            for emp in employees:
+                st_val = emp.status.value if hasattr(emp.status, 'value') else str(emp.status)
+                result.append({
+                    'id': emp.id,
+                    'name': emp.name,
+                    'employee_code': emp.employee_code,
+                    'department': emp.department or 'General',
+                    'email': emp.email,
+                    'status': st_val,
+                    'image_count': emp.image_count or 0,
+                    'last_seen': last_seen_map.get(emp.id),
+                    'created_at': emp.created_at.isoformat() if emp.created_at else None
+                })
+            return jsonify({'employees': result, 'total': len(result)})
+    except Exception as e:
+        logger.error(f"Error fetching employees: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/employees/<emp_id>', methods=['PUT'])
+@require_auth
+@require_role('org_admin')
+@inject_org_id
+def update_employee_details(org_id, emp_id):
+    """Update employee department, status, or details."""
+    data = request.get_json(silent=True) or {}
+    from database.db import is_db_available, get_db_session
+    from database.models import Employee, EmployeeStatus
+    if not is_db_available() or not org_id:
+        return jsonify({'error': 'Database unavailable'}), 503
+
+    try:
+        with get_db_session() as db:
+            emp = db.query(Employee).filter_by(id=emp_id, org_id=str(org_id)).first()
+            if not emp:
+                return jsonify({'error': 'Employee not found'}), 404
+
+            if 'department' in data:
+                emp.department = data['department'].strip() or 'General'
+            if 'status' in data:
+                st = data['status'].lower()
+                if hasattr(EmployeeStatus, st):
+                    emp.status = getattr(EmployeeStatus, st)
+            if 'email' in data:
+                emp.email = data['email'].strip()
+
+            db.commit()
+            return jsonify({
+                'success': True,
+                'message': f"Updated {emp.name}'s details.",
+                'employee': {
+                    'id': emp.id,
+                    'name': emp.name,
+                    'department': emp.department,
+                    'status': emp.status.value if hasattr(emp.status, 'value') else str(emp.status)
+                }
+            })
+    except Exception as e:
+        logger.error(f"Error updating employee {emp_id}: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
 
 # ─── Security Hardening Endpoints ─────────────────────────────────────
 
@@ -1873,7 +2488,7 @@ def get_audit_logs(org_id):
         return jsonify({'logs': [], 'total': 0, 'message': 'Audit logs require database mode.'})
 
     # Query params
-    log_type = request.args.get('type', 'all')  # 'feedback', 'consent', 'all'
+    log_type = request.args.get('type', 'all')  # 'all', 'access', 'feedback', 'consent'
     search = request.args.get('search', '').strip()
     page = int(request.args.get('page', 1))
     per_page = min(int(request.args.get('per_page', 50)), 100)
@@ -1882,8 +2497,39 @@ def get_audit_logs(org_id):
     results = []
 
     try:
+        from database.models import AttendanceLog
         with get_db_session() as db:
-            # Feedback logs
+            # 1. Access & Attendance logs (Kiosk check-in / check-out / spoof / verification)
+            if log_type in ('all', 'access'):
+                query = (
+                    db.query(AttendanceLog, Employee.department)
+                    .outerjoin(Employee, AttendanceLog.employee_id == Employee.id)
+                    .filter(AttendanceLog.org_id == org_id)
+                )
+                if search:
+                    query = query.filter(AttendanceLog.prediction_label.ilike(f'%{search}%'))
+                if sort_order == 'asc':
+                    query = query.order_by(AttendanceLog.checkin_time.asc())
+                else:
+                    query = query.order_by(AttendanceLog.checkin_time.desc())
+
+                for log, dept in query.limit(per_page * 2).all():
+                    st_val = log.status.value if hasattr(log.status, 'value') else str(log.status)
+                    ev_type = 'check_out' if log.method == 'kiosk_out' else 'check_in'
+                    results.append({
+                        'id': log.id,
+                        'type': 'access',
+                        'event_type': ev_type,
+                        'timestamp': log.checkin_time.isoformat() if log.checkin_time else None,
+                        'employee_name': log.prediction_label or 'Unknown',
+                        'department': dept or 'General',
+                        'confidence': float(log.confidence or 0.85),
+                        'status': st_val,
+                        'method': log.method or 'kiosk',
+                        'is_correct': log.is_confirmed
+                    })
+
+            # 2. Feedback logs
             if log_type in ('all', 'feedback'):
                 query = db.query(FeedbackLog).filter_by(org_id=org_id)
                 if search:
@@ -1911,7 +2557,7 @@ def get_audit_logs(org_id):
                         'distance': log.distance,
                     })
 
-            # Consent records
+            # 3. Consent records
             if log_type in ('all', 'consent'):
                 query = db.query(ConsentRecord).filter_by(org_id=org_id)
                 if search:
@@ -1925,7 +2571,6 @@ def get_audit_logs(org_id):
                     query = query.order_by(ConsentRecord.consented_at.desc())
 
                 for rec in query.all():
-                    # Resolve employee name
                     emp = db.query(Employee).filter_by(id=rec.employee_id).first()
                     results.append({
                         'id': rec.id,
@@ -2751,6 +3396,7 @@ def upload_person(org_id):
         try:
             with get_db_session() as db:
                 emp = db.query(Employee).filter_by(org_id=org_id, name=person_name).first()
+                req_dept = request.form.get('department', 'General').strip() or 'General'
                 if not emp:
                     import uuid
                     db.add(Employee(
@@ -2758,13 +3404,15 @@ def upload_person(org_id):
                         org_id=org_id,
                         name=person_name,
                         employee_code=f"RMS-{person_name[:3].upper()}-{uuid.uuid4().hex[:4].upper()}",
-                        department='General',
+                        department=req_dept,
                         status=EmployeeStatus.active,
                         image_count=len(image_data_list)
                     ))
                 else:
                     emp.image_count = (emp.image_count or 0) + len(image_data_list)
                     emp.status = EmployeeStatus.active
+                    if req_dept:
+                        emp.department = req_dept
                 db.commit()
         except Exception as emp_db_err:
             logger.warning(f"Could not update Employee record for {person_name}: {emp_db_err}")
@@ -3140,7 +3788,8 @@ def seed_org_default_weights(org_id, db_session=None):
             if os.path.exists(benchmark_enc_path):
                 try:
                     with open(benchmark_enc_path, 'rb') as bf:
-                        names = sorted(list(set(pickle.load(bf).get('names', []))))
+                        all_names = sorted(list(set(pickle.load(bf).get('names', []))))
+                        names = [n for n in all_names if not is_benchmark_excluded_friend(n)]
                 except Exception as bfe:
                     logger.warning(f"Could not read names from benchmark encodings: {bfe}")
 

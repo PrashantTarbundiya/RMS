@@ -71,8 +71,16 @@ export default function AuditLogsPage() {
     const rows = logs.map(l => [
       l.type,
       l.timestamp ? new Date(l.timestamp).toLocaleString() : '',
-      l.type === 'feedback' ? `Predicted: ${l.predicted_name || ''}${l.correct_name ? ` → ${l.correct_name}` : ''}` : `Employee: ${l.employee_name || ''}`,
-      l.type === 'feedback' ? (l.is_correct ? 'Correct' : 'Incorrect') : (l.revoked_at ? 'Revoked' : 'Active'),
+      l.type === 'access' 
+        ? `${l.employee_name || 'Unknown'} (${l.department || 'General'}) - ${l.event_type || 'check_in'}`
+        : l.type === 'feedback' 
+          ? `Predicted: ${l.predicted_name || ''}${l.correct_name ? ` → ${l.correct_name}` : ''}` 
+          : `Employee: ${l.employee_name || ''}`,
+      l.type === 'access'
+        ? (l.status || 'confirmed')
+        : l.type === 'feedback' 
+          ? (l.is_correct ? 'Correct' : 'Incorrect') 
+          : (l.revoked_at ? 'Revoked' : 'Active'),
     ]);
     const csv = [headers.join(','), ...rows.map(r => r.map(c => `"${c}"`).join(','))].join('\n');
     const blob = new Blob([csv], { type: 'text/csv' });
@@ -86,6 +94,7 @@ export default function AuditLogsPage() {
 
   const filterTabs = [
     { value: 'all', label: 'All' },
+    { value: 'access', label: 'Kiosk & Access' },
     { value: 'feedback', label: 'Feedback' },
     { value: 'consent', label: 'Consent' },
   ];
@@ -247,8 +256,14 @@ export default function AuditLogsPage() {
                   >
                     {/* Type Badge */}
                     <td className="px-4 py-3">
-                      <span className={`badge ${log.type === 'consent' ? 'badge-info' : 'badge-warning'}`}>
-                        {log.type}
+                      <span className={`badge ${
+                        log.type === 'access'
+                          ? (log.event_type === 'check_out' ? 'badge-info' : 'badge-success')
+                          : log.type === 'consent'
+                            ? 'badge-info'
+                            : 'badge-warning'
+                      }`}>
+                        {log.type === 'access' ? (log.event_type === 'check_out' ? 'kiosk exit' : 'kiosk entry') : log.type}
                       </span>
                     </td>
 
@@ -259,7 +274,17 @@ export default function AuditLogsPage() {
 
                     {/* Details */}
                     <td className="px-4 py-3 text-caption text-ink">
-                      {log.type === 'feedback' ? (
+                      {log.type === 'access' ? (
+                        <div>
+                          <div>
+                            <strong>{log.employee_name || 'Unknown'}</strong>
+                            <span className="text-ink-subtle ml-1.5 font-normal">({log.department || 'General'})</span>
+                          </div>
+                          <div className="text-[11px] text-ink-tertiary mt-0.5">
+                            {log.event_type === 'check_out' ? 'Building Departure' : 'Building Arrival'} · {log.method || 'kiosk'} · Conf: {Math.round((log.confidence || 0.85) * 100)}%
+                          </div>
+                        </div>
+                      ) : log.type === 'feedback' ? (
                         <div>
                           <div>
                             Predicted: <strong>{log.predicted_name || '-'}</strong>
@@ -288,7 +313,15 @@ export default function AuditLogsPage() {
 
                     {/* Status */}
                     <td className="px-4 py-3">
-                      {log.type === 'feedback' ? (
+                      {log.type === 'access' ? (
+                        <span className={`text-[11px] font-medium px-2 py-0.5 rounded border ${
+                          log.status === 'late'
+                            ? 'bg-amber-500/10 text-amber-400 border-amber-500/20'
+                            : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                        }`}>
+                          {log.status === 'late' ? 'Late Arrival' : log.status === 'on_time' ? 'On Time' : (log.status || 'Verified')}
+                        </span>
+                      ) : log.type === 'feedback' ? (
                         log.is_correct ? (
                           <CheckCircle size={16} className="text-[#4ade80]" />
                         ) : (

@@ -53,6 +53,17 @@ export default function KioskPage() {
   const kioskThresholdRef = useRef(kioskThreshold);
   useEffect(() => { kioskThresholdRef.current = kioskThreshold; }, [kioskThreshold]);
 
+  // Kiosk Direction: 'auto' | 'in' | 'out'
+  const [kioskDirection, setKioskDirection] = useState(() => localStorage.getItem('rms_kiosk_direction') || 'auto');
+  const kioskDirectionRef = useRef(kioskDirection);
+  useEffect(() => {
+    kioskDirectionRef.current = kioskDirection;
+    localStorage.setItem('rms_kiosk_direction', kioskDirection);
+  }, [kioskDirection]);
+
+  // Current Attendance Result for overlay
+  const [attendanceEvent, setAttendanceEvent] = useState(null);
+
   // Temporal consensus buffer: removes split-second fluctuations
   const candidateBufferRef = useRef({
     candidate: null,
@@ -158,13 +169,64 @@ export default function KioskPage() {
     }, IDLE_TIMEOUT_MS);
   }, []);
 
-  // ─── Add to recent logs ────────────────────────────────────────
+  // ─── Initial Attendance Logs Fetch ────────────────────────────
+  useEffect(() => {
+    const fetchInitialLogs = async () => {
+      try {
+        const res = await apiClient.get(`${API_BASE}/attendance/recent?limit=8`);
+        if (Array.isArray(res.data) && res.data.length > 0) {
+          setRecentLogs(res.data.map(r => ({
+            name: r.name,
+            granted: true,
+            event_type: r.event_type || 'check_in',
+            department: r.department || 'General',
+            status_label: r.status === 'late' ? 'Late' : (r.status === 'on_time' ? 'On Time' : (r.status === 'early_departure' ? 'Early Exit' : 'Checked Out')),
+            time: r.timestamp ? new Date(r.timestamp) : new Date()
+          })));
+        }
+      } catch (err) {
+        console.warn('Initial kiosk logs load error:', err);
+      }
+    };
+    fetchInitialLogs();
+  }, [apiClient]);
+
+  // ─── Add to recent logs & Record to Backend ───────────────────
   const addLog = useCallback((name, granted, time) => {
     setRecentLogs(prev => {
       const next = [{ name, granted, time: time || new Date() }, ...prev];
-      return next.slice(0, 5); // Keep last 5
+      return next.slice(0, 8);
     });
   }, []);
+
+  const recordAttendance = useCallback(async (name, confScore) => {
+    try {
+      const res = await apiClient.post(`${API_BASE}/attendance/record`, {
+        name,
+        confidence: confScore / 100,
+        direction: kioskDirectionRef.current,
+        camera_id: 'kiosk-entrance'
+      });
+      if (res.data?.success) {
+        setAttendanceEvent(res.data);
+        setRecentLogs(prev => {
+          const entry = {
+            name: res.data.name || name,
+            granted: true,
+            event_type: res.data.event_type,
+            department: res.data.department,
+            status_label: res.data.status_label,
+            duration: res.data.duration,
+            time: new Date(res.data.time || Date.now())
+          };
+          return [entry, ...prev.filter(l => l.name !== entry.name || (Date.now() - new Date(l.time).getTime()) > 25000)].slice(0, 8);
+        });
+      }
+    } catch (err) {
+      console.warn('Attendance record error:', err);
+      addLog(name, true);
+    }
+  }, [apiClient, addLog]);
 
   // ─── Process Recognition Result ────────────────────────────────
   const processResult = useCallback((data) => {
@@ -201,6 +263,7 @@ export default function KioskPage() {
       resultTimerRef.current = setTimeout(() => {
         setStatus(STATUS.SCANNING);
         setRecognizedName('');
+        setAttendanceEvent(null);
         isRequestInFlightRef.current = false;
         scheduleNextCapture(100);
       }, RESULT_DISPLAY_MS);
@@ -222,13 +285,14 @@ export default function KioskPage() {
       setRecognizedName(cleanName);
       setConfidence(confScore);
       setConsecutiveUnknowns(0);
-      addLog(cleanName, true);
+      recordAttendance(cleanName, confScore);
 
       if (resultTimerRef.current) clearTimeout(resultTimerRef.current);
       resultTimerRef.current = setTimeout(() => {
         setStatus(STATUS.SCANNING);
         setRecognizedName('');
         setConfidence(0);
+        setAttendanceEvent(null);
         isRequestInFlightRef.current = false;
         scheduleNextCapture(100);
       }, RESULT_DISPLAY_MS);
@@ -236,7 +300,6 @@ export default function KioskPage() {
     }
 
     // Rule 2: Consensus Band (Between targetThresh [default 70%] and 90%)
-    // Requires 2 consecutive frames agreeing on the same identity within 2s to filter out fluctuations
     if (currentCandidate && confScore >= targetThresh && confScore < 90) {
       const now = Date.now();
       const prev = candidateBufferRef.current;
@@ -244,26 +307,25 @@ export default function KioskPage() {
       if (prev.candidate === currentCandidate && (now - prev.firstSeen) < 2000) {
         prev.hits += 1;
         if (prev.hits >= 2) {
-          // Consensus reached! Confirmed authentic person
           candidateBufferRef.current = { candidate: null, hits: 0, firstSeen: 0 };
           setStatus(STATUS.GRANTED);
           setRecognizedName(cleanName);
           setConfidence(confScore);
           setConsecutiveUnknowns(0);
-          addLog(cleanName, true);
+          recordAttendance(cleanName, confScore);
 
           if (resultTimerRef.current) clearTimeout(resultTimerRef.current);
           resultTimerRef.current = setTimeout(() => {
             setStatus(STATUS.SCANNING);
             setRecognizedName('');
             setConfidence(0);
+            setAttendanceEvent(null);
             isRequestInFlightRef.current = false;
             scheduleNextCapture(100);
           }, RESULT_DISPLAY_MS);
           return;
         }
       } else {
-        // Initial frame of candidate, or candidate changed (fluctuation filtered)
         candidateBufferRef.current = { candidate: currentCandidate, hits: 1, firstSeen: now };
       }
 
@@ -594,6 +656,18 @@ export default function KioskPage() {
               <option value="85" className="bg-[#141516] text-white">85% (Very Strict)</option>
             </select>
           </div>
+          <div className="flex items-center gap-1.5 bg-[#0F1011] border border-[#23252A] rounded-lg px-2.5 py-1 text-xs">
+            <span className="text-ink-tertiary font-mono text-[11px]">Mode:</span>
+            <select 
+              value={kioskDirection} 
+              onChange={(e) => setKioskDirection(e.target.value)}
+              className="bg-transparent text-ink font-mono text-xs focus:outline-none cursor-pointer"
+            >
+              <option value="auto" className="bg-[#141516] text-white">Smart Auto (In/Out)</option>
+              <option value="in" className="bg-[#141516] text-white">Entrance (Check-In)</option>
+              <option value="out" className="bg-[#141516] text-white">Exit (Check-Out)</option>
+            </select>
+          </div>
         </div>
         <div className="kiosk-header-right">
           <button onClick={toggleFullscreen} className="kiosk-icon-btn" title={isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}>
@@ -682,16 +756,36 @@ export default function KioskPage() {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.2 }}
                   >
-                    {cfg.label}
+                    {status === STATUS.GRANTED && attendanceEvent?.event_type === 'check_out'
+                      ? 'CHECKED OUT'
+                      : cfg.label}
                   </motion.h2>
-                  <motion.p
-                    className="kiosk-result-subtitle"
+                  <motion.div
+                    className="flex flex-col items-center gap-1.5 mt-1"
                     initial={{ opacity: 0, y: 5 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.3 }}
                   >
-                    {cfg.sublabel}
-                  </motion.p>
+                    <p className="kiosk-result-subtitle text-lg font-semibold text-white">
+                      {status === STATUS.GRANTED ? recognizedName : cfg.sublabel}
+                    </p>
+                    {status === STATUS.GRANTED && (
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className="text-[11px] font-medium px-2.5 py-0.5 rounded bg-blue-500/15 text-blue-400 border border-blue-500/30">
+                          {attendanceEvent?.department || 'General'}
+                        </span>
+                        {attendanceEvent?.status_label && (
+                          <span className={`text-[11px] font-medium px-2.5 py-0.5 rounded border ${
+                            attendanceEvent.status === 'late'
+                              ? 'bg-amber-500/15 text-amber-300 border-amber-500/30'
+                              : 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30'
+                          }`}>
+                            {attendanceEvent.status_label}
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </motion.div>
 
                   {/* Confidence Ring (only for granted) */}
                   {status === STATUS.GRANTED && (
@@ -824,16 +918,42 @@ export default function KioskPage() {
             {recentLogs.length === 0 ? (
               <p className="kiosk-no-activity">No scans yet</p>
             ) : (
-              <ul className="kiosk-activity-list">
-                {recentLogs.map((log, i) => (
-                  <li key={i} className="kiosk-activity-item">
-                    <span className={`kiosk-activity-dot ${log.granted ? 'kiosk-dot-green' : 'kiosk-dot-red'}`} />
-                    <span className="kiosk-activity-name">{log.name}</span>
-                    <span className="kiosk-activity-time">
-                      {log.time.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })}
-                    </span>
-                  </li>
-                ))}
+              <ul className="kiosk-activity-list space-y-2">
+                {recentLogs.map((log, i) => {
+                  const logTime = log.time instanceof Date ? log.time : new Date(log.time || Date.now());
+                  const isCheckOut = log.event_type === 'check_out';
+                  return (
+                    <li key={i} className="flex items-center justify-between py-1.5 border-b border-[#23252A]/40 last:border-b-0">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className={`w-2 h-2 rounded-full shrink-0 ${
+                          !log.granted ? 'bg-red-500' : (isCheckOut ? 'bg-blue-400' : 'bg-emerald-400')
+                        }`} />
+                        <div className="min-w-0">
+                          <div className="text-xs font-medium text-ink truncate">{log.name}</div>
+                          <div className="flex items-center gap-1.5 text-[10px] text-ink-tertiary">
+                            <span>{log.department || 'General'}</span>
+                            <span>•</span>
+                            <span className={isCheckOut ? 'text-blue-400' : 'text-emerald-400'}>
+                              {isCheckOut ? 'Exit' : 'Entry'}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <div className="text-[11px] font-mono text-ink-subtle">
+                          {isNaN(logTime.getTime()) ? '' : logTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })}
+                        </div>
+                        {log.status_label && (
+                          <div className={`text-[9px] ${
+                            log.status_label.includes('Late') ? 'text-amber-400' : (isCheckOut ? 'text-blue-400' : 'text-emerald-400')
+                          }`}>
+                            {log.status_label}
+                          </div>
+                        )}
+                      </div>
+                    </li>
+                  );
+                })}
               </ul>
             )}
           </div>

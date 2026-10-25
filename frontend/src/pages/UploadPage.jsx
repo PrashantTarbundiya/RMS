@@ -39,6 +39,7 @@ export default function UploadPage() {
   const [existingPhotos, setExistingPhotos] = useState([]);
   const [searchQuery, setSearchQuery] = useState(() => sessionStorage.getItem('upload_searchQuery') || '');
   const [showDropdown, setShowDropdown] = useState(false);
+  const [department, setDepartment] = useState('General');
   
   // Method 1: Smart Auto-Sort state
   const [autoPhotos, setAutoPhotos] = useState([]); // [{ id, file, url, angle: 'frontal'|'left'|'right', detecting: bool }]
@@ -232,6 +233,7 @@ export default function UploadPage() {
 
     const formData = new FormData();
     formData.append('person_name', personName.trim());
+    formData.append('department', department);
     formData.append('epochs', epochs);
 
     autoPhotos.forEach(p => {
@@ -281,6 +283,7 @@ export default function UploadPage() {
     const formData = new FormData();
     formData.append('file', zipFile);
     formData.append('epochs', epochs);
+    formData.append('department', department);
 
     try {
       const res = await apiClient.post(`${API_BASE}/upload/bulk-zip`, formData, {
@@ -373,6 +376,7 @@ export default function UploadPage() {
       const formData = new FormData();
       formData.append('person_name', person.name);
       formData.append('epochs', epochs);
+      formData.append('department', department);
       formData.append('auto_sort', 'true');
       person.files.forEach(f => formData.append('images', f));
 
@@ -488,6 +492,7 @@ export default function UploadPage() {
     if (totalNewImages > 0) {
       const formData = new FormData();
       formData.append('person_name', personName.trim());
+      formData.append('department', department);
       formData.append('epochs', epochs);
       images.front_img.forEach(file => formData.append('front_img', file));
       images.left_img.forEach(file => formData.append('left_img', file));
@@ -738,11 +743,11 @@ export default function UploadPage() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               
               {/* Subject Identifier */}
-              <div className="md:col-span-2 space-y-2 relative">
+              <div className="md:col-span-1 space-y-2 relative">
                 <label className="text-body font-medium text-ink flex items-center gap-2">
                   <span>Subject Identifier</span>
                   <span className="text-[11px] text-emerald-400 font-mono bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
-                    Auto-Angle Enabled
+                    Auto-Angle
                   </span>
                 </label>
                 <div className="relative">
@@ -777,7 +782,28 @@ export default function UploadPage() {
                     </div>
                   )}
                 </div>
-                <p className="text-[11px] text-ink-tertiary">Drop all photos below. RMS automatically calculates 3D head-pose yaw and sorts into Front, Left, and Right profiles.</p>
+                <p className="text-[11px] text-ink-tertiary">Unique person identifier for biometric enrollment.</p>
+              </div>
+
+              {/* Department Selector */}
+              <div className="space-y-2">
+                <div className="flex justify-between items-center">
+                  <label className="text-body font-medium text-ink">Department</label>
+                  <span className="text-[10px] text-ink-subtle">Kiosk Routing</span>
+                </div>
+                <select
+                  value={department}
+                  onChange={(e) => setDepartment(e.target.value)}
+                  className="input-linear w-full bg-[#101012] border border-[#23252A] text-ink text-sm rounded-lg h-10 px-3 focus:border-[#2563EB] focus:outline-none"
+                >
+                  <option value="Engineering">Engineering</option>
+                  <option value="AI Research">AI Research</option>
+                  <option value="Product Design">Product Design</option>
+                  <option value="Operations">Operations</option>
+                  <option value="Quality Assurance">Quality Assurance</option>
+                  <option value="General">General</option>
+                </select>
+                <p className="text-[11px] text-ink-tertiary">Sets department schedule & late tracking.</p>
               </div>
 
               {/* Training Epochs */}
@@ -792,7 +818,7 @@ export default function UploadPage() {
                   max="50"
                   value={epochs}
                   onChange={(e) => setEpochs(parseInt(e.target.value, 10))}
-                  className="w-full h-1.5 bg-[#23252A] rounded-lg appearance-none cursor-pointer accent-[#5E6AD2]"
+                  className="w-full h-1.5 bg-[#23252A] rounded-lg appearance-none cursor-pointer accent-[#2563EB]"
                 />
                 <p className="text-[11px] text-ink-tertiary">15 epochs recommended for optimal balance.</p>
               </div>
@@ -1176,7 +1202,7 @@ export default function UploadPage() {
           <form onSubmit={handleManualSubmit} className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               
-              <div className="md:col-span-2 space-y-2 relative">
+              <div className="md:col-span-1 space-y-2 relative">
                 <label className="text-body font-medium text-ink">Subject Identifier</label>
                 <div className="relative">
                   <input
@@ -1192,7 +1218,7 @@ export default function UploadPage() {
                     onFocus={() => setShowDropdown(true)}
                     onBlur={() => setTimeout(() => setShowDropdown(false), 200)}
                     placeholder="e.g. John_Doe, Vatsal_Vadgama"
-                    className="input-linear w-full bg-[#101012] border border-[#23252A] text-ink placeholder:text-ink-tertiary focus:border-[#828FFF] focus:outline-none"
+                    className="input-linear w-full bg-[#101012] border border-[#23252A] text-ink placeholder:text-ink-tertiary focus:border-[#2563EB] focus:outline-none"
                   />
                   {showDropdown && searchQuery && (
                     <div className="absolute z-20 left-0 right-0 mt-1 bg-[#191A1B] border border-[#23252A] rounded-lg shadow-xl max-h-48 overflow-y-auto">
@@ -1214,6 +1240,26 @@ export default function UploadPage() {
 
               <div className="space-y-2">
                 <div className="flex justify-between items-center">
+                  <label className="text-body font-medium text-ink">Department</label>
+                  <span className="text-[10px] text-ink-subtle">Kiosk Routing</span>
+                </div>
+                <select
+                  value={department}
+                  onChange={(e) => setDepartment(e.target.value)}
+                  className="input-linear w-full bg-[#101012] border border-[#23252A] text-ink text-sm rounded-lg h-10 px-3 focus:border-[#2563EB] focus:outline-none"
+                >
+                  <option value="Engineering">Engineering</option>
+                  <option value="AI Research">AI Research</option>
+                  <option value="Product Design">Product Design</option>
+                  <option value="Operations">Operations</option>
+                  <option value="Quality Assurance">Quality Assurance</option>
+                  <option value="General">General</option>
+                </select>
+                <p className="text-[11px] text-ink-tertiary">Assigns work schedule and attendance tracking.</p>
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex justify-between items-center">
                   <label className="text-body font-medium text-ink">Training Epochs</label>
                   <span className="font-mono text-ink bg-[#141516] px-3 py-1 rounded-md border border-[#23252A] text-sm w-12 text-center">{epochs}</span>
                 </div>
@@ -1223,7 +1269,7 @@ export default function UploadPage() {
                   max="50"
                   value={epochs}
                   onChange={(e) => setEpochs(parseInt(e.target.value, 10))}
-                  className="w-full h-2 bg-[#23252A] rounded-lg appearance-none cursor-pointer accent-[#5E6AD2]"
+                  className="w-full h-2 bg-[#23252A] rounded-lg appearance-none cursor-pointer accent-[#2563EB]"
                 />
                 <p className="text-[11px] text-ink-tertiary">Higher epochs = better accuracy but slower training.</p>
               </div>

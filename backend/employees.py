@@ -182,12 +182,13 @@ def bulk_upload(org_id):
                             emp = db.query(Employee).filter_by(org_id=org_id, name=person_name).first()
                             if not emp:
                                 import uuid
+                                req_dept = request.form.get('department', 'General').strip() or 'General'
                                 emp = Employee(
                                     id=f"emp-{org_id[:8]}-{uuid.uuid4().hex[:6]}",
                                     org_id=org_id,
                                     name=person_name,
                                     employee_code=f"RMS-{person_name[:3].upper()}-{uuid.uuid4().hex[:4].upper()}",
-                                    department='General',
+                                    department=req_dept,
                                     status=EmployeeStatus.active,
                                     image_count=len(image_data_list)
                                 )
@@ -195,6 +196,9 @@ def bulk_upload(org_id):
                             else:
                                 emp.image_count = (emp.image_count or 0) + len(image_data_list)
                                 emp.status = EmployeeStatus.active
+                                req_dept = request.form.get('department')
+                                if req_dept and req_dept.strip():
+                                    emp.department = req_dept.strip()
                             db.commit()
                     except Exception as db_sync_err:
                         logger.warning(f"Could not sync Employee DB record for {person_name}: {db_sync_err}")
