@@ -4079,6 +4079,18 @@ def predict(org_id):
         # Validate minimum image dimensions
         if pil_img.width < 20 or pil_img.height < 20:
             return jsonify({'error': 'Image is too small. Minimum size is 20x20 pixels.'}), 400
+
+        # Auto-downscale high-res images to max 1024px to prevent CPU starvation and memory swapping
+        orig_w, orig_h = pil_img.width, pil_img.height
+        scale_factor = 1.0
+        if max(orig_w, orig_h) > MAX_IMAGE_DIMENSION:
+            ratio = MAX_IMAGE_DIMENSION / float(max(orig_w, orig_h))
+            new_w = max(1, int(orig_w * ratio))
+            new_h = max(1, int(orig_h * ratio))
+            scale_factor = float(orig_w) / float(new_w)
+            pil_img = pil_img.resize((new_w, new_h), Image.Resampling.BILINEAR)
+            logger.info(f"[IMAGE PREPROCESS] Downscaled {orig_w}x{orig_h} -> {new_w}x{new_h} (scale={scale_factor:.2f}) for 24/7 responsiveness")
+
         img_np = cv2.cvtColor(np.array(pil_img), cv2.COLOR_RGB2BGR)
         
         # ── Multi-Frame Liveness: Parse additional frames (camera path) ──
@@ -4166,7 +4178,7 @@ def predict(org_id):
                 # SPOOF DETECTED — skip all ML inference, return rejection
                 logger.warning(f"[LIVENESS] Spoof detected: {liveness_reason}")
                 results.append({
-                    'bbox': {'x': int(x), 'y': int(y), 'w': int(w), 'h': int(h)},
+                    'bbox': {'x': int(round(x * scale_factor)), 'y': int(round(y * scale_factor)), 'w': int(round(w * scale_factor)), 'h': int(round(h * scale_factor))},
                     'predictions': {
                         'edge': {'label': 'SPOOF', 'confidence': 0.0, 'confidence_level': 'rejected'},
                         'deepface': {'label': 'SPOOF', 'confidence': 0.0, 'confidence_level': 'rejected'}
@@ -4351,7 +4363,7 @@ def predict(org_id):
                     ens_label = "Unknown"
 
             results.append({
-                'bbox': {'x': int(x), 'y': int(y), 'w': int(w), 'h': int(h)},
+                'bbox': {'x': int(round(x * scale_factor)), 'y': int(round(y * scale_factor)), 'w': int(round(w * scale_factor)), 'h': int(round(h * scale_factor))},
                 'predictions': individual_preds,
                 'ensemble': {
                     'label': ens_label,
@@ -4471,7 +4483,16 @@ def handle_stream_frame(data):
         if pil_img.width < 20 or pil_img.height < 20:
             emit('prediction_result', {'error': 'Image is too small.'})
             return
-            
+
+        orig_w, orig_h = pil_img.width, pil_img.height
+        scale_factor = 1.0
+        if max(orig_w, orig_h) > MAX_IMAGE_DIMENSION:
+            ratio = MAX_IMAGE_DIMENSION / float(max(orig_w, orig_h))
+            new_w = max(1, int(orig_w * ratio))
+            new_h = max(1, int(orig_h * ratio))
+            scale_factor = float(orig_w) / float(new_w)
+            pil_img = pil_img.resize((new_w, new_h), Image.Resampling.BILINEAR)
+
         img_np = cv2.cvtColor(np.array(pil_img), cv2.COLOR_RGB2BGR)
 
         # Force test mode for WebSocket (Test Console)
@@ -4533,7 +4554,7 @@ def handle_stream_frame(data):
             
             if not is_live:
                 results.append({
-                    'bbox': {'x': int(x), 'y': int(y), 'w': int(w), 'h': int(h)},
+                    'bbox': {'x': int(round(x * scale_factor)), 'y': int(round(y * scale_factor)), 'w': int(round(w * scale_factor)), 'h': int(round(h * scale_factor))},
                     'predictions': {
                         'ghostfacenet': {'label': 'SPOOF', 'confidence': 0.0, 'confidence_level': 'rejected'},
                         'facenet512': {'label': 'SPOOF', 'confidence': 0.0, 'confidence_level': 'rejected'},
@@ -4690,7 +4711,7 @@ def handle_stream_frame(data):
                     ens_label = "Unknown"
 
             results.append({
-                'bbox': {'x': int(x), 'y': int(y), 'w': int(w), 'h': int(h)},
+                'bbox': {'x': int(round(x * scale_factor)), 'y': int(round(y * scale_factor)), 'w': int(round(w * scale_factor)), 'h': int(round(h * scale_factor))},
                 'predictions': individual_preds,
                 'ensemble': {
                     'label': ens_label,

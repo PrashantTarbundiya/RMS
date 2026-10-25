@@ -83,6 +83,7 @@ services:
       - MALLOC_ARENA_MAX=2
       - PYTHONUNBUFFERED=1
       - STORAGE_DIR=/app
+      - WEB_CONCURRENCY=2
     depends_on:
       - redis
     healthcheck:

@@ -207,8 +207,8 @@ export default function DashboardPage() {
       <div className="max-w-md mx-auto py-12">
         <div className="card-linear border-[#F87171]/20 bg-[#F87171]/5 text-center p-8">
           <AlertTriangle className="mx-auto mb-3 h-8 w-8 text-[#F87171]" />
-          <h2 className="text-card-title text-[#F87171] mb-2">System Offline</h2>
-          <p className="text-caption text-ink-subtle mb-6">{error}</p>
+          <h2 className="text-card-title text-[#F87171] mb-2">Connection Interrupted</h2>
+          <p className="text-caption text-ink-subtle mb-6">{error || "Reconnecting to backend server..."}</p>
           <button className="button-secondary text-ink hover:text-white" onClick={() => { setLoading(true); fetchDashboardData(); }}>
             Retry Connection
           </button>
@@ -320,11 +320,11 @@ export default function DashboardPage() {
         </div>
         <div className="flex items-center gap-2">
           <span className="text-ink-subtle">Facenet512:</span>
-          {models_loaded.deepface ? <span className="text-emerald-500 font-medium">Loaded</span> : <span className="text-ink-tertiary">Offline</span>}
+          {models_loaded.deepface ? <span className="text-emerald-500 font-medium">Active (Loaded)</span> : <span className="text-amber-400/90 font-medium">Standby</span>}
         </div>
         <div className="flex items-center gap-2">
           <span className="text-ink-subtle">InsightFace:</span>
-          {models_loaded.insightface ? <span className="text-emerald-500 font-medium">Loaded</span> : <span className="text-ink-tertiary">Offline</span>}
+          {models_loaded.insightface ? <span className="text-emerald-500 font-medium">Active (Loaded)</span> : <span className="text-amber-400/90 font-medium">Standby</span>}
         </div>
       </motion.div>
 

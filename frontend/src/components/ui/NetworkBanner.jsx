@@ -17,7 +17,7 @@ export default function NetworkBanner() {
     try {
       setIsRetrying(true);
       const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 8000);
+      const timeout = setTimeout(() => controller.abort(), 12000);
       
       await fetch(`${API_BASE}/ping`, { 
         method: 'GET', 
@@ -31,7 +31,7 @@ export default function NetworkBanner() {
     } catch {
       consecutiveFailsRef.current += 1;
       // Only show banner after 3 consecutive failures to avoid false alarms during heavy local ML ops
-      if (consecutiveFailsRef.current >= 3) {
+      if (consecutiveFailsRef.current >= 5) {
         setIsOffline(true);
       }
     } finally {

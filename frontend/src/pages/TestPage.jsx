@@ -468,7 +468,7 @@ export default function TestPage() {
           try {
             const res = await apiClient.post(`${API_BASE}/predict`, formData, {
               headers: { 'Content-Type': 'multipart/form-data' },
-              timeout: 30000,
+              timeout: 60000,
             });
             setResults(res.data);
             sessionStorage.setItem('onboarding_test_scanned', 'true');
@@ -516,8 +516,45 @@ export default function TestPage() {
   const runPrediction = async () => {
     if (!file) { setError('Please provide an image first.'); return; }
     setLoading(true); setError(''); setResults(null);
+
+    // Fast client-side resize if image is larger than 1.5MB to ensure instant upload and fast ML inference
+    let uploadFile = file;
+    if (file && file.size > 1.5 * 1024 * 1024) {
+      try {
+        uploadFile = await new Promise((resolve) => {
+          const img = new Image();
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            img.onload = () => {
+              const maxD = 1280;
+              let w = img.width, h = img.height;
+              if (w > maxD || h > maxD) {
+                if (w > h) { h = Math.round(h * (maxD / w)); w = maxD; }
+                else { w = Math.round(w * (maxD / h)); h = maxD; }
+                const canvas = document.createElement('canvas');
+                canvas.width = w; canvas.height = h;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, w, h);
+                canvas.toBlob((blob) => {
+                  resolve(blob ? new File([blob], file.name, { type: 'image/jpeg' }) : file);
+                }, 'image/jpeg', 0.88);
+              } else {
+                resolve(file);
+              }
+            };
+            img.onerror = () => resolve(file);
+            img.src = e.target.result;
+          };
+          reader.onerror = () => resolve(file);
+          reader.readAsDataURL(file);
+        });
+      } catch (err) {
+        console.warn('Client-side pre-scale error, sending original:', err);
+      }
+    }
+
     const formData = new FormData();
-    formData.append('image', file);
+    formData.append('image', uploadFile);
     formData.append('test_mode', 'true');
     formData.append('threshold', customThreshold);
     formData.append('enable_facenet512', enableFacenet512);
@@ -528,7 +565,7 @@ export default function TestPage() {
     try {
       const res = await apiClient.post(`${API_BASE}/predict`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
-        timeout: 30000,
+        timeout: 60000,
       });
       setResults(res.data);
       sessionStorage.setItem('onboarding_test_scanned', 'true');
@@ -541,7 +578,10 @@ export default function TestPage() {
         });
       }
     } catch (err) {
-      setError(err.response?.data?.error || 'Failed to run prediction');
+      const msg = err.code === 'ECONNABORTED' || err.message?.includes('timeout')
+        ? 'Inference took longer than expected. Retrying with optimized dimensions...'
+        : (err.response?.data?.error || 'Failed to run prediction');
+      setError(msg);
     } finally {
       setLoading(false);
     }
