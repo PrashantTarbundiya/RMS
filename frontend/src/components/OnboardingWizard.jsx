@@ -26,6 +26,7 @@ const STEPS = [
         title: 'Review Organization Settings',
         desc: 'Confirm your organization name, deployment mode (Local/Cloud), and access level. Local mode keeps everything on this machine - no data leaves your network.',
         actionHint: 'Review the settings below, then click Next Step',
+        placement: 'bottom',
       },
     ],
   },
@@ -50,6 +51,7 @@ const STEPS = [
         title: 'Create a Camera API Key',
         desc: 'Click the "Add Camera" button to generate a secure API key. This key lets a physical camera or kiosk authenticate with RMS without a user login.',
         actionHint: 'Click the highlighted button to add a camera',
+        placement: 'bottom',
       },
     ],
   },
@@ -74,18 +76,21 @@ const STEPS = [
         title: 'Step 1: Enter Subject Name',
         desc: 'Type a unique name for the person you want to enroll (e.g. "John_Doe"). Use underscores instead of spaces.',
         actionHint: 'Type a name in the highlighted field',
+        placement: 'right',
       },
       {
         target: '[data-tour="asset-allocation"]',
         title: 'Step 2: Upload Face Photos',
         desc: 'Drag & drop or click to browse photos into the angle slots below. Adding front, left, and right angles gives the best recognition accuracy from different camera positions.',
         actionHint: 'Upload at least one photo to the highlighted area',
+        placement: 'bottom',
       },
       {
         target: '[data-tour="enroll-submit-btn"]',
         title: 'Step 3: Submit Enrollment',
         desc: 'Click "Enroll & Train Person" to save the photos and generate face embeddings. This happens instantly.',
         actionHint: 'Click the highlighted button to enroll',
+        placement: 'top',
       },
     ],
   },
@@ -114,12 +119,14 @@ const STEPS = [
         title: 'Step 1: Upload a Test Photo',
         desc: 'Drag & drop an image into the highlighted area, or click "Browse Files" to select a photo of someone you just enrolled.',
         actionHint: 'Upload or browse for a test image',
+        placement: 'right',
       },
       {
         target: '[data-tour="test-run-btn"]',
         title: 'Step 2: Execute Inference',
         desc: 'Click "Execute Inference" to run face recognition on your uploaded photo. The system will identify the person and show a confidence score.',
         actionHint: 'Click the highlighted button to run recognition',
+        placement: 'top',
       },
     ],
   },
@@ -136,6 +143,7 @@ const STEPS = [
         title: 'Dashboard Overview',
         desc: 'This is what you will check every day: live attendance counts, match accuracy, system health, and recognition history at a glance.',
         actionHint: 'You are all set! Click Finish to complete setup',
+        placement: 'bottom',
       },
     ],
   },
@@ -157,9 +165,10 @@ export default function OnboardingWizard() {
   const [gatePassed, setGatePassed] = useState(true);
   const [gateChecking, setGateChecking] = useState(false);
   const [spotlightRect, setSpotlightRect] = useState(null);
-  const [tooltipPos, setTooltipPos] = useState({ top: 0, left: 0, arrowDir: 'top' });
+  const [tooltipPos, setTooltipPos] = useState({ top: 0, left: 0, arrowDir: 'top', arrowStyle: {} });
   const tooltipRef = useRef(null);
   const hasInitializedRef = useRef(false);
+  const isScrollingRef = useRef(false);
 
   const isAdmin = user?.role && ADMIN_ROLES.includes(user.role);
   const onbState = user?.onboarding_state || {};
@@ -279,9 +288,15 @@ export default function OnboardingWizard() {
     prevTargetRef.current = el;
     
     const rect = el.getBoundingClientRect();
-    if (rect.top < 60 || rect.bottom > window.innerHeight - 20) {
-      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      setTimeout(() => positionSpotlight(), 400);
+    if (rect.top < 64 || rect.bottom > window.innerHeight - 20) {
+      if (!isScrollingRef.current) {
+        isScrollingRef.current = true;
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        setTimeout(() => {
+          isScrollingRef.current = false;
+          positionSpotlight();
+        }, 350);
+      }
       return;
     }
 
@@ -299,38 +314,69 @@ export default function OnboardingWizard() {
       const ttRect = ttEl.getBoundingClientRect();
       const vw = window.innerWidth;
       const vh = window.innerHeight;
+      const ttWidth = ttRect.width || 380;
+      const ttHeight = ttRect.height || 220;
       
-      let top, left, arrowDir = 'top';
-      
-      // Prefer below the element
-      if (rect.bottom + ttRect.height + 24 < vh) {
-        top = rect.bottom + 14;
-        left = Math.max(16, Math.min(rect.left + rect.width / 2 - ttRect.width / 2, vw - ttRect.width - 16));
-        arrowDir = 'top';
-      }
-      // Above
-      else if (rect.top - ttRect.height - 24 > 60) {
-        top = rect.top - ttRect.height - 14;
-        left = Math.max(16, Math.min(rect.left + rect.width / 2 - ttRect.width / 2, vw - ttRect.width - 16));
-        arrowDir = 'bottom';
-      }
-      // Right side
-      else {
-        top = Math.max(70, rect.top);
-        left = Math.min(rect.right + 16, vw - ttRect.width - 16);
+      const prefPlacement = sub.placement;
+      const spaceRight = vw - rect.right - 24;
+      const spaceBottom = vh - rect.bottom - 24;
+      const spaceTop = rect.top - 64;
+      const spaceLeft = rect.left - 24;
+
+      let top, left, arrowDir = 'top', arrowStyle = {};
+
+      if ((prefPlacement === 'right' || (!prefPlacement && spaceRight >= ttWidth + 30)) && spaceRight >= 300) {
         arrowDir = 'left';
+        left = rect.right + 16;
+        top = Math.max(64, Math.min(rect.top + rect.height / 2 - ttHeight / 2, vh - ttHeight - 16));
+        const arrowTop = Math.max(16, Math.min(rect.top + rect.height / 2 - top, ttHeight - 24));
+        arrowStyle = { top: `${arrowTop}px` };
+      } else if ((prefPlacement === 'left' || (!prefPlacement && spaceLeft >= ttWidth + 30)) && spaceLeft >= 300) {
+        arrowDir = 'right';
+        left = rect.left - ttWidth - 16;
+        top = Math.max(64, Math.min(rect.top + rect.height / 2 - ttHeight / 2, vh - ttHeight - 16));
+        const arrowTop = Math.max(16, Math.min(rect.top + rect.height / 2 - top, ttHeight - 24));
+        arrowStyle = { top: `${arrowTop}px` };
+      } else if (prefPlacement === 'top' && spaceTop >= ttHeight) {
+        arrowDir = 'bottom';
+        top = rect.top - ttHeight - 14;
+        left = Math.max(16, Math.min(rect.left + rect.width / 2 - ttWidth / 2, vw - ttWidth - 16));
+        const arrowLeft = Math.max(16, Math.min(rect.left + rect.width / 2 - left, ttWidth - 24));
+        arrowStyle = { left: `${arrowLeft}px` };
+      } else if (spaceBottom >= ttHeight || spaceBottom >= spaceTop) {
+        arrowDir = 'top';
+        top = rect.bottom + 14;
+        left = Math.max(16, Math.min(rect.left + rect.width / 2 - ttWidth / 2, vw - ttWidth - 16));
+        const arrowLeft = Math.max(16, Math.min(rect.left + rect.width / 2 - left, ttWidth - 24));
+        arrowStyle = { left: `${arrowLeft}px` };
+      } else {
+        arrowDir = 'bottom';
+        top = Math.max(64, rect.top - ttHeight - 14);
+        left = Math.max(16, Math.min(rect.left + rect.width / 2 - ttWidth / 2, vw - ttWidth - 16));
+        const arrowLeft = Math.max(16, Math.min(rect.left + rect.width / 2 - left, ttWidth - 24));
+        arrowStyle = { left: `${arrowLeft}px` };
       }
       
-      setTooltipPos({ top, left, arrowDir });
+      setTooltipPos({ top, left, arrowDir, arrowStyle });
     });
   }, [isActive, showWelcome, showComplete, cleanupTarget, currentSubStep]);
 
   useEffect(() => {
     if (!isActive) { cleanupTarget(); return; }
-    const timer = setTimeout(positionSpotlight, 300);
-    const timer2 = setTimeout(positionSpotlight, 800);
+    const timer = setTimeout(positionSpotlight, 200);
+    const timer2 = setTimeout(positionSpotlight, 600);
     window.addEventListener('resize', positionSpotlight);
-    window.addEventListener('scroll', positionSpotlight, true);
+    
+    let ticking = false;
+    const handleScroll = () => {
+      if (isScrollingRef.current || ticking) return;
+      ticking = true;
+      requestAnimationFrame(() => {
+        positionSpotlight();
+        ticking = false;
+      });
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true, capture: true });
     
     const observer = new MutationObserver(() => setTimeout(positionSpotlight, 150));
     observer.observe(document.body, { childList: true, subtree: true, attributes: false });
@@ -339,7 +385,7 @@ export default function OnboardingWizard() {
       clearTimeout(timer);
       clearTimeout(timer2);
       window.removeEventListener('resize', positionSpotlight);
-      window.removeEventListener('scroll', positionSpotlight, true);
+      window.removeEventListener('scroll', handleScroll, { capture: true });
       observer.disconnect();
     };
   }, [positionSpotlight, isActive, location.pathname, cleanupTarget]);
@@ -585,22 +631,7 @@ export default function OnboardingWizard() {
               </div>
 
               <div className="onb-stepper-right">
-                <button 
-                  type="button"
-                  onClick={prevStep} 
-                  disabled={stepIndex === 0 && subStepIndex === 0} 
-                  className="onb-bar-btn"
-                >
-                  <ArrowLeft className="w-3.5 h-3.5" /> Back
-                </button>
-                <button
-                  type="button"
-                  onClick={nextStep}
-                  className="onb-bar-btn primary"
-                >
-                  {isLastStep && isLastSubStep ? 'Finish Setup' : (isLastSubStep ? 'Next Step' : 'Next')} <ArrowRight className="w-3.5 h-3.5" />
-                </button>
-                <button type="button" onClick={doLater} className="onb-bar-skip" title="Skip guided setup">
+                <button type="button" onClick={doLater} className="onb-bar-skip" title="Exit guided setup">
                   Skip Setup
                 </button>
               </div>
@@ -613,13 +644,27 @@ export default function OnboardingWizard() {
             className="onb-tooltip"
             style={{ top: tooltipPos.top, left: tooltipPos.left }}
           >
-            <div className="onb-tooltip-arrow" data-dir={tooltipPos.arrowDir} />
+            <div 
+              className="onb-tooltip-arrow" 
+              data-dir={tooltipPos.arrowDir} 
+              style={tooltipPos.arrowStyle} 
+            />
             <div className="onb-tooltip-header">
               <div className="onb-tooltip-icon">
                 <StepIcon className="w-4 h-4 text-blue-500" />
               </div>
-              <div className="flex-1">
-                <h4 className="onb-tooltip-title">{currentSubStep?.title || currentStep.title}</h4>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-start justify-between gap-2">
+                  <h4 className="onb-tooltip-title">{currentSubStep?.title || currentStep.title}</h4>
+                  <button 
+                    type="button" 
+                    onClick={doLater} 
+                    className="text-ink-subtle hover:text-ink p-1 rounded hover:bg-surface-2 transition-colors -mr-1 -mt-1 cursor-pointer"
+                    title="Exit guided setup"
+                  >
+                    <X size={15} />
+                  </button>
+                </div>
                 <p className="onb-tooltip-desc">{currentSubStep?.desc || ''}</p>
               </div>
             </div>
@@ -846,6 +891,10 @@ export default function OnboardingWizard() {
         .onb-tooltip-arrow[data-dir="left"] {
           left: -6px; top: 24px;
           border-right: none; border-top: none;
+        }
+        .onb-tooltip-arrow[data-dir="right"] {
+          right: -6px; top: 24px;
+          border-left: none; border-bottom: none;
         }
         .onb-tooltip-header { display: flex; gap: 12px; align-items: flex-start; }
         .onb-tooltip-icon {

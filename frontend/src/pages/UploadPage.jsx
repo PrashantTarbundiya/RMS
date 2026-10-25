@@ -1206,6 +1206,7 @@ export default function UploadPage() {
                 <label className="text-body font-medium text-ink">Subject Identifier</label>
                 <div className="relative">
                   <input
+                    data-tour="subject-name-input"
                     type="text"
                     required
                     value={personName}
