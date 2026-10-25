@@ -1,5 +1,5 @@
 // RMS Face AI - Enterprise Progressive Web App Service Worker
-const CACHE_NAME = 'rms-pwa-v2.1.0';
+const CACHE_NAME = 'rms-pwa-v2.2.0';
 
 const PRECACHE_ASSETS = [
   '/',
@@ -54,15 +54,22 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(
       fetch(event.request)
         .then((response) => {
-          // Update cached copy of the shell
-          const responseClone = response.clone();
-          caches.open(CACHE_NAME).then((cache) => {
-            cache.put(event.request, responseClone);
-          });
+          if (response && response.status === 200) {
+            const responseClone = response.clone();
+            caches.open(CACHE_NAME).then((cache) => {
+              cache.put(event.request, responseClone);
+            });
+          }
           return response;
         })
-        .catch(() => {
-          return caches.match('/index.html') || caches.match('/');
+        .catch(async () => {
+          const cache = await caches.open(CACHE_NAME);
+          const cached = (await cache.match('/index.html')) || (await cache.match('/'));
+          if (cached) return cached;
+          return new Response(
+            '<!DOCTYPE html><html><head><title>Offline</title></head><body><h1>Offline</h1><p>Please reconnect to the network.</p></body></html>',
+            { headers: { 'Content-Type': 'text/html' } }
+          );
         })
     );
     return;
@@ -70,8 +77,7 @@ self.addEventListener('fetch', (event) => {
 
   // 3. Static assets (.js, .css, images, fonts) - Stale-While-Revalidate
   if (
-    url.pathname.match(/\.(js|css|png|jpg|jpeg|svg|webp|woff|woff2|ttf)$/) ||
-    url.origin === self.location.origin
+    url.pathname.match(/\.(js|css|png|jpg|jpeg|svg|webp|woff|woff2|ttf|ico|webmanifest)$/)
   ) {
     event.respondWith(
       caches.match(event.request).then((cachedResponse) => {
@@ -86,8 +92,8 @@ self.addEventListener('fetch', (event) => {
             return networkResponse;
           })
           .catch(() => {
-            // Offline fallback
-            return cachedResponse;
+            if (cachedResponse) return cachedResponse;
+            return new Response('', { status: 408, statusText: 'Request Timeout' });
           });
 
         return cachedResponse || fetchPromise;

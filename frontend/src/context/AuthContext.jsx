@@ -184,13 +184,25 @@ export function AuthProvider({ children }) {
     return userData;
   }, [saveTokens]);
 
-  const register = useCallback(async (orgName, email, password, name) => {
-    const res = await axios.post(`${API_BASE}/auth/register`, {
-      org_name: orgName,
-      email,
-      password,
-      name,
-    }, { timeout: 75000 });
+  const register = useCallback(async (orgNameOrObj, maybeEmail, maybePassword, maybeName) => {
+    let payload;
+    if (typeof orgNameOrObj === 'object' && orgNameOrObj !== null) {
+      payload = {
+        org_name: orgNameOrObj.org_name || orgNameOrObj.orgName,
+        admin_name: orgNameOrObj.admin_name || orgNameOrObj.name,
+        email: orgNameOrObj.email,
+        password: orgNameOrObj.password,
+      };
+    } else {
+      payload = {
+        org_name: orgNameOrObj,
+        admin_name: maybeName,
+        email: maybeEmail,
+        password: maybePassword,
+      };
+    }
+
+    const res = await axios.post(`${API_BASE}/auth/register`, payload, { timeout: 75000 });
     const { access_token, refresh_token, user: userData } = res.data;
 
     setAccessToken(access_token);

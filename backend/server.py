@@ -2040,10 +2040,17 @@ def auth_register():
     if not data:
         return jsonify({'error': 'JSON body required.'}), 400
 
-    org_name = (data.get('org_name') or '').strip()
-    email = (data.get('email') or '').strip().lower()
-    password = data.get('password', '')
-    admin_name = (data.get('name') or '').strip()
+    org_payload = data.get('org_name')
+    if isinstance(org_payload, dict):
+        org_name = str(org_payload.get('org_name') or org_payload.get('name') or '').strip()
+        email = str(org_payload.get('email') or data.get('email') or '').strip().lower()
+        password = str(org_payload.get('password') or data.get('password') or '')
+        admin_name = str(org_payload.get('admin_name') or org_payload.get('name') or data.get('name') or data.get('admin_name') or '').strip()
+    else:
+        org_name = str(org_payload or '').strip()
+        email = str(data.get('email') or '').strip().lower()
+        password = str(data.get('password') or '')
+        admin_name = str(data.get('admin_name') or data.get('name') or '').strip()
 
     if not org_name or not email or not password:
         return jsonify({'error': 'org_name, email, and password are required.'}), 400
