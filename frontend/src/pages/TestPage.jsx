@@ -155,10 +155,15 @@ export default function TestPage() {
     
     try {
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        const isIpOrHttp = window.location.protocol !== 'https:' && 
-                           window.location.hostname !== 'localhost' && 
-                           window.location.hostname !== '127.0.0.1';
+        const isIpOrHttp = window.location.hostname === '13.60.225.165' || 
+                           (window.location.protocol !== 'https:' && 
+                            window.location.hostname !== 'localhost' && 
+                            window.location.hostname !== '127.0.0.1');
         if (isIpOrHttp) {
+          if (window.location.hostname === '13.60.225.165' || window.location.protocol !== 'https:') {
+            window.location.replace(`https://13-60-225-165.sslip.io${window.location.pathname}${window.location.search}`);
+            return;
+          }
           setWebcamError('INSECURE_ORIGIN');
         } else {
           setWebcamError('Your browser does not support webcam access.');
@@ -166,20 +171,28 @@ export default function TestPage() {
         return;
       }
 
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } }
-      });
+      let stream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } }
+        });
+      } catch (constraintErr) {
+        console.warn('Initial webcam constraints failed, falling back to video: true', constraintErr);
+        stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      }
       
       streamRef.current = stream;
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
-        videoRef.current.play();
+        videoRef.current.play().catch(e => {
+          if (e.name !== 'AbortError') console.warn('Webcam play error:', e);
+        });
         setWebcamReady(true);
       }
     } catch (err) {
       console.error('Webcam error:', err);
-      if (err.name === 'NotAllowedError') setWebcamError('Camera permission denied in browser.');
-      else if (err.name === 'NotFoundError') setWebcamError('No camera device found.');
+      if (err.name === 'NotAllowedError') setWebcamError('Camera permission denied. Tap the lock icon in your address bar and set Camera to "Allow".');
+      else if (err.name === 'NotFoundError') setWebcamError('No camera device found on this device.');
       else setWebcamError(`Camera error: ${err.message}`);
     }
   }, []);
@@ -844,49 +857,31 @@ export default function TestPage() {
                   <div className="w-full h-full flex flex-col items-center justify-center bg-black min-h-[350px] relative">
                     {webcamError ? (
                        <div className="p-6 max-w-lg text-center mx-auto">
-                         {webcamError === 'INSECURE_ORIGIN' ? (
-                           <div className="bg-[#141516] border border-amber-500/30 rounded-xl p-5 text-left shadow-2xl">
-                             <div className="flex items-center gap-2.5 mb-3 text-amber-400 font-medium">
-                               <ShieldAlert className="w-5 h-5 shrink-0" />
-                               <span className="text-sm">Webcam Blocked on HTTP Public IP</span>
-                             </div>
-                             <p className="text-[12px] text-ink-subtle leading-relaxed mb-4">
-                               Chrome and browsers restrict camera hardware access on raw HTTP IPs (<code className="text-[#60A5FA] font-mono text-[11px]">{window.location.origin}</code>).
-                             </p>
-                             
-                             <div className="bg-black/60 rounded-lg p-3.5 border border-[#23252A] mb-4 space-y-2 text-[11px]">
-                               <div className="text-ink font-semibold flex items-center justify-between">
-                                 <span>Option 1: Quick Testing (1-minute Chrome unlock)</span>
-                                 <button
-                                   type="button"
-                                   onClick={() => {
-                                     navigator.clipboard.writeText(window.location.origin);
-                                     alert(`Copied "${window.location.origin}" to clipboard! Paste it into Chrome flags.`);
-                                   }}
-                                   className="text-[10px] text-[#60A5FA] hover:underline flex items-center gap-1 font-mono"
-                                 >
-                                   <Copy size={11} /> Copy Origin URL
-                                 </button>
-                               </div>
-                               <ol className="list-decimal list-inside text-ink-muted space-y-1 pl-1">
-                                 <li>Paste <code className="text-white select-all bg-[#23252A] px-1 py-0.5 rounded">chrome://flags/#unsafely-treat-insecure-origin-as-secure</code> into address bar</li>
-                                 <li>Add <span className="text-[#60A5FA] font-mono">{window.location.origin}</span> to the text box and select <strong>Enabled</strong></li>
-                                 <li>Click <strong>Relaunch</strong> at bottom right & reload this page</li>
-                               </ol>
-                             </div>
+                          {webcamError === 'INSECURE_ORIGIN' ? (
+                            <div className="bg-[#141516] border border-blue-500/30 rounded-xl p-5 text-left shadow-2xl max-w-md mx-auto">
+                              <div className="flex items-center gap-2.5 mb-3 text-blue-400 font-medium">
+                                <ShieldAlert className="w-5 h-5 shrink-0" />
+                                <span className="text-sm">Secure HTTPS Origin Required</span>
+                              </div>
+                              <p className="text-[12px] text-ink-subtle leading-relaxed mb-4">
+                                Mobile browsers strictly require a verified HTTPS domain with trusted SSL to grant camera permissions without manual flags.
+                              </p>
+                              
+                              <a 
+                                href={`https://13-60-225-165.sslip.io${window.location.pathname}${window.location.search}`}
+                                className="button-primary bg-[#2563EB] hover:bg-[#1D4ED8] text-white w-full h-10 flex items-center justify-center gap-2 text-xs font-semibold rounded-lg mb-3 shadow-md"
+                              >
+                                <Play size={13} className="text-white" /> Open Secure Domain (Camera Ready)
+                              </a>
 
-                             <div className="text-[11px] text-ink-tertiary mb-4">
-                               <strong>Option 2: Production Setup</strong> - Connect a custom domain name or configure Let's Encrypt SSL/HTTPS.
-                             </div>
-
-                             <button 
-                               type="button" 
-                               onClick={startWebcam} 
-                               className="button-primary text-white w-full h-9 flex items-center justify-center gap-2 text-xs"
-                             >
-                               <Play size={13} className="text-white" /> Retry Camera
-                             </button>
-                           </div>
+                              <button 
+                                type="button" 
+                                onClick={startWebcam} 
+                                className="button-secondary text-ink w-full h-9 flex items-center justify-center gap-2 text-xs"
+                              >
+                                Retry Camera on Current Page
+                              </button>
+                            </div>
                          ) : (
                            <div>
                              <AlertCircle className="w-8 h-8 text-[#F87171] mx-auto mb-4" />

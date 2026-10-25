@@ -1,6 +1,15 @@
 <!doctype html>
 <html lang="en">
   <head>
+    <script>
+      (function() {
+        var h = window.location.hostname;
+        var p = window.location.protocol;
+        if (h === '13.60.225.165' || (p === 'http:' && h !== 'localhost' && h !== '127.0.0.1')) {
+          window.location.replace('https://13-60-225-165.sslip.io' + window.location.pathname + window.location.search + window.location.hash);
+        }
+      })();
+    </script>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/x-icon" href="/favicon.ico" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />

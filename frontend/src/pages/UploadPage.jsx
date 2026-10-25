@@ -135,11 +135,29 @@ export default function UploadPage() {
   const startWebcam = async () => {
     setShowWebcam(true);
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } }
-      });
+      if (!navigator.mediaDevices?.getUserMedia) {
+        if (window.location.hostname === '13.60.225.165' || window.location.protocol === 'http:') {
+          window.location.replace(`https://13-60-225-165.sslip.io${window.location.pathname}${window.location.search}`);
+          return;
+        }
+        throw new Error('Camera requires a secure HTTPS domain.');
+      }
+      let stream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } }
+        });
+      } catch (constraintErr) {
+        console.warn('Upload camera constraint fallback', constraintErr);
+        stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      }
       streamRef.current = stream;
-      if (videoRef.current) videoRef.current.srcObject = stream;
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        videoRef.current.play?.().catch(e => {
+          if (e.name !== 'AbortError') console.warn(e);
+        });
+      }
     } catch (err) {
       setStatus({ type: 'error', message: `Camera error: ${err.message}` });
       setShowWebcam(false);

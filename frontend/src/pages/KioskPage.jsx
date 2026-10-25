@@ -111,17 +111,25 @@ export default function KioskPage() {
     setWebcamReady(false);
     try {
       if (!navigator.mediaDevices?.getUserMedia) {
-        const isHttp = window.location.protocol === 'http:' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
-        if (isHttp) {
-          setWebcamError('Camera blocked by browser security: Chrome and mobile browsers require HTTPS for camera access on AWS. Click below to switch to HTTPS.');
+        const isHttpOrRawIp = window.location.hostname === '13.60.225.165' || 
+                              (window.location.protocol === 'http:' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1');
+        if (isHttpOrRawIp) {
+          window.location.replace(`https://13-60-225-165.sslip.io${window.location.pathname}${window.location.search}`);
+          return;
         } else {
           setWebcamError('Browser does not support camera access');
         }
         return;
       }
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } }
-      });
+      let stream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } }
+        });
+      } catch (constraintErr) {
+        console.warn('Kiosk ideal constraints failed, falling back to video: true', constraintErr);
+        stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      }
       streamRef.current = stream;
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
@@ -133,8 +141,8 @@ export default function KioskPage() {
         };
       }
     } catch (err) {
-      if (err.name === 'NotAllowedError') setWebcamError('Camera permission denied');
-      else if (err.name === 'NotFoundError') setWebcamError('No camera device found');
+      if (err.name === 'NotAllowedError') setWebcamError('Camera permission denied. Tap the lock icon in your address bar and set Camera to "Allow".');
+      else if (err.name === 'NotFoundError') setWebcamError('No camera device found on this phone/computer');
       else setWebcamError(`Camera error: ${err.message}`);
     }
   }, []);
@@ -711,12 +719,12 @@ export default function KioskPage() {
                 <p className="text-lg font-medium mb-1">Camera Unavailable</p>
                 <p className="text-sm text-[var(--ink-subtle)] mb-4">{webcamError}</p>
                 <div className="flex flex-col gap-2 items-center">
-                  {window.location.protocol === 'http:' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1' && (
+                  {(window.location.hostname === '13.60.225.165' || window.location.protocol === 'http:') && (
                     <a 
-                      href={`https://${window.location.hostname}${window.location.port === '80' || !window.location.port ? '' : ':443'}${window.location.pathname}`}
+                      href={`https://13-60-225-165.sslip.io${window.location.pathname}${window.location.search}`}
                       className="button-primary bg-[#2563EB] hover:bg-[#1D4ED8] text-white px-4 py-2 rounded-lg text-xs font-medium"
                     >
-                      Switch to Secure HTTPS
+                      Switch to Secure Domain (Camera Ready)
                     </a>
                   )}
                   <button onClick={startWebcam} className="kiosk-retry-btn">Retry Camera</button>
