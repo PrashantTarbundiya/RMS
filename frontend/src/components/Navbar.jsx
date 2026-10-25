@@ -1,9 +1,10 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { NavLink, Link, useLocation } from 'react-router-dom';
+import { NavLink, Link, useLocation, useNavigate } from 'react-router-dom';
 import { Activity, Box, Video, Home, Upload, ClipboardList, Radio, Settings, LogOut, Users, User, Menu, X, Terminal, Shield, Monitor, BarChart3, Play, Camera, Download } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { usePwa } from '../context/PwaContext';
 import { motion, AnimatePresence } from 'framer-motion';
+import { API_BASE } from '../config';
 
 // Role hierarchy: platform_owner > org_admin > manager > viewer > kiosk
 const ROLE_HIERARCHY = ['platform_owner', 'org_admin', 'manager', 'viewer', 'kiosk'];
@@ -16,13 +17,39 @@ function hasRole(userRole, minRole) {
 }
 
 export function Navbar() {
-  const { user, logout } = useAuth();
+  const { user, logout, updateOnboardingState, apiClient } = useAuth();
   const { isInstallable, isInstalled, installApp } = usePwa();
+  const navigate = useNavigate();
   const [isCollapsed, setIsCollapsed] = useState(() => {
     return localStorage.getItem('sidebar-collapsed') === 'true';
   });
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const location = useLocation();
+
+  const handleStartSetupGuide = async (e) => {
+    if (e) e.preventDefault();
+    setIsMobileOpen(false);
+    sessionStorage.removeItem('onboarding_paused');
+    sessionStorage.removeItem('welcome_shown');
+    localStorage.removeItem('rms_onboarding_dismissed');
+    localStorage.removeItem('rms_onboarding_completed');
+    localStorage.setItem('rms_onboarding_step', '0');
+    try {
+      if (updateOnboardingState) {
+        await updateOnboardingState({ step: 0, completed: false, reset: true });
+      } else if (apiClient) {
+        await apiClient.post(`${API_BASE}/onboarding/state`, {
+          onboarding_state: { step: 0, completed: false, reset: true }
+        });
+      }
+    } catch (err) {
+      console.warn('Failed to reset onboarding state', err);
+    }
+    navigate('/profile');
+    setTimeout(() => {
+      window.dispatchEvent(new CustomEvent('rms:start-onboarding', { detail: { step: 0, force: true } }));
+    }, 120);
+  };
 
   // Auto-close mobile drawer whenever route changes
   useEffect(() => {
@@ -173,10 +200,15 @@ export function Navbar() {
                   </button>
                 )}
                 {hasRole(userRole, 'org_admin') && (
-                  <Link to="/onboarding" onClick={() => setIsMobileOpen(false)} className="logout-btn" style={{ color: 'var(--accent-primary)' }}>
+                  <button 
+                    type="button"
+                    onClick={handleStartSetupGuide} 
+                    className="logout-btn w-full text-left cursor-pointer" 
+                    style={{ color: 'var(--accent-primary)', background: 'none', border: 'none' }}
+                  >
                     <Play size={18} />
                     <span>Setup Guide</span>
-                  </Link>
+                  </button>
                 )}
                 {user && (
                   <button onClick={() => { logout(); setIsMobileOpen(false); }} className="logout-btn">
@@ -256,10 +288,16 @@ export function Navbar() {
             </button>
           )}
           {hasRole(userRole, 'org_admin') && (
-            <Link to="/onboarding" className={`logout-btn ${isCollapsed ? 'justify-center' : ''}`} style={{ color: 'var(--accent-primary)' }} title={isCollapsed ? "Setup Guide" : undefined}>
+            <button 
+              type="button"
+              onClick={handleStartSetupGuide} 
+              className={`logout-btn w-full text-left cursor-pointer ${isCollapsed ? 'justify-center' : ''}`} 
+              style={{ color: 'var(--accent-primary)', background: 'none', border: 'none' }} 
+              title={isCollapsed ? "Setup Guide" : undefined}
+            >
               <Play size={18} />
               {!isCollapsed && <span>Setup Guide</span>}
-            </Link>
+            </button>
           )}
           {user && (
             <button onClick={logout} className={`logout-btn ${isCollapsed ? 'justify-center' : ''}`} title={isCollapsed ? "Sign Out" : undefined}>

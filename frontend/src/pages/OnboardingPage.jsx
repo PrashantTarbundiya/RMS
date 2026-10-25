@@ -4,29 +4,45 @@ import { useAuth } from '../context/AuthContext';
 import { API_BASE } from '../config';
 
 /**
- * OnboardingPage - Landing page for /onboarding route.
- * Resets onboarding state and redirects to profile page where
- * the OnboardingWizard spotlight tour will auto-start.
+ * OnboardingPage - Route handler for /onboarding.
+ * Resets onboarding state and seamlessly redirects to profile page where
+ * the OnboardingWizard spotlight tour activates immediately.
  */
 export default function OnboardingPage() {
   const navigate = useNavigate();
-  const { apiClient } = useAuth();
+  const { apiClient, updateOnboardingState } = useAuth();
 
   useEffect(() => {
+    let isMounted = true;
     (async () => {
-      // Reset onboarding state so the wizard starts from the beginning
       sessionStorage.removeItem('onboarding_paused');
       sessionStorage.removeItem('welcome_shown');
-      localStorage.removeItem('onboarding_dismissed');
+      localStorage.removeItem('rms_onboarding_dismissed');
+      localStorage.removeItem('rms_onboarding_completed');
+      localStorage.setItem('rms_onboarding_step', '0');
+
       try {
-        await apiClient.post(`${API_BASE}/onboarding/state`, {
-          onboarding_state: { step: 0, completed: false }
-        });
-      } catch (err) {}
-      // Hard navigate to /profile to trigger the wizard fresh
-      window.location.href = '/profile';
+        if (updateOnboardingState) {
+          await updateOnboardingState({ step: 0, completed: false, reset: true });
+        } else {
+          await apiClient.post(`${API_BASE}/onboarding/state`, {
+            onboarding_state: { step: 0, completed: false, reset: true }
+          });
+        }
+      } catch (err) {
+        console.warn('Failed to reset onboarding state:', err);
+      }
+
+      if (isMounted) {
+        navigate('/profile');
+        setTimeout(() => {
+          window.dispatchEvent(new CustomEvent('rms:start-onboarding', { detail: { step: 0, force: true } }));
+        }, 120);
+      }
     })();
-  }, []);
+
+    return () => { isMounted = false; };
+  }, [navigate, apiClient, updateOnboardingState]);
 
   return (
     <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '60vh', color: '#737780' }}>

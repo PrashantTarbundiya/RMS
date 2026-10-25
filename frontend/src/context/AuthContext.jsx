@@ -223,8 +223,10 @@ export function AuthProvider({ children }) {
     if (typeof newState?.step === 'number') {
       localStorage.setItem('rms_onboarding_step', String(newState.step));
     }
-    if (newState?.completed) {
+    if (newState?.completed === true) {
       localStorage.setItem('rms_onboarding_completed', 'true');
+    } else if (newState?.completed === false || newState?.reset) {
+      localStorage.removeItem('rms_onboarding_completed');
     }
     setUser(prev => prev ? ({
       ...prev,
@@ -241,11 +243,11 @@ export function AuthProvider({ children }) {
       if (serverState) {
         setUser(prev => {
           if (!prev) return prev;
+          const isExplicitReset = newState?.completed === false || newState?.reset === true;
           const currentStep = prev.onboarding_state?.step ?? 0;
           const incomingStep = serverState.step ?? currentStep;
-          // Never allow server to roll back to an older step
-          const resolvedStep = Math.max(currentStep, incomingStep);
-          const resolvedCompleted = prev.onboarding_state?.completed || serverState.completed;
+          const resolvedStep = isExplicitReset ? (newState.step ?? 0) : Math.max(currentStep, incomingStep);
+          const resolvedCompleted = isExplicitReset ? false : (prev.onboarding_state?.completed || serverState.completed);
           return {
             ...prev,
             onboarding_state: {
