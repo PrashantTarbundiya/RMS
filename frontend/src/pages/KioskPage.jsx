@@ -174,7 +174,7 @@ export default function KioskPage() {
     setFacesDetected(rawCount);
 
     if (!data?.faces || data.faces.length === 0) {
-      // No face detected — go to scanning (waiting)
+      // No face detected - go to scanning (waiting)
       if (statusRef.current !== STATUS.GRANTED && statusRef.current !== STATUS.DENIED && statusRef.current !== STATUS.SPOOF) {
         setStatus(STATUS.SCANNING);
       }
@@ -528,7 +528,7 @@ export default function KioskPage() {
       glowColor: 'rgba(249, 115, 22, 0.3)',
       icon: <ShieldX size={32} />,
       label: 'Spoof Detected',
-      sublabel: 'Liveness check failed — use real face',
+      sublabel: 'Liveness check failed - use real face',
       bgGradient: 'radial-gradient(ellipse at center, rgba(249,115,22,0.08) 0%, transparent 70%)',
     },
     [STATUS.ERROR]: {
@@ -658,7 +658,7 @@ export default function KioskPage() {
               />
             )}
 
-            {/* Status Overlay — shown on recognition events */}
+            {/* Status Overlay - shown on recognition events */}
             <AnimatePresence>
               {(status === STATUS.GRANTED || status === STATUS.DENIED || status === STATUS.SPOOF) && (
                 <motion.div

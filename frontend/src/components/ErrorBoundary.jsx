@@ -3,7 +3,7 @@ import { AlertTriangle, Home, RotateCcw, Bug } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 /**
- * ErrorBoundary — Catches unhandled JavaScript errors in child components.
+ * ErrorBoundary - Catches unhandled JavaScript errors in child components.
  * Displays a premium error screen with recovery options instead of a blank page.
  */
 class ErrorBoundary extends React.Component {

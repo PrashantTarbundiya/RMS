@@ -1,23 +1,22 @@
 import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronDown } from 'lucide-react';
 
 const faqs = [
   {
-    q: 'Does my facial biometric data leave my network?',
-    a: 'No. The RMS platform runs entirely on-premise or in your private cloud context. All face detection, feature extraction, and neural network evaluations happen locally, ensuring complete privacy and compliance with biometric data laws.',
+    q: 'Does facial biometric data leave our local network?',
+    a: 'No. The RMS platform runs entirely on your local infrastructure or private virtual cloud. Face detection, feature extraction, vector indexing, and template matching happen locally, ensuring full compliance with enterprise privacy standards.',
   },
   {
-    q: 'How many training photos do I need to register a person?',
-    a: 'You can train identity embeddings with as few as 3 photos (frontal, left side-profile, and right side-profile). For optimal recognition rates in variable lighting, we recommend uploading between 5 to 15 photos per person.',
+    q: 'How many photos are required to register an employee?',
+    a: 'Identity templates can be created with as few as 3 photos (frontal, left side-profile, and right side-profile). For optimal verification across varying office lighting conditions, we recommend enrolling 3 to 5 clear photos.',
   },
   {
-    q: 'Which face recognition models does the system use?',
-    a: 'The system runs a GhostFaceNet model (lightweight, optimized for fast CPU edge inference) alongside a high-dimensional InsightFace ArcFace embedding model. Detections are resolved using a weighted ensemble consensus logic.',
+    q: 'Which neural recognition backbones does the system use?',
+    a: 'The system utilizes multi-model consensus combining FaceNet (512-dimensional embedding space) and InsightFace ArcFace models. Real-time liveness gates verify presence before identity classification.',
   },
   {
-    q: 'Can the system recognize faces from profile/side angles?',
-    a: 'Yes. Unlike generic systems that only work with direct frontal views, RMS integrates MediaPipe BlazeFace with custom keypoint-based pose estimators to align and identify faces up to a 60-degree rotation angle.',
+    q: 'Can the system recognize faces from profile and side angles?',
+    a: 'Yes. RMS incorporates specialized landmark pose estimation and face alignment algorithms, accurately identifying registered personnel at head turn angles up to 60 degrees.',
   },
 ];
 
@@ -25,59 +24,42 @@ export default function FaqSection() {
   const [activeIndex, setActiveIndex] = useState(null);
 
   return (
-    <section id="faq" className="landing-section landing-section-bg scroll-mt-20">
-      {/* Background image */}
-      <div
-        className="landing-section-bg-image"
-        style={{ backgroundImage: 'url(/bg-faq.png)' }}
-        aria-hidden="true"
-      />
-      <div className="landing-section-bg-overlay" aria-hidden="true" />
-      <div className="max-w-3xl mx-auto relative z-10">
+    <section id="faq" className="py-20 px-4 sm:px-6 border-t border-zinc-800/80 bg-[#0B0E17]/60">
+      <div className="max-w-3xl mx-auto">
         <div className="text-center mb-12">
-          <p className="text-eyebrow text-[#828FFF] mb-3">FAQ</p>
-          <h2 className="text-headline text-ink font-display">
-            Common questions, straight answers.
+          <p className="text-xs font-semibold uppercase tracking-wider text-blue-400 mb-2">
+            Frequently Asked Questions
+          </p>
+          <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-white">
+            Common Deployment & Technical Questions
           </h2>
         </div>
 
-        <div className="faq-list">
+        <div className="space-y-3">
           {faqs.map((faq, i) => {
             const isOpen = activeIndex === i;
             return (
-              <div key={i} className={`faq-item liquid-glass-subtle ${isOpen ? 'faq-item-open' : ''}`}>
+              <div
+                key={i}
+                className="rounded-lg border border-zinc-800 bg-zinc-900/60 overflow-hidden"
+              >
                 <button
                   onClick={() => setActiveIndex(isOpen ? null : i)}
-                  className="faq-trigger"
+                  className="w-full px-5 py-4 flex items-center justify-between text-left text-sm font-medium text-white hover:text-zinc-200 transition-colors"
                   aria-expanded={isOpen}
-                  aria-controls={`faq-panel-${i}`}
                 >
-                  <span className="faq-question">{faq.q}</span>
-                  <motion.div
-                    animate={{ rotate: isOpen ? 180 : 0 }}
-                    transition={{ type: 'spring', stiffness: 300, damping: 25 }}
-                    className="faq-chevron"
-                  >
-                    <ChevronDown className="w-4 h-4" />
-                  </motion.div>
+                  <span>{faq.q}</span>
+                  <ChevronDown
+                    className={`w-4 h-4 text-zinc-400 transition-transform duration-200 shrink-0 ml-3 ${
+                      isOpen ? 'rotate-180' : ''
+                    }`}
+                  />
                 </button>
-                <AnimatePresence initial={false}>
-                  {isOpen && (
-                    <motion.div
-                      id={`faq-panel-${i}`}
-                      role="region"
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: 'auto', opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      transition={{ type: 'spring', stiffness: 200, damping: 28 }}
-                      className="faq-panel-wrapper"
-                    >
-                      <div className="faq-answer">
-                        {faq.a}
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+                {isOpen && (
+                  <div className="px-5 pb-4 text-xs sm:text-sm text-zinc-400 leading-relaxed border-t border-zinc-800/50 pt-3">
+                    {faq.a}
+                  </div>
+                )}
               </div>
             );
           })}

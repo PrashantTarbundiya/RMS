@@ -346,7 +346,7 @@ export default function TestPage() {
       }
     } catch (err) {
       if (err?.response?.status === 429) {
-        // Rate limited — apply exponential backoff (2s, 4s, 8s, max 15s)
+        // Rate limited - apply exponential backoff (2s, 4s, 8s, max 15s)
         backoffDelayRef.current = Math.min(15000, Math.max(2000, (backoffDelayRef.current || 1000) * 2));
         console.warn(`[TestPage] Rate limited (429). Backing off for ${backoffDelayRef.current / 1000}s`);
       } else {
@@ -876,7 +876,7 @@ export default function TestPage() {
                              </div>
 
                              <div className="text-[11px] text-ink-tertiary mb-4">
-                               <strong>Option 2: Production Setup</strong> — Connect a custom domain name or configure Let's Encrypt SSL/HTTPS.
+                               <strong>Option 2: Production Setup</strong> - Connect a custom domain name or configure Let's Encrypt SSL/HTTPS.
                              </div>
 
                              <button 
@@ -1266,7 +1266,7 @@ export default function TestPage() {
                                    {face.prediction_id && !spoofed && (
                                      <div className="flex gap-1.5">
                                         <span className="px-2 py-0.5 rounded-full text-[10px] font-mono bg-[#828FFF]/10 text-[#828FFF] border border-[#828FFF]/20 flex items-center gap-1">
-                                          <AlertCircle className="w-3 h-3" /> TEST MODE — Not Logged
+                                          <AlertCircle className="w-3 h-3" /> TEST MODE - Not Logged
                                         </span>
                                      </div>
                                    )}

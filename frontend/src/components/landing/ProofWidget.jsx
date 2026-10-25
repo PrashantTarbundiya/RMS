@@ -1,160 +1,105 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { motion } from 'framer-motion';
-import { useGsap } from '../../lib/useGsap';
+import React, { useState } from 'react';
+import { Terminal, ShieldAlert, CheckCircle2 } from 'lucide-react';
 
 const scenarios = [
   {
+    title: 'Valid Staff Check-In',
+    status: 'AUTHORIZED',
+    statusColor: 'text-emerald-400 border-emerald-500/30 bg-emerald-500/10',
     lines: [
-      { tag: 'INPUT', value: 'live_frame_0042.jpg', color: 'subtle' },
-      { tag: 'DETECT', value: 'face_bbox [124, 87, 340, 303]', color: 'subtle' },
-      { tag: 'LIVENESS', value: 'PASS  (99.4%)', color: 'success' },
-      { tag: 'VECTOR', value: '512-d embedding → 0.124, -0.512, 0.991 …', color: 'subtle' },
-      { tag: 'MATCH', value: 'Alice_Smith  (cosine: 0.94)', color: 'success' },
-      { tag: 'INFERENCE', value: '84.2 ms  ✓', color: 'accent' },
+      { tag: 'INPUT', value: 'video_frame_0042.jpg' },
+      { tag: 'DETECT', value: 'face_bbox [124, 87, 340, 303]' },
+      { tag: 'LIVENESS', value: 'PASS (Texture & Illumination Verified)' },
+      { tag: 'VECTOR', value: '512-d embedding normalized' },
+      { tag: 'MATCH', value: 'Alice_Smith (Cosine similarity: 0.94)' },
+      { tag: 'LATENCY', value: '84.2 ms execution time' },
     ],
   },
   {
+    title: 'Spoof Attempt Rejection',
+    status: 'BLOCKED',
+    statusColor: 'text-red-400 border-red-500/30 bg-red-500/10',
     lines: [
-      { tag: 'INPUT', value: 'live_frame_0117.jpg', color: 'subtle' },
-      { tag: 'DETECT', value: 'face_bbox [201, 55, 412, 267]', color: 'subtle' },
-      { tag: 'LIVENESS', value: 'FAIL  — spoof detected (printed photo)', color: 'error' },
-      { tag: 'VECTOR', value: '— skipped (liveness gate)', color: 'muted' },
-      { tag: 'MATCH', value: '— blocked', color: 'error' },
-      { tag: 'INFERENCE', value: '31.7 ms  ✗', color: 'error' },
+      { tag: 'INPUT', value: 'video_frame_0117.jpg' },
+      { tag: 'DETECT', value: 'face_bbox [201, 55, 412, 267]' },
+      { tag: 'LIVENESS', value: 'REJECT (Printed photo texture detected)' },
+      { tag: 'VECTOR', value: 'Skipped by liveness threshold' },
+      { tag: 'MATCH', value: 'Rejected before identification' },
+      { tag: 'LATENCY', value: '31.7 ms early rejection' },
     ],
   },
 ];
 
-const tagColorMap = {
-  subtle: 'proof-val-subtle',
-  success: 'proof-val-success',
-  error: 'proof-val-error',
-  accent: 'proof-val-accent',
-  muted: 'proof-val-muted',
-};
-
 export default function ProofWidget() {
-  const sectionRef = useRef(null);
-  const [visibleLines, setVisibleLines] = useState(0);
-  const [scenarioIndex, setScenarioIndex] = useState(0);
-  const { gsapRef, scrollTriggerRef, ready, prefersReducedMotion } = useGsap();
-
-  const currentScenario = scenarios[scenarioIndex];
-
-  useEffect(() => {
-    if (!ready || prefersReducedMotion || !sectionRef.current) {
-      setVisibleLines(currentScenario.lines.length);
-      return;
-    }
-
-    const ScrollTrigger = scrollTriggerRef.current;
-
-    const trigger = ScrollTrigger.create({
-      trigger: sectionRef.current,
-      start: 'top 65%',
-      end: 'bottom 50%',
-      onUpdate: (self) => {
-        const progress = self.progress;
-        const totalLines = currentScenario.lines.length;
-        const count = Math.min(Math.floor(progress * (totalLines + 1)), totalLines);
-        setVisibleLines(count);
-      },
-    });
-
-    return () => trigger.kill();
-  }, [ready, prefersReducedMotion, scenarioIndex]);
-
-  // Cycle scenarios
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setScenarioIndex((prev) => (prev + 1) % scenarios.length);
-      setVisibleLines(0);
-    }, 8000);
-    return () => clearInterval(interval);
-  }, []);
+  const [activeTab, setActiveTab] = useState(0);
+  const currentScenario = scenarios[activeTab];
 
   return (
-    <section ref={sectionRef} className="landing-section landing-section-bg">
-      {/* Background image */}
-      <div
-        className="landing-section-bg-image"
-        style={{ backgroundImage: 'url(/bg-proof.png)' }}
-        aria-hidden="true"
-      />
-      <div className="landing-section-bg-overlay" aria-hidden="true" />
-
-      <div className="max-w-4xl mx-auto relative z-10">
-        <div className="text-center mb-16">
-          <motion.p
-            className="text-eyebrow text-[#828FFF] mb-4"
-            initial={{ opacity: 0, letterSpacing: '4px' }}
-            whileInView={{ opacity: 1, letterSpacing: '0.4px' }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-          >
-            Live Proof
-          </motion.p>
-          <motion.h2
-            className="text-display-md text-ink font-display"
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-          >
-            Real inference. Real time.
-          </motion.h2>
-          <motion.p
-            className="text-body-lg text-ink-subtle mt-4 max-w-xl mx-auto"
-            initial={{ opacity: 0 }}
-            whileInView={{ opacity: 1 }}
-            viewport={{ once: true }}
-            transition={{ delay: 0.2, duration: 0.5 }}
-          >
-            Watch the recognition pipeline process a frame — from detection to identity match.
-          </motion.p>
+    <section className="py-20 px-4 sm:px-6 border-t border-zinc-800/80 bg-[#07090E]">
+      <div className="max-w-4xl mx-auto">
+        <div className="text-center mb-12">
+          <p className="text-xs font-semibold uppercase tracking-wider text-blue-400 mb-2">
+            Verification Telemetry
+          </p>
+          <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-white">
+            Real-Time Inference Execution Flow
+          </h2>
+          <p className="text-sm text-zinc-400 mt-2 max-w-xl mx-auto">
+            Inspect the sub-second decision sequence evaluated for every incoming frame.
+          </p>
         </div>
 
-        <motion.div
-          className="proof-terminal liquid-glass-strong"
-          initial={{ opacity: 0, y: 40, scale: 0.97 }}
-          whileInView={{ opacity: 1, y: 0, scale: 1 }}
-          viewport={{ once: true, margin: '-60px' }}
-          transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
-        >
-          <div className="proof-terminal-header">
-            <div className="proof-terminal-dots">
-              <span className="proof-dot proof-dot-red" />
-              <span className="proof-dot proof-dot-yellow" />
-              <span className="proof-dot proof-dot-green" />
+        {/* Console Container */}
+        <div className="rounded-lg border border-zinc-800 bg-[#0C0F17] overflow-hidden shadow-xl">
+          {/* Top Bar */}
+          <div className="px-4 py-3 border-b border-zinc-800 flex items-center justify-between bg-zinc-950">
+            <div className="flex items-center gap-2">
+              <Terminal className="w-4 h-4 text-zinc-400" />
+              <span className="font-mono text-xs text-zinc-300 font-medium">
+                Inference Stream Monitor
+              </span>
             </div>
-            <span className="proof-terminal-title">rms-inference — biometric pipeline</span>
-            <div className="proof-scenario-indicator">
-              {scenarios.map((_, i) => (
-                <span
-                  key={i}
-                  className={`proof-scenario-dot ${i === scenarioIndex ? 'active' : ''}`}
-                />
+
+            <div className="flex gap-2">
+              {scenarios.map((sc, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => setActiveTab(idx)}
+                  className={`px-3 py-1 rounded text-xs font-mono font-medium transition-colors ${
+                    activeTab === idx
+                      ? 'bg-zinc-800 text-white border border-zinc-700'
+                      : 'text-zinc-400 hover:text-zinc-200'
+                  }`}
+                >
+                  Scenario {idx + 1}: {sc.status}
+                </button>
               ))}
             </div>
           </div>
-          <div className="proof-terminal-body">
-            {currentScenario.lines.map((line, i) => (
-              <div
-                key={`${scenarioIndex}-${i}`}
-                className={`proof-line ${i < visibleLines ? 'proof-line-visible' : 'proof-line-hidden'}`}
-              >
-                <span className="proof-tag">[{line.tag}]</span>
-                <span className={`proof-value ${tagColorMap[line.color] || ''}`}>
-                  {line.value}
-                </span>
-              </div>
-            ))}
-            {/* Blinking cursor */}
-            <div className="proof-cursor">
-              <span className="proof-cursor-blink">▌</span>
+
+          {/* Terminal Body */}
+          <div className="p-5 font-mono text-xs space-y-2.5">
+            <div className="flex items-center justify-between pb-3 border-b border-zinc-800/60">
+              <span className="text-zinc-400">{currentScenario.title}</span>
+              <span className={`px-2 py-0.5 rounded text-[11px] font-semibold border ${currentScenario.statusColor}`}>
+                {currentScenario.status}
+              </span>
+            </div>
+
+            <div className="space-y-2 pt-2">
+              {currentScenario.lines.map((line, i) => (
+                <div key={i} className="flex items-start gap-4">
+                  <span className="text-zinc-500 w-20 shrink-0 font-bold">
+                    {line.tag}
+                  </span>
+                  <span className="text-zinc-300">
+                    {line.value}
+                  </span>
+                </div>
+              ))}
             </div>
           </div>
-        </motion.div>
+        </div>
       </div>
     </section>
   );

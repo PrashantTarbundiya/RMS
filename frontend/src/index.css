@@ -16,7 +16,7 @@
     --popover: 210 4% 9.8%;          /* #18191A - surface-3 */
     --popover-foreground: 180 3% 97.1%;
 
-    --primary: 234 57% 59.6%;        /* #5E6AD2 - accent-primary */
+    --primary: 221 83% 53%;          /* #2563EB - enterprise blue */
     --primary-foreground: 180 3% 97.1%;
 
     --secondary: 210 5% 8.2%;        /* #141516 - surface-2 */
@@ -25,7 +25,7 @@
     --muted: 219 7% 56.9%;           /* #8A8F98 - ink-subtle */
     --muted-foreground: 218 5% 40.6%; /* #62666D - ink-tertiary */
 
-    --accent: 234 57% 59.6%;         /* #5E6AD2 - accent-primary */
+    --accent: 221 83% 53%;           /* #2563EB - enterprise blue */
     --accent-foreground: 180 3% 97.1%;
 
     --destructive: 0 91% 70.8%;      /* #F87171 - alert-crimson */
@@ -33,7 +33,7 @@
 
     --border: 223 9% 15.1%;          /* #23252A - hairline */
     --input: 223 9% 15.1%;
-    --ring: 234 57% 59.6%;
+    --ring: 221 83% 53%;
 
     --radius: 8px;
 
@@ -48,10 +48,10 @@
     --hairline-strong: #34343A;
     --hairline-tertiary: #3E3E44;
 
-    --accent-primary: #5E6AD2;
-    --accent-hover: #828FFF;
-    --accent-focus: #5E69D1;
-    --brand-secure: #7A7FAD;
+    --accent-primary: #2563EB;
+    --accent-hover: #1D4ED8;
+    --accent-focus: #1E40AF;
+    --brand-secure: #3B82F6;
 
     --ink: #F7F8F8;
     --ink-muted: #D0D6E0;
@@ -79,7 +79,7 @@
     --radius-lg: 12px;
     --radius-xl: 16px;
     --radius-xxl: 24px;
-    --radius-pill: 9999px;
+    --radius-pill: 8px;
 
     --font-mono: 'JetBrains Mono', monospace;
   }
@@ -391,7 +391,7 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   LANDING PAGE — Storytelling Redesign Styles
+   LANDING PAGE - Storytelling Redesign Styles
    ═══════════════════════════════════════════════════════════════ */
 
 /* ── Page Shell ── */
@@ -545,9 +545,9 @@
   align-items: center;
   gap: 4px;
   padding: 6px 8px;
-  background-color: rgba(12, 12, 14, 0.88);
+  background-color: rgba(12, 12, 14, 0.92);
   border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 999px;
+  border-radius: 8px;
   backdrop-filter: blur(24px) saturate(1.8);
   -webkit-backdrop-filter: blur(24px) saturate(1.8);
   box-shadow:
@@ -556,7 +556,7 @@
   pointer-events: auto;
 }
 
-/* Desktop pill — show, mobile pill — hide */
+/* Desktop pill - show, mobile pill - hide */
 .floating-pill-desktop { display: flex; }
 .floating-pill-mobile { display: none; }
 
@@ -571,7 +571,7 @@
   font-weight: 500;
   color: var(--ink-subtle);
   text-decoration: none;
-  border-radius: 999px;
+  border-radius: 6px;
   transition: color 0.2s, background-color 0.2s;
   white-space: nowrap;
 }
@@ -584,7 +584,7 @@
 /* Active section indicator */
 .floating-pill-link.active {
   color: white;
-  background-color: rgba(94, 106, 210, 0.15);
+  background-color: rgba(37, 99, 235, 0.15);
 }
 
 .floating-pill-cta {
@@ -594,7 +594,7 @@
   color: white;
   background-color: var(--accent-primary);
   border: none;
-  border-radius: 999px;
+  border-radius: 6px;
   cursor: pointer;
   transition: background-color 0.2s, transform 0.1s;
   white-space: nowrap;
@@ -766,7 +766,7 @@
   }
 }
 
-/* Hide entire header on mobile — pill nav handles it */
+/* Hide entire header on mobile - pill nav handles it */
 @media (max-width: 767px) {
   .landing-header {
     display: none;
@@ -834,10 +834,7 @@
 
 .landing-hero-title-accent {
   display: block;
-  background: linear-gradient(135deg, var(--accent-hover) 0%, var(--accent-primary) 50%, var(--accent-hover) 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: var(--ink-muted);
 }
 
 .landing-hero-subtitle {
@@ -854,17 +851,17 @@
   gap: 8px;
   height: 48px;
   padding: 0 28px;
-  background-color: var(--accent-primary);
-  color: white;
+  background-color: #FFFFFF;
+  color: #000000;
   font-size: 15px;
   font-weight: 600;
-  border-radius: var(--radius-pill);
+  border-radius: 8px;
   text-decoration: none;
   transition: background-color 0.2s, transform 0.1s;
 }
 
 .landing-hero-cta-primary:hover {
-  background-color: var(--accent-hover);
+  background-color: #E4E4E7;
 }
 
 .landing-hero-cta-primary:active {
@@ -882,7 +879,7 @@
   font-size: 15px;
   font-weight: 500;
   border: 1px solid var(--hairline);
-  border-radius: var(--radius-pill);
+  border-radius: 8px;
   text-decoration: none;
   transition: border-color 0.2s, background-color 0.2s;
 }
@@ -1672,7 +1669,7 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   MOBILE RESPONSIVE — Landing Page
+   MOBILE RESPONSIVE - Landing Page
    ═══════════════════════════════════════════════════════════════ */
 
 @media (max-width: 768px) {
@@ -1746,7 +1743,7 @@
     padding: 24px;
   }
 
-  /* Sovereignty — stack vertically */
+  /* Sovereignty - stack vertically */
   .sovereignty-container {
     padding: 28px 20px;
     flex-direction: column;
@@ -2337,7 +2334,7 @@ button:focus-visible {
 .terminal-text .log-info { color: #828FFF; }
 
 /* ══════════════════════════════════════════════════════════════════════
-   KIOSK MODE — Production-Grade Biometric Authentication UI
+   KIOSK MODE - Production-Grade Biometric Authentication UI
    ══════════════════════════════════════════════════════════════════════ */
 
 /* ── Container & Layout ─────────────────────────────────────────────── */

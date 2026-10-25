@@ -1004,11 +1004,11 @@ export default function UploadPage() {
                   <span className="text-sm font-semibold text-ink">Enrollment Summary</span>
                   <div className="flex gap-2 text-xs">
                     <span className="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-mono">
-                      ✓ {zipResult.success_count} Enrolled
+                      {zipResult.success_count} Enrolled
                     </span>
                     {zipResult.failure_count > 0 && (
                       <span className="px-2 py-0.5 rounded bg-red-500/10 text-red-400 border border-red-500/20 font-mono">
-                        ✗ {zipResult.failure_count} Failed
+                        {zipResult.failure_count} Failed
                       </span>
                     )}
                   </div>

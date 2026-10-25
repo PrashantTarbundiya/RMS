@@ -62,7 +62,7 @@ function HeatmapGrid({ data }) {
                           ? '#1a1a1f'
                           : `rgba(94, 106, 210, ${0.15 + intensity * 0.85})`,
                       }}
-                      title={`${days[dayIdx]} ${hourIdx}:00 — ${val} check-ins`}
+                      title={`${days[dayIdx]} ${hourIdx}:00 - ${val} check-ins`}
                     />
                   );
                 })}

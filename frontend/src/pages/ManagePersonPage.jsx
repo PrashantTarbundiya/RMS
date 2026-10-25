@@ -472,13 +472,13 @@ export default function ManagePersonPage() {
                   {photos.filter(p => p.angle === 'extra').map(p => (
                     <div key={p.filename} draggable onDragStart={(e) => { e.dataTransfer.setData("sourceType", "existing"); e.dataTransfer.setData("sourceAngle", "extra"); e.dataTransfer.setData("filename", p.filename); }} className="relative w-16 h-16 group cursor-grab active:cursor-grabbing shrink-0">
                       <img src={`${API_BASE}/persons/${originalName}/photos/extra/${p.filename}`} className="w-full h-full object-cover rounded border border-[#23252A] shadow-sm" />
-                      <button type="button" onClick={(e) => { e.stopPropagation(); handleDeletePhoto('extra', p.filename); }} className="absolute -top-1.5 -right-1.5 bg-[#F87171] text-white w-4 h-4 rounded-full text-[9px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-md hover:bg-red-600 focus:outline-none">✕</button>
+                      <button type="button" onClick={(e) => { e.stopPropagation(); handleDeletePhoto('extra', p.filename); }} className="absolute -top-1.5 -right-1.5 bg-[#F87171] text-white w-4 h-4 rounded-md text-[9px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-md hover:bg-red-600 focus:outline-none"><X className="w-2.5 h-2.5" /></button>
                     </div>
                   ))}
                   {images.extra_files.map((f, i) => (
                     <div key={i} draggable onDragStart={(e) => { e.dataTransfer.setData("sourceType", "local"); e.dataTransfer.setData("sourceField", "extra_files"); e.dataTransfer.setData("sourceIndex", i.toString()); }} className="relative w-16 h-16 group cursor-grab active:cursor-grabbing shrink-0">
                       <img src={URL.createObjectURL(f)} className="w-full h-full object-cover rounded border border-[#23252A] shadow-sm" />
-                      <button type="button" onClick={(e) => { e.stopPropagation(); removeNewFile('extra_files', i); }} className="absolute -top-1.5 -right-1.5 bg-[#F87171] text-white w-4 h-4 rounded-full text-[9px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-md hover:bg-red-600 focus:outline-none">✕</button>
+                      <button type="button" onClick={(e) => { e.stopPropagation(); removeNewFile('extra_files', i); }} className="absolute -top-1.5 -right-1.5 bg-[#F87171] text-white w-4 h-4 rounded-md text-[9px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-md hover:bg-red-600 focus:outline-none"><X className="w-2.5 h-2.5" /></button>
                     </div>
                   ))}
                   <label htmlFor="bulk-upload-manage" className="w-16 h-16 border border-dashed border-[#23252A] rounded-md flex items-center justify-center cursor-pointer hover:bg-[#141516] transition-colors text-ink-tertiary hover:text-ink-subtle">

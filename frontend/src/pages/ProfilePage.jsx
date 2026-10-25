@@ -351,7 +351,7 @@ export default function ProfilePage() {
             </div>
           )}
 
-          {/* System Updates Card — visible to org_admin+ only */}
+          {/* System Updates Card - visible to org_admin+ only */}
           {isAdmin && (
             <div className="card-linear p-0 bg-[#0F1011] border-[#23252A]">
               <div className="py-4 px-6 border-b border-[#23252A] bg-[#0F1011] flex items-center justify-between">
@@ -393,7 +393,7 @@ export default function ProfilePage() {
                         ? <AlertTriangle className="w-4 h-4" />
                         : <Info className="w-4 h-4" />}
                       <span className="uppercase tracking-wider text-[10px]">
-                        {updateStatus.severity} update available — v{updateStatus.latest_version}
+                        {updateStatus.severity} update available - v{updateStatus.latest_version}
                       </span>
                     </div>
                     {updateStatus.changelog && (
@@ -541,7 +541,7 @@ export default function ProfilePage() {
                     </button>
                   </div>
                   <p className="text-[10px] text-ink-tertiary mt-1.5">
-                    For air-gapped installs — download the package from your admin portal, then upload here.
+                    For air-gapped installs - download the package from your admin portal, then upload here.
                   </p>
                 </div>
               </div>

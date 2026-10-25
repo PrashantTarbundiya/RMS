@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { API_BASE } from '../../config';
 
 /**
- * NetworkBanner — Shows a thin, non-intrusive bar when the backend is unreachable.
+ * NetworkBanner - Shows a thin, non-intrusive bar when the backend is unreachable.
  * Auto-retries /api/ping every 10 seconds. Auto-dismisses when connection is restored.
  */
 export default function NetworkBanner() {

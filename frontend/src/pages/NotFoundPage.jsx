@@ -4,7 +4,7 @@ import { Home, ArrowLeft, HelpCircle, Search } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 /**
- * NotFoundPage — Premium 404 page with animated illustration and navigation links.
+ * NotFoundPage - Premium 404 page with animated illustration and navigation links.
  */
 export default function NotFoundPage() {
   return (

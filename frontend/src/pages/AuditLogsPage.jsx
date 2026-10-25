@@ -105,7 +105,7 @@ export default function AuditLogsPage() {
           <div>
             <h1 className="page-header-title">Audit Logs</h1>
             <p className="page-header-desc">
-              Feedback corrections and consent records — compliance audit trail
+              Feedback corrections and consent records - compliance audit trail
             </p>
           </div>
         </div>
@@ -254,7 +254,7 @@ export default function AuditLogsPage() {
 
                     {/* Timestamp */}
                     <td className="px-4 py-3 text-caption text-ink-subtle">
-                      {log.timestamp ? new Date(log.timestamp).toLocaleString() : '—'}
+                      {log.timestamp ? new Date(log.timestamp).toLocaleString() : '-'}
                     </td>
 
                     {/* Details */}
@@ -262,7 +262,7 @@ export default function AuditLogsPage() {
                       {log.type === 'feedback' ? (
                         <div>
                           <div>
-                            Predicted: <strong>{log.predicted_name || '—'}</strong>
+                            Predicted: <strong>{log.predicted_name || '-'}</strong>
                             {log.correct_name && (
                               <span className="text-ink-subtle"> → Corrected: <strong className="text-ink">{log.correct_name}</strong></span>
                             )}
@@ -274,12 +274,12 @@ export default function AuditLogsPage() {
                       ) : (
                         <div>
                           <div>
-                            Employee: <strong>{log.employee_name || '—'}</strong>
+                            Employee: <strong>{log.employee_name || '-'}</strong>
                           </div>
                           <div className="text-[11px] text-ink-tertiary">
                             {log.consent_type?.replace(/_/g, ' ')}
                             {log.revoked_at && (
-                              <span className="text-[#f87171]"> — Revoked {new Date(log.revoked_at).toLocaleDateString()}</span>
+                              <span className="text-[#f87171]"> - Revoked {new Date(log.revoked_at).toLocaleDateString()}</span>
                             )}
                           </div>
                         </div>

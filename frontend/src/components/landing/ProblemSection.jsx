@@ -1,91 +1,65 @@
 import React from 'react';
-import { motion } from 'framer-motion';
 import { CreditCard, KeyRound, Cloud } from 'lucide-react';
 
 const beats = [
   {
     icon: CreditCard,
     stat: '62%',
-    label: 'of badge-based breaches',
-    line: 'Physical cards get stolen, cloned, and passed around — your perimeter only knows the badge, not the person.',
+    label: 'Physical Badge Vulnerabilities',
+    line: 'Physical keycards get lost, cloned, or shared between staff. Your perimeter only validates the badge, not the actual person carrying it.',
   },
   {
     icon: KeyRound,
     stat: '47%',
-    label: 'of employees share PINs',
-    line: 'PINs and passwords are shared routinely. Every shared credential is a security hole you can\'t audit.',
+    label: 'Credential Sharing Rate',
+    line: 'PINs and entry codes are shared informally across shifts. Shared credentials create blind spots in your physical security audit trail.',
   },
   {
     icon: Cloud,
-    stat: '$2.4M',
-    label: 'avg. cloud biometric breach',
-    line: 'Cloud recognition sends your most sensitive data — faces — to servers you don\'t control, in jurisdictions you didn\'t choose.',
+    stat: 'Zero',
+    label: 'External Cloud Risk',
+    line: 'Cloud biometric services send sensitive facial templates across the public internet. RMS processes every frame on-premise without external routing.',
   },
 ];
 
-const containerVariants = {
-  hidden: {},
-  visible: { transition: { staggerChildren: 0.18 } },
-};
-
-const itemVariants = {
-  hidden: { opacity: 0, y: 40, scale: 0.95 },
-  visible: { opacity: 1, y: 0, scale: 1, transition: { type: 'spring', stiffness: 180, damping: 22 } },
-};
-
 export default function ProblemSection() {
   return (
-    <section className="landing-section landing-section-bg">
-      {/* Background image */}
-      <div
-        className="landing-section-bg-image"
-        style={{ backgroundImage: 'url(/bg-problem.png)' }}
-        aria-hidden="true"
-      />
-      <div className="landing-section-bg-overlay" aria-hidden="true" />
-
-      <motion.div
-        initial="hidden"
-        whileInView="visible"
-        viewport={{ once: true, margin: '-80px' }}
-        variants={containerVariants}
-        className="max-w-5xl mx-auto relative z-10"
-      >
-        <motion.div variants={itemVariants} className="text-center mb-16">
-          <motion.p
-            className="text-eyebrow text-[#828FFF] mb-4"
-            initial={{ opacity: 0, letterSpacing: '4px' }}
-            whileInView={{ opacity: 1, letterSpacing: '0.4px' }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-          >
-            The Problem
-          </motion.p>
-          <h2 className="text-display-md text-ink font-display">
-            Legacy access control is a<br />
-            <span className="text-ink-subtle">liability, not a system.</span>
+    <section className="py-20 px-4 sm:px-6 border-t border-zinc-800/80 bg-[#07090E]">
+      <div className="max-w-5xl mx-auto">
+        <div className="text-center mb-14">
+          <p className="text-xs font-semibold uppercase tracking-wider text-blue-400 mb-2">
+            Operational Challenges
+          </p>
+          <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-white">
+            Traditional Access Control Leaves Gaps in Verification
           </h2>
-        </motion.div>
+          <p className="text-sm text-zinc-400 mt-2 max-w-xl mx-auto">
+            Manual sign-in sheets and proximity cards fail to verify identity at the point of entry.
+          </p>
+        </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
           {beats.map((beat, i) => (
-            <motion.div
+            <div
               key={i}
-              variants={itemVariants}
-              whileHover={{ y: -6, borderColor: 'var(--hairline-strong)' }}
-              transition={{ type: 'spring', stiffness: 300, damping: 25 }}
-              className="problem-beat-card liquid-glass"
+              className="p-6 rounded-lg bg-zinc-900/50 border border-zinc-800 hover:border-zinc-700 transition-colors"
             >
-              <div className="problem-beat-icon">
-                <beat.icon className="w-5 h-5" />
+              <div className="w-9 h-9 rounded-md bg-zinc-800 border border-zinc-700 flex items-center justify-center text-zinc-200 mb-4">
+                <beat.icon className="w-4 h-4" />
               </div>
-              <div className="problem-beat-stat">{beat.stat}</div>
-              <div className="problem-beat-label">{beat.label}</div>
-              <p className="problem-beat-line">{beat.line}</p>
-            </motion.div>
+              <div className="text-2xl font-bold font-mono text-white mb-1">
+                {beat.stat}
+              </div>
+              <div className="text-xs font-semibold uppercase tracking-wider text-zinc-400 mb-3">
+                {beat.label}
+              </div>
+              <p className="text-xs sm:text-sm text-zinc-400 leading-relaxed">
+                {beat.line}
+              </p>
+            </div>
           ))}
         </div>
-      </motion.div>
+      </div>
     </section>
   );
 }

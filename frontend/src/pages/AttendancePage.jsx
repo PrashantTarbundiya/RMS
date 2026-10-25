@@ -393,13 +393,13 @@ export default function AttendancePage() {
                   {filteredData.map((record, idx) => (
                     <tr key={idx} className="hover:bg-[#141516]/60 transition-colors group">
                       <td className="px-6 py-3.5 text-ink-muted font-mono text-[12px]">
-                        {record.timestamp ? new Date(record.timestamp).toLocaleString([], { dateStyle: 'short', timeStyle: 'medium' }) : '—'}
+                        {record.timestamp ? new Date(record.timestamp).toLocaleString([], { dateStyle: 'short', timeStyle: 'medium' }) : '-'}
                       </td>
                       <td className="px-6 py-3.5 font-medium text-ink group-hover:text-[#828FFF] transition-colors">
                         {formatPersonName(record.label)}
                       </td>
                       <td className="px-6 py-3.5 text-ink-muted font-mono">
-                        {record.confidence !== undefined ? `${(record.confidence * 100).toFixed(1)}%` : '—'}
+                        {record.confidence !== undefined ? `${(record.confidence * 100).toFixed(1)}%` : '-'}
                       </td>
                       <td className="px-6 py-3.5 text-right">
                         <span className={`inline-flex px-2.5 py-0.5 rounded-full font-mono text-[10px] font-semibold border ${getStatusStyle(record)}`}>

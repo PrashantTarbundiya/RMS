@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { API_BASE } from '../config';
 
 /**
- * CameraFeedTile — Single camera feed tile with live recognition overlay.
+ * CameraFeedTile - Single camera feed tile with live recognition overlay.
  * Captures frames from a <video> element and sends to /api/predict.
  * Falls back to polling if SSE/WebSocket is unavailable.
  */
@@ -85,7 +85,7 @@ function CameraFeedTile({ camera, apiClient, columns }) {
       setFps(Math.round(1000 / (now - lastFrameTime.current)));
       lastFrameTime.current = now;
     } catch (err) {
-      // Silently handle — don't break the mosaic
+      // Silently handle - don't break the mosaic
     } finally {
       inFlightRef.current = false;
     }
@@ -233,7 +233,7 @@ function CameraFeedTile({ camera, apiClient, columns }) {
 
 
 /**
- * MosaicPage — Multi-camera mosaic dashboard.
+ * MosaicPage - Multi-camera mosaic dashboard.
  * Shows all connected cameras in a tiled grid with live recognition overlays.
  */
 export default function MosaicPage() {
@@ -296,7 +296,7 @@ export default function MosaicPage() {
               Camera Mosaic
             </h1>
             <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: 0 }}>
-              {cameras.length} camera{cameras.length !== 1 ? 's' : ''} — live recognition
+              {cameras.length} camera{cameras.length !== 1 ? 's' : ''} - live recognition
             </p>
           </div>
         </div>

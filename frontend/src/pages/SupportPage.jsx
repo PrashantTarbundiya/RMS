@@ -20,7 +20,7 @@ const FAQ_DATA = [
   },
   {
     q: 'What AI models are running under the hood?',
-    a: 'The system uses: (1) InsightFace ArcFace embeddings — high-speed, high-accuracy primary model. (2) GhostFaceNet — optimized for fast edge inference. The Ensemble mode combines both for the most reliable result.'
+    a: 'The system uses: (1) InsightFace ArcFace embeddings: high-speed, high-accuracy primary model. (2) GhostFaceNet: optimized for fast edge inference. The Ensemble mode combines both for the most reliable result.'
   },
   {
     q: 'Do I need a GPU?',
@@ -74,7 +74,7 @@ export default function SupportPage() {
 
       <section className="space-y-4">
         <h2 className="text-body font-semibold flex items-center gap-2 text-ink uppercase tracking-wider">
-          <BookOpen className="w-4 h-4 text-[#828FFF]" />
+          <BookOpen className="w-4 h-4 text-blue-400" />
           Quick Start Guide
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -101,7 +101,7 @@ export default function SupportPage() {
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <h4 className="text-[#27A644] text-[11px] font-semibold mb-2 uppercase tracking-wide font-mono">✅ Do</h4>
+              <h4 className="text-[#27A644] text-[11px] font-semibold mb-2 uppercase tracking-wide font-mono">Recommended Practices</h4>
               <ul className="text-ink-subtle text-caption leading-relaxed space-y-1.5">
                 <li>• Upload at least 3 photos per person</li>
                 <li>• Include frontal + left + right angles</li>
@@ -111,7 +111,7 @@ export default function SupportPage() {
               </ul>
             </div>
             <div>
-              <h4 className="text-[#F87171] text-[11px] font-semibold mb-2 uppercase tracking-wide font-mono">❌ Avoid</h4>
+              <h4 className="text-[#F87171] text-[11px] font-semibold mb-2 uppercase tracking-wide font-mono">Practices to Avoid</h4>
               <ul className="text-ink-subtle text-caption leading-relaxed space-y-1.5">
                 <li>• Blurry or motion-blurred photos</li>
                 <li>• Photos with sunglasses or masks</li>
@@ -126,7 +126,7 @@ export default function SupportPage() {
 
       <section className="space-y-4">
         <h2 className="text-body font-semibold flex items-center gap-2 text-ink uppercase tracking-wider">
-          <Server className="w-4 h-4 text-[#828FFF]" />
+          <Server className="w-4 h-4 text-blue-400" />
           System Architecture
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -238,9 +238,13 @@ export default function SupportPage() {
         </div>
       </section>
 
-      {/* Version */}
-      <div className="text-center text-[11px] text-ink-tertiary pt-4 border-t border-[#23252A]">
-        RMS — Recognition Management System v2.0 • Built with Flask + React + PyTorch
+      {/* Version and Legal Links */}
+      <div className="text-center text-[11px] text-ink-tertiary pt-4 border-t border-[#23252A] flex flex-col sm:flex-row items-center justify-between gap-3">
+        <span>RMS Recognition Management System v2.0 • On-premise platform</span>
+        <div className="flex gap-4">
+          <Link to="/privacy-policy" className="hover:text-ink transition-colors">Privacy Policy</Link>
+          <Link to="/terms" className="hover:text-ink transition-colors">Terms of Service</Link>
+        </div>
       </div>
     </motion.div>
   );

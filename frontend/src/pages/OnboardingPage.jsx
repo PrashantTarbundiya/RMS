@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { API_BASE } from '../config';
 
 /**
- * OnboardingPage — Landing page for /onboarding route.
+ * OnboardingPage - Landing page for /onboarding route.
  * Resets onboarding state and redirects to profile page where
  * the OnboardingWizard spotlight tour will auto-start.
  */

@@ -1,87 +1,43 @@
-import React, { useEffect, useRef } from 'react';
+import React from 'react';
 
 /**
- * HeroReticleCanvas — Animated SVG reticle grid for the hero section.
- * 
- * Draws a subtle grid with scanning reticle bracket groups. Pure SVG + CSS
- * animation — no Three.js dependency, works without JS for the static state.
+ * HeroReticleCanvas - Static technical grid background for the hero section.
+ * Clean, lightweight architectural coordinate grid with zero distracting animations.
  */
 export default function HeroReticleCanvas() {
-  const containerRef = useRef(null);
-
   return (
-    <div ref={containerRef} className="hero-reticle-canvas" aria-hidden="true">
+    <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-40" aria-hidden="true">
       <svg
-        viewBox="0 0 800 600"
+        viewBox="0 0 1200 800"
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
-        className="hero-reticle-svg"
-        preserveAspectRatio="xMidYMid slice"
+        className="w-full h-full object-cover"
       >
-        {/* Background grid lines */}
         <defs>
-          <pattern id="hero-grid" width="80" height="80" patternUnits="userSpaceOnUse">
-            <line x1="80" y1="0" x2="80" y2="80" stroke="#23252A" strokeWidth="0.5" opacity="0.4" />
-            <line x1="0" y1="80" x2="80" y2="80" stroke="#23252A" strokeWidth="0.5" opacity="0.4" />
+          <pattern id="static-tech-grid" width="60" height="60" patternUnits="userSpaceOnUse">
+            <line x1="60" y1="0" x2="60" y2="60" stroke="#1E293B" strokeWidth="0.75" />
+            <line x1="0" y1="60" x2="60" y2="60" stroke="#1E293B" strokeWidth="0.75" />
           </pattern>
-          {/* Radial fade-out */}
-          <radialGradient id="hero-fade" cx="50%" cy="50%" r="50%">
-            <stop offset="0%" stopColor="white" stopOpacity="1" />
-            <stop offset="70%" stopColor="white" stopOpacity="0.6" />
+          <radialGradient id="fade-mask" cx="50%" cy="40%" r="55%">
+            <stop offset="0%" stopColor="white" stopOpacity="0.8" />
+            <stop offset="60%" stopColor="white" stopOpacity="0.3" />
             <stop offset="100%" stopColor="white" stopOpacity="0" />
           </radialGradient>
-          <mask id="hero-fade-mask">
-            <rect width="800" height="600" fill="url(#hero-fade)" />
+          <mask id="hero-mask">
+            <rect width="1200" height="800" fill="url(#fade-mask)" />
           </mask>
         </defs>
 
-        {/* Grid with radial fade */}
-        <rect width="800" height="600" fill="url(#hero-grid)" mask="url(#hero-fade-mask)" />
+        {/* Static Background Grid */}
+        <rect width="1200" height="800" fill="url(#static-tech-grid)" mask="url(#hero-mask)" />
 
-        {/* Scanning reticle group 1 — top-left area */}
-        <g className="reticle-scan reticle-scan-1">
-          <line x1="180" y1="140" x2="200" y2="140" stroke="#5E6AD2" strokeWidth="1.5" opacity="0.7" />
-          <line x1="180" y1="140" x2="180" y2="160" stroke="#5E6AD2" strokeWidth="1.5" opacity="0.7" />
-          <line x1="280" y1="140" x2="260" y2="140" stroke="#5E6AD2" strokeWidth="1.5" opacity="0.7" />
-          <line x1="280" y1="140" x2="280" y2="160" stroke="#5E6AD2" strokeWidth="1.5" opacity="0.7" />
-          <line x1="180" y1="220" x2="200" y2="220" stroke="#5E6AD2" strokeWidth="1.5" opacity="0.7" />
-          <line x1="180" y1="220" x2="180" y2="200" stroke="#5E6AD2" strokeWidth="1.5" opacity="0.7" />
-          <line x1="280" y1="220" x2="260" y2="220" stroke="#5E6AD2" strokeWidth="1.5" opacity="0.7" />
-          <line x1="280" y1="220" x2="280" y2="200" stroke="#5E6AD2" strokeWidth="1.5" opacity="0.7" />
+        {/* Minimal Corner Calibration Markers */}
+        <g stroke="#334155" strokeWidth="1" opacity="0.6">
+          <path d="M200 150h30v30" fill="none" />
+          <path d="M1000 150h-30v30" fill="none" />
+          <path d="M200 650h30v-30" fill="none" />
+          <path d="M1000 650h-30v-30" fill="none" />
         </g>
-
-        {/* Scanning reticle group 2 — center-right */}
-        <g className="reticle-scan reticle-scan-2">
-          <line x1="460" y1="230" x2="480" y2="230" stroke="#5E6AD2" strokeWidth="1.5" opacity="0.5" />
-          <line x1="460" y1="230" x2="460" y2="250" stroke="#5E6AD2" strokeWidth="1.5" opacity="0.5" />
-          <line x1="590" y1="230" x2="570" y2="230" stroke="#5E6AD2" strokeWidth="1.5" opacity="0.5" />
-          <line x1="590" y1="230" x2="590" y2="250" stroke="#5E6AD2" strokeWidth="1.5" opacity="0.5" />
-          <line x1="460" y1="340" x2="480" y2="340" stroke="#5E6AD2" strokeWidth="1.5" opacity="0.5" />
-          <line x1="460" y1="340" x2="460" y2="320" stroke="#5E6AD2" strokeWidth="1.5" opacity="0.5" />
-          <line x1="590" y1="340" x2="570" y2="340" stroke="#5E6AD2" strokeWidth="1.5" opacity="0.5" />
-          <line x1="590" y1="340" x2="590" y2="320" stroke="#5E6AD2" strokeWidth="1.5" opacity="0.5" />
-        </g>
-
-        {/* Scanning reticle group 3 — bottom-center */}
-        <g className="reticle-scan reticle-scan-3">
-          <line x1="320" y1="370" x2="340" y2="370" stroke="#5E6AD2" strokeWidth="1.5" opacity="0.4" />
-          <line x1="320" y1="370" x2="320" y2="390" stroke="#5E6AD2" strokeWidth="1.5" opacity="0.4" />
-          <line x1="420" y1="370" x2="400" y2="370" stroke="#5E6AD2" strokeWidth="1.5" opacity="0.4" />
-          <line x1="420" y1="370" x2="420" y2="390" stroke="#5E6AD2" strokeWidth="1.5" opacity="0.4" />
-          <line x1="320" y1="450" x2="340" y2="450" stroke="#5E6AD2" strokeWidth="1.5" opacity="0.4" />
-          <line x1="320" y1="450" x2="320" y2="430" stroke="#5E6AD2" strokeWidth="1.5" opacity="0.4" />
-          <line x1="420" y1="450" x2="400" y2="450" stroke="#5E6AD2" strokeWidth="1.5" opacity="0.4" />
-          <line x1="420" y1="450" x2="420" y2="430" stroke="#5E6AD2" strokeWidth="1.5" opacity="0.4" />
-        </g>
-
-        {/* Crosshair lines — subtle scan markers */}
-        <line x1="395" y1="280" x2="405" y2="280" stroke="#5E6AD2" strokeWidth="0.8" opacity="0.3" className="crosshair-pulse" />
-        <line x1="400" y1="275" x2="400" y2="285" stroke="#5E6AD2" strokeWidth="0.8" opacity="0.3" className="crosshair-pulse" />
-
-        {/* Thin rings */}
-        <circle cx="400" cy="300" r="120" stroke="#23252A" strokeWidth="0.5" fill="none" opacity="0.3" className="ring-rotate reticle-ring-1" />
-        <circle cx="400" cy="300" r="180" stroke="#23252A" strokeWidth="0.3" fill="none" opacity="0.2" className="ring-rotate reticle-ring-2" />
-        <circle cx="400" cy="300" r="240" stroke="#5E6AD2" strokeWidth="0.3" fill="none" opacity="0.08" className="ring-rotate reticle-ring-3" />
       </svg>
     </div>
   );

@@ -2,13 +2,13 @@ import React from 'react';
 import { Inbox } from 'lucide-react';
 
 /**
- * EmptyState — A designed placeholder for empty lists/tables.
+ * EmptyState - A designed placeholder for empty lists/tables.
  *
  * @param {object} props
- * @param {React.ElementType} [props.icon=Inbox] — Lucide icon component
- * @param {string} props.title — Main heading (e.g., "No employees enrolled")
- * @param {string} [props.description] — Supporting text
- * @param {React.ReactNode} [props.action] — Optional CTA element (button/link)
+ * @param {React.ElementType} [props.icon=Inbox] - Lucide icon component
+ * @param {string} props.title - Main heading (e.g., "No employees enrolled")
+ * @param {string} [props.description] - Supporting text
+ * @param {React.ReactNode} [props.action] - Optional CTA element (button/link)
  */
 export default function EmptyState({ icon: Icon = Inbox, title, description, action }) {
   return (

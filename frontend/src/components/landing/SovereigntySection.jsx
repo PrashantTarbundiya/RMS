@@ -1,137 +1,58 @@
-import React, { useEffect, useRef } from 'react';
-import { motion } from 'framer-motion';
-import { Lock, CheckCircle2, CloudOff, Server } from 'lucide-react';
-import { useGsap } from '../../lib/useGsap';
+import React from 'react';
+import { CheckCircle2, Shield, Lock, Server } from 'lucide-react';
 
 export default function SovereigntySection() {
-  const sectionRef = useRef(null);
-  const diagramRef = useRef(null);
-  const { gsapRef, ready, prefersReducedMotion } = useGsap();
-
-  useEffect(() => {
-    if (!ready || prefersReducedMotion || !diagramRef.current) return;
-    const gsap = gsapRef.current;
-
-    const ctx = gsap.context(() => {
-      gsap.fromTo(
-        '.airgap-line',
-        { scaleX: 0 },
-        {
-          scaleX: 1,
-          duration: 1.2,
-          ease: 'power2.inOut',
-          scrollTrigger: {
-            trigger: diagramRef.current,
-            start: 'top 75%',
-            toggleActions: 'play none none reverse',
-          },
-        }
-      );
-
-      gsap.fromTo(
-        '.cloud-strike',
-        { scaleX: 0 },
-        {
-          scaleX: 1,
-          duration: 0.4,
-          delay: 0.8,
-          ease: 'power2.out',
-          scrollTrigger: {
-            trigger: diagramRef.current,
-            start: 'top 75%',
-            toggleActions: 'play none none reverse',
-          },
-        }
-      );
-    }, sectionRef);
-
-    return () => ctx.revert();
-  }, [ready, prefersReducedMotion]);
-
   return (
-    <section id="security" ref={sectionRef} className="landing-section landing-section-bg scroll-mt-20">
-      {/* Background image */}
-      <div
-        className="landing-section-bg-image"
-        style={{ backgroundImage: 'url(/bg-sovereignty.png)' }}
-        aria-hidden="true"
-      />
-      <div className="landing-section-bg-overlay" aria-hidden="true" />
+    <section id="security" className="py-20 px-4 sm:px-6 border-t border-zinc-800/80 bg-[#07090E]">
+      <div className="max-w-5xl mx-auto">
+        <div className="rounded-xl border border-zinc-800 bg-[#0C1019] p-8 sm:p-12">
+          <div className="max-w-2xl">
+            <p className="text-xs font-semibold uppercase tracking-wider text-blue-400 mb-2">
+              Data Sovereignty
+            </p>
+            <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-white mb-4">
+              Complete Control Over Biometric Templates
+            </h2>
+            <p className="text-sm text-zinc-400 leading-relaxed mb-8">
+              RMS operates fully within your local environment. Facial portraits and mathematical feature vectors remain exclusively on your host system, ensuring compliance with global privacy regulations without telemetry or external data routing.
+            </p>
 
-      <motion.div
-        className="sovereignty-container liquid-glass-strong relative z-10"
-        initial={{ opacity: 0, y: 40 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true, margin: '-60px' }}
-        transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
-      >
-        <div className="sovereignty-content">
-          <motion.p
-            className="text-eyebrow text-[#828FFF] mb-4"
-            initial={{ opacity: 0, letterSpacing: '4px' }}
-            whileInView={{ opacity: 1, letterSpacing: '0.4px' }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-          >
-            Security & Sovereignty
-          </motion.p>
-          <h2 className="text-display-md text-ink font-display mb-6">
-            100% Data Sovereignty.
-          </h2>
-          <p className="text-body-lg text-ink-subtle mb-8 max-w-xl">
-            RMS operates fully offline, storing images and neural vector embeddings
-            securely within your localized workspace. Biometric parameters, attendance logs,
-            and camera captures remain under your exclusive control.
-          </p>
-          <ul className="sovereignty-checklist">
-            <li>
-              <CheckCircle2 className="w-4 h-4 text-[#27A644] shrink-0" />
-              <span>Zero external server communication</span>
-            </li>
-            <li>
-              <CheckCircle2 className="w-4 h-4 text-[#27A644] shrink-0" />
-              <span>Secure file hashing and database constraints</span>
-            </li>
-            <li>
-              <CheckCircle2 className="w-4 h-4 text-[#27A644] shrink-0" />
-              <span>Compliance-ready architecture (GDPR / BIPA)</span>
-            </li>
-          </ul>
-        </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="flex items-start gap-3 p-3.5 rounded-lg bg-zinc-900/60 border border-zinc-800/80">
+                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                <div>
+                  <div className="text-xs font-semibold text-white">Local Inference Engine</div>
+                  <div className="text-[11px] text-zinc-400 mt-0.5">All matching executed on your server with zero external calls</div>
+                </div>
+              </div>
 
-        {/* Air gap diagram */}
-        <div ref={diagramRef} className="sovereignty-diagram">
-          <div className="sovereignty-node sovereignty-local">
-            <Server className="w-6 h-6 text-[#828FFF]" />
-            <span className="sovereignty-node-label">Your Infrastructure</span>
-            <div className="sovereignty-node-sub">
-              <span>Models</span>
-              <span>Embeddings</span>
-              <span>Logs</span>
+              <div className="flex items-start gap-3 p-3.5 rounded-lg bg-zinc-900/60 border border-zinc-800/80">
+                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                <div>
+                  <div className="text-xs font-semibold text-white">Encrypted Template Storage</div>
+                  <div className="text-[11px] text-zinc-400 mt-0.5">Vector embeddings are securely isolated per organization</div>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-3 p-3.5 rounded-lg bg-zinc-900/60 border border-zinc-800/80">
+                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                <div>
+                  <div className="text-xs font-semibold text-white">Audit Trail Logging</div>
+                  <div className="text-[11px] text-zinc-400 mt-0.5">Immutable check-in timestamps and confidence records</div>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-3 p-3.5 rounded-lg bg-zinc-900/60 border border-zinc-800/80">
+                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                <div>
+                  <div className="text-xs font-semibold text-white">Compliance Ready</div>
+                  <div className="text-[11px] text-zinc-400 mt-0.5">Architecture supports GDPR Article 9 and BIPA guidelines</div>
+                </div>
+              </div>
             </div>
           </div>
-
-          <div className="sovereignty-airgap">
-            <div
-              className="airgap-line"
-              style={prefersReducedMotion ? { transform: 'scaleX(1)' } : { transformOrigin: 'center' }}
-            />
-            <span className="airgap-label">Air Gap</span>
-          </div>
-
-          <div className="sovereignty-node sovereignty-cloud">
-            <div className="sovereignty-cloud-icon-wrapper">
-              <CloudOff className="w-6 h-6 text-ink-muted" />
-              <div
-                className="cloud-strike"
-                style={prefersReducedMotion ? { transform: 'scaleX(1)' } : { transformOrigin: 'center' }}
-              />
-            </div>
-            <span className="sovereignty-node-label" style={{ color: 'var(--ink-muted)' }}>External Cloud</span>
-            <span className="sovereignty-blocked-tag">Blocked</span>
-          </div>
         </div>
-      </motion.div>
+      </div>
     </section>
   );
 }

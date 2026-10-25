@@ -26,7 +26,7 @@ const STEPS = [
       {
         target: '[data-tour="org-settings"]',
         title: 'Review Organization Settings',
-        desc: 'Confirm your organization name, deployment mode (Local/Cloud), and access level. Local mode keeps everything on this machine — no data leaves your network.',
+        desc: 'Confirm your organization name, deployment mode (Local/Cloud), and access level. Local mode keeps everything on this machine - no data leaves your network.',
         actionHint: 'Review the settings below, then click Next →',
       },
     ],
@@ -76,7 +76,7 @@ const STEPS = [
       {
         target: '[data-tour="enroll-submit-btn"]',
         title: 'Step 3: Submit Enrollment',
-        desc: 'Click "Enroll & Train" to save the photos and generate face embeddings. This happens instantly — no lengthy training needed.',
+        desc: 'Click "Enroll & Train" to save the photos and generate face embeddings. This happens instantly - no lengthy training needed.',
         actionHint: 'Click the highlighted button to enroll',
       },
     ],
@@ -121,7 +121,7 @@ const STEPS = [
       {
         target: '[data-tour="today-summary"]',
         title: 'Dashboard Overview',
-        desc: 'This is what you\'ll check every day — live attendance counts, match accuracy, system health, and recognition history at a glance.',
+        desc: 'This is what you\'ll check every day - live attendance counts, match accuracy, system health, and recognition history at a glance.',
         actionHint: 'You\'re all set! Click Finish to complete setup',
       },
     ],
@@ -407,7 +407,7 @@ export default function OnboardingWizard() {
               </div>
               <h2 className="onb-welcome-title">Welcome to RMS Face AI</h2>
               <p className="onb-welcome-desc">
-                Let's get your system set up — this takes about 5 minutes. We'll walk you through each page step-by-step and highlight exactly what to click.
+                Let's get your system set up - this takes about 5 minutes. We'll walk you through each page step-by-step and highlight exactly what to click.
               </p>
               <div className="onb-welcome-steps">
                 {STEPS.map((s, i) => (
@@ -611,7 +611,7 @@ export default function OnboardingWizard() {
           0%, 100% { box-shadow: 0 0 0 9999px rgba(0,0,0,0.65), 0 0 20px rgba(94,106,210,0.25); }
           50% { box-shadow: 0 0 0 9999px rgba(0,0,0,0.65), 0 0 35px rgba(94,106,210,0.40); }
         }
-        /* Target element elevated above the overlay — CLICKABLE */
+        /* Target element elevated above the overlay - CLICKABLE */
         .onb-target-elevated {
           cursor: pointer !important;
           filter: brightness(1.08);

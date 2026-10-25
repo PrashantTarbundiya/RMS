@@ -1,129 +1,109 @@
 import React from 'react';
-import { motion } from 'framer-motion';
 import { Shield, Lock, Eye, Smartphone, Users, Zap } from 'lucide-react';
 
 const heroCards = [
   {
     icon: Shield,
-    title: 'Liveness Detection',
-    desc: 'Standard spoof filters verify physical presence, checking texture, depth, and illumination keypoints to block photo replicas and deepfake attempts.',
-    badge: 'Core Security',
+    title: 'Multi-Stage Liveness Verification',
+    desc: 'Integrated anti-spoof checks analyze surface texture, specular glare, and illumination variance to prevent replay attacks and printed photo spoofing.',
+    badge: 'Security',
   },
   {
     icon: Lock,
-    title: 'Private Tenancy',
-    desc: 'RMS supports single-tenant standalone nodes or multi-tenant database contexts, fully isolated for organization protection. Your data never leaves your perimeter.',
-    badge: 'Data Sovereignty',
+    title: 'Multi-Tenant Isolation',
+    desc: 'Each department or client organization maintains completely segregated database contexts, template storage, and access permission hierarchies.',
+    badge: 'Architecture',
   },
 ];
 
 const supportCards = [
   {
     icon: Eye,
-    title: 'Profile Recognition',
-    desc: 'Optimized pose alignment maps features at up to 60° rotation, enabling robust lateral identification.',
+    title: 'Profile Pose Alignment',
+    desc: 'Robust facial landmark alignment handles up to 60 degrees of lateral head rotation, recognizing personnel in natural motion.',
   },
   {
     icon: Smartphone,
-    title: 'Mobile Sync',
-    desc: 'Sync biometrics to local mobile apps. Scan and verify entry logs remotely over secure channels.',
+    title: 'Mobile PWA Support',
+    desc: 'Installable on iOS Safari and Android Chrome as a native web application with full hardware camera acceleration.',
   },
   {
     icon: Users,
-    title: 'Automated Feedback',
-    desc: 'Continuous learning updates embeddings on-the-fly when operators correct or confirm detections.',
+    title: 'Continuous Quality Feedback',
+    desc: 'Operators can review and label borderline detections directly within the console to refine model consensus.',
   },
   {
     icon: Zap,
     title: 'Sub-100ms Inference',
-    desc: 'MobileNetV2 architecture enables lightning-fast inference on standard CPUs — no GPU required.',
+    desc: 'Optimized neural backbones deliver sub-second response times on standard multicore host processors without dedicated GPUs.',
   },
 ];
 
-const containerVariants = {
-  hidden: {},
-  visible: { transition: { staggerChildren: 0.08 } },
-};
-
-const itemVariants = {
-  hidden: { opacity: 0, y: 30, scale: 0.96 },
-  visible: { opacity: 1, y: 0, scale: 1, transition: { type: 'spring', stiffness: 180, damping: 20 } },
-};
-
 export default function BentoGrid() {
   return (
-    <section id="features" className="landing-section landing-section-bg scroll-mt-20">
-      {/* Background image */}
-      <div
-        className="landing-section-bg-image"
-        style={{ backgroundImage: 'url(/bg-features.png)' }}
-        aria-hidden="true"
-      />
-      <div className="landing-section-bg-overlay" aria-hidden="true" />
-      <motion.div
-        initial="hidden"
-        whileInView="visible"
-        viewport={{ once: true, margin: '-60px' }}
-        variants={containerVariants}
-        className="max-w-6xl mx-auto relative z-10"
-      >
-        <motion.div variants={itemVariants} className="text-center mb-16">
-          <motion.p
-            className="text-eyebrow text-[#828FFF] mb-4"
-            initial={{ opacity: 0, letterSpacing: '4px' }}
-            whileInView={{ opacity: 1, letterSpacing: '0.4px' }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-          >
-            Capabilities
-          </motion.p>
-          <h2 className="text-display-md text-ink font-display">
-            Engineered for the edge.
-          </h2>
-          <p className="text-body-lg text-ink-subtle mt-4 max-w-2xl mx-auto">
-            Built to run reliably on edge environments with minimal resource consumption.
+    <section id="features" className="py-20 px-4 sm:px-6 border-t border-zinc-800/80 bg-[#0B0E17]/60">
+      <div className="max-w-6xl mx-auto">
+        <div className="text-center mb-14">
+          <p className="text-xs font-semibold uppercase tracking-wider text-blue-400 mb-2">
+            System Capabilities
           </p>
-        </motion.div>
+          <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-white">
+            Core Features Designed for Enterprise Security
+          </h2>
+          <p className="text-sm text-zinc-400 mt-2 max-w-xl mx-auto">
+            High precision, robust multi-angle tolerance, and autonomous kiosk operation.
+          </p>
+        </div>
 
-        {/* Hero cards — large */}
-        <div className="bento-hero-row">
+        {/* Primary Capabilities */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-5">
           {heroCards.map((card, i) => (
-            <motion.div
+            <div
               key={i}
-              variants={itemVariants}
-              whileHover={{ y: -6, borderColor: 'var(--hairline-strong)' }}
-              transition={{ type: 'spring', stiffness: 300, damping: 25 }}
-              className="bento-hero-card liquid-glass"
+              className="p-7 rounded-lg bg-zinc-900/70 border border-zinc-800 flex flex-col justify-between"
             >
-              <div className="bento-badge">{card.badge}</div>
-              <div className="bento-hero-icon">
-                <card.icon className="w-6 h-6" />
+              <div>
+                <div className="flex items-center justify-between mb-4">
+                  <div className="w-9 h-9 rounded-md bg-zinc-800 border border-zinc-700 flex items-center justify-center text-blue-400">
+                    <card.icon className="w-5 h-5" />
+                  </div>
+                  <span className="px-2.5 py-0.5 rounded text-[11px] font-medium bg-zinc-800 text-zinc-300 border border-zinc-700">
+                    {card.badge}
+                  </span>
+                </div>
+                <h3 className="text-lg font-semibold text-white mb-2">
+                  {card.title}
+                </h3>
+                <p className="text-sm text-zinc-400 leading-relaxed">
+                  {card.desc}
+                </p>
               </div>
-              <h3 className="text-card-title text-ink font-display mb-3">{card.title}</h3>
-              <p className="text-body-sm text-ink-subtle m-0 leading-relaxed">{card.desc}</p>
-            </motion.div>
+            </div>
           ))}
         </div>
 
-        {/* Support cards — smaller grid */}
-        <div className="bento-support-grid">
+        {/* Supporting Features */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {supportCards.map((card, i) => (
-            <motion.div
+            <div
               key={i}
-              variants={itemVariants}
-              whileHover={{ y: -4, borderColor: 'var(--hairline-strong)' }}
-              transition={{ type: 'spring', stiffness: 300, damping: 25 }}
-              className="bento-support-card liquid-glass-subtle"
+              className="p-5 rounded-lg bg-zinc-900/40 border border-zinc-800 flex flex-col justify-between"
             >
-              <div className="bento-support-icon">
-                <card.icon className="w-4 h-4" />
+              <div>
+                <div className="w-8 h-8 rounded-md bg-zinc-800 border border-zinc-700 flex items-center justify-center text-zinc-300 mb-3">
+                  <card.icon className="w-4 h-4" />
+                </div>
+                <h4 className="text-sm font-semibold text-white mb-1.5">
+                  {card.title}
+                </h4>
+                <p className="text-xs text-zinc-400 leading-relaxed">
+                  {card.desc}
+                </p>
               </div>
-              <h4 className="text-body font-semibold text-ink font-display mb-1">{card.title}</h4>
-              <p className="text-caption text-ink-subtle m-0 leading-relaxed">{card.desc}</p>
-            </motion.div>
+            </div>
           ))}
         </div>
-      </motion.div>
+      </div>
     </section>
   );
 }

@@ -237,7 +237,7 @@ export default function LiveAttendancePage() {
                       <div>
                         <div className="text-ink-tertiary mb-0.5 uppercase tracking-wider text-[10px] font-mono">Confidence</div>
                         <div className="text-emerald-400 font-mono font-medium">
-                          {person.confidence !== undefined ? `${(person.confidence * 100).toFixed(1)}%` : '—'}
+                          {person.confidence !== undefined ? `${(person.confidence * 100).toFixed(1)}%` : '-'}
                         </div>
                       </div>
                       <div className="text-right">

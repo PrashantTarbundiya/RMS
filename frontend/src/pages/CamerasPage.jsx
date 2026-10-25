@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
-import { Camera, Plus, Trash2, Key, Copy, Check, ShieldCheck, MapPin, Cpu, Monitor, Sun, RotateCcw, Loader2, Play, Search } from 'lucide-react';
+import { Camera, Plus, Trash2, Key, Copy, Check, ShieldCheck, MapPin, Cpu, Monitor, Sun, RotateCcw, Loader2, Play, Search, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { API_BASE } from '../config';
 
@@ -49,7 +49,7 @@ export default function CamerasPage() {
       const res = await apiClient.get(`${API_BASE}/edge/camera-spec-test`);
       if (res.data?.results) setEdgeResults(res.data.results);
     } catch (err) {
-      // No cached results yet — that's fine
+      // No cached results yet - that's fine
     }
   };
 
@@ -463,9 +463,10 @@ export default function CamerasPage() {
               <h2 className="text-body font-semibold text-ink">Register New Camera</h2>
               <button 
                 onClick={() => setShowAddModal(false)}
-                className="text-ink-tertiary hover:text-ink text-sm"
+                className="text-ink-tertiary hover:text-ink text-sm p-1"
+                aria-label="Close"
               >
-                ✕
+                <X className="w-4 h-4" />
               </button>
             </div>
             <form onSubmit={handleCreateCamera} className="space-y-4">

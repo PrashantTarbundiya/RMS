@@ -9,6 +9,8 @@ import NotFoundPage from './pages/NotFoundPage'
 import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
 import LandingPage from './pages/LandingPage'
+import PrivacyPolicyPage from './pages/PrivacyPolicyPage'
+import TermsPage from './pages/TermsPage'
 import DashboardPage from './pages/DashboardPage'
 import ManagePersonPage from './pages/ManagePersonPage'
 import UploadPage from './pages/UploadPage'
@@ -32,7 +34,7 @@ import { PwaProvider } from './context/PwaContext'
 import PwaBanner from './components/ui/PwaBanner'
 
 /**
- * ProtectedRoute — redirects unauthenticated users to /login.
+ * ProtectedRoute - redirects unauthenticated users to /login.
  * In single-tenant mode (isMultiTenant=false), all users are auto-authenticated.
  */
 function ProtectedRoute({ children }) {
@@ -64,7 +66,7 @@ function ProtectedRoute({ children }) {
 }
 
 /**
- * GuestRoute — redirects authenticated users to /dashboard.
+ * GuestRoute - redirects authenticated users to /dashboard.
  * Only used for login/register pages.
  */
 function GuestRoute({ children }) {
@@ -91,6 +93,10 @@ function AnimatedRoutes() {
         <Route path="/" element={<PageWrapper><LandingPage /></PageWrapper>} />
         <Route path="/login" element={<GuestRoute><PageWrapper><LoginPage /></PageWrapper></GuestRoute>} />
         <Route path="/register" element={<GuestRoute><PageWrapper><RegisterPage /></PageWrapper></GuestRoute>} />
+        <Route path="/privacy-policy" element={<PageWrapper><PrivacyPolicyPage /></PageWrapper>} />
+        <Route path="/privacy" element={<PageWrapper><PrivacyPolicyPage /></PageWrapper>} />
+        <Route path="/terms" element={<PageWrapper><TermsPage /></PageWrapper>} />
+        <Route path="/terms-and-conditions" element={<PageWrapper><TermsPage /></PageWrapper>} />
 
         {/* Protected routes */}
         <Route path="/onboarding" element={<ProtectedRoute><PageWrapper><OnboardingPage /></PageWrapper></ProtectedRoute>} />
@@ -131,13 +137,22 @@ function PageWrapper({ children }) {
 }
 
 /**
- * AppContent — the inner app that has access to AuthContext.
- * Controls whether the Navbar is shown (hidden on login/register pages).
+ * AppContent - the inner app that has access to AuthContext.
+ * Controls whether the Navbar is shown (hidden on auth and public legal pages).
  */
 function AppContent() {
   const location = useLocation();
   const { isAuthenticated, isMultiTenant } = useAuth();
-  const isOuterPage = ['/login', '/register', '/', '/kiosk'].includes(location.pathname);
+  const isOuterPage = [
+    '/login',
+    '/register',
+    '/',
+    '/kiosk',
+    '/privacy-policy',
+    '/privacy',
+    '/terms',
+    '/terms-and-conditions'
+  ].includes(location.pathname);
   const showNavbar = !isOuterPage && (isAuthenticated || isMultiTenant === false);
 
   return (

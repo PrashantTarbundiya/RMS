@@ -1,4 +1,4 @@
-// RMS Face AI — Enterprise Progressive Web App Service Worker
+// RMS Face AI - Enterprise Progressive Web App Service Worker
 const CACHE_NAME = 'rms-pwa-v2.1.0';
 
 const PRECACHE_ASSETS = [
@@ -12,7 +12,7 @@ const PRECACHE_ASSETS = [
   '/apple-touch-icon.png'
 ];
 
-// Install Event — precache core app shell and immediately activate
+// Install Event - precache core app shell and immediately activate
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
@@ -24,7 +24,7 @@ self.addEventListener('install', (event) => {
   self.skipWaiting();
 });
 
-// Activate Event — cleanup outdated cache versions
+// Activate Event - cleanup outdated cache versions
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((cacheNames) => {
@@ -40,16 +40,16 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// Fetch Event — smart caching strategy
+// Fetch Event - smart caching strategy
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
 
-  // 1. Bypass all API calls and Socket.IO streams — always live network
+  // 1. Bypass all API calls and Socket.IO streams - always live network
   if (url.pathname.startsWith('/api') || url.pathname.startsWith('/socket.io')) {
     return;
   }
 
-  // 2. Navigation requests (HTML pages) — Network first, fallback to cached index.html
+  // 2. Navigation requests (HTML pages) - Network first, fallback to cached index.html
   if (event.request.mode === 'navigate') {
     event.respondWith(
       fetch(event.request)
@@ -68,7 +68,7 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // 3. Static assets (.js, .css, images, fonts) — Stale-While-Revalidate
+  // 3. Static assets (.js, .css, images, fonts) - Stale-While-Revalidate
   if (
     url.pathname.match(/\.(js|css|png|jpg|jpeg|svg|webp|woff|woff2|ttf)$/) ||
     url.origin === self.location.origin

@@ -1,5 +1,5 @@
 /**
- * format.js — Global formatting utilities for RMS Face AI.
+ * format.js - Global formatting utilities for RMS Face AI.
  */
 
 /**

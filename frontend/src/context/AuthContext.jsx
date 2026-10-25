@@ -1,5 +1,5 @@
 /**
- * AuthContext.jsx — Global authentication state for the RMS Face AI dashboard.
+ * AuthContext.jsx - Global authentication state for the RMS Face AI dashboard.
  * 
  * Provides:
  *   - user, accessToken, isAuthenticated state
@@ -159,7 +159,7 @@ export function AuthProvider({ children }) {
             logout();
           }
         } else if (!err.response) {
-          // Timeout / server spinning up — keep cached user so dashboard stays available
+          // Timeout / server spinning up - keep cached user so dashboard stays available
           console.warn('Network timeout during auth check, using cached credentials');
         } else {
           logout();

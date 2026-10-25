@@ -1,12 +1,15 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
-  <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#2563EB"/>
-      <stop offset="100%" stop-color="#7C3AED"/>
-    </linearGradient>
-  </defs>
-  <rect width="64" height="64" rx="14" fill="url(#bg)"/>
-  <circle cx="32" cy="24" r="10" fill="rgba(255,255,255,0.9)"/>
-  <path d="M18 48c0-7.7 6.3-14 14-14s14 6.3 14 14" fill="none" stroke="rgba(255,255,255,0.9)" stroke-width="4" stroke-linecap="round"/>
-  <path d="M44 20l6-4M44 28l6 4" stroke="rgba(255,255,255,0.5)" stroke-width="2" stroke-linecap="round"/>
+  <!-- Solid dark base -->
+  <rect width="64" height="64" rx="12" fill="#0B0F19"/>
+  <rect x="0.5" y="0.5" width="63" height="63" rx="11.5" stroke="#1E293B" stroke-width="1"/>
+  
+  <!-- Biometric aperture corner brackets -->
+  <path d="M16 24V18H22" stroke="#3B82F6" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M48 24V18H42" stroke="#3B82F6" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M16 40V46H22" stroke="#3B82F6" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M48 40V46H42" stroke="#3B82F6" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+  
+  <!-- Central face node geometry -->
+  <circle cx="32" cy="27" r="6" fill="#F8FAFC"/>
+  <path d="M23 44C23 39.0294 27.0294 35 32 35C36.9706 35 41 39.0294 41 44" stroke="#F8FAFC" stroke-width="2.5" stroke-linecap="round"/>
 </svg>
