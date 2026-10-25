@@ -732,6 +732,41 @@ def is_benchmark_excluded_friend(name):
 _ATTENDANCE_COOLDOWN_CACHE = {}
 _ATTENDANCE_COOLDOWN_SECONDS = 45  # Cooldown between repeat logs for same identity
 
+# Kiosk Rolling Temporal Consensus Buffer: org_id -> deque of recent candidates
+_KIOSK_TEMPORAL_BUFFER = {}
+_KIOSK_TEMPORAL_WINDOW_SECS = 2.5
+
+def update_kiosk_temporal_consensus(org_id, candidate_name, confidence, is_confirmed, yaw=0.0):
+    """
+    Fuse consecutive video frames to boost confidence and resolve transient sideface profile angles.
+    Eliminates initial 'Unknown' blips while user is turning towards the kiosk screen.
+    """
+    if not candidate_name or candidate_name == 'Unknown':
+        return candidate_name, confidence, is_confirmed, 'single_model'
+    
+    now = time.time()
+    buf_key = str(org_id or 'default-org')
+    buffer = _KIOSK_TEMPORAL_BUFFER.setdefault(buf_key, [])
+    # Evict stale entries older than 2.5s
+    buffer[:] = [e for e in buffer if (now - e['time']) <= _KIOSK_TEMPORAL_WINDOW_SECS]
+    
+    buffer.append({
+        'time': now,
+        'name': candidate_name,
+        'confidence': float(confidence),
+        'confirmed': bool(is_confirmed),
+        'yaw': float(yaw or 0.0)
+    })
+    
+    matching_votes = [e for e in buffer if e['name'] == candidate_name]
+    if len(matching_votes) >= 2:
+        max_conf = max(e['confidence'] for e in matching_votes)
+        # Consolidate consensus: boost confidence smoothly
+        boosted_conf = max(max_conf, 0.90)
+        return candidate_name, boosted_conf, True, 'temporal_consensus'
+        
+    return candidate_name, confidence, is_confirmed, 'single_model'
+
 def get_org_departments_config(org_id):
     """Retrieve configured department work schedules for an organization."""
     default_departments = {
@@ -4069,7 +4104,10 @@ def predict(org_id):
         for face_info in detected_faces_info:
             b = face_info['bbox']
             angle_label = face_info.get('direction', 'frontal')
-            faces_data.append((b['x'], b['y'], b['w'], b['h'], angle_label))
+            yaw = face_info.get('yaw')
+            if yaw is None:
+                yaw = face_info.get('soft_biometrics', {}).get('yaw', 0.0)
+            faces_data.append((b['x'], b['y'], b['w'], b['h'], angle_label, float(yaw or 0.0)))
 
         raw_faces_count = len(faces_data)
         focus_single = request.form.get('single_focus', '').lower() in ('true', '1') or request.form.get('kiosk_mode', '').lower() in ('true', '1')
@@ -4077,7 +4115,7 @@ def predict(org_id):
         if raw_faces_count == 0:
             # Fallback: Treat the whole image as the bounding box and pass to models
             h, w = img_np.shape[:2]
-            faces_data = [(0, 0, w, h, 'frontal')]
+            faces_data = [(0, 0, w, h, 'frontal', 0.0)]
             message = "Detector failed to find a face: Full image evaluated."
         else:
             # Sort by area descending so primary / closest face is first
@@ -4089,7 +4127,7 @@ def predict(org_id):
                 message = f'Detected {raw_faces_count} face(s)'
 
         results = []
-        for (x, y, w, h, angle_label) in faces_data:
+        for (x, y, w, h, angle_label, yaw) in faces_data:
             # Padding
             margin_x = int(w * 0.20)
             margin_y = int(h * 0.20)
@@ -4181,9 +4219,10 @@ def predict(org_id):
                             emb, f_encodings, f_names, 
                             angle_label=angle_label,
                             custom_threshold=camera_threshold,
-                            model_name="Facenet512"
+                            model_name="Facenet512",
+                            yaw=yaw
                         )
-                        f_conf = compute_match_confidence(dist, 0.42 if camera_threshold is None else camera_threshold)
+                        f_conf = compute_match_confidence(dist, 0.42 if camera_threshold is None else camera_threshold, yaw=yaw)
                 except Exception as e:
                     logger.warning(f"Facenet512 prediction error: {e}")
                     f_label = "Error"
@@ -4205,9 +4244,10 @@ def predict(org_id):
                             emb, i_encodings, i_names, 
                             angle_label=angle_label,
                             custom_threshold=camera_threshold,
-                            model_name="InsightFace"
+                            model_name="InsightFace",
+                            yaw=yaw
                         )
-                        i_conf = compute_match_confidence(dist, 0.35 if camera_threshold is None else min(float(camera_threshold), 0.45))
+                        i_conf = compute_match_confidence(dist, 0.35 if camera_threshold is None else min(float(camera_threshold), 0.45), yaw=yaw)
                 except Exception as e:
                     logger.warning(f"InsightFace prediction error: {e}")
                     i_label = "Error"
@@ -4227,9 +4267,10 @@ def predict(org_id):
                                 emb, edge_encodings, edge_names, 
                                 angle_label=angle_label,
                                 custom_threshold=camera_threshold,
-                                model_name="GhostFaceNet"
+                                model_name="GhostFaceNet",
+                                yaw=yaw
                             )
-                            edge_conf = compute_match_confidence(dist, 0.45 if camera_threshold is None else camera_threshold)
+                            edge_conf = compute_match_confidence(dist, 0.45 if camera_threshold is None else camera_threshold, yaw=yaw)
                     except Exception as e:
                         logger.warning(f"Edge prediction error: {e}")
                         edge_label = "Error"
@@ -4248,9 +4289,10 @@ def predict(org_id):
                                 emb, v_encodings, v_names, 
                                 angle_label=angle_label,
                                 custom_threshold=camera_threshold,
-                                model_name="VGG-Face"
+                                model_name="VGG-Face",
+                                yaw=yaw
                             )
-                            v_conf = compute_match_confidence(dist, 0.50 if camera_threshold is None else camera_threshold)
+                            v_conf = compute_match_confidence(dist, 0.50 if camera_threshold is None else camera_threshold, yaw=yaw)
                     except Exception as e:
                         logger.warning(f"VGG-Face prediction error: {e}")
                         v_label = "Error"
@@ -4290,6 +4332,15 @@ def predict(org_id):
                 not str(ens_label).startswith('Uncertain') and
                 ens_label != 'Unknown'
             )
+
+            # Kiosk Mode Rolling Temporal Consensus: fuse consecutive frames
+            method_str = ensemble_result.get('method', 'single_model')
+            if focus_single and candidate_name:
+                cand, ens_conf, is_confirmed, method_str = update_kiosk_temporal_consensus(
+                    org_id, candidate_name, ens_conf, is_confirmed, yaw=yaw
+                )
+                if is_confirmed:
+                    ens_label = cand
             
             if is_confirmed:
                 from format_utils import format_person_name
@@ -4307,7 +4358,7 @@ def predict(org_id):
                     'raw_label': raw_label,
                     'candidate_name': candidate_name,
                     'confidence': ens_conf,
-                    'method': ensemble_result.get('method', 'single_model'),
+                    'method': method_str,
                     'agreement': ensemble_result.get('agreement', 'N/A'),
                     'is_recognized': is_confirmed,
                     'is_confirmed': is_confirmed,
@@ -4444,12 +4495,15 @@ def handle_stream_frame(data):
         for face_info in detected_faces_info:
             b = face_info['bbox']
             angle_label = face_info.get('direction', 'frontal')
-            faces_data.append((b['x'], b['y'], b['w'], b['h'], angle_label))
+            yaw = face_info.get('yaw')
+            if yaw is None:
+                yaw = face_info.get('soft_biometrics', {}).get('yaw', 0.0)
+            faces_data.append((b['x'], b['y'], b['w'], b['h'], angle_label, float(yaw or 0.0)))
 
         raw_faces_count = len(faces_data)
         if raw_faces_count == 0:
             h, w = img_np.shape[:2]
-            faces_data = [(0, 0, w, h, 'frontal')]
+            faces_data = [(0, 0, w, h, 'frontal', 0.0)]
             message = "Detector failed to find a face: Full image evaluated."
         else:
             # Sort by area (w * h) descending so primary / closest face is first
@@ -4463,7 +4517,7 @@ def handle_stream_frame(data):
                 message = f'Detected {raw_faces_count} face(s)'
 
         results = []
-        for (x, y, w, h, angle_label) in faces_data:
+        for (x, y, w, h, angle_label, yaw) in faces_data:
             margin_x = int(w * 0.20)
             margin_y = int(h * 0.20)
             x1 = max(0, x - margin_x)
@@ -4536,8 +4590,8 @@ def handle_stream_frame(data):
                     try:
                         emb = get_embedding(apply_clahe(face_roi_cv), model_name="GhostFaceNet")
                         if emb is not None:
-                            label, dist, level = find_match_knn(emb, edge_encodings, edge_names, angle_label=angle_label, custom_threshold=camera_threshold, model_name="GhostFaceNet")
-                            conf = compute_match_confidence(dist, 0.45 if camera_threshold is None else camera_threshold)
+                            label, dist, level = find_match_knn(emb, edge_encodings, edge_names, angle_label=angle_label, custom_threshold=camera_threshold, model_name="GhostFaceNet", yaw=yaw)
+                            conf = compute_match_confidence(dist, 0.45 if camera_threshold is None else camera_threshold, yaw=yaw)
                     except Exception as e:
                         logger.warning(f"GhostFaceNet stream error: {e}")
                         label = "Error"
@@ -4549,8 +4603,8 @@ def handle_stream_frame(data):
                     try:
                         emb = get_embedding(apply_clahe(face_roi_cv), model_name="Facenet512")
                         if emb is not None:
-                            label, dist, level = find_match_knn(emb, f_encodings, f_names, angle_label=angle_label, custom_threshold=camera_threshold, model_name="Facenet512")
-                            conf = compute_match_confidence(dist, 0.42 if camera_threshold is None else camera_threshold)
+                            label, dist, level = find_match_knn(emb, f_encodings, f_names, angle_label=angle_label, custom_threshold=camera_threshold, model_name="Facenet512", yaw=yaw)
+                            conf = compute_match_confidence(dist, 0.42 if camera_threshold is None else camera_threshold, yaw=yaw)
                     except Exception as e:
                         logger.warning(f"Facenet512 stream error: {e}")
                         label = "Error"
@@ -4562,8 +4616,8 @@ def handle_stream_frame(data):
                     try:
                         emb = get_embedding(apply_clahe(face_roi_cv), model_name="InsightFace")
                         if emb is not None:
-                            label, dist, level = find_match_knn(emb, i_encodings, i_names, angle_label=angle_label, custom_threshold=camera_threshold, model_name="InsightFace")
-                            conf = compute_match_confidence(dist, 0.35 if camera_threshold is None else min(float(camera_threshold), 0.45))
+                            label, dist, level = find_match_knn(emb, i_encodings, i_names, angle_label=angle_label, custom_threshold=camera_threshold, model_name="InsightFace", yaw=yaw)
+                            conf = compute_match_confidence(dist, 0.35 if camera_threshold is None else min(float(camera_threshold), 0.45), yaw=yaw)
                     except Exception as e:
                         logger.warning(f"InsightFace stream error: {e}")
                         label = "Error"
@@ -4575,8 +4629,8 @@ def handle_stream_frame(data):
                     try:
                         emb = get_embedding(apply_clahe(face_roi_cv), model_name="VGG-Face")
                         if emb is not None:
-                            label, dist, level = find_match_knn(emb, v_encodings, v_names, angle_label=angle_label, custom_threshold=camera_threshold, model_name="VGG-Face")
-                            conf = compute_match_confidence(dist, 0.50 if camera_threshold is None else camera_threshold)
+                            label, dist, level = find_match_knn(emb, v_encodings, v_names, angle_label=angle_label, custom_threshold=camera_threshold, model_name="VGG-Face", yaw=yaw)
+                            conf = compute_match_confidence(dist, 0.50 if camera_threshold is None else camera_threshold, yaw=yaw)
                     except Exception as e:
                         logger.warning(f"VGG-Face stream error: {e}")
                         label = "Error"
@@ -4617,6 +4671,15 @@ def handle_stream_frame(data):
                 not str(ens_label).startswith('Uncertain') and
                 ens_label != 'Unknown'
             )
+
+            # Kiosk Mode Rolling Temporal Consensus: fuse consecutive frames
+            method_str = ensemble_result.get('method', 'single_model')
+            if focus_single and candidate_name:
+                cand, ens_conf, is_confirmed, method_str = update_kiosk_temporal_consensus(
+                    org_id, candidate_name, ens_conf, is_confirmed, yaw=yaw
+                )
+                if is_confirmed:
+                    ens_label = cand
             
             if is_confirmed:
                 from format_utils import format_person_name

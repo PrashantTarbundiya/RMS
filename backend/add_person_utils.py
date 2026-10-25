@@ -61,6 +61,34 @@ def check_image_quality(img_bgr, min_size=60, blur_threshold=50.0):
     return len(issues) == 0, issues
 
 
+def generate_sideface_anchors(face_crop, is_profile=True):
+    """
+    Generate structural anchor variants for profile/semi-profile faces during enrollment:
+    1. Symmetrical horizontal flip (left profile serves as right profile and vice versa).
+    2. Subtle roll rotations (+/- 4 deg) to account for camera mount pitch/roll.
+    """
+    anchors = []
+    h, w = face_crop.shape[:2]
+    if h == 0 or w == 0:
+        return anchors
+
+    if is_profile:
+        # Symmetrical mirror flip
+        flipped = cv2.flip(face_crop, 1)
+        anchors.append(flipped)
+        # Roll variations
+        for angle in [-4.0, 4.0]:
+            M = cv2.getRotationMatrix2D((w / 2, h / 2), angle, 1.0)
+            anchors.append(cv2.warpAffine(face_crop, M, (w, h), borderMode=cv2.BORDER_REFLECT))
+            anchors.append(cv2.warpAffine(flipped, M, (w, h), borderMode=cv2.BORDER_REFLECT))
+    else:
+        # Mild roll variation for frontal faces (+/- 3 deg)
+        for angle in [-3.0, 3.0]:
+            M = cv2.getRotationMatrix2D((w / 2, h / 2), angle, 1.0)
+            anchors.append(cv2.warpAffine(face_crop, M, (w, h), borderMode=cv2.BORDER_REFLECT))
+    return anchors
+
+
 # ============================================================================
 # 1. DEEPFACE — Incremental Embedding Append (No Retrain)
 # ============================================================================
@@ -181,8 +209,28 @@ def update_deepface_model(person_name, image_paths, model_name='Facenet512', org
                 existing_names.append(person_name)
                 new_count += 1
 
-            # Generate embeddings for AUGMENTED variants (only for single photo enrollment)
-            if not skip_augmentation:
+            # Generate multi-angle profile anchors (left <-> right symmetry + roll jitter)
+            # This guarantees that ANY user enrolled in the future gets robust profile matching
+            parent_dir = os.path.basename(os.path.dirname(img_path)).lower()
+            is_profile = parent_dir in ('left', 'right', 'left_img', 'right_img', 'profile')
+            if not is_profile and faces:
+                detected_angle = faces[0].get('angle_label', '')
+                if 'profile' in detected_angle.lower():
+                    is_profile = True
+
+            anchor_variants = generate_sideface_anchors(face_crop, is_profile=is_profile)
+            for var_img in anchor_variants:
+                if model_name == 'InsightFace':
+                    var_emb = get_embedding_insightface(var_img)
+                else:
+                    var_emb = get_embedding(var_img, model_name=model_name)
+                if var_emb:
+                    existing_encodings.append(var_emb)
+                    existing_names.append(person_name)
+                    new_count += 1
+
+            # Optional lightweight generic augment (only when single photo provided and not profile)
+            if not skip_augmentation and not is_profile:
                 augments = generate_augments(face_crop, num_augments=1)
                 for aug_img in augments:
                     if model_name == 'InsightFace':
@@ -753,8 +801,10 @@ def add_person_fast(person_name, image_data_list, dataset_dir=None, encodings_pa
         from config_utils import load_config
         cfg = load_config()
         active_models = ['Facenet512']
-        if cfg.get('ENABLE_INSIGHTFACE', False):
+        if cfg.get('ENABLE_INSIGHTFACE', True):
             active_models.append('InsightFace')
+        if cfg.get('ENABLE_GHOSTFACENET', True):
+            active_models.append('GhostFaceNet')
 
         for model_name in active_models:
             try:

@@ -74,4 +74,5 @@ scratch_cam*.png
 backend/data/class_centroids.json
 backend/data/label_map.json
 backend/data/recognition_history.json
+backend/data/orgs/
 backend/tests/data/

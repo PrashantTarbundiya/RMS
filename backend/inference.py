@@ -201,11 +201,12 @@ def apply_clahe(image):
 from model import get_embedding
 
 
-def compute_match_confidence(dist, confirm_threshold=0.40):
+def compute_match_confidence(dist, confirm_threshold=0.40, yaw=0.0):
     """
     Compute a realistic, smoothly calibrated confidence score (0.0 to 0.99).
-    If dist <= confirm_threshold, returns confirmed confidence [0.70, 0.98].
+    If dist <= confirm_threshold, returns confirmed confidence [0.75, 0.98].
     If dist > confirm_threshold, returns rejected/uncertain confidence [0.0, 0.55].
+    Dynamically accounts for head yaw angle to avoid penalizing genuine sideface entries.
     Never returns hardcoded 1.0 (100%) so false positives cannot report 100% certainty.
     """
     if dist is None or dist >= 1.0:
@@ -213,6 +214,16 @@ def compute_match_confidence(dist, confirm_threshold=0.40):
     thresh_val = float(confirm_threshold) if confirm_threshold is not None else 0.40
     if thresh_val > 1.0:
         thresh_val /= 100.0
+
+    # Continuous yaw angle awareness
+    yaw_mag = 0.0
+    if yaw is not None:
+        try:
+            yaw_mag = abs(float(yaw))
+        except (ValueError, TypeError):
+            yaw_mag = 0.0
+
+    profile_factor = min(1.0, max(0.0, (yaw_mag - 12.0) / 45.0)) if yaw_mag > 12.0 else 0.0
 
     # If thresh_val is >= 0.50, it is a confidence threshold (e.g. 0.70 / 0.60).
     # Convert confidence target to distance threshold:
@@ -225,10 +236,14 @@ def compute_match_confidence(dist, confirm_threshold=0.40):
     else:
         dist_thresh = max(0.20, thresh_val)
 
+    # Dynamic profile expansion
+    if profile_factor > 0.0:
+        dist_thresh += 0.10 * profile_factor
+
     if dist <= dist_thresh:
-        # Match confirmed: map [0.0, dist_thresh] -> [0.98, 0.70]
+        # Match confirmed: map [0.0, dist_thresh] -> [0.98, 0.75]
         ratio = max(0.0, min(1.0, dist / dist_thresh))
-        conf = 0.70 + 0.28 * ((1.0 - ratio) ** 1.1)
+        conf = 0.75 + 0.23 * ((1.0 - ratio) ** 1.05)
         return round(float(conf), 3)
     else:
         # Match rejected / uncertain: map (dist_thresh, 1.0] -> [0.55, 0.0]
@@ -237,7 +252,7 @@ def compute_match_confidence(dist, confirm_threshold=0.40):
         return round(float(conf), 3)
 
 
-def find_match_knn(embedding, known_encodings, known_names, k=KNN_K, max_dist=None, ratio=RATIO_TEST, angle_label='frontal', custom_threshold=None, model_name="Facenet512"):
+def find_match_knn(embedding, known_encodings, known_names, k=KNN_K, max_dist=None, ratio=RATIO_TEST, angle_label='frontal', custom_threshold=None, model_name="Facenet512", yaw=None):
     """
     KNN Majority Voting + Ratio Test + Binary Classification with Model-Calibrated Thresholds.
     
@@ -246,6 +261,9 @@ def find_match_knn(embedding, known_encodings, known_names, k=KNN_K, max_dist=No
       - Facenet512: Genuine match <= 0.38
       - GhostFaceNet: Genuine match <= 0.40
     
+    Continuous Yaw Awareness:
+      Smoothly adapts cutoff and confirmation boundaries for steep head turns (yaw 15-60 deg).
+
     Returns:
         tuple: (name, distance, confidence_level)
     """
@@ -259,8 +277,6 @@ def find_match_knn(embedding, known_encodings, known_names, k=KNN_K, max_dist=No
 
     if custom_t is not None and custom_t >= 0.50:
         # Interpreted as confidence threshold (0.50 to 0.95):
-        # Higher confidence target -> tighter distance cutoff
-        # Lower confidence target (e.g. 0.60) -> more lenient distance cutoff
         if model_name == 'InsightFace':
             base_thresh = 0.34 - (custom_t - 0.70) * 0.20
             base_thresh = max(0.24, min(0.42, base_thresh))
@@ -282,6 +298,23 @@ def find_match_knn(embedding, known_encodings, known_names, k=KNN_K, max_dist=No
         else:  # Facenet512
             base_thresh = 0.38 if custom_t is None else min(custom_t, 0.44)
             cutoff = max(0.46, base_thresh + 0.08)
+
+    # Determine continuous yaw profile factor
+    yaw_mag = 0.0
+    if yaw is not None:
+        try:
+            yaw_mag = abs(float(yaw))
+        except (ValueError, TypeError):
+            yaw_mag = 35.0 if str(angle_label).lower() in ['left_profile', 'right_profile', 'left', 'right'] else 0.0
+    else:
+        yaw_mag = 35.0 if str(angle_label).lower() in ['left_profile', 'right_profile', 'left', 'right'] else 0.0
+
+    profile_factor = min(1.0, max(0.0, (yaw_mag - 12.0) / 45.0)) if yaw_mag > 12.0 else 0.0
+
+    # Smooth dynamic threshold expansion for side profiles
+    if profile_factor > 0.0:
+        base_thresh += 0.09 * profile_factor
+        cutoff = max(cutoff, base_thresh + 0.10)
 
     if max_dist is not None:
         cutoff = max(cutoff, max_dist)
@@ -309,12 +342,12 @@ def find_match_knn(embedding, known_encodings, known_names, k=KNN_K, max_dist=No
             second_best_dist = dist
             break
 
-    # In face galleries, if best_dist is already a direct genuine match (dist <= 0.38 for Facenet or <= 0.32 for InsightFace),
-    # do NOT reject on ratio test, as distinct gallery identities can naturally yield second nearest ~0.45.
-    # Only apply ratio test in the borderline/uncertain zone (best_dist > 0.38).
-    ambiguous_zone = 0.32 if model_name == 'InsightFace' else 0.38
+    # In face galleries, if best_dist is already a direct genuine match,
+    # do NOT reject on ratio test. Only apply ratio test in borderline zone.
+    ambiguous_zone = (0.32 if model_name == 'InsightFace' else 0.38) + (0.08 * profile_factor)
+    ratio_cutoff = 0.95 if profile_factor > 0.0 else 0.92
     if best_dist > ambiguous_zone and second_best_dist is not None:
-        if best_dist > 0.92 * second_best_dist:
+        if best_dist > ratio_cutoff * second_best_dist:
             return "Unknown", best_dist, "rejected"
 
     # --- Gate 3: KNN Majority Vote ---
@@ -335,12 +368,8 @@ def find_match_knn(embedding, known_encodings, known_names, k=KNN_K, max_dist=No
     winner_dist = min(dist for dist, name in distances if name == winner)
 
     # --- Gate 4: Binary classification ---
-    confirm_threshold = base_thresh
-    
-    # Mild relaxation for extreme side profiles
-    if angle_label in ['left_profile', 'right_profile']:
-        confirm_threshold += 0.06
-        
+    confirm_threshold = base_thresh + (0.03 * profile_factor)
+
     if winner_dist <= confirm_threshold:
         return winner, winner_dist, "confirmed"
     elif winner_dist <= cutoff:
