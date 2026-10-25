@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { API_BASE } from '../config';
 import { 
-  Sparkles, CheckCircle2, ArrowRight, ArrowLeft, X, 
+  Compass, LayoutDashboard, CheckCircle2, ArrowRight, ArrowLeft, X, 
   Camera, Users, Scan, Shield, Loader2,
   MousePointerClick
 } from 'lucide-react';
@@ -132,7 +132,7 @@ const STEPS = [
   },
   {
     title: 'Your Daily Command Center',
-    icon: Sparkles,
+    icon: LayoutDashboard,
     color: '#2563EB',
     path: '/dashboard',
     gateCheck: async () => true,
@@ -180,7 +180,7 @@ export default function OnboardingWizard() {
   const totalSubSteps = currentSubSteps.length;
   const isLastSubStep = subStepIndex >= totalSubSteps - 1;
   const isLastStep = stepIndex >= STEPS.length - 1;
-  const StepIcon = currentStep?.icon || Sparkles;
+  const StepIcon = currentStep?.icon || Compass;
 
   // ─── Initialize Once ─────────────────────────────────────────
   useEffect(() => {
@@ -517,9 +517,9 @@ export default function OnboardingWizard() {
               className="onb-welcome-modal"
             >
               <div className="onb-welcome-icon">
-                <Sparkles className="w-6 h-6" />
+                <Compass className="w-6 h-6" />
               </div>
-              <h2 className="onb-welcome-title">Welcome to RMS Face AI</h2>
+              <h2 className="onb-welcome-title">Welcome to RMS Platform</h2>
               <p className="onb-welcome-desc">
                 Let us get your organization configured in about 5 minutes. We will walk you through each step and highlight the required actions.
               </p>

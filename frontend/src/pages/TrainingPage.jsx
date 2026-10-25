@@ -182,14 +182,14 @@ export default function TrainingPage() {
                       <button
                         type="button"
                         onClick={() => handleDownloadFile('encodings_InsightFace.pickle')}
-                        className="button-secondary text-ink text-caption flex items-center gap-2 h-9 px-3 border border-[#23252A] hover:border-[#5E6AD2]"
+                        className="button-secondary text-ink text-caption flex items-center gap-2 h-9 px-3 border border-[#23252A] hover:border-[#2563EB]"
                       >
                         <Download className="w-4 h-4 text-ink-subtle" /> encodings_InsightFace.pickle
                       </button>
                       <button
                         type="button"
                         onClick={() => handleDownloadFile('best_mobile_sideface.pth')}
-                        className="button-secondary text-ink text-caption flex items-center gap-2 h-9 px-3 border border-[#23252A] hover:border-[#5E6AD2]"
+                        className="button-secondary text-ink text-caption flex items-center gap-2 h-9 px-3 border border-[#23252A] hover:border-[#2563EB]"
                       >
                         <Download className="w-4 h-4 text-ink-subtle" /> best_mobile_sideface.pth
                       </button>
@@ -212,14 +212,14 @@ export default function TrainingPage() {
           </div>
           <div className="flex items-center gap-2">
             <label className="flex items-center gap-1.5 text-[11px] text-ink-tertiary cursor-pointer select-none mr-1">
-              <input type="checkbox" checked={autoScroll} onChange={e => setAutoScroll(e.target.checked)} className="accent-[#5E6AD2]" />
+              <input type="checkbox" checked={autoScroll} onChange={e => setAutoScroll(e.target.checked)} className="accent-[#2563EB]" />
               Auto-scroll
             </label>
             <button
               type="button"
               onClick={copyLogs}
               disabled={logs.length === 0}
-              className="h-7 px-2.5 rounded-md border border-[#23252A] bg-[#141516] hover:bg-[#1E2024] hover:border-[#828FFF]/40 text-ink-subtle hover:text-ink text-[11px] font-medium flex items-center gap-1.5 transition-all disabled:opacity-30 disabled:pointer-events-none"
+              className="h-7 px-2.5 rounded-md border border-[#23252A] bg-[#141516] hover:bg-[#1E2024] hover:border-[#60A5FA]/40 text-ink-subtle hover:text-ink text-[11px] font-medium flex items-center gap-1.5 transition-all disabled:opacity-30 disabled:pointer-events-none"
               title="Copy terminal logs"
             >
               {copied ? <Check size={12} className="text-emerald-400" /> : <Copy size={12} />}
@@ -282,7 +282,7 @@ function ModelProgressCard({ title, subtitle, percent, isTraining }) {
           <span
             className={`inline-flex px-2 py-0.5 rounded font-mono text-[9px] font-semibold border uppercase tracking-wider ${
               status === 'success' ? 'bg-[#27A644]/10 text-[#27A644] border-[#27A644]/20' :
-              status === 'progress' ? 'bg-[#5E6AD2]/10 text-[#828FFF] border-[#5E6AD2]/20 animate-pulse' :
+              status === 'progress' ? 'bg-[#2563EB]/10 text-[#60A5FA] border-[#2563EB]/20 animate-pulse' :
               'bg-[#141516] text-ink-muted border-[#23252A]'
             }`}
           >
@@ -299,7 +299,7 @@ function ModelProgressCard({ title, subtitle, percent, isTraining }) {
               initial={{ width: 0 }}
               animate={{ width: `${percent}%` }}
               transition={{ type: 'tween', duration: 0.5 }}
-              className={`h-full ${status === 'success' ? 'bg-[#27A644]' : 'bg-[#5E6AD2]'}`}
+              className={`h-full ${status === 'success' ? 'bg-[#27A644]' : 'bg-[#2563EB]'}`}
             />
           </div>
         </div>

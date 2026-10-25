@@ -108,8 +108,8 @@ export default function AuditLogsPage() {
       {/* Page Header */}
       <div className="page-header">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-[#5E6AD2]/10 border border-[#5E6AD2]/20 flex items-center justify-center">
-            <Shield className="w-5 h-5 text-[#828FFF]" />
+          <div className="w-10 h-10 rounded-lg bg-[#2563EB]/10 border border-[#2563EB]/20 flex items-center justify-center">
+            <Shield className="w-5 h-5 text-[#60A5FA]" />
           </div>
           <div>
             <h1 className="page-header-title">Audit Logs</h1>
@@ -132,7 +132,7 @@ export default function AuditLogsPage() {
       {/* Filters Bar */}
       <div className="card-linear p-3 flex flex-wrap items-center gap-3">
         {/* Search Input */}
-        <div className="flex items-center gap-2 bg-[#010102] border border-[#23252A] rounded-lg h-9 px-3 flex-1 min-w-[220px] focus-within:border-[#828FFF]/50 transition-colors">
+        <div className="flex items-center gap-2 bg-[#010102] border border-[#23252A] rounded-lg h-9 px-3 flex-1 min-w-[220px] focus-within:border-[#60A5FA]/50 transition-colors">
           <Search size={14} className="text-ink-tertiary shrink-0" />
           <input
             type="text"
@@ -151,7 +151,7 @@ export default function AuditLogsPage() {
               onClick={() => { setLogType(opt.value); setPage(1); }}
               className={`px-3 py-1.5 rounded-md text-caption font-medium transition-all cursor-pointer ${
                 logType === opt.value 
-                  ? 'bg-[#5E6AD2] text-white' 
+                  ? 'bg-[#2563EB] text-white' 
                   : 'text-ink-subtle hover:text-ink'
               }`}
             >
@@ -364,7 +364,7 @@ export default function AuditLogsPage() {
                 onClick={() => setPage(p)}
                 className={`min-w-[36px] h-9 rounded-lg text-caption font-medium transition-all cursor-pointer ${
                   p === page 
-                    ? 'bg-[#5E6AD2] text-white border border-[#5E6AD2]' 
+                    ? 'bg-[#2563EB] text-white border border-[#2563EB]' 
                     : 'bg-[#0F1011] text-ink-subtle border border-[#23252A] hover:border-[#34343A]'
                 }`}
               >

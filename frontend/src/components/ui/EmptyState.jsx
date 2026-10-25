@@ -28,9 +28,9 @@ export default function EmptyState({ icon: Icon = Inbox, title, description, act
         style={{
           width: 56,
           height: 56,
-          borderRadius: 14,
-          background: 'rgba(94, 106, 210, 0.08)',
-          border: '1px solid rgba(94, 106, 210, 0.15)',
+          borderRadius: 12,
+          background: 'rgba(37, 99, 235, 0.08)',
+          border: '1px solid rgba(37, 99, 235, 0.20)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',

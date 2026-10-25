@@ -107,7 +107,7 @@ export default function ProfilePage() {
         
         {/* Profile Card */}
         <div className="card-linear md:col-span-1 flex flex-col items-center text-center justify-center p-6 bg-[#0F1011] border-[#23252A]">
-          <div className="w-20 h-20 rounded-full bg-[#5E6AD2]/10 border border-[#5E6AD2]/20 flex items-center justify-center text-[#828FFF] mb-4">
+          <div className="w-20 h-20 rounded-full bg-[#2563EB]/10 border border-[#2563EB]/20 flex items-center justify-center text-[#60A5FA] mb-4">
             <User className="w-10 h-10" />
           </div>
           
@@ -183,7 +183,7 @@ export default function ProfilePage() {
                           setNewOrgName(user?.org_name || '');
                           setEditingOrg(true);
                         }}
-                        className="text-ink-subtle hover:text-[#828FFF] text-[11px] underline ml-1 cursor-pointer transition-colors"
+                        className="text-ink-subtle hover:text-[#60A5FA] text-[11px] underline ml-1 cursor-pointer transition-colors"
                       >
                         Rename
                       </button>
@@ -363,7 +363,7 @@ export default function ProfilePage() {
                   System Updates
                 </h3>
                 {sysInfo?.app_version && (
-                  <span className="px-2 py-0.5 rounded-full bg-[#5E6AD2]/10 text-[#828FFF] border border-[#5E6AD2]/20 font-mono text-[10px]">
+                  <span className="px-2 py-0.5 rounded-full bg-[#2563EB]/10 text-[#60A5FA] border border-[#2563EB]/20 font-mono text-[10px]">
                     v{sysInfo.app_version}
                   </span>
                 )}
@@ -389,7 +389,7 @@ export default function ProfilePage() {
                       ? 'bg-red-500/5 border-red-500/20 text-red-400'
                       : updateStatus.severity === 'recommended'
                         ? 'bg-amber-500/5 border-amber-500/20 text-amber-400'
-                        : 'bg-[#5E6AD2]/5 border-[#5E6AD2]/20 text-[#828FFF]'
+                        : 'bg-[#2563EB]/5 border-[#2563EB]/20 text-[#60A5FA]'
                   }`}>
                     <div className="flex items-center gap-2 text-caption font-medium mb-1">
                       {updateStatus.severity === 'critical'
@@ -414,7 +414,7 @@ export default function ProfilePage() {
 
                 {/* Status message */}
                 {updateMessage && (
-                  <div className="p-3 rounded-lg border bg-[#5E6AD2]/5 border-[#5E6AD2]/20 text-[#828FFF] text-[11px] font-mono">
+                  <div className="p-3 rounded-lg border bg-[#2563EB]/5 border-[#2563EB]/20 text-[#60A5FA] text-[11px] font-mono">
                     {updateMessage}
                   </div>
                 )}
@@ -441,7 +441,7 @@ export default function ProfilePage() {
                       }
                     }}
                     disabled={updateLoading}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#5E6AD2]/10 text-[#828FFF] border border-[#5E6AD2]/20 hover:bg-[#5E6AD2]/20 transition-colors text-[11px] font-medium disabled:opacity-50"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#2563EB]/10 text-[#60A5FA] border border-[#2563EB]/20 hover:bg-[#2563EB]/20 transition-colors text-[11px] font-medium disabled:opacity-50"
                   >
                     <RefreshCw className={`w-3.5 h-3.5 ${updateLoading ? 'animate-spin' : ''}`} />
                     {updateLoading ? 'Checking...' : 'Check for Updates'}
@@ -473,7 +473,7 @@ export default function ProfilePage() {
                       disabled={applyLoading}
                       className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20 transition-colors text-[11px] font-medium disabled:opacity-50"
                     >
-                      <Download className={`w-3.5 h-3.5 ${applyLoading ? 'animate-bounce' : ''}`} />
+                      <Download className={`w-3.5 h-3.5 ${applyLoading ? 'animate-pulse' : ''}`} />
                       {applyLoading ? 'Applying...' : 'Download & Apply'}
                     </button>
                   )}

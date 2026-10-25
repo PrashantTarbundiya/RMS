@@ -151,7 +151,7 @@ export default function LogsPage() {
         <div className="flex items-center gap-2">
           <button
             onClick={fetchQueue}
-            className="button-secondary text-caption flex items-center gap-2 h-9 px-3.5 hover:border-[#828FFF]/40 transition-colors"
+            className="button-secondary text-caption flex items-center gap-2 h-9 px-3.5 hover:border-[#60A5FA]/40 transition-colors"
           >
             <RefreshCw size={14} className={isLoading ? 'animate-spin' : ''} />
             <span>Sync Queue</span>
@@ -183,7 +183,7 @@ export default function LogsPage() {
                   onClick={() => setSelectedJobId(job.id)}
                   className={`p-3.5 rounded-xl border transition-all cursor-pointer flex items-center justify-between ${
                     (selectedJobId === job.id || (!selectedJobId && selectedJob?.id === job.id))
-                      ? 'bg-[#141516] border-[#828FFF]/50 shadow-lg shadow-[#828FFF]/5'
+                      ? 'bg-[#141516] border-[#60A5FA]/50 shadow-lg shadow-[#60A5FA]/5'
                       : 'bg-[#0F1011] border-[#23252A] hover:bg-[#141516]/60 hover:border-[#2E3138]'
                   }`}
                 >
@@ -226,7 +226,7 @@ export default function LogsPage() {
           {/* Premium Search & Action Toolbar */}
           <div className="p-2.5 bg-[#0F1011] border border-[#23252A] rounded-xl flex flex-wrap items-center justify-between gap-2.5">
             <div className="flex items-center gap-2 flex-1 min-w-[200px]">
-              <div className="flex items-center gap-2 bg-[#010102] border border-[#23252A] rounded-lg h-9 px-3 w-full focus-within:border-[#828FFF]/50 transition-colors">
+              <div className="flex items-center gap-2 bg-[#010102] border border-[#23252A] rounded-lg h-9 px-3 w-full focus-within:border-[#60A5FA]/50 transition-colors">
                 <Search className="w-3.5 h-3.5 text-ink-tertiary shrink-0" />
                 <input
                   type="text"
@@ -243,7 +243,7 @@ export default function LogsPage() {
                 <select
                   value={logFilter}
                   onChange={e => setLogFilter(e.target.value)}
-                  className="h-9 pl-3 pr-8 text-[12px] font-mono text-ink bg-[#010102] border border-[#23252A] rounded-lg focus:outline-none focus:border-[#828FFF]/50 cursor-pointer appearance-none"
+                  className="h-9 pl-3 pr-8 text-[12px] font-mono text-ink bg-[#010102] border border-[#23252A] rounded-lg focus:outline-none focus:border-[#60A5FA]/50 cursor-pointer appearance-none"
                 >
                   <option value="all">All Levels</option>
                   <option value="error">Errors Only</option>
@@ -262,12 +262,12 @@ export default function LogsPage() {
                 onClick={() => setAutoScroll(prev => !prev)}
                 className={`h-9 px-3 rounded-lg border text-[11px] font-mono flex items-center gap-1.5 transition-colors cursor-pointer ${
                   autoScroll
-                    ? 'bg-[#828FFF]/10 border-[#828FFF]/30 text-[#828FFF]'
+                    ? 'bg-[#60A5FA]/10 border-[#60A5FA]/30 text-[#60A5FA]'
                     : 'bg-[#010102] border-[#23252A] text-ink-muted hover:text-ink'
                 }`}
                 title="Toggle automated scrolling to bottom"
               >
-                <ArrowDown size={13} className={autoScroll ? 'text-[#828FFF]' : 'text-ink-tertiary'} />
+                <ArrowDown size={13} className={autoScroll ? 'text-[#60A5FA]' : 'text-ink-tertiary'} />
                 <span>Auto-scroll</span>
               </button>
 
@@ -275,7 +275,7 @@ export default function LogsPage() {
                 type="button"
                 onClick={copyLogs}
                 disabled={filteredLogs.length === 0}
-                className="button-secondary h-9 px-3.5 text-[12px] flex items-center gap-1.5 disabled:opacity-40 hover:border-[#828FFF]/40 hover:text-ink transition-colors"
+                className="button-secondary h-9 px-3.5 text-[12px] flex items-center gap-1.5 disabled:opacity-40 hover:border-[#60A5FA]/40 hover:text-ink transition-colors"
                 title="Copy current filtered logs to clipboard"
               >
                 {copied ? <Check size={14} className="text-emerald-400" /> : <Copy size={14} />}

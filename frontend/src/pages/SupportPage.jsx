@@ -150,7 +150,7 @@ export default function SupportPage() {
 
       <section className="space-y-4">
         <h2 className="text-body font-semibold flex items-center gap-2 text-ink uppercase tracking-wider">
-          <HelpCircle className="w-4 h-4 text-[#828FFF]" />
+          <HelpCircle className="w-4 h-4 text-[#60A5FA]" />
           Frequently Asked Questions
         </h2>
         <div className="flex flex-col gap-2">
@@ -188,12 +188,12 @@ export default function SupportPage() {
       {/* System Health Check */}
       <section className="space-y-4">
         <h2 className="text-body font-semibold flex items-center gap-2 text-ink uppercase tracking-wider">
-          <Activity className="w-4 h-4 text-[#828FFF]" />
+          <Activity className="w-4 h-4 text-[#60A5FA]" />
           System Health
         </h2>
         <div className="card-linear p-5 bg-[#0F1011] border-[#23252A] flex items-center justify-between">
           <div className="flex items-center gap-3">
-            {healthStatus === 'checking' && <Loader2 className="w-5 h-5 text-[#828FFF] animate-spin" />}
+            {healthStatus === 'checking' && <Loader2 className="w-5 h-5 text-[#60A5FA] animate-spin" />}
             {healthStatus === 'ok' && <CheckCircle className="w-5 h-5 text-[#27A644]" />}
             {healthStatus === 'error' && <AlertTriangle className="w-5 h-5 text-[#F87171]" />}
             <div>
@@ -208,7 +208,7 @@ export default function SupportPage() {
           <span className={`inline-flex px-2 py-0.5 rounded font-mono text-[10px] font-semibold border ${
             healthStatus === 'ok' ? 'bg-[#27A644]/10 text-[#27A644] border-[#27A644]/20' :
             healthStatus === 'error' ? 'bg-[#F87171]/10 text-[#F87171] border-[#F87171]/20' :
-            'bg-[#5E6AD2]/10 text-[#828FFF] border-[#5E6AD2]/20'
+            'bg-[#2563EB]/10 text-[#60A5FA] border-[#2563EB]/20'
           }`}>
             {healthStatus === 'ok' ? 'HEALTHY' : healthStatus === 'error' ? 'DOWN' : 'CHECKING'}
           </span>
@@ -218,7 +218,7 @@ export default function SupportPage() {
       {/* Keyboard Shortcuts */}
       <section className="space-y-4">
         <h2 className="text-body font-semibold flex items-center gap-2 text-ink uppercase tracking-wider">
-          <Keyboard className="w-4 h-4 text-[#828FFF]" />
+          <Keyboard className="w-4 h-4 text-[#60A5FA]" />
           Keyboard Shortcuts
         </h2>
         <div className="card-linear p-5 bg-[#0F1011] border-[#23252A]">
@@ -253,9 +253,9 @@ export default function SupportPage() {
 function GuideStep({ num, icon, title, link, children }) {
   return (
     <Link to={link} className="block group">
-      <div className="card-linear h-full transition-all group-hover:border-[#5E6AD2]/50 group-hover:bg-[#141516] p-6 bg-[#0F1011] border-[#23252A]">
+      <div className="card-linear h-full transition-all group-hover:border-[#2563EB]/50 group-hover:bg-[#141516] p-6 bg-[#0F1011] border-[#23252A]">
         <div className="flex items-center gap-3 mb-3">
-          <div className="w-6 h-6 rounded bg-[#010102] border border-[#23252A] flex items-center justify-center text-[#828FFF] text-[11px] font-bold font-mono">
+          <div className="w-6 h-6 rounded bg-[#010102] border border-[#23252A] flex items-center justify-center text-[#60A5FA] text-[11px] font-bold font-mono">
             {num}
           </div>
           <span className="font-semibold text-ink text-caption">{title}</span>
@@ -269,7 +269,7 @@ function GuideStep({ num, icon, title, link, children }) {
 function ArchCard({ icon, title, items }) {
   return (
     <div className="card-linear p-6 bg-[#0F1011] border-[#23252A]">
-      <div className="flex items-center gap-2 mb-4 text-[#828FFF] font-semibold">
+      <div className="flex items-center gap-2 mb-4 text-[#60A5FA] font-semibold">
         {icon}
         <span className="text-ink text-caption font-medium">{title}</span>
       </div>
@@ -288,7 +288,7 @@ function ArchCard({ icon, title, items }) {
 function FAQItem({ question, answer }) {
   const [open, setOpen] = useState(false);
   return (
-    <div className={`border rounded-lg overflow-hidden transition-colors ${open ? 'border-[#5E6AD2]/50 bg-[#141516]' : 'border-[#23252A] bg-[#0F1011]'}`}>
+    <div className={`border rounded-lg overflow-hidden transition-colors ${open ? 'border-[#2563EB]/50 bg-[#141516]' : 'border-[#23252A] bg-[#0F1011]'}`}>
       <button 
         onClick={() => setOpen(!open)} 
         className="w-full flex justify-between items-center p-4 text-left font-medium text-ink hover:text-ink-subtle focus:outline-none"
@@ -311,9 +311,12 @@ function FAQItem({ question, answer }) {
 
 function TroubleItem({ issue, fix }) {
   return (
-    <div className="border-l-2 border-[#FBBF24] pl-3">
-      <div className="font-semibold text-caption mb-1 text-ink">{issue}</div>
-      <div className="text-caption text-ink-subtle leading-relaxed">{fix}</div>
+    <div className="p-3.5 rounded-lg bg-[#141516] border border-[#23252A] space-y-1.5">
+      <div className="flex items-center gap-2">
+        <span className="w-1.5 h-1.5 rounded-full bg-[#FBBF24]" />
+        <span className="font-semibold text-caption text-ink">{issue}</span>
+      </div>
+      <div className="text-caption text-ink-subtle leading-relaxed pl-3.5">{fix}</div>
     </div>
   );
 }

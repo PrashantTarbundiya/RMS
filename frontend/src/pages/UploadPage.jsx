@@ -560,14 +560,14 @@ export default function UploadPage() {
         style={{ transform: 'none' }}
         className={`p-4 rounded-xl border transition-all duration-200 relative ${
           isActive 
-            ? 'border-[#828FFF] bg-[#141516] shadow-lg shadow-[#828FFF]/10' 
+            ? 'border-[#60A5FA] bg-[#141516] shadow-lg shadow-[#60A5FA]/10' 
             : 'border-[#23252A] bg-[#191A1B] hover:border-[#34343A]'
-        } ${dragActiveField === field ? 'border-dashed border-[#828FFF] bg-[#5E6AD2]/10' : ''}`}
+        } ${dragActiveField === field ? 'border-dashed border-[#60A5FA] bg-[#2563EB]/10' : ''}`}
       >
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
             <span className="text-caption font-semibold text-ink tracking-wide">{label}</span>
-            {isActive && <span className="w-1.5 h-1.5 rounded-full bg-[#828FFF] animate-pulse" />}
+            {isActive && <span className="w-1.5 h-1.5 rounded-full bg-[#60A5FA] animate-pulse" />}
           </div>
           <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-[#101012] border border-[#23252A] text-ink-subtle">
             {totalFieldPhotos}
@@ -576,11 +576,11 @@ export default function UploadPage() {
 
         <div className="relative group">
           <label className={`flex flex-col items-center justify-center w-full h-24 border-2 border-dashed rounded-lg transition-colors cursor-pointer ${
-            dragActiveField === field ? 'border-[#828FFF] bg-[#5E6AD2]/10' : 'border-[#23252A] hover:bg-[#141516] hover:border-[#34343A]'
+            dragActiveField === field ? 'border-[#60A5FA] bg-[#2563EB]/10' : 'border-[#23252A] hover:bg-[#141516] hover:border-[#34343A]'
           }`}>
             <div className="flex flex-col items-center justify-center pt-4 pb-5 text-center">
-              <UploadCloud className={`w-6 h-6 mb-1 ${dragActiveField === field ? 'text-[#828FFF] animate-pulse' : 'text-ink-tertiary group-hover:text-ink-subtle'}`} />
-              <p className={`text-[11px] ${dragActiveField === field ? 'text-[#828FFF] font-semibold' : 'text-ink-tertiary group-hover:text-ink-subtle'}`}>
+              <UploadCloud className={`w-6 h-6 mb-1 ${dragActiveField === field ? 'text-[#60A5FA] animate-pulse' : 'text-ink-tertiary group-hover:text-ink-subtle'}`} />
+              <p className={`text-[11px] ${dragActiveField === field ? 'text-[#60A5FA] font-semibold' : 'text-ink-tertiary group-hover:text-ink-subtle'}`}>
                 {dragActiveField === field ? 'Drop to Add!' : 'Click or Drop file'}
               </p>
             </div>
@@ -623,7 +623,7 @@ export default function UploadPage() {
                 className="relative group w-12 h-12 rounded-md overflow-hidden border border-[#23252A] cursor-grab active:cursor-grabbing shrink-0"
               >
                 <img src={URL.createObjectURL(file)} alt="preview" className="w-full h-full object-cover" />
-                <span className="absolute top-0 left-0 bg-[#5E6AD2]/10 text-[#828FFF] border border-[#5E6AD2]/20 text-[7px] py-0 px-1 rounded-none uppercase font-mono tracking-widest font-extrabold scale-75 origin-top-left">New</span>
+                <span className="absolute top-0 left-0 bg-[#2563EB]/10 text-[#60A5FA] border border-[#2563EB]/20 text-[7px] py-0 px-1 rounded-none uppercase font-mono tracking-widest font-extrabold scale-75 origin-top-left">New</span>
                 <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                   <button type="button" onClick={(e) => { e.stopPropagation(); removeFile(field, idx); }} className="p-1 bg-[#F87171]/20 text-[#F87171] rounded hover:bg-[#F87171] hover:text-white transition-colors">
                     <X className="w-3.5 h-3.5" />
@@ -665,7 +665,7 @@ export default function UploadPage() {
           onClick={() => { setUploadMethod('auto'); setStatus({ type: '', message: '' }); }}
           className={`flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg text-sm font-medium transition-all ${
             uploadMethod === 'auto'
-              ? 'bg-[#5E6AD2] text-white shadow-md font-semibold'
+              ? 'bg-[#2563EB] text-white shadow-md font-semibold'
               : 'text-ink-subtle hover:text-ink hover:bg-[#1C1D1F]'
           }`}
         >
@@ -678,7 +678,7 @@ export default function UploadPage() {
           onClick={() => { setUploadMethod('bulk_zip'); setStatus({ type: '', message: '' }); }}
           className={`flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg text-sm font-medium transition-all ${
             uploadMethod === 'bulk_zip'
-              ? 'bg-[#5E6AD2] text-white shadow-md font-semibold'
+              ? 'bg-[#2563EB] text-white shadow-md font-semibold'
               : 'text-ink-subtle hover:text-ink hover:bg-[#1C1D1F]'
           }`}
         >
@@ -691,7 +691,7 @@ export default function UploadPage() {
           onClick={() => { setUploadMethod('bulk_folder'); setStatus({ type: '', message: '' }); }}
           className={`flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg text-sm font-medium transition-all ${
             uploadMethod === 'bulk_folder'
-              ? 'bg-[#5E6AD2] text-white shadow-md font-semibold'
+              ? 'bg-[#2563EB] text-white shadow-md font-semibold'
               : 'text-ink-subtle hover:text-ink hover:bg-[#1C1D1F]'
           }`}
         >
@@ -704,7 +704,7 @@ export default function UploadPage() {
           onClick={() => { setUploadMethod('manual'); setStatus({ type: '', message: '' }); }}
           className={`flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg text-sm font-medium transition-all ${
             uploadMethod === 'manual'
-              ? 'bg-[#5E6AD2] text-white shadow-md font-semibold'
+              ? 'bg-[#2563EB] text-white shadow-md font-semibold'
               : 'text-ink-subtle hover:text-ink hover:bg-[#1C1D1F]'
           }`}
         >
@@ -720,7 +720,7 @@ export default function UploadPage() {
             <div className={`p-4 rounded-xl flex items-center gap-3 text-sm border shadow-lg ${
               status.type === 'error' ? 'bg-[#F87171]/10 border-[#F87171]/30 text-[#F87171]' : 
               status.type === 'success' ? 'bg-[#27A644]/10 border-[#27A644]/30 text-[#27A644]' : 
-              'bg-[#5E6AD2]/10 border-[#5E6AD2]/30 text-[#828FFF]'
+              'bg-[#2563EB]/10 border-[#2563EB]/30 text-[#60A5FA]'
             }`}>
               {status.type === 'error' && <AlertCircle className="w-5 h-5 shrink-0" />}
               {status.type === 'success' && <CheckCircle className="w-5 h-5 shrink-0" />}
@@ -856,12 +856,12 @@ export default function UploadPage() {
                 setAutoDragActive(false);
                 if (e.dataTransfer.files?.length > 0) handleAutoFiles(e.dataTransfer.files);
               }}
-              className={`p-8 border-2 border-dashed rounded-2xl text-center transition-all cursor-pointer ${
+              className={`p-8 border-2 border-dashed rounded-xl text-center transition-all cursor-pointer ${
                 autoDragActive ? 'border-[#2563EB] bg-[#2563EB]/10 scale-[1.01]' : 'border-[#23252A] hover:border-[#3E424A] bg-[#141516]/60'
               }`}
             >
               <label className="cursor-pointer block">
-                <UploadCloud className={`w-12 h-12 mx-auto mb-3 transition-colors ${autoDragActive ? 'text-[#3B82F6] animate-bounce' : 'text-ink-tertiary'}`} />
+                <UploadCloud className={`w-12 h-12 mx-auto mb-3 transition-colors ${autoDragActive ? 'text-[#3B82F6] animate-pulse' : 'text-ink-tertiary'}`} />
                 <p className="text-sm font-medium text-ink">
                   {autoDragActive ? 'Drop all photos here now!' : 'Drop all photos for this person here, or click to browse'}
                 </p>
@@ -958,7 +958,7 @@ export default function UploadPage() {
             {/* Explainer card */}
             <div className="p-4 rounded-xl bg-[#141516] border border-[#23252A] space-y-2">
               <div className="flex items-center gap-2 text-sm font-semibold text-ink">
-                <Archive className="w-4 h-4 text-[#828FFF]" />
+                <Archive className="w-4 h-4 text-[#60A5FA]" />
                 <span>Multi-Personnel ZIP Batch Upload</span>
               </div>
               <p className="text-caption text-ink-subtle">
@@ -971,7 +971,7 @@ export default function UploadPage() {
             {/* ZIP Drag & Drop zone */}
             <div
               onClick={() => zipInputRef.current?.click()}
-              className="p-8 border-2 border-dashed border-[#23252A] hover:border-[#828FFF] rounded-2xl text-center bg-[#141516]/60 cursor-pointer transition-all"
+              className="p-8 border-2 border-dashed border-[#23252A] hover:border-[#60A5FA] rounded-xl text-center bg-[#141516]/60 cursor-pointer transition-all"
             >
               <input
                 ref={zipInputRef}
@@ -980,7 +980,7 @@ export default function UploadPage() {
                 className="hidden"
                 onChange={handleZipFileChange}
               />
-              <Archive className="w-12 h-12 text-[#828FFF] mx-auto mb-3" />
+              <Archive className="w-12 h-12 text-[#60A5FA] mx-auto mb-3" />
               {zipFile ? (
                 <div>
                   <p className="text-base font-semibold text-ink">{zipFile.name}</p>
@@ -1008,7 +1008,7 @@ export default function UploadPage() {
                 max="50"
                 value={epochs}
                 onChange={(e) => setEpochs(parseInt(e.target.value, 10))}
-                className="w-full h-1.5 bg-[#23252A] rounded-lg appearance-none cursor-pointer accent-[#5E6AD2]"
+                className="w-full h-1.5 bg-[#23252A] rounded-lg appearance-none cursor-pointer accent-[#2563EB]"
               />
             </div>
 
@@ -1020,7 +1020,7 @@ export default function UploadPage() {
                   <span className="font-mono">{zipProgress}%</span>
                 </div>
                 <div className="w-full h-2 bg-[#23252A] rounded-full overflow-hidden">
-                  <div className="h-full bg-[#5E6AD2] transition-all duration-300" style={{ width: `${zipProgress}%` }} />
+                  <div className="h-full bg-[#2563EB] transition-all duration-300" style={{ width: `${zipProgress}%` }} />
                 </div>
               </div>
             )}
@@ -1096,7 +1096,7 @@ export default function UploadPage() {
 
           <div
             onClick={() => folderInputRef.current?.click()}
-            className="p-8 border-2 border-dashed border-[#23252A] hover:border-emerald-400 rounded-2xl text-center bg-[#141516]/60 cursor-pointer transition-all"
+            className="p-8 border-2 border-dashed border-[#23252A] hover:border-emerald-400 rounded-xl text-center bg-[#141516]/60 cursor-pointer transition-all"
           >
             <input
               ref={folderInputRef}
@@ -1147,7 +1147,7 @@ export default function UploadPage() {
                         checked={person.selected}
                         onChange={() => toggleFolderPerson(idx)}
                         disabled={isFolderSubmitting}
-                        className="rounded border-[#23252A] text-[#5E6AD2] focus:ring-0"
+                        className="rounded border-[#23252A] text-[#2563EB] focus:ring-0"
                       />
                       {person.previewUrl && (
                         <img src={person.previewUrl} alt={person.name} className="w-10 h-10 rounded-md object-cover border border-[#23252A]" />
@@ -1157,7 +1157,7 @@ export default function UploadPage() {
                         value={person.name}
                         onChange={(e) => updateFolderPersonName(idx, e.target.value)}
                         disabled={isFolderSubmitting}
-                        className="bg-transparent border-b border-transparent hover:border-[#3E424A] focus:border-[#828FFF] text-sm text-ink px-1 py-0.5 font-mono"
+                        className="bg-transparent border-b border-transparent hover:border-[#3E424A] focus:border-[#60A5FA] text-sm text-ink px-1 py-0.5 font-mono"
                       />
                     </div>
 
@@ -1167,7 +1167,7 @@ export default function UploadPage() {
                       </span>
                       {person.status === 'success' && <span className="text-emerald-400 font-semibold flex items-center gap-1"><Check className="w-3.5 h-3.5" /> Done</span>}
                       {person.status === 'error' && <span className="text-red-400 font-semibold">Failed</span>}
-                      {person.status === 'uploading' && <span className="text-[#828FFF] animate-pulse">Uploading...</span>}
+                      {person.status === 'uploading' && <span className="text-[#60A5FA] animate-pulse">Uploading...</span>}
                       {person.status === 'pending' && <span className="text-ink-tertiary">Ready</span>}
                     </div>
                   </div>

@@ -193,7 +193,7 @@ export function Navbar() {
                   <button 
                     onClick={() => { installApp(); setIsMobileOpen(false); }} 
                     className="logout-btn" 
-                    style={{ color: '#828FFF' }}
+                    style={{ color: '#60A5FA' }}
                   >
                     <Download size={18} />
                     <span>Install App (PWA)</span>
@@ -280,7 +280,7 @@ export function Navbar() {
             <button 
               onClick={installApp} 
               className={`logout-btn ${isCollapsed ? 'justify-center' : ''}`} 
-              style={{ color: '#828FFF' }}
+              style={{ color: '#60A5FA' }}
               title={isCollapsed ? "Install App (PWA)" : undefined}
             >
               <Download size={18} />
@@ -470,7 +470,7 @@ export function Navbar() {
       <nav className="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-[#0F1011]/95 backdrop-blur-md border-t border-[#23252A] z-40 flex items-center justify-around px-2 shadow-2xl">
         <NavLink 
           to="/dashboard" 
-          className={({ isActive }) => `flex flex-col items-center justify-center gap-1 py-1 px-3 text-xs font-medium transition-colors ${isActive ? 'text-[#828FFF]' : 'text-ink-subtle hover:text-ink'}`}
+          className={({ isActive }) => `flex flex-col items-center justify-center gap-1 py-1 px-3 text-xs font-medium transition-colors ${isActive ? 'text-[#60A5FA]' : 'text-ink-subtle hover:text-ink'}`}
         >
           <Activity size={18} />
           <span className="text-[10px]">Dashboard</span>
@@ -478,7 +478,7 @@ export function Navbar() {
 
         <NavLink 
           to="/attendance" 
-          className={({ isActive }) => `flex flex-col items-center justify-center gap-1 py-1 px-3 text-xs font-medium transition-colors ${isActive ? 'text-[#828FFF]' : 'text-ink-subtle hover:text-ink'}`}
+          className={({ isActive }) => `flex flex-col items-center justify-center gap-1 py-1 px-3 text-xs font-medium transition-colors ${isActive ? 'text-[#60A5FA]' : 'text-ink-subtle hover:text-ink'}`}
         >
           <ClipboardList size={18} />
           <span className="text-[10px]">Attendance</span>
@@ -486,7 +486,7 @@ export function Navbar() {
 
         <NavLink 
           to="/kiosk" 
-          className={({ isActive }) => `flex flex-col items-center justify-center gap-1 py-1 px-3 text-xs font-medium transition-colors ${isActive ? 'text-[#828FFF]' : 'text-ink-subtle hover:text-ink'}`}
+          className={({ isActive }) => `flex flex-col items-center justify-center gap-1 py-1 px-3 text-xs font-medium transition-colors ${isActive ? 'text-[#60A5FA]' : 'text-ink-subtle hover:text-ink'}`}
         >
           <Play size={18} />
           <span className="text-[10px]">Kiosk</span>
@@ -494,7 +494,7 @@ export function Navbar() {
 
         <NavLink 
           to="/cameras" 
-          className={({ isActive }) => `flex flex-col items-center justify-center gap-1 py-1 px-3 text-xs font-medium transition-colors ${isActive ? 'text-[#828FFF]' : 'text-ink-subtle hover:text-ink'}`}
+          className={({ isActive }) => `flex flex-col items-center justify-center gap-1 py-1 px-3 text-xs font-medium transition-colors ${isActive ? 'text-[#60A5FA]' : 'text-ink-subtle hover:text-ink'}`}
         >
           <Camera size={18} />
           <span className="text-[10px]">Cameras</span>

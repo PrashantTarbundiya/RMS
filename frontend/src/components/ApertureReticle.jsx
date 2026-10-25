@@ -3,12 +3,12 @@ import React from 'react';
 export default function ApertureReticle({ children, className = '', active = false, status = 'default' }) {
   // status: 'default', 'success' (green), 'error' (red), 'loading' (pulsing)
   const statusColorMap = {
-    default: 'border-[#5E6AD2]', // accent-primary
+    default: 'border-[#2563EB]', // accent-primary
     success: 'border-[#27A644]', // success green
     error: 'border-[#F87171]',   // alert-crimson red
-    loading: 'border-[#5E6AD2] animate-pulse'
+    loading: 'border-[#2563EB] animate-pulse'
   };
-  const colorClass = statusColorMap[status] || 'border-[#5E6AD2]';
+  const colorClass = statusColorMap[status] || 'border-[#2563EB]';
 
   return (
     <div className={`relative group reticle-container ${className} ${active ? 'reticle-active' : ''}`}>

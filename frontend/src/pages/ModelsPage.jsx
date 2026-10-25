@@ -235,7 +235,7 @@ export default function ModelsPage() {
         {enableFacenet512 && (
           <div className="card-linear p-6">
             <div className="flex items-center gap-4 mb-4">
-              <div className="w-12 h-12 rounded-lg bg-[#5E6AD2]/10 flex items-center justify-center text-[#828FFF] border border-[#5E6AD2]/20">
+              <div className="w-12 h-12 rounded-lg bg-[#2563EB]/10 flex items-center justify-center text-[#60A5FA] border border-[#2563EB]/20">
                 <Cpu className="w-6 h-6" />
               </div>
               <div>
@@ -254,13 +254,13 @@ export default function ModelsPage() {
         {enableInsightFace && (
           <div className="card-linear p-6">
             <div className="flex items-center gap-4 mb-4">
-              <div className="w-12 h-12 rounded-lg bg-[#5E6AD2]/10 flex items-center justify-center text-[#828FFF] border border-[#5E6AD2]/20">
+              <div className="w-12 h-12 rounded-lg bg-[#2563EB]/10 flex items-center justify-center text-[#60A5FA] border border-[#2563EB]/20">
                 <Cpu className="w-6 h-6" />
               </div>
               <div>
                 <div className="text-body font-medium text-ink">InsightFace ArcFace</div>
-                <div className="text-caption text-[#828FFF] font-mono flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#828FFF]"></span> Secondary Verifier
+                <div className="text-caption text-[#60A5FA] font-mono flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#60A5FA]"></span> Secondary Verifier
                 </div>
               </div>
             </div>
@@ -295,7 +295,7 @@ export default function ModelsPage() {
                   checked={enableFacenet512} 
                   onChange={e => handleToggleFacenet512(e.target.checked)} 
                 />
-                <div className="w-9 h-5 bg-[#141516] rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[4px] after:left-[3px] after:bg-ink-muted after:rounded-full after:h-3 after:w-3.5 after:transition-all peer-checked:bg-[#5E6AD2] border border-[#23252A]"></div>
+                <div className="w-9 h-5 bg-[#141516] rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[4px] after:left-[3px] after:bg-ink-muted after:rounded-full after:h-3 after:w-3.5 after:transition-all peer-checked:bg-[#2563EB] border border-[#23252A]"></div>
               </label>
             </div>
 
@@ -312,7 +312,7 @@ export default function ModelsPage() {
                   checked={enableInsightFace} 
                   onChange={e => handleToggleInsightFace(e.target.checked)} 
                 />
-                <div className="w-9 h-5 bg-[#141516] rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[4px] after:left-[3px] after:bg-ink-muted after:rounded-full after:h-3 after:w-3.5 after:transition-all peer-checked:bg-[#5E6AD2] border border-[#23252A]"></div>
+                <div className="w-9 h-5 bg-[#141516] rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[4px] after:left-[3px] after:bg-ink-muted after:rounded-full after:h-3 after:w-3.5 after:transition-all peer-checked:bg-[#2563EB] border border-[#23252A]"></div>
               </label>
             </div>
 
@@ -329,7 +329,7 @@ export default function ModelsPage() {
                   checked={showConfidence} 
                   onChange={e => handleToggleConfidence(e.target.checked)} 
                 />
-                <div className="w-9 h-5 bg-[#141516] rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[4px] after:left-[3px] after:bg-ink-muted after:rounded-full after:h-3 after:w-3.5 after:transition-all peer-checked:bg-[#5E6AD2] border border-[#23252A]"></div>
+                <div className="w-9 h-5 bg-[#141516] rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[4px] after:left-[3px] after:bg-ink-muted after:rounded-full after:h-3 after:w-3.5 after:transition-all peer-checked:bg-[#2563EB] border border-[#23252A]"></div>
               </label>
             </div>
             
@@ -337,7 +337,7 @@ export default function ModelsPage() {
               <div className="bg-[#010102]/50 p-5 rounded-lg border border-[#23252A]">
                  <div className="flex justify-between items-center mb-2">
                    <label className="text-caption font-medium text-ink-subtle">InsightFace Confirmation Threshold</label>
-                   <span className="text-[#828FFF] font-mono font-semibold">{threshold.toFixed(2)}</span>
+                   <span className="text-[#60A5FA] font-mono font-semibold">{threshold.toFixed(2)}</span>
                  </div>
                  <p className="text-[11px] text-ink-tertiary mb-6">
                    Lower values = Stricter matching (fewer false positives). Higher values = Looser matching (fewer false negatives). Default is 0.35.
@@ -347,7 +347,7 @@ export default function ModelsPage() {
                    <input 
                      type="range" min="0.10" max="0.50" step="0.01" value={threshold} 
                      onChange={(e) => setThreshold(parseFloat(e.target.value))}
-                     className="flex-1 accent-[#5E6AD2] h-1.5 bg-[#141516] rounded-lg appearance-none cursor-pointer"
+                     className="flex-1 accent-[#2563EB] h-1.5 bg-[#141516] rounded-lg appearance-none cursor-pointer"
                    />
                    <span className="text-xs text-ink-tertiary">0.50 (Loose)</span>
                  </div>
@@ -369,7 +369,7 @@ export default function ModelsPage() {
         <div className={`card-linear p-6 border transition-all ${
           benchmarkStatus.imported 
             ? 'border-emerald-500/30 bg-gradient-to-b from-emerald-500/10 to-transparent' 
-            : 'border-[#5E6AD2]/30 bg-gradient-to-b from-[#5E6AD2]/10 to-transparent'
+            : 'border-[#2563EB]/30 bg-gradient-to-b from-[#2563EB]/10 to-transparent'
         }`}>
           <div>
             <div className="flex items-center gap-2 mb-2 flex-wrap">
@@ -378,12 +378,12 @@ export default function ModelsPage() {
                   <Check className="w-3 h-3" /> ALREADY IMPORTED ({benchmarkStatus.benchmark_count || 70} PERSONNEL ACTIVE)
                 </span>
               ) : (
-                <span className="px-2 py-0.5 rounded text-[10px] font-mono font-semibold bg-[#5E6AD2]/20 text-[#828FFF] border border-[#5E6AD2]/30">
+                <span className="px-2 py-0.5 rounded text-[10px] font-mono font-semibold bg-[#2563EB]/20 text-[#60A5FA] border border-[#2563EB]/30">
                   RECOMMENDED
                 </span>
               )}
               <h3 className="text-body font-medium text-ink flex items-center gap-2">
-                <Box className={`w-5 h-5 ${benchmarkStatus.imported ? 'text-emerald-400' : 'text-[#828FFF]'}`} /> Benchmark Dataset & Pre-Trained AI Weights
+                <Box className={`w-5 h-5 ${benchmarkStatus.imported ? 'text-emerald-400' : 'text-[#60A5FA]'}`} /> Benchmark Dataset & Pre-Trained AI Weights
               </h3>
             </div>
             <p className="text-caption text-ink-subtle mb-6 leading-relaxed">
@@ -419,7 +419,7 @@ export default function ModelsPage() {
                 <button 
                   onClick={handleImportDefaults} 
                   disabled={isImportingDefaults} 
-                  className="button-primary bg-[#5E6AD2] hover:bg-[#4E5AC0] text-white flex items-center gap-2 font-medium shadow-lg shadow-[#5E6AD2]/25"
+                  className="button-primary bg-[#2563EB] hover:bg-[#1D4ED8] text-white flex items-center gap-2 font-medium shadow-lg shadow-[#2563EB]/25"
                 >
                   {isImportingDefaults ? <Loader2 className="w-4 h-4 animate-spin text-white" /> : <Upload className="w-4 h-4 text-white" />}
                   <span className="text-button text-white">{isImportingDefaults ? 'Importing Weights...' : 'Import 70 Personnel & AI Weights'}</span>
@@ -457,7 +457,7 @@ export default function ModelsPage() {
                     <div>
                       <div className="flex items-center gap-2">
                         <span className="text-caption font-medium text-ink">{item.title}</span>
-                        <code className="text-[11px] font-mono text-[#828FFF] bg-[#5E6AD2]/10 px-1.5 py-0.5 rounded">{item.name}</code>
+                        <code className="text-[11px] font-mono text-[#60A5FA] bg-[#2563EB]/10 px-1.5 py-0.5 rounded">{item.name}</code>
                         {sizeStr && <span className="text-[11px] font-mono text-ink-tertiary">({sizeStr})</span>}
                       </div>
                       <p className="text-[11px] text-ink-tertiary mt-0.5 m-0">{item.desc}</p>
@@ -469,7 +469,7 @@ export default function ModelsPage() {
                         disabled={isLoading || !isAvail}
                         className={`text-[11px] py-1.5 px-3 rounded-md flex items-center gap-1.5 font-medium transition-all ${
                           isAvail
-                            ? 'bg-[#5E6AD2]/15 text-[#828FFF] border border-[#5E6AD2]/30 hover:bg-[#5E6AD2]/25'
+                            ? 'bg-[#2563EB]/15 text-[#60A5FA] border border-[#2563EB]/30 hover:bg-[#2563EB]/25'
                             : 'bg-zinc-800/40 text-zinc-500 border border-zinc-800 cursor-not-allowed'
                         }`}
                       >
@@ -534,7 +534,7 @@ export default function ModelsPage() {
           <div className="flex items-center justify-between mb-4">
             <div>
               <h3 className="text-body font-medium text-ink flex items-center gap-2">
-                <History className="w-5 h-5 text-[#828FFF]" /> Training & Fine-Tuning History
+                <History className="w-5 h-5 text-[#60A5FA]" /> Training & Fine-Tuning History
               </h3>
               <p className="text-caption text-ink-subtle mt-1">
                 Audit trail of neural network retraining sessions, enrolled personnel, sample volumes, and accuracy metrics.
@@ -571,7 +571,7 @@ export default function ModelsPage() {
                       <span className="text-caption font-medium text-ink">{item.model_name}</span>
                     </td>
                     <td className="py-2.5 px-4">
-                      <span className="text-[11px] font-mono text-[#828FFF] bg-[#5E6AD2]/10 px-2 py-0.5 rounded">
+                      <span className="text-[11px] font-mono text-[#60A5FA] bg-[#2563EB]/10 px-2 py-0.5 rounded">
                         {item.person_name || 'All'}
                       </span>
                     </td>

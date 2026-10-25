@@ -210,7 +210,7 @@ export default function AttendancePage() {
       {!isLoading && !error && (
         <motion.div variants={itemVariants} className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div className="p-4 bg-[#0F1011] border border-[#23252A] rounded-lg flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-[#5E6AD2]/10"><ClipboardList size={18} className="text-[#828FFF]" /></div>
+            <div className="p-2 rounded-lg bg-[#2563EB]/10"><ClipboardList size={18} className="text-[#60A5FA]" /></div>
             <div>
               <div className="text-lg font-bold text-ink">{filteredData.length}</div>
               <div className="text-[11px] text-ink-subtle">Total Scans</div>
@@ -254,7 +254,7 @@ export default function AttendancePage() {
               <Calendar className="w-4 h-4 text-ink-tertiary shrink-0" />
               <input
                 type="date"
-                className="bg-transparent border-none text-ink text-caption font-mono focus:outline-none p-0 accent-[#5E6AD2]"
+                className="bg-transparent border-none text-ink text-caption font-mono focus:outline-none p-0 accent-[#2563EB]"
                 value={dateFilter === 'last_7_days' ? '' : dateFilter}
                 onChange={(e) => setDateFilter(e.target.value)}
                 style={{ colorScheme: 'dark' }}
@@ -317,7 +317,7 @@ export default function AttendancePage() {
           <button
             onClick={() => setQuickDate('all')}
             className={`px-2.5 py-1 rounded-md text-xs font-medium transition-all ${
-              !dateFilter ? 'bg-[#5E6AD2]/20 text-[#828FFF] border border-[#5E6AD2]/40' : 'bg-[#141516] border border-[#23252A] hover:border-[#383A42]'
+              !dateFilter ? 'bg-[#2563EB]/20 text-[#60A5FA] border border-[#2563EB]/40' : 'bg-[#141516] border border-[#23252A] hover:border-[#383A42]'
             }`}
           >
             All Time
@@ -326,7 +326,7 @@ export default function AttendancePage() {
             onClick={() => setQuickDate('today')}
             className={`px-2.5 py-1 rounded-md text-xs font-medium transition-all ${
               dateFilter === todayYMD()
-                ? 'bg-[#5E6AD2]/20 text-[#828FFF] border border-[#5E6AD2]/40'
+                ? 'bg-[#2563EB]/20 text-[#60A5FA] border border-[#2563EB]/40'
                 : 'bg-[#141516] border border-[#23252A] hover:border-[#383A42]'
             }`}
           >
@@ -336,7 +336,7 @@ export default function AttendancePage() {
             onClick={() => setQuickDate('yesterday')}
             className={`px-2.5 py-1 rounded-md text-xs font-medium transition-all ${
               dateFilter === yesterdayYMD()
-                ? 'bg-[#5E6AD2]/20 text-[#828FFF] border border-[#5E6AD2]/40'
+                ? 'bg-[#2563EB]/20 text-[#60A5FA] border border-[#2563EB]/40'
                 : 'bg-[#141516] border border-[#23252A] hover:border-[#383A42]'
             }`}
           >
@@ -346,7 +346,7 @@ export default function AttendancePage() {
             onClick={() => setQuickDate('7d')}
             className={`px-2.5 py-1 rounded-md text-xs font-medium transition-all ${
               dateFilter === 'last_7_days'
-                ? 'bg-[#5E6AD2]/20 text-[#828FFF] border border-[#5E6AD2]/40'
+                ? 'bg-[#2563EB]/20 text-[#60A5FA] border border-[#2563EB]/40'
                 : 'bg-[#141516] border border-[#23252A] hover:border-[#383A42]'
             }`}
           >
@@ -395,7 +395,7 @@ export default function AttendancePage() {
                       <td className="px-6 py-3.5 text-ink-muted font-mono text-[12px]">
                         {record.timestamp ? new Date(record.timestamp).toLocaleString([], { dateStyle: 'short', timeStyle: 'medium' }) : '-'}
                       </td>
-                      <td className="px-6 py-3.5 font-medium text-ink group-hover:text-[#828FFF] transition-colors">
+                      <td className="px-6 py-3.5 font-medium text-ink group-hover:text-[#60A5FA] transition-colors">
                         {formatPersonName(record.label)}
                       </td>
                       <td className="px-6 py-3.5 text-ink-muted font-mono">

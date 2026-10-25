@@ -44,10 +44,10 @@ function ProtectedRoute({ children }) {
     return (
       <div className="min-h-screen bg-[#010102] flex flex-col items-center justify-center gap-4">
         <div className="w-10 h-10 rounded-xl border border-[#23252A] flex items-center justify-center bg-[#0F1011]">
-          <span className="font-mono text-[#5E6AD2] font-bold text-sm">R</span>
+          <span className="font-mono text-[#2563EB] font-bold text-sm">R</span>
         </div>
         <div className="flex items-center gap-2">
-          <div className="w-1.5 h-1.5 rounded-full bg-[#5E6AD2] animate-pulse" />
+          <div className="w-1.5 h-1.5 rounded-full bg-[#2563EB] animate-pulse" />
           <span className="text-xs text-ink-subtle tracking-wider">Loading console...</span>
         </div>
       </div>

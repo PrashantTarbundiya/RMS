@@ -126,7 +126,7 @@ export default function LiveAttendancePage() {
           </div>
           <button
             onClick={() => { setIsLoading(true); fetchLiveData(); }}
-            className="button-secondary text-caption flex items-center gap-2 h-9 px-4 hover:border-[#828FFF]/40 transition-colors"
+            className="button-secondary text-caption flex items-center gap-2 h-9 px-4 hover:border-[#60A5FA]/40 transition-colors"
           >
             <RefreshCw size={14} className={isLoading ? 'animate-spin' : ''} />
             <span>Refresh Feed</span>
@@ -154,7 +154,7 @@ export default function LiveAttendancePage() {
                 <ShieldCheck size={16} /> All Verified
               </div>
             </div>
-            <div className="w-10 h-10 rounded-xl bg-[#828FFF]/10 border border-[#828FFF]/20 flex items-center justify-center text-[#828FFF]">
+            <div className="w-10 h-10 rounded-xl bg-[#60A5FA]/10 border border-[#60A5FA]/20 flex items-center justify-center text-[#60A5FA]">
               <Activity size={20} />
             </div>
           </div>

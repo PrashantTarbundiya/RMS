@@ -366,7 +366,7 @@ export default function ManagePersonPage() {
                   <div className={`p-4 rounded-lg flex items-center gap-3 text-sm border ${
                     status.type === 'error' ? 'bg-[#F87171]/10 text-[#F87171] border-[#F87171]/20' : 
                     status.type === 'success' ? 'bg-[#27A644]/10 text-[#27A644] border-[#27A644]/20' : 
-                    'bg-[#5E6AD2]/10 text-[#828FFF] border-[#5E6AD2]/20'
+                    'bg-[#2563EB]/10 text-[#60A5FA] border-[#2563EB]/20'
                   }`}>
                     {status.type === 'error' ? <AlertTriangle className="w-5 h-5" /> : status.type === 'success' ? <CheckCircle className="w-5 h-5" /> : <Info className="w-5 h-5" />}
                     <span className="text-caption">{status.message}</span>
@@ -458,7 +458,7 @@ export default function ManagePersonPage() {
                 else if (srcType === "existing") handleMoveExistingPhoto(e.dataTransfer.getData("sourceAngle"), 'extra', e.dataTransfer.getData("filename"));
                 else if (e.dataTransfer.files) handleFile('extra_files', e.dataTransfer.files);
               }}
-              className={`min-h-[150px] p-6 rounded-lg text-center flex flex-col items-center justify-center cursor-pointer transition-all border-2 ${activeField === 'extra_files' ? 'border-[#828FFF] border-dashed bg-[#5E6AD2]/5' : 'border-[#23252A] border-dashed bg-transparent hover:border-[#34343A] hover:bg-[#141516]/50'}`}
+              className={`min-h-[150px] p-6 rounded-lg text-center flex flex-col items-center justify-center cursor-pointer transition-all border-2 ${activeField === 'extra_files' ? 'border-[#60A5FA] border-dashed bg-[#2563EB]/5' : 'border-[#23252A] border-dashed bg-transparent hover:border-[#34343A] hover:bg-[#141516]/50'}`}
             >
               <input type="file" multiple accept="image/*" id="bulk-upload-manage" className="hidden" onChange={(e) => handleFile('extra_files', e.target.files)} />
               
@@ -532,9 +532,9 @@ function DropBox({ field, title, files, existingFiles, personName, isActive, onF
       onClick={() => onFocus()}
       className={`relative min-h-[190px] rounded-lg p-4 flex flex-col justify-between transition-all border ${
         isActive 
-          ? 'border-[#5E6AD2] bg-[#141516]' 
+          ? 'border-[#2563EB] bg-[#141516]' 
           : isDragActive 
-            ? 'border-[#828FFF] bg-[#5E6AD2]/5' 
+            ? 'border-[#60A5FA] bg-[#2563EB]/5' 
             : 'border-[#23252A] bg-[#0F1011] hover:border-[#34343A]'
       }`}
     >
@@ -595,7 +595,7 @@ function DropBox({ field, title, files, existingFiles, personName, isActive, onF
               className="relative w-12 h-12 group cursor-grab active:cursor-grabbing shrink-0"
             >
               <img src={URL.createObjectURL(f)} className="w-full h-full object-cover rounded border border-[#23252A] shadow-sm" />
-              <span className="absolute top-0 left-0 bg-[#5E6AD2]/10 text-[#828FFF] border border-[#5E6AD2]/20 text-[6px] py-0 px-0.5 rounded-none uppercase font-mono tracking-widest font-extrabold scale-75 origin-top-left">New</span>
+              <span className="absolute top-0 left-0 bg-[#2563EB]/10 text-[#60A5FA] border border-[#2563EB]/20 text-[6px] py-0 px-0.5 rounded-none uppercase font-mono tracking-widest font-extrabold scale-75 origin-top-left">New</span>
               <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                 <button type="button" onClick={(e) => { e.stopPropagation(); onRemove(i); }} className="p-1 bg-[#F87171]/20 text-[#F87171] rounded hover:bg-[#F87171] hover:text-white transition-colors">
                   <X className="w-3.5 h-3.5" />

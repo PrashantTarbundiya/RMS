@@ -47,7 +47,7 @@ function ErrorFallback({ error, errorInfo, onReset }) {
         className="w-full max-w-lg text-center"
       >
         {/* Error Icon */}
-        <div className="mx-auto mb-6 w-20 h-20 rounded-2xl bg-[#F87171]/10 border border-[#F87171]/20 flex items-center justify-center">
+        <div className="mx-auto mb-6 w-20 h-20 rounded-xl bg-[#F87171]/10 border border-[#F87171]/20 flex items-center justify-center">
           <AlertTriangle className="w-9 h-9 text-[#F87171]" />
         </div>
 

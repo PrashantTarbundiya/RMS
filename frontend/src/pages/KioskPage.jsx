@@ -547,19 +547,19 @@ export default function KioskPage() {
   const statusConfig = useMemo(() => ({
     [STATUS.IDLE]: {
       borderColor: 'var(--accent-primary)',
-      glowColor: 'rgba(94, 106, 210, 0.15)',
+      glowColor: 'rgba(37, 99, 235, 0.15)',
       icon: <Scan size={28} />,
       label: 'Step forward to begin',
       sublabel: 'Face authentication system',
-      bgGradient: 'radial-gradient(ellipse at center, rgba(94,106,210,0.06) 0%, transparent 70%)',
+      bgGradient: 'radial-gradient(ellipse at center, rgba(37, 99, 235,0.06) 0%, transparent 70%)',
     },
     [STATUS.SCANNING]: {
       borderColor: 'var(--accent-primary)',
-      glowColor: 'rgba(94, 106, 210, 0.25)',
+      glowColor: 'rgba(37, 99, 235, 0.25)',
       icon: <Eye size={28} className="kiosk-pulse" />,
       label: 'Scanning...',
       sublabel: 'Hold steady, looking at the camera',
-      bgGradient: 'radial-gradient(ellipse at center, rgba(94,106,210,0.08) 0%, transparent 70%)',
+      bgGradient: 'radial-gradient(ellipse at center, rgba(37, 99, 235,0.08) 0%, transparent 70%)',
     },
     [STATUS.VERIFYING]: {
       borderColor: '#38bdf8',
@@ -714,7 +714,7 @@ export default function KioskPage() {
                   {window.location.protocol === 'http:' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1' && (
                     <a 
                       href={`https://${window.location.hostname}${window.location.port === '80' || !window.location.port ? '' : ':443'}${window.location.pathname}`}
-                      className="button-primary bg-[#5E6AD2] hover:bg-[#4E5AC0] text-white px-4 py-2 rounded-lg text-xs font-medium"
+                      className="button-primary bg-[#2563EB] hover:bg-[#1D4ED8] text-white px-4 py-2 rounded-lg text-xs font-medium"
                     >
                       Switch to Secure HTTPS
                     </a>
