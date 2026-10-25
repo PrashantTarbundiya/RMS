@@ -19,8 +19,7 @@ FRIEND_NAMES = {
 }
 
 def is_friend(name):
-    if not name: return False
-    return name.lower().strip() in FRIEND_NAMES or any(f in name.lower() for f in FRIEND_NAMES)
+    return False
 
 def run_seed():
     init_database()

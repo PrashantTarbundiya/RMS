@@ -723,16 +723,10 @@ def export_analytics_pdf(org_id):
 
 # ─── Kiosk Attendance & Department Management Engine ──────────────────
 
-BENCHMARK_EXCLUDED_FRIEND_PATTERNS = [
-    r'vatsal', r'prince', r'shivam', r'dev', r'jay', r'samarth',
-    r'manan', r'rakshit', r'dhruvik', r'shiven', r'prashant'
-]
+BENCHMARK_EXCLUDED_FRIEND_PATTERNS = []
 
 def is_benchmark_excluded_friend(name):
-    if not name:
-        return False
-    name_str = str(name).lower()
-    return any(re.search(pat, name_str) for pat in BENCHMARK_EXCLUDED_FRIEND_PATTERNS)
+    return False
 
 # In-memory cooldown cache: (org_id, normalized_name) -> { time, event_type, department, status, status_label, iso_time }
 _ATTENDANCE_COOLDOWN_CACHE = {}

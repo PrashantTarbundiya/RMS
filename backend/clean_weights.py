@@ -3,18 +3,10 @@ import re
 import pickle
 import glob
 
-BENCHMARK_EXCLUDED_FRIEND_PATTERNS = [
-    r'vatsal', r'vadgama', r'prince', r'ukani', r'shivam', r'petkar',
-    r'dev', r'jay', r'timbdiya', r'samarth', r'thakkar', r'manan',
-    r'solanki', r'rakshit', r'gajnotar', r'dhruvik', r'parmar',
-    r'shiven', r'vamja', r'prashant', r'tarbundiya'
-]
-
+BENCHMARK_EXCLUDED_FRIEND_PATTERNS = []
+ 
 def is_friend(name):
-    if not name:
-        return False
-    name_str = str(name).strip().lower()
-    return any(re.search(pat, name_str) for pat in BENCHMARK_EXCLUDED_FRIEND_PATTERNS)
+    return False
 
 def clean_pickle_file(file_path):
     if not os.path.isfile(file_path):
