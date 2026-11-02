@@ -171,7 +171,7 @@ export default function LogsPage() {
             </h3>
           </div>
 
-          <div className="space-y-2.5 max-h-[540px] overflow-y-auto pr-1">
+          <div className="space-y-2.5 max-h-[260px] sm:max-h-[540px] overflow-y-auto pr-1">
             {isLoading ? (
               <div className="text-caption text-ink-muted text-center py-8">Loading queue telemetry...</div>
             ) : jobs.length === 0 ? (
@@ -224,8 +224,8 @@ export default function LogsPage() {
           </div>
 
           {/* Premium Search & Action Toolbar */}
-          <div className="p-2.5 bg-[#0F1011] border border-[#23252A] rounded-xl flex flex-wrap items-center justify-between gap-2.5">
-            <div className="flex items-center gap-2 flex-1 min-w-[200px]">
+          <div className="p-2.5 bg-[#0F1011] border border-[#23252A] rounded-xl flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
+            <div className="flex items-center gap-2 flex-1 min-w-0 w-full sm:w-auto">
               <div className="flex items-center gap-2 bg-[#010102] border border-[#23252A] rounded-lg h-9 px-3 w-full focus-within:border-[#60A5FA]/50 transition-colors">
                 <Search className="w-3.5 h-3.5 text-ink-tertiary shrink-0" />
                 <input
@@ -295,7 +295,7 @@ export default function LogsPage() {
             </div>
           </div>
 
-          <div ref={terminalContainerRef} className="bg-black/60 rounded-xl p-5 font-mono text-[11px] leading-relaxed text-ink-subtle h-[500px] overflow-y-auto border border-[#23252A]/60 shadow-inner">
+          <div ref={terminalContainerRef} className="bg-black/60 rounded-xl p-3.5 sm:p-5 font-mono text-[10px] sm:text-[11px] leading-relaxed text-ink-subtle h-[380px] sm:h-[500px] overflow-y-auto border border-[#23252A]/60 shadow-inner">
             {filteredLogs.length === 0 ? (
               <EmptyState
                 icon={TerminalIcon}

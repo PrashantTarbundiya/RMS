@@ -200,6 +200,9 @@
   display: flex;
   flex-direction: column;
   min-height: 100vh;
+  width: 100%;
+  max-width: 100vw;
+  overflow-x: hidden;
   background-color: var(--canvas);
 }
 
@@ -211,9 +214,12 @@
 
 .main-content {
   flex: 1;
-  padding: 14px 14px 84px 14px;
+  padding: 12px 12px 88px 12px;
   overflow-y: auto;
+  overflow-x: hidden;
   min-height: 100vh;
+  width: 100%;
+  max-width: 100vw;
   background-color: var(--canvas);
 }
 
@@ -221,13 +227,17 @@
   .main-content {
     padding: var(--space-lg);
     border-left: 1px solid var(--hairline);
+    overflow-x: visible;
   }
 }
 
 .main-content-fullscreen {
   flex: 1;
   overflow-y: auto;
+  overflow-x: hidden;
   min-height: 100vh;
+  width: 100%;
+  max-width: 100vw;
   background-color: var(--canvas);
 }
 
@@ -235,6 +245,7 @@
   max-width: 1200px;
   margin: 0 auto;
   width: 100%;
+  min-width: 0;
 }
 
 /* Scrollbar customization */
@@ -357,6 +368,19 @@
   border: 1px solid var(--hairline);
   border-radius: var(--radius-lg);
   padding: var(--space-lg);
+}
+
+@media (max-width: 640px) {
+  .card-linear {
+    padding: 16px;
+    border-radius: var(--radius-md);
+  }
+}
+
+@media (max-width: 380px) {
+  .card-linear {
+    padding: 12px;
+  }
 }
 
 /* confirmed snapping and crimson warnings */
@@ -3140,4 +3164,69 @@ button:focus-visible {
   .kiosk-viewport-wrapper {
     padding: 10px;
   }
+}
+
+
+/* ── Mobile Responsive Typography & Touch Standards ── */
+@media (max-width: 640px) {
+  .text-display-lg {
+    font-size: 32px;
+    line-height: 1.15;
+    letter-spacing: -1.0px;
+  }
+  .text-display-md {
+    font-size: 26px;
+    line-height: 1.20;
+    letter-spacing: -0.6px;
+  }
+  .text-headline {
+    font-size: 20px;
+    line-height: 1.25;
+    letter-spacing: -0.3px;
+  }
+  .text-card-title {
+    font-size: 17px;
+    line-height: 1.30;
+  }
+  .text-subhead {
+    font-size: 15px;
+    line-height: 1.40;
+  }
+  .text-body-lg {
+    font-size: 15px;
+    line-height: 1.45;
+  }
+  .text-body {
+    font-size: 14px;
+    line-height: 1.45;
+  }
+  .text-body-sm {
+    font-size: 12.5px;
+    line-height: 1.40;
+  }
+}
+
+/* Mobile Touch Target Standards (WCAG 2.2 AA) */
+@media (max-width: 768px) {
+  .button-icon {
+    min-width: 38px;
+    min-height: 38px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+}
+
+/* Responsive Table Scroll Container */
+.responsive-table-scroll {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.responsive-table-scroll::-webkit-scrollbar {
+  height: 5px;
+}
+.responsive-table-scroll::-webkit-scrollbar-thumb {
+  background: var(--hairline-strong);
+  border-radius: 4px;
 }

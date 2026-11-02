@@ -234,7 +234,7 @@ export default function DashboardPage() {
     <motion.div variants={containerVariants} initial="hidden" animate="visible" className="page-container pb-12 space-y-6">
       
       {/* Header */}
-      <motion.div variants={itemVariants} className="flex justify-between items-center">
+      <motion.div variants={itemVariants} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h1 className="text-headline text-ink font-semibold">
             {user?.name ? `Welcome back, ${user.name.split(' ')[0]}` : 'System Dashboard'}
@@ -254,7 +254,7 @@ export default function DashboardPage() {
        !dismissChecklist && (
         <motion.div 
           variants={itemVariants} 
-          className="p-5 bg-[#2563EB]/10 border border-[#2563EB]/30 rounded-lg flex items-center justify-between gap-4"
+          className="p-4 sm:p-5 bg-[#2563EB]/10 border border-[#2563EB]/30 rounded-lg flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4"
         >
           <div className="flex items-center gap-3">
             <div className="p-2.5 rounded-lg bg-[#2563EB]/20 text-[#3B82F6]">
@@ -302,7 +302,7 @@ export default function DashboardPage() {
       )}
 
       {/* System Status Line (Calm) */}
-      <motion.div variants={itemVariants} className="flex flex-wrap gap-6 p-4 bg-[#0F1011] border border-[#23252A] rounded-lg items-center text-caption text-ink-muted">
+      <motion.div variants={itemVariants} className="flex flex-wrap gap-2.5 sm:gap-6 p-3 sm:p-4 bg-[#0F1011] border border-[#23252A] rounded-lg items-center text-caption text-ink-muted">
         <div className="flex items-center gap-2">
           <span className="text-ink-subtle">Status:</span> 
           {requires_retrain ? (
@@ -329,7 +329,7 @@ export default function DashboardPage() {
       </motion.div>
 
       {/* KPI Grid */}
-      <motion.div data-tour="today-summary" variants={itemVariants} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <motion.div data-tour="today-summary" variants={itemVariants} className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
         <KpiCard icon={<Users className="h-5 w-5"/>} label="Total Enrolled" value={total_people} />
         <KpiCard icon={<ImageIcon className="h-5 w-5"/>} label="Faces Processed" value={total_photos} />
         <KpiCard icon={<Clock className="h-5 w-5"/>} label="Scan Events" value={total_predictions} />
@@ -368,14 +368,14 @@ export default function DashboardPage() {
         
         {/* Person Management Table */}
         <div className="card-linear p-0 overflow-hidden flex flex-col">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between py-4 px-6 border-b border-[#23252A] gap-3 bg-[#0F1011]">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between py-3 px-4 sm:py-4 sm:px-6 border-b border-[#23252A] gap-3 bg-[#0F1011]">
             <h3 className="text-body font-medium text-ink">Enrollment Roster</h3>
             <div className="flex items-center gap-2">
               <input 
                 placeholder="Search roster..." 
                 value={searchTerm} 
                 onChange={e => setSearchTerm(e.target.value)} 
-                className="input-linear h-8 w-44 text-caption placeholder:text-ink-tertiary"
+                className="input-linear h-8 flex-1 sm:w-44 text-caption placeholder:text-ink-tertiary min-w-[120px]"
               />
               <Link to="/upload" className="button-primary h-8 py-0 flex items-center justify-center">
                 <span className="text-button text-white">Add Person</span>
@@ -464,7 +464,7 @@ export default function DashboardPage() {
 
         {/* Recent Telemetry */}
         <div className="card-linear p-0 overflow-hidden flex flex-col">
-          <div className="flex flex-row items-center justify-between py-4 px-6 border-b border-[#23252A] bg-[#0F1011]">
+          <div className="flex flex-row items-center justify-between py-3 px-4 sm:py-4 sm:px-6 border-b border-[#23252A] bg-[#0F1011]">
             <h3 className="text-body font-medium text-ink">Recent Activity</h3>
             {history.length > 0 && (
               <button 
@@ -553,7 +553,7 @@ export default function DashboardPage() {
 function KpiCard({ icon, label, value, highlight = false }) {
   return (
     <ApertureReticle active={true} className="w-full" status="default">
-      <div className="bg-[#0F1011] border border-[#23252A] rounded-lg p-5 flex items-start gap-4 h-full">
+      <div className="bg-[#0F1011] border border-[#23252A] rounded-lg p-3 sm:p-5 flex items-start gap-2.5 sm:gap-4 h-full">
         <div className="text-ink-tertiary mt-1 shrink-0">
           {icon}
         </div>

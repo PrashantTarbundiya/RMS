@@ -106,7 +106,7 @@ export default function AuditLogsPage() {
       className="pb-12 max-w-5xl mx-auto space-y-6 page-container"
     >
       {/* Page Header */}
-      <div className="page-header">
+      <div className="page-header flex-col sm:flex-row items-start sm:items-center gap-3">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-lg bg-[#2563EB]/10 border border-[#2563EB]/20 flex items-center justify-center">
             <Shield className="w-5 h-5 text-[#60A5FA]" />
@@ -218,7 +218,7 @@ export default function AuditLogsPage() {
         <span>Page {page} of {totalPages}</span>
       </div>
 
-      {/* Logs Table */}
+      {/* Logs Container - Dual-mode (Mobile Cards + Desktop Table) */}
       <div className="rounded-xl overflow-hidden border border-[#23252A] bg-[#0F1011]">
         {isLoading ? (
           <SkeletonTable rows={6} cols={4} />
@@ -234,29 +234,20 @@ export default function AuditLogsPage() {
             }
           />
         ) : (
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-[#23252A]">
-                {['Type', 'Timestamp', 'Details', 'Status'].map(h => (
-                  <th key={h} className="px-4 py-3 text-left text-[11px] font-semibold text-ink-tertiary uppercase tracking-wider">
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
+          <>
+            {/* Mobile Cards (<640px) */}
+            <div className="sm:hidden divide-y divide-[#23252A]">
               <AnimatePresence>
                 {logs.map((log, idx) => (
-                  <motion.tr
+                  <motion.div
                     key={log.id || idx}
                     initial={{ opacity: 0, y: 6 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: idx * 0.02 }}
-                    className="border-b border-[#23252A] table-row-hover"
+                    className="p-3.5 space-y-2.5 hover:bg-[#161719] transition-colors"
                   >
-                    {/* Type Badge */}
-                    <td className="px-4 py-3">
-                      <span className={`badge ${
+                    <div className="flex items-center justify-between gap-2">
+                      <span className={`badge text-[10px] ${
                         log.type === 'access'
                           ? (log.event_type === 'check_out' ? 'badge-info' : 'badge-success')
                           : log.type === 'consent'
@@ -265,20 +256,17 @@ export default function AuditLogsPage() {
                       }`}>
                         {log.type === 'access' ? (log.event_type === 'check_out' ? 'kiosk exit' : 'kiosk entry') : log.type}
                       </span>
-                    </td>
+                      <span className="text-[11px] text-ink-subtle">
+                        {log.timestamp ? new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '-'}
+                      </span>
+                    </div>
 
-                    {/* Timestamp */}
-                    <td className="px-4 py-3 text-caption text-ink-subtle">
-                      {log.timestamp ? new Date(log.timestamp).toLocaleString() : '-'}
-                    </td>
-
-                    {/* Details */}
-                    <td className="px-4 py-3 text-caption text-ink">
+                    <div className="text-caption text-ink">
                       {log.type === 'access' ? (
                         <div>
-                          <div>
-                            <strong>{log.employee_name || 'Unknown'}</strong>
-                            <span className="text-ink-subtle ml-1.5 font-normal">({log.department || 'General'})</span>
+                          <div className="font-semibold text-ink">
+                            {log.employee_name || 'Unknown'}
+                            <span className="text-ink-subtle ml-1 font-normal text-[11px]">({log.department || 'General'})</span>
                           </div>
                           <div className="text-[11px] text-ink-tertiary mt-0.5">
                             {log.event_type === 'check_out' ? 'Building Departure' : 'Building Arrival'} · {log.method || 'kiosk'} · Conf: {Math.round((log.confidence || 0.85) * 100)}%
@@ -286,10 +274,10 @@ export default function AuditLogsPage() {
                         </div>
                       ) : log.type === 'feedback' ? (
                         <div>
-                          <div>
-                            Predicted: <strong>{log.predicted_name || '-'}</strong>
+                          <div className="text-caption">
+                            Predicted: <strong className="text-ink">{log.predicted_name || '-'}</strong>
                             {log.correct_name && (
-                              <span className="text-ink-subtle"> → Corrected: <strong className="text-ink">{log.correct_name}</strong></span>
+                              <span className="text-ink-subtle"> → Corrected: <strong className="text-[#60A5FA]">{log.correct_name}</strong></span>
                             )}
                           </div>
                           {log.message && (
@@ -298,10 +286,10 @@ export default function AuditLogsPage() {
                         </div>
                       ) : (
                         <div>
-                          <div>
-                            Employee: <strong>{log.employee_name || '-'}</strong>
+                          <div className="text-caption">
+                            Employee: <strong className="text-ink">{log.employee_name || '-'}</strong>
                           </div>
-                          <div className="text-[11px] text-ink-tertiary">
+                          <div className="text-[11px] text-ink-tertiary mt-0.5">
                             {log.consent_type?.replace(/_/g, ' ')}
                             {log.revoked_at && (
                               <span className="text-[#f87171]"> - Revoked {new Date(log.revoked_at).toLocaleDateString()}</span>
@@ -309,37 +297,159 @@ export default function AuditLogsPage() {
                           </div>
                         </div>
                       )}
-                    </td>
+                    </div>
 
-                    {/* Status */}
-                    <td className="px-4 py-3">
-                      {log.type === 'access' ? (
-                        <span className={`text-[11px] font-medium px-2 py-0.5 rounded border ${
-                          log.status === 'late'
-                            ? 'bg-amber-500/10 text-amber-400 border-amber-500/20'
-                            : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
-                        }`}>
-                          {log.status === 'late' ? 'Late Arrival' : log.status === 'on_time' ? 'On Time' : (log.status || 'Verified')}
-                        </span>
-                      ) : log.type === 'feedback' ? (
-                        log.is_correct ? (
-                          <CheckCircle size={16} className="text-[#4ade80]" />
+                    <div className="flex items-center justify-between pt-1 border-t border-[#23252A]/50 text-[11px]">
+                      <span className="text-ink-tertiary">
+                        {log.timestamp ? new Date(log.timestamp).toLocaleDateString() : ''}
+                      </span>
+                      <div>
+                        {log.type === 'access' ? (
+                          <span className={`text-[10px] font-medium px-2 py-0.5 rounded border ${
+                            log.status === 'late'
+                              ? 'bg-amber-500/10 text-amber-400 border-amber-500/20'
+                              : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                          }`}>
+                            {log.status === 'late' ? 'Late Arrival' : log.status === 'on_time' ? 'On Time' : (log.status || 'Verified')}
+                          </span>
+                        ) : log.type === 'feedback' ? (
+                          log.is_correct ? (
+                            <span className="inline-flex items-center gap-1 text-[#4ade80] text-[11px]">
+                              <CheckCircle size={13} /> Correct
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 text-[#f87171] text-[11px]">
+                              <XCircle size={13} /> Corrected
+                            </span>
+                          )
                         ) : (
-                          <XCircle size={16} className="text-[#f87171]" />
-                        )
-                      ) : (
-                        log.revoked_at ? (
-                          <UserX size={16} className="text-[#f87171]" />
-                        ) : (
-                          <CheckCircle size={16} className="text-[#4ade80]" />
-                        )
-                      )}
-                    </td>
-                  </motion.tr>
+                          log.revoked_at ? (
+                            <span className="inline-flex items-center gap-1 text-[#f87171] text-[11px]">
+                              <UserX size={13} /> Revoked
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 text-[#4ade80] text-[11px]">
+                              <CheckCircle size={13} /> Active
+                            </span>
+                          )
+                        )}
+                      </div>
+                    </div>
+                  </motion.div>
                 ))}
               </AnimatePresence>
-            </tbody>
-          </table>
+            </div>
+
+            {/* Desktop Table (>=640px) - 100% desktop fidelity */}
+            <div className="hidden sm:block overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-[#23252A]">
+                    {['Type', 'Timestamp', 'Details', 'Status'].map(h => (
+                      <th key={h} className="px-4 py-3 text-left text-[11px] font-semibold text-ink-tertiary uppercase tracking-wider">
+                        {h}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  <AnimatePresence>
+                    {logs.map((log, idx) => (
+                      <motion.tr
+                        key={log.id || idx}
+                        initial={{ opacity: 0, y: 6 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: idx * 0.02 }}
+                        className="border-b border-[#23252A] table-row-hover"
+                      >
+                        {/* Type Badge */}
+                        <td className="px-4 py-3">
+                          <span className={`badge ${
+                            log.type === 'access'
+                              ? (log.event_type === 'check_out' ? 'badge-info' : 'badge-success')
+                              : log.type === 'consent'
+                                ? 'badge-info'
+                                : 'badge-warning'
+                          }`}>
+                            {log.type === 'access' ? (log.event_type === 'check_out' ? 'kiosk exit' : 'kiosk entry') : log.type}
+                          </span>
+                        </td>
+
+                        {/* Timestamp */}
+                        <td className="px-4 py-3 text-caption text-ink-subtle">
+                          {log.timestamp ? new Date(log.timestamp).toLocaleString() : '-'}
+                        </td>
+
+                        {/* Details */}
+                        <td className="px-4 py-3 text-caption text-ink">
+                          {log.type === 'access' ? (
+                            <div>
+                              <div>
+                                <strong>{log.employee_name || 'Unknown'}</strong>
+                                <span className="text-ink-subtle ml-1.5 font-normal">({log.department || 'General'})</span>
+                              </div>
+                              <div className="text-[11px] text-ink-tertiary mt-0.5">
+                                {log.event_type === 'check_out' ? 'Building Departure' : 'Building Arrival'} · {log.method || 'kiosk'} · Conf: {Math.round((log.confidence || 0.85) * 100)}%
+                              </div>
+                            </div>
+                          ) : log.type === 'feedback' ? (
+                            <div>
+                              <div>
+                                Predicted: <strong>{log.predicted_name || '-'}</strong>
+                                {log.correct_name && (
+                                  <span className="text-ink-subtle"> → Corrected: <strong className="text-ink">{log.correct_name}</strong></span>
+                                )}
+                              </div>
+                              {log.message && (
+                                <div className="text-[11px] text-ink-tertiary mt-0.5">{log.message}</div>
+                              )}
+                            </div>
+                          ) : (
+                            <div>
+                              <div>
+                                Employee: <strong>{log.employee_name || '-'}</strong>
+                              </div>
+                              <div className="text-[11px] text-ink-tertiary">
+                                {log.consent_type?.replace(/_/g, ' ')}
+                                {log.revoked_at && (
+                                  <span className="text-[#f87171]"> - Revoked {new Date(log.revoked_at).toLocaleDateString()}</span>
+                                )}
+                              </div>
+                            </div>
+                          )}
+                        </td>
+
+                        {/* Status */}
+                        <td className="px-4 py-3">
+                          {log.type === 'access' ? (
+                            <span className={`text-[11px] font-medium px-2 py-0.5 rounded border ${
+                              log.status === 'late'
+                                ? 'bg-amber-500/10 text-amber-400 border-amber-500/20'
+                                : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                            }`}>
+                              {log.status === 'late' ? 'Late Arrival' : log.status === 'on_time' ? 'On Time' : (log.status || 'Verified')}
+                            </span>
+                          ) : log.type === 'feedback' ? (
+                            log.is_correct ? (
+                              <CheckCircle size={16} className="text-[#4ade80]" />
+                            ) : (
+                              <XCircle size={16} className="text-[#f87171]" />
+                            )
+                          ) : (
+                            log.revoked_at ? (
+                              <UserX size={16} className="text-[#f87171]" />
+                            ) : (
+                              <CheckCircle size={16} className="text-[#4ade80]" />
+                            )
+                          )}
+                        </td>
+                      </motion.tr>
+                    ))}
+                  </AnimatePresence>
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
       </div>
 

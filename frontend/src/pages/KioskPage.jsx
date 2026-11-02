@@ -644,40 +644,51 @@ export default function KioskPage() {
               <><WifiOff size={12} className="text-amber-400" /><span className="text-amber-400">Polling</span></>
             )}
           </div>
-          <div className="flex items-center gap-1.5 bg-[#0F1011] border border-[#23252A] rounded-lg px-2.5 py-1 text-xs">
-            <span className="text-ink-tertiary font-mono text-[11px]">Threshold:</span>
-            <select 
-              value={kioskThreshold} 
-              onChange={(e) => {
-                const val = parseInt(e.target.value, 10);
-                setKioskThreshold(val);
-                localStorage.setItem('rms_kiosk_threshold', val.toString());
-              }}
-              className="bg-transparent text-ink font-mono text-xs focus:outline-none cursor-pointer"
-            >
-              <option value="55" className="bg-[#141516] text-white">55% (High Lenience)</option>
-              <option value="60" className="bg-[#141516] text-white">60% (Relaxed)</option>
-              <option value="65" className="bg-[#141516] text-white">65%</option>
-              <option value="70" className="bg-[#141516] text-white">70% (Standard / Default)</option>
-              <option value="75" className="bg-[#141516] text-white">75% (Balanced)</option>
-              <option value="80" className="bg-[#141516] text-white">80% (Strict)</option>
-              <option value="85" className="bg-[#141516] text-white">85% (Very Strict)</option>
-            </select>
-          </div>
-          <div className="flex items-center gap-1.5 bg-[#0F1011] border border-[#23252A] rounded-lg px-2.5 py-1 text-xs">
-            <span className="text-ink-tertiary font-mono text-[11px]">Mode:</span>
-            <select 
-              value={kioskDirection} 
-              onChange={(e) => setKioskDirection(e.target.value)}
-              className="bg-transparent text-ink font-mono text-xs focus:outline-none cursor-pointer"
-            >
-              <option value="auto" className="bg-[#141516] text-white">Smart Auto (In/Out)</option>
-              <option value="in" className="bg-[#141516] text-white">Entrance (Check-In)</option>
-              <option value="out" className="bg-[#141516] text-white">Exit (Check-Out)</option>
-            </select>
+          {/* Desktop Controls (Preserved for screens >= 768px) */}
+          <div className="hidden md:flex items-center gap-2">
+            <div className="flex items-center gap-1.5 bg-[#0F1011] border border-[#23252A] rounded-lg px-2.5 py-1 text-xs">
+              <span className="text-ink-tertiary font-mono text-[11px]">Threshold:</span>
+              <select 
+                value={kioskThreshold} 
+                onChange={(e) => {
+                  const val = parseInt(e.target.value, 10);
+                  setKioskThreshold(val);
+                  localStorage.setItem('rms_kiosk_threshold', val.toString());
+                }}
+                className="bg-transparent text-ink font-mono text-xs focus:outline-none cursor-pointer"
+              >
+                <option value="55" className="bg-[#141516] text-white">55% (High Lenience)</option>
+                <option value="60" className="bg-[#141516] text-white">60% (Relaxed)</option>
+                <option value="65" className="bg-[#141516] text-white">65%</option>
+                <option value="70" className="bg-[#141516] text-white">70% (Standard / Default)</option>
+                <option value="75" className="bg-[#141516] text-white">75% (Balanced)</option>
+                <option value="80" className="bg-[#141516] text-white">80% (Strict)</option>
+                <option value="85" className="bg-[#141516] text-white">85% (Very Strict)</option>
+              </select>
+            </div>
+            <div className="flex items-center gap-1.5 bg-[#0F1011] border border-[#23252A] rounded-lg px-2.5 py-1 text-xs">
+              <span className="text-ink-tertiary font-mono text-[11px]">Mode:</span>
+              <select 
+                value={kioskDirection} 
+                onChange={(e) => setKioskDirection(e.target.value)}
+                className="bg-transparent text-ink font-mono text-xs focus:outline-none cursor-pointer"
+              >
+                <option value="auto" className="bg-[#141516] text-white">Smart Auto (In/Out)</option>
+                <option value="in" className="bg-[#141516] text-white">Entrance (Check-In)</option>
+                <option value="out" className="bg-[#141516] text-white">Exit (Check-Out)</option>
+              </select>
+            </div>
           </div>
         </div>
-        <div className="kiosk-header-right">
+        <div className="kiosk-header-right flex items-center gap-2">
+          <button 
+            onClick={() => setShowSettings(prev => !prev)} 
+            className="kiosk-icon-btn md:hidden" 
+            title="Kiosk Settings"
+            aria-label="Kiosk Settings"
+          >
+            <Settings size={16} className={showSettings ? 'text-[#60A5FA]' : ''} />
+          </button>
           <button onClick={toggleFullscreen} className="kiosk-icon-btn" title={isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}>
             {isFullscreen ? <Minimize size={16} /> : <Maximize size={16} />}
           </button>
@@ -687,6 +698,50 @@ export default function KioskPage() {
           </div>
         </div>
       </header>
+      {/* Mobile Settings Drawer */}
+      <AnimatePresence>
+        {showSettings && (
+          <motion.div 
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            className="md:hidden bg-[#0F1011] border-b border-[#23252A] p-3 flex flex-col gap-2.5 z-20"
+          >
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-xs text-ink-subtle font-mono">Recognition Threshold:</span>
+              <select 
+                value={kioskThreshold} 
+                onChange={(e) => {
+                  const val = parseInt(e.target.value, 10);
+                  setKioskThreshold(val);
+                  localStorage.setItem('rms_kiosk_threshold', val.toString());
+                }}
+                className="bg-[#141516] border border-[#23252A] rounded-md px-2 py-1 text-ink font-mono text-xs focus:outline-none"
+              >
+                <option value="55">55% (High Lenience)</option>
+                <option value="60">60% (Relaxed)</option>
+                <option value="65">65%</option>
+                <option value="70">70% (Standard / Default)</option>
+                <option value="75">75% (Balanced)</option>
+                <option value="80">80% (Strict)</option>
+                <option value="85">85% (Very Strict)</option>
+              </select>
+            </div>
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-xs text-ink-subtle font-mono">Direction Mode:</span>
+              <select 
+                value={kioskDirection} 
+                onChange={(e) => setKioskDirection(e.target.value)}
+                className="bg-[#141516] border border-[#23252A] rounded-md px-2 py-1 text-ink font-mono text-xs focus:outline-none"
+              >
+                <option value="auto">Smart Auto (In/Out)</option>
+                <option value="in">Entrance (Check-In)</option>
+                <option value="out">Exit (Check-Out)</option>
+              </select>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* ─── Main Content Area ─────────────────────────────── */}
       <main className="kiosk-main">

@@ -235,10 +235,10 @@ export default function AttendancePage() {
 
       {/* Filter and Search Bar */}
       <motion.div variants={itemVariants} className="space-y-3">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-2 flex-wrap flex-1 min-w-[280px]">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 flex-1">
             {/* Search Input */}
-            <div className="flex items-center gap-2 input-linear min-w-[200px] flex-1 sm:max-w-xs h-10 py-0 px-3">
+            <div className="flex items-center gap-2 input-linear w-full sm:w-auto sm:min-w-[200px] sm:max-w-xs h-10 py-0 px-3">
               <Search className="w-4 h-4 text-ink-tertiary shrink-0" />
               <input
                 type="text"
@@ -250,40 +250,41 @@ export default function AttendancePage() {
             </div>
 
             {/* Custom Date Input */}
-            <div className="flex items-center gap-2 input-linear h-10 py-0 px-3">
+            <div className="flex items-center gap-2 input-linear w-full sm:w-auto h-10 py-0 px-3">
               <Calendar className="w-4 h-4 text-ink-tertiary shrink-0" />
               <input
                 type="date"
-                className="bg-transparent border-none text-ink text-caption font-mono focus:outline-none p-0 accent-[#2563EB]"
+                className="bg-transparent border-none text-ink text-caption font-mono focus:outline-none p-0 accent-[#2563EB] w-full"
                 value={dateFilter === 'last_7_days' ? '' : dateFilter}
                 onChange={(e) => setDateFilter(e.target.value)}
                 style={{ colorScheme: 'dark' }}
               />
             </div>
 
-            {/* Status Filter */}
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="input-linear h-10 px-3 text-caption text-ink bg-[#0F1011] border border-[#23252A] rounded-lg cursor-pointer focus:outline-none"
-            >
-              <option value="all">All Verification Statuses</option>
-              <option value="confirmed">Confirmed Only</option>
-              <option value="low_conf">Low Confidence Only</option>
-              <option value="unknown">Unmatched / Unknown Only</option>
-            </select>
+            {/* Status & Sort - 2 Columns on Mobile, inline on desktop */}
+            <div className="grid grid-cols-2 sm:flex sm:items-center gap-2 w-full sm:w-auto">
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="input-linear h-10 px-2.5 sm:px-3 text-caption text-ink bg-[#0F1011] border border-[#23252A] rounded-lg cursor-pointer focus:outline-none w-full"
+              >
+                <option value="all">All Statuses</option>
+                <option value="confirmed">Confirmed</option>
+                <option value="low_conf">Low Conf</option>
+                <option value="unknown">Unknown</option>
+              </select>
 
-            {/* Sort Order */}
-            <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value)}
-              className="input-linear h-10 px-3 text-caption text-ink bg-[#0F1011] border border-[#23252A] rounded-lg cursor-pointer focus:outline-none"
-            >
-              <option value="newest">Sort: Newest First</option>
-              <option value="oldest">Sort: Oldest First</option>
-              <option value="confidence_desc">Sort: Highest Confidence</option>
-              <option value="confidence_asc">Sort: Lowest Confidence</option>
-            </select>
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                className="input-linear h-10 px-2.5 sm:px-3 text-caption text-ink bg-[#0F1011] border border-[#23252A] rounded-lg cursor-pointer focus:outline-none w-full"
+              >
+                <option value="newest">Newest First</option>
+                <option value="oldest">Oldest First</option>
+                <option value="confidence_desc">Highest Conf</option>
+                <option value="confidence_asc">Lowest Conf</option>
+              </select>
+            </div>
 
             {(dateFilter || searchTerm || statusFilter !== 'all' || sortBy !== 'newest') && (
               <button
@@ -293,7 +294,7 @@ export default function AttendancePage() {
                   setStatusFilter('all');
                   setSortBy('newest');
                 }}
-                className="button-secondary text-caption py-1.5 px-3 h-10 text-ink-subtle hover:text-ink"
+                className="button-secondary text-caption py-1.5 px-3 h-10 text-ink-subtle hover:text-ink w-full sm:w-auto"
               >
                 Reset Filters
               </button>
@@ -302,10 +303,10 @@ export default function AttendancePage() {
 
           {/* Export Actions */}
           <div className="flex items-center gap-2 shrink-0">
-            <button onClick={exportCSV} className="button-secondary flex items-center gap-2 h-10 text-caption py-1.5 px-3">
+            <button onClick={exportCSV} className="button-secondary flex-1 sm:flex-none flex items-center justify-center gap-2 h-10 text-caption py-1.5 px-3">
               <Download className="w-4 h-4" /> CSV
             </button>
-            <button onClick={exportPDF} className="button-primary text-white flex items-center gap-2 h-10 text-caption py-1.5 px-4">
+            <button onClick={exportPDF} className="button-primary text-white flex-1 sm:flex-none flex items-center justify-center gap-2 h-10 text-caption py-1.5 px-4">
               <Download className="w-4 h-4 text-white" /> PDF
             </button>
           </div>
@@ -379,7 +380,32 @@ export default function AttendancePage() {
           </div>
         ) : (
           <div className="card-linear p-0 overflow-hidden bg-[#0F1011] border-[#23252A]">
-            <div className="overflow-x-auto max-h-[600px] scrollbar-thin">
+            {/* Mobile Cards (Visible below 640px) */}
+            <div className="block sm:hidden divide-y divide-[#23252A]/50 max-h-[600px] overflow-y-auto">
+              {filteredData.map((record, idx) => (
+                <div key={idx} className="p-3.5 space-y-2 hover:bg-[#141516]/60 transition-colors">
+                  <div className="flex items-start justify-between gap-2">
+                    <span className="font-semibold text-ink text-sm">
+                      {formatPersonName(record.label)}
+                    </span>
+                    <span className={`inline-flex px-2 py-0.5 rounded-full font-mono text-[9px] font-semibold border shrink-0 ${getStatusStyle(record)}`}>
+                      {getStatusLabel(record)}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between text-xs text-ink-subtle font-mono pt-0.5">
+                    <span className="text-[11px] text-ink-tertiary">
+                      {record.timestamp ? new Date(record.timestamp).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' }) : '-'}
+                    </span>
+                    <span className="text-[11px] text-ink-muted">
+                      {record.confidence !== undefined ? `Conf: ${(record.confidence * 100).toFixed(1)}%` : ''}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Desktop Table (Visible >= 640px - Exact Desktop Preservation) */}
+            <div className="hidden sm:block overflow-x-auto max-h-[600px] scrollbar-thin">
               <table className="w-full text-left text-caption whitespace-nowrap">
                 <thead className="sticky top-0 bg-[#0F1011] border-b border-[#23252A] z-10">
                   <tr>
@@ -411,8 +437,9 @@ export default function AttendancePage() {
                 </tbody>
               </table>
             </div>
-            <div className="px-6 py-3 border-t border-[#23252A] bg-[#0F1011] text-[11px] text-ink-tertiary">
-              Showing {filteredData.length} of {data.length} records
+            <div className="px-4 sm:px-6 py-3 border-t border-[#23252A] bg-[#0F1011] text-[11px] text-ink-tertiary flex items-center justify-between">
+              <span>Showing {filteredData.length} of {data.length} records</span>
+              <span className="sm:hidden text-ink-subtle text-[10px] font-mono">Cards Mode</span>
             </div>
           </div>
         )}

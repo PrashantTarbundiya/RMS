@@ -107,7 +107,7 @@ export default function CamerasPage() {
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="pb-12 max-w-5xl mx-auto space-y-6 page-container">
-      <div className="flex justify-between items-start">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h1 className="text-headline font-semibold text-ink">Camera & Edge Management</h1>
           <p className="mt-1 text-caption text-ink-subtle">
@@ -157,7 +157,7 @@ export default function CamerasPage() {
       )}
 
       {/* Camera Search & Filter Bar */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="flex items-center gap-2 flex-wrap flex-1 max-w-md">
           <div className="flex items-center gap-2 input-linear w-full h-10 py-0 px-3">
             <Search className="w-4 h-4 text-ink-tertiary shrink-0" />
@@ -179,7 +179,7 @@ export default function CamerasPage() {
           <select
             value={cameraStatusFilter}
             onChange={(e) => setCameraStatusFilter(e.target.value)}
-            className="input-linear h-10 px-3 text-caption text-ink bg-[#0F1011] border border-[#23252A] rounded-lg cursor-pointer focus:outline-none"
+            className="input-linear h-10 px-3 text-caption text-ink bg-[#0F1011] border border-[#23252A] rounded-lg cursor-pointer focus:outline-none w-full sm:w-auto"
           >
             <option value="all">All Devices ({cameras.length})</option>
             <option value="active">Active Devices</option>
@@ -303,7 +303,7 @@ export default function CamerasPage() {
         {edgeResults && !edgeLoading && (
           <>
             {/* Tab switcher */}
-            <div className="flex gap-1 mb-4 p-1 bg-[#0F1011] rounded-lg border border-[#23252A]">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-1 mb-4 p-1 bg-[#0F1011] rounded-lg border border-[#23252A]">
               {[
                 { id: 'resolution', label: 'Resolution', icon: Monitor },
                 { id: 'lighting', label: 'Lighting', icon: Sun },
@@ -457,7 +457,7 @@ export default function CamerasPage() {
           <motion.div 
             initial={{ scale: 0.95, opacity: 0 }} 
             animate={{ scale: 1, opacity: 1 }}
-            className="bg-[#141516] border border-[#23252A] rounded-xl max-w-md w-full p-6 space-y-4 shadow-2xl"
+            className="bg-[#141516] border border-[#23252A] rounded-xl max-w-md w-full p-5 sm:p-6 space-y-4 shadow-2xl max-h-[90vh] overflow-y-auto"
           >
             <div className="flex justify-between items-center">
               <h2 className="text-body font-semibold text-ink">Register New Camera</h2>

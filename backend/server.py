@@ -4979,13 +4979,31 @@ def get_dashboard_stats(org_id=None):
         for name in facenet_names_list:
             model_sample_counts[name] = model_sample_counts.get(name, 0) + 1
 
-        # 4. Merge all sources so roster is never empty
-        all_persons = sorted(list(set(disk_classes) | set(db_employees.keys()) | trained_classes))
+        # 4. Merge all sources and deduplicate case/underscore variations
+        canonical_map = {}
+        for db_name in db_employees.keys():
+            canonical_map[db_name.lower().replace(' ', '_')] = db_name
+            canonical_map[db_name.lower()] = db_name
 
-        for p in all_persons:
-            if p not in photos_per_person or photos_per_person[p] == 0:
-                photos_per_person[p] = db_employees.get(p) or model_sample_counts.get(p) or 10
+        merged_counts = {}
+        # Incorporate disk classes first
+        for d in disk_classes:
+            canon = canonical_map.get(d.lower().replace(' ', '_')) or canonical_map.get(d.lower()) or d.replace('_', ' ').title()
+            merged_counts[canon] = merged_counts.get(canon, 0) + photos_per_person.get(d, 0)
 
+        # Incorporate DB employees
+        for db_name, cnt in db_employees.items():
+            if db_name not in merged_counts or merged_counts[db_name] == 0:
+                merged_counts[db_name] = cnt or 10
+
+        # Incorporate trained classes
+        for tc in trained_classes:
+            canon = canonical_map.get(tc.lower().replace(' ', '_')) or canonical_map.get(tc.lower()) or tc.replace('_', ' ').title()
+            if canon not in merged_counts:
+                merged_counts[canon] = model_sample_counts.get(tc, 10)
+
+        photos_per_person = merged_counts
+        all_persons = sorted(list(photos_per_person.keys()))
         total_people = len(all_persons)
         total_photos = sum(photos_per_person.values())
 

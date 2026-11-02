@@ -61,7 +61,7 @@ function StickyEnterpriseNav({ isAuthenticated }) {
           </div>
           <div>
             <div className="font-semibold text-sm tracking-tight text-white leading-tight">
-              RMS Face Recognition
+              AuraPass Enterprise
             </div>
             <div className="text-[10px] text-zinc-400 font-mono">Enterprise Console</div>
           </div>
@@ -264,7 +264,7 @@ export default function LandingPage() {
             <div className="w-6 h-6 rounded border border-zinc-700 bg-zinc-900 flex items-center justify-center font-mono font-bold text-xs text-white">
               R
             </div>
-            <span>&copy; 2026 RMS Platform. On-premise biometric access management.</span>
+            <span>&copy; 2026 AuraPass™ Enterprise. Autonomous biometric presence & access orchestration.</span>
           </div>
 
           <div className="flex flex-wrap items-center justify-center gap-6">

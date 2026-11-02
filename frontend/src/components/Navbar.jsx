@@ -107,10 +107,10 @@ export function Navbar() {
         <div className="flex items-center justify-between w-full px-4 h-14 bg-[#0F1011]/95 backdrop-blur-md border-b border-[#23252A] fixed top-0 left-0 right-0 z-40">
           <Link to="/" className="brand flex items-center gap-2">
             <div className="w-8 h-8 rounded-lg border border-border flex items-center justify-center bg-[#010102] shrink-0">
-              <span className="font-mono text-primary font-bold text-xs">R</span>
+              <span className="font-mono text-primary font-bold text-xs">A</span>
             </div>
             <div className="flex flex-col">
-              <span className="text-ink font-semibold tracking-tight text-xs font-display">RMS Console</span>
+              <span className="text-ink font-semibold tracking-tight text-xs font-display">AuraPass™</span>
               {user?.org_name && (
                 <span className="text-[10px] text-ink-subtle font-mono truncate max-w-[150px] leading-tight">
                   {user.org_name}
@@ -156,10 +156,10 @@ export function Navbar() {
               <div className="flex items-center justify-between pb-4 border-b border-[#23252A] mb-4">
                 <div className="flex items-center gap-2">
                   <div className="w-8 h-8 rounded-md border border-border flex items-center justify-center bg-[#010102]">
-                    <span className="font-mono text-primary font-bold text-sm">R</span>
+                    <span className="font-mono text-primary font-bold text-sm">A</span>
                   </div>
                   <div className="brand-text">
-                    <span className="text-ink font-semibold tracking-tight text-xs font-display">RMS Console</span>
+                    <span className="text-ink font-semibold tracking-tight text-xs font-display">AuraPass™</span>
                     {user && <span className="block text-[10px] text-ink-subtle font-mono truncate max-w-[120px]">{user.org_name}</span>}
                   </div>
                 </div>
@@ -230,10 +230,10 @@ export function Navbar() {
             {!isCollapsed ? (
               <Link to="/" className="brand flex-1 min-w-0">
                 <div className="w-8 h-8 rounded-md border border-border flex items-center justify-center mr-2 bg-card shrink-0">
-                  <span className="font-mono text-primary font-bold">R</span>
+                  <span className="font-mono text-primary font-bold">A</span>
                 </div>
                 <div className="brand-text truncate">
-                  <h1 className="truncate">RMS Console</h1>
+                  <h1 className="truncate">AuraPass™</h1>
                   {user && (
                     <div className="user-org">
                       <span className="org-name truncate max-w-[120px] block">{user.org_name || 'System Admin'}</span>
@@ -244,7 +244,7 @@ export function Navbar() {
             ) : (
               <Link to="/" className="brand justify-center mx-auto">
                 <div className="w-8 h-8 rounded-md border border-border flex items-center justify-center bg-card shrink-0">
-                  <span className="font-mono text-primary font-bold">R</span>
+                  <span className="font-mono text-primary font-bold">A</span>
                 </div>
               </Link>
             )}
@@ -467,45 +467,46 @@ export function Navbar() {
       </nav>
 
       {/* Mobile Bottom Navigation Bar (Mobile-First Thumb Friendly) */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-[#0F1011]/95 backdrop-blur-md border-t border-[#23252A] z-40 flex items-center justify-around px-2 shadow-2xl">
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-[#0F1011]/95 backdrop-blur-md border-t border-[#23252A] z-40 flex items-center justify-around px-1 shadow-2xl safe-area-bottom">
         <NavLink 
           to="/dashboard" 
-          className={({ isActive }) => `flex flex-col items-center justify-center gap-1 py-1 px-3 text-xs font-medium transition-colors ${isActive ? 'text-[#60A5FA]' : 'text-ink-subtle hover:text-ink'}`}
+          className={({ isActive }) => `flex-1 min-w-0 max-w-[68px] flex flex-col items-center justify-center gap-1 py-1 px-0.5 text-xs font-medium transition-colors ${isActive ? 'text-[#60A5FA]' : 'text-ink-subtle hover:text-ink'}`}
         >
-          <Activity size={18} />
-          <span className="text-[10px]">Dashboard</span>
+          <Activity size={18} className="shrink-0" />
+          <span className="text-[10px] truncate max-w-full text-center">Dashboard</span>
         </NavLink>
 
         <NavLink 
           to="/attendance" 
-          className={({ isActive }) => `flex flex-col items-center justify-center gap-1 py-1 px-3 text-xs font-medium transition-colors ${isActive ? 'text-[#60A5FA]' : 'text-ink-subtle hover:text-ink'}`}
+          className={({ isActive }) => `flex-1 min-w-0 max-w-[68px] flex flex-col items-center justify-center gap-1 py-1 px-0.5 text-xs font-medium transition-colors ${isActive ? 'text-[#60A5FA]' : 'text-ink-subtle hover:text-ink'}`}
         >
-          <ClipboardList size={18} />
-          <span className="text-[10px]">Attendance</span>
+          <ClipboardList size={18} className="shrink-0" />
+          <span className="text-[10px] truncate max-w-full text-center">Attendance</span>
         </NavLink>
 
         <NavLink 
           to="/kiosk" 
-          className={({ isActive }) => `flex flex-col items-center justify-center gap-1 py-1 px-3 text-xs font-medium transition-colors ${isActive ? 'text-[#60A5FA]' : 'text-ink-subtle hover:text-ink'}`}
+          className={({ isActive }) => `flex-1 min-w-0 max-w-[68px] flex flex-col items-center justify-center gap-1 py-1 px-0.5 text-xs font-medium transition-colors ${isActive ? 'text-[#60A5FA]' : 'text-ink-subtle hover:text-ink'}`}
         >
-          <Play size={18} />
-          <span className="text-[10px]">Kiosk</span>
+          <Play size={18} className="shrink-0" />
+          <span className="text-[10px] truncate max-w-full text-center">Kiosk</span>
         </NavLink>
 
         <NavLink 
           to="/cameras" 
-          className={({ isActive }) => `flex flex-col items-center justify-center gap-1 py-1 px-3 text-xs font-medium transition-colors ${isActive ? 'text-[#60A5FA]' : 'text-ink-subtle hover:text-ink'}`}
+          className={({ isActive }) => `flex-1 min-w-0 max-w-[68px] flex flex-col items-center justify-center gap-1 py-1 px-0.5 text-xs font-medium transition-colors ${isActive ? 'text-[#60A5FA]' : 'text-ink-subtle hover:text-ink'}`}
         >
-          <Camera size={18} />
-          <span className="text-[10px]">Cameras</span>
+          <Camera size={18} className="shrink-0" />
+          <span className="text-[10px] truncate max-w-full text-center">Cameras</span>
         </NavLink>
 
         <button 
+          type="button"
           onClick={() => setIsMobileOpen(true)}
-          className="flex flex-col items-center justify-center gap-1 py-1 px-3 text-xs font-medium text-ink-subtle hover:text-ink transition-colors cursor-pointer"
+          className="flex-1 min-w-0 max-w-[68px] flex flex-col items-center justify-center gap-1 py-1 px-0.5 text-xs font-medium text-ink-subtle hover:text-ink transition-colors cursor-pointer"
         >
-          <Menu size={18} />
-          <span className="text-[10px]">Menu</span>
+          <Menu size={18} className="shrink-0" />
+          <span className="text-[10px] truncate max-w-full text-center">Menu</span>
         </button>
       </nav>
     </>

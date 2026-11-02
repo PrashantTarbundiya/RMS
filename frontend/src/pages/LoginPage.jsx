@@ -43,7 +43,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center p-4 sm:p-6 bg-[#07090E] relative overflow-hidden select-none">
+    <div className="flex min-h-screen items-center justify-center p-3 sm:p-6 bg-[#07090E] relative overflow-hidden select-none">
       {/* Grid Pattern */}
       <div
         className="absolute inset-0 opacity-[0.03] pointer-events-none"
@@ -55,7 +55,7 @@ export default function LoginPage() {
 
       <div className="w-full max-w-md relative z-10">
         {/* Card Container */}
-        <div className="bg-[#0D1017] border border-zinc-800 rounded-xl p-7 sm:p-8 shadow-2xl shadow-black/90 relative">
+        <div className="bg-[#0D1017] border border-zinc-800 rounded-xl p-5 sm:p-8 shadow-2xl shadow-black/90 relative">
           {/* Header */}
           <div className="text-center space-y-3 mb-7">
             <div className="inline-flex items-center justify-center">
@@ -67,9 +67,12 @@ export default function LoginPage() {
             </div>
 
             <div>
-              <h1 className="text-2xl font-semibold tracking-tight text-white">Sign In</h1>
-              <p className="text-xs sm:text-sm text-zinc-400 mt-1">
-                Access your organization face recognition console
+              <div className="flex items-center justify-center gap-2 mb-1.5">
+                <span className="font-semibold text-xl text-white font-display tracking-tight">AuraPass™</span>
+                <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-medium bg-blue-500/10 text-blue-400 border border-blue-500/20">ENTERPRISE</span>
+              </div>
+              <p className="text-xs text-zinc-400">
+                Sovereign biometric access & attendance orchestration
               </p>
             </div>
           </div>

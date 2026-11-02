@@ -203,7 +203,7 @@ export default function TrainingPage() {
       </AnimatePresence>
 
       {/* Terminal Output */}
-      <div className="card-linear p-6">
+      <div className="card-linear p-4 sm:p-6">
         <div className="flex items-center justify-between border-b border-[#23252A] pb-3 mb-4">
           <div className="flex items-center gap-2">
             <Terminal className="w-4 h-4 text-ink-tertiary" />
@@ -238,7 +238,7 @@ export default function TrainingPage() {
           </div>
         </div>
 
-        <div ref={terminalContainerRef} className="bg-black/60 rounded-xl p-5 font-mono text-[11px] leading-relaxed text-ink-subtle h-[500px] overflow-y-auto border border-[#23252A]/60 shadow-inner">
+        <div ref={terminalContainerRef} className="bg-black/60 rounded-xl p-3.5 sm:p-5 font-mono text-[10px] sm:text-[11px] leading-relaxed text-ink-subtle h-[380px] sm:h-[500px] overflow-y-auto border border-[#23252A]/60 shadow-inner">
           {logs.length === 0 ? (
             <EmptyState
               icon={Terminal}

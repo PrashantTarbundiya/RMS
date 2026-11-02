@@ -130,6 +130,27 @@ def init_database(database_url=None):
                 },
             )
 
+            # Test connection immediately to avoid lazy OperationalError 500s later
+            try:
+                from sqlalchemy import text
+                with _engine.connect() as test_conn:
+                    test_conn.execute(text("SELECT 1"))
+            except Exception as conn_err:
+                logger.warning(
+                    f"Configured remote database unreachable ({conn_err}). "
+                    f"Auto-falling back to local SQLite database."
+                )
+                backend_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+                data_dir = os.path.join(backend_dir, 'data')
+                os.makedirs(data_dir, exist_ok=True)
+                sqlite_path = os.path.join(data_dir, 'rms.db').replace('\\', '/')
+                database_url = f"sqlite:///{sqlite_path}"
+                _engine = create_engine(
+                    database_url,
+                    connect_args={"check_same_thread": False},
+                    echo=False,
+                )
+
         _SessionLocal = sessionmaker(bind=_engine, autocommit=False, autoflush=False)
         _engine_pid = os.getpid()
         _db_available = True

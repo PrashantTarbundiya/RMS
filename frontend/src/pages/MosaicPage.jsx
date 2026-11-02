@@ -283,36 +283,35 @@ export default function MosaicPage() {
   }, [useLocal]);
 
   return (
-    <div style={{ padding: '1.5rem', maxWidth: '1600px', margin: '0 auto' }}>
+    <div className="pb-12 max-w-[1600px] mx-auto space-y-4 page-container">
       {/* Header */}
-      <div style={{
-        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-        marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.75rem',
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          <Monitor size={24} style={{ color: 'var(--primary)' }} />
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-lg bg-[#2563EB]/10 border border-[#2563EB]/20 flex items-center justify-center">
+            <Monitor size={20} className="text-[#60A5FA]" />
+          </div>
           <div>
-            <h1 style={{ fontSize: '1.4rem', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
+            <h1 className="text-headline font-semibold text-ink font-display m-0">
               Camera Mosaic
             </h1>
-            <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: 0 }}>
-              {cameras.length} camera{cameras.length !== 1 ? 's' : ''} - live recognition
+            <p className="text-caption text-ink-subtle m-0">
+              {cameras.length} camera{cameras.length !== 1 ? 's' : ''} · Multi-channel live monitoring
             </p>
           </div>
         </div>
 
         {/* Grid Controls */}
-        <div style={{ display: 'flex', gap: '0.25rem', background: '#181A1F', borderRadius: '8px', padding: '2px' }}>
+        <div className="flex items-center gap-1 bg-[#0F1011] border border-[#23252A] rounded-lg p-1 w-fit">
+          <span className="text-[11px] font-mono text-ink-tertiary px-2 hidden sm:inline">Grid:</span>
           {[1, 2, 3, 4].map(n => (
             <button
               key={n}
               onClick={() => setColumns(n)}
-              style={{
-                padding: '0.35rem 0.65rem', borderRadius: '6px', border: 'none',
-                background: columns === n ? 'var(--primary)' : 'transparent',
-                color: columns === n ? '#fff' : 'var(--text-secondary)',
-                fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer',
-              }}
+              className={`px-2.5 py-1 rounded-md text-xs font-mono font-medium transition-all cursor-pointer ${
+                columns === n
+                  ? 'bg-[#2563EB] text-white shadow-sm font-semibold'
+                  : 'text-ink-subtle hover:text-ink hover:bg-[#141516]'
+              }`}
             >
               {n}×{n}
             </button>
@@ -320,12 +319,17 @@ export default function MosaicPage() {
         </div>
       </div>
 
-      {/* Camera Grid */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: `repeat(${columns}, 1fr)`,
-        gap: '12px',
-      }}>
+      {/* Camera Grid with Mobile Responsiveness */}
+      <div 
+        className="grid gap-3"
+        style={{
+          gridTemplateColumns: window.innerWidth < 640 
+            ? (columns === 1 ? '1fr' : 'repeat(2, 1fr)')
+            : (window.innerWidth < 1024 
+              ? `repeat(${Math.min(columns, 2)}, 1fr)` 
+              : `repeat(${columns}, 1fr)`)
+        }}
+      >
         {cameras.slice(0, columns * columns).map(cam => (
           <CameraFeedTile
             key={cam.id}
@@ -338,12 +342,12 @@ export default function MosaicPage() {
 
       {/* Empty State */}
       {cameras.length === 0 && (
-        <div style={{
-          textAlign: 'center', padding: '4rem 2rem',
-          color: 'var(--text-secondary)',
-        }}>
-          <Camera size={48} style={{ marginBottom: '1rem', opacity: 0.3 }} />
-          <p>No cameras detected. Connect a camera or register cameras in Settings.</p>
+        <div className="card-linear text-center py-16 space-y-3 bg-[#0F1011] border-[#23252A]">
+          <Camera size={44} className="mx-auto text-ink-tertiary opacity-40" />
+          <p className="text-caption text-ink-subtle font-medium">No cameras detected</p>
+          <p className="text-[12px] text-ink-tertiary max-w-sm mx-auto">
+            Connect a USB camera, enable browser camera access, or register an IP camera stream.
+          </p>
         </div>
       )}
     </div>

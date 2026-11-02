@@ -672,7 +672,7 @@ export default function TestPage() {
     };
 
     return (
-      <div className="flex flex-col gap-5 bg-[#0F1011] p-5 rounded-lg text-sm text-ink-muted">
+      <div className="flex flex-col gap-4 sm:gap-5 bg-[#0F1011] p-4 sm:p-5 rounded-lg text-sm text-ink-muted max-h-[80vh] overflow-y-auto">
         
         {/* Step 1: Is this actually a person's face? */}
         <div className="space-y-2">
@@ -843,10 +843,10 @@ export default function TestPage() {
         
         {/* Input Block */}
         <div className="card-linear p-0 overflow-hidden flex flex-col bg-[#0F1011] border-[#23252A]">
-          <div className="flex flex-row items-center justify-between py-4 px-6 border-b border-[#23252A] bg-[#0F1011]">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between py-3 px-4 sm:py-4 sm:px-6 border-b border-[#23252A] bg-[#0F1011] gap-2.5">
              <h3 className="text-body font-medium text-ink">Target Image</h3>
              
-             <div className="flex gap-1 p-1 bg-[#010102] rounded-lg border border-[#23252A]">
+             <div className="flex gap-1 p-1 bg-[#010102] rounded-lg border border-[#23252A] w-full sm:w-auto">
                 <button 
                   onClick={switchToUpload}
                   className={`h-7 px-3 text-caption rounded-md transition-all ${
@@ -873,7 +873,7 @@ export default function TestPage() {
                 </button>
              </div>
           </div>
-          <div className="p-6 flex-1 flex flex-col">
+          <div className="p-4 sm:p-6 flex-1 flex flex-col">
 
             <div 
               data-tour="test-upload-area"
@@ -1108,7 +1108,7 @@ export default function TestPage() {
                </div>
 
                {/* Presets */}
-               <div className="flex gap-1.5">
+               <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
                  {[
                    { val: 0.60, label: 'Relaxed (60%)', color: '#38BDF8' },
                    { val: 0.65, label: 'Standard (65%)', color: '#2563EB' },
@@ -1165,7 +1165,7 @@ export default function TestPage() {
 
         {/* Results Block */}
         <div className="card-linear p-0 overflow-hidden flex flex-col bg-[#0F1011] border-[#23252A]">
-          <div className="py-4 px-6 border-b border-[#23252A] bg-[#0F1011]">
+          <div className="py-3 px-4 sm:py-4 sm:px-6 border-b border-[#23252A] bg-[#0F1011]">
             <h3 className="text-body font-medium text-ink">
               {mode === 'group' ? 'Group Recognition Results' : 'Telemetry & Results'}
             </h3>
@@ -1205,7 +1205,7 @@ export default function TestPage() {
             )}
             
             {/* Active Model Status Toolbar (Strictly only show enabled models) */}
-            <div className="flex gap-2 p-3 bg-[#010102]/60 rounded-xl border border-[#23252A] mb-6 items-center flex-wrap">
+            <div className="flex gap-2 p-2.5 sm:p-3 bg-[#010102]/60 rounded-xl border border-[#23252A] mb-4 sm:mb-6 items-center flex-wrap">
                 <span className="text-[11px] font-mono text-ink-tertiary uppercase tracking-wider mr-1">Active Model Engine:</span>
                 
                 {enableFacenet512 && (

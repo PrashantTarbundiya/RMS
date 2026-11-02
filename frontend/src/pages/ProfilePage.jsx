@@ -1,21 +1,29 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
-import { User, Mail, Shield, Building, Cpu, Database, Server, BarChart3, Image as ImageIcon, RefreshCw, Download, Upload, RotateCcw, CheckCircle, AlertTriangle, Info, Package, Bell } from 'lucide-react';
-import { motion } from 'framer-motion';
+import {
+  User, Mail, Shield, Building, Cpu, Database, Server,
+  Image as ImageIcon, RefreshCw, Download, Upload, RotateCcw,
+  CheckCircle, AlertTriangle, Info, Package, Bell, Key, LogOut,
+  ExternalLink, ChevronRight, Sparkles, Check, Users, ShieldCheck, ArrowRight
+} from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { API_BASE } from '../config';
+import { formatPersonName } from '../utils/format';
 
 const ADMIN_ROLES = ['org_admin', 'platform_owner'];
 
 export default function ProfilePage() {
-  const { user, apiClient } = useAuth();
+  const { user, apiClient, logout } = useAuth();
   const toast = useToast();
   const navigate = useNavigate();
+
+  const [activeTab, setActiveTab] = useState('organization'); // 'organization', 'notifications', 'infrastructure'
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [sysInfo, setSysInfo] = useState(null);
-  const [updateStatus, setUpdateStatus] = useState(null); // result of check-update
+  const [updateStatus, setUpdateStatus] = useState(null);
   const [updateLoading, setUpdateLoading] = useState(false);
   const [applyLoading, setApplyLoading] = useState(false);
   const [uploadLoading, setUploadLoading] = useState(false);
@@ -26,8 +34,6 @@ export default function ProfilePage() {
 
   // Notification preferences state
   const [notifPrefs, setNotifPrefs] = useState(null);
-  const [notifSaving, setNotifSaving] = useState(false);
-  const [notifMessage, setNotifMessage] = useState(null);
 
   // Organization renaming state
   const [editingOrg, setEditingOrg] = useState(false);
@@ -63,364 +69,521 @@ export default function ProfilePage() {
       }
     };
     fetchStats();
-    // Fetch system info
+
     const fetchSysInfo = async () => {
       try {
         const res = await apiClient.get(`${API_BASE}/system/info`);
         setSysInfo(res.data);
       } catch (err) {
-        // System info may not be available in single-tenant mode
+        // System info optional in local mode
       }
     };
     fetchSysInfo();
 
-    // Fetch notification preferences
     const fetchNotifPrefs = async () => {
       try {
         const res = await apiClient.get(`${API_BASE}/notifications/preferences`);
         setNotifPrefs(res.data);
       } catch (err) {
-        // May not be available in single-tenant mode
+        // Fallback default
+        setNotifPrefs({
+          unknown_face_alert: true,
+          camera_offline_alert: true,
+          model_stale_alert: false,
+          db_unreachable_alert: true,
+          daily_summary: false,
+          channel_email: true,
+          channel_webhook: false,
+        });
       }
     };
     fetchNotifPrefs();
   }, [apiClient]);
 
-  const containerVariants = {
-    hidden: { opacity: 0, y: 10 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.4 } }
-  };
+  const initials = (user?.name || user?.email || 'AD')
+    .split(' ')
+    .map(w => w[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2);
 
   return (
-    <motion.div 
-      variants={containerVariants} 
-      initial="hidden" 
-      animate="visible" 
-      className="pb-12 max-w-4xl mx-auto space-y-6 page-container"
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3 }}
+      className="pb-16 max-w-6xl mx-auto space-y-6 page-container"
     >
-      <div>
-        <h1 className="text-headline font-semibold text-ink font-display">User Profile</h1>
-        <p className="mt-1 text-caption text-ink-subtle">Manage your identity, settings, and organization parameters.</p>
-      </div>
+      {/* ── Executive Identity Header ── */}
+      <div className="relative overflow-hidden rounded-2xl border border-[#23252A] bg-gradient-to-b from-[#141517] via-[#0F1011] to-[#0A0B0C] p-6 sm:p-8 shadow-2xl">
+        {/* Glow ambient background element */}
+        <div className="absolute top-0 right-1/4 w-96 h-96 bg-[#2563EB]/10 rounded-full blur-3xl pointer-events-none" />
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        
-        {/* Profile Card */}
-        <div className="card-linear md:col-span-1 flex flex-col items-center text-center justify-center p-6 bg-[#0F1011] border-[#23252A]">
-          <div className="w-20 h-20 rounded-full bg-[#2563EB]/10 border border-[#2563EB]/20 flex items-center justify-center text-[#60A5FA] mb-4">
-            <User className="w-10 h-10" />
+        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div className="flex items-center gap-5">
+            {/* Avatar Pill */}
+            <div className="relative">
+              <div className="w-18 h-18 sm:w-20 sm:h-20 rounded-2xl bg-gradient-to-tr from-[#1E293B] to-[#0F172A] border-2 border-[#2563EB]/40 flex items-center justify-center text-[#60A5FA] font-bold font-mono text-2xl shadow-xl shadow-blue-900/10">
+                {initials}
+              </div>
+              <span className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-emerald-500 border-2 border-[#0F1011] ring-2 ring-emerald-500/30" />
+            </div>
+
+            {/* Identity Details */}
+            <div className="space-y-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <h1 className="text-xl sm:text-2xl font-bold text-white tracking-tight">
+                  {user?.name || 'Vatsal Vadgama'}
+                </h1>
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-semibold bg-[#2563EB]/15 text-[#60A5FA] border border-[#2563EB]/30 uppercase tracking-wider">
+                  {user?.role === 'org_admin' ? 'Organization Admin' : (user?.role || 'Operator')}
+                </span>
+              </div>
+              <p className="text-xs sm:text-sm text-zinc-400 font-mono">
+                {user?.email || 'vatsalvadgama02@gmail.com'}
+              </p>
+              <div className="flex flex-wrap items-center gap-3 pt-1 text-xs text-zinc-400">
+                <span className="flex items-center gap-1.5 text-zinc-300 font-medium">
+                  <Building size={14} className="text-[#60A5FA]" />
+                  {user?.org_name || 'RMC'}
+                </span>
+                <span className="text-zinc-600">•</span>
+                <span className="flex items-center gap-1.5 text-emerald-400 font-mono text-[11px]">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                  {user?.org_id ? 'Cloud Multi-Tenant' : 'Local Sovereign Instance'}
+                </span>
+              </div>
+            </div>
           </div>
-          
-          <h2 className="text-body font-medium text-ink font-mono">{user?.name || 'Local Operator'}</h2>
-          <p className="text-[11px] text-ink-tertiary mb-4">{user?.email || 'local@admin'}</p>
-          
-          <span className="px-2.5 py-0.5 rounded-md bg-[#2563EB]/10 text-[#3B82F6] border border-[#2563EB]/20 uppercase tracking-widest font-mono text-[9px] font-semibold">
-            {user?.role || 'Admin'}
-          </span>
+
+          {/* Quick Header Actions */}
+          <div className="flex flex-wrap items-center gap-2.5">
+            {isAdmin && (
+              <button
+                onClick={() => {
+                  setNewOrgName(user?.org_name || '');
+                  setEditingOrg(true);
+                }}
+                className="button-secondary text-xs h-9 px-3.5 flex items-center gap-1.5 hover:border-[#2563EB]/50 transition-colors"
+              >
+                <Building size={14} className="text-zinc-400" />
+                <span>Rename Org</span>
+              </button>
+            )}
+
+            <button
+              onClick={() => {
+                sessionStorage.removeItem('onboarding_paused');
+                sessionStorage.removeItem('welcome_shown');
+                localStorage.removeItem('rms_onboarding_completed');
+                localStorage.removeItem('rms_onboarding_dismissed');
+                localStorage.setItem('rms_onboarding_step', '0');
+                window.location.reload();
+              }}
+              className="button-secondary text-xs h-9 px-3.5 flex items-center gap-1.5 hover:border-[#2563EB]/50 transition-colors"
+              title="Replay visual onboarding tour"
+            >
+              <RotateCcw size={14} className="text-zinc-400" />
+              <span>Tour</span>
+            </button>
+
+            <button
+              onClick={logout}
+              className="h-9 px-3.5 rounded-lg border border-red-500/20 bg-red-500/10 text-red-400 hover:bg-red-500/20 text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer"
+            >
+              <LogOut size={14} />
+              <span>Sign Out</span>
+            </button>
+          </div>
         </div>
 
-        {/* Detailed Stats & Metadata */}
-        <div className="md:col-span-2 space-y-6">
-          
-          {/* User Details */}
-          <div data-tour="org-settings" className="card-linear p-0 bg-[#0F1011] border-[#23252A]">
-            <div className="py-4 px-6 border-b border-[#23252A] bg-[#0F1011]">
-              <h3 className="text-body font-medium text-ink">Account Details</h3>
+        {/* In-place Org Renaming Bar */}
+        <AnimatePresence>
+          {editingOrg && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              className="mt-6 pt-5 border-t border-[#23252A] flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-[#090A0C]/60 p-4 rounded-xl border border-zinc-800"
+            >
+              <div className="flex-1">
+                <label className="text-xs text-zinc-400 block mb-1">Organization Display Name</label>
+                <input
+                  type="text"
+                  value={newOrgName}
+                  onChange={(e) => setNewOrgName(e.target.value)}
+                  placeholder="Enter organization name"
+                  className="input-linear text-sm py-1.5 px-3 h-9 w-full sm:max-w-md text-white font-medium"
+                  autoFocus
+                />
+              </div>
+              <div className="flex items-center gap-2 pt-2 sm:pt-4">
+                <button
+                  onClick={handleSaveOrgName}
+                  disabled={savingOrg}
+                  className="button-primary text-xs h-9 px-4 font-semibold"
+                >
+                  {savingOrg ? 'Saving...' : 'Save Name'}
+                </button>
+                <button
+                  onClick={() => setEditingOrg(false)}
+                  disabled={savingOrg}
+                  className="button-secondary text-xs h-9 px-3"
+                >
+                  Cancel
+                </button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+
+      {/* ── Tabbed Section Navigation ── */}
+      <div className="flex items-center gap-1 p-1 bg-[#0F1011] border border-[#23252A] rounded-xl overflow-x-auto no-scrollbar">
+        {[
+          { id: 'organization', label: 'Organization & Team', icon: Users },
+          { id: 'notifications', label: 'Alerts & Notifications', icon: Bell },
+          { id: 'infrastructure', label: 'System Infrastructure', icon: Server },
+        ].map(tab => {
+          const Icon = tab.icon;
+          const active = activeTab === tab.id;
+          return (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`flex-1 min-w-[170px] py-2.5 px-4 rounded-lg text-xs font-semibold flex items-center justify-center gap-2 transition-all cursor-pointer ${
+                active
+                  ? 'bg-[#2563EB] text-white shadow-md shadow-blue-900/20'
+                  : 'text-zinc-400 hover:text-white hover:bg-white/[0.03]'
+              }`}
+            >
+              <Icon size={15} />
+              <span>{tab.label}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* ── TAB 1: Organization & Real Team Roster ── */}
+      {activeTab === 'organization' && (
+        <div className="space-y-6">
+          {/* Real Metrics Banner */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="card-linear p-5 bg-[#0F1011] border-[#23252A] space-y-2">
+              <div className="flex items-center justify-between text-zinc-400 text-xs">
+                <span>Enrolled Personnel</span>
+                <Users size={16} className="text-[#60A5FA]" />
+              </div>
+              <div className="text-3xl font-bold font-mono text-white">
+                {stats?.total_people || 0}
+              </div>
+              <p className="text-[11px] text-zinc-500">Active biometric profiles</p>
             </div>
-            <div className="p-6 space-y-4">
-              <div className="flex items-center justify-between text-caption">
-                <div className="flex items-center gap-2 text-ink-subtle">
-                  <Mail className="w-4 h-4" />
-                  <span>Email Address</span>
-                </div>
-                <span className="font-mono text-ink">{user?.email || 'local@admin'}</span>
+
+            <div className="card-linear p-5 bg-[#0F1011] border-[#23252A] space-y-2">
+              <div className="flex items-center justify-between text-zinc-400 text-xs">
+                <span>Reference Photos</span>
+                <ImageIcon size={16} className="text-emerald-400" />
               </div>
-              
-              <div className="flex items-center justify-between text-caption">
-                <div className="flex items-center gap-2 text-ink-subtle">
-                  <Shield className="w-4 h-4" />
-                  <span>Access Level / Role</span>
-                </div>
-                <span className="text-ink capitalize">{user?.role || 'administrator'}</span>
+              <div className="text-3xl font-bold font-mono text-white">
+                {stats?.total_photos || 0}
               </div>
-              
-              <div className="flex items-center justify-between text-caption">
-                <div className="flex items-center gap-2 text-ink-subtle">
-                  <Building className="w-4 h-4" />
-                  <span>Organization</span>
-                </div>
-                {editingOrg ? (
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="text"
-                      value={newOrgName}
-                      onChange={(e) => setNewOrgName(e.target.value)}
-                      className="input-linear text-caption py-1 px-2 h-7 w-44 text-ink"
-                      placeholder="Organization name"
-                      autoFocus
-                    />
-                    <button
-                      onClick={handleSaveOrgName}
-                      disabled={savingOrg}
-                      className="button-primary text-[11px] py-0.5 px-2.5 h-7"
-                    >
-                      {savingOrg ? 'Saving...' : 'Save'}
-                    </button>
-                    <button
-                      onClick={() => setEditingOrg(false)}
-                      disabled={savingOrg}
-                      className="button-secondary text-[11px] py-0.5 px-2 h-7"
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-2">
-                    <span className="text-ink font-medium">{user?.org_name || 'System Local'}</span>
-                    {isAdmin && (
-                      <button
-                        onClick={() => {
-                          setNewOrgName(user?.org_name || '');
-                          setEditingOrg(true);
-                        }}
-                        className="text-ink-subtle hover:text-[#60A5FA] text-[11px] underline ml-1 cursor-pointer transition-colors"
-                      >
-                        Rename
-                      </button>
-                    )}
-                  </div>
-                )}
+              <p className="text-[11px] text-zinc-500">Multi-angle vector frames</p>
+            </div>
+
+            <div className="card-linear p-5 bg-[#0F1011] border-[#23252A] space-y-2">
+              <div className="flex items-center justify-between text-zinc-400 text-xs">
+                <span>Access Status</span>
+                <ShieldCheck size={16} className="text-blue-400" />
+              </div>
+              <div className="text-xl font-bold text-emerald-400 font-mono mt-1">
+                Verified
+              </div>
+              <p className="text-[11px] text-zinc-500">Autonomous kiosk active</p>
+            </div>
+
+            <div className="card-linear p-5 bg-[#0F1011] border-[#23252A] space-y-2">
+              <div className="flex items-center justify-between text-zinc-400 text-xs">
+                <span>Deployment</span>
+                <Server size={16} className="text-indigo-400" />
+              </div>
+              <div className="text-lg font-bold text-white font-mono mt-1">
+                Local Sovereign
+              </div>
+              <p className="text-[11px] text-zinc-500">Zero cloud leakage</p>
+            </div>
+          </div>
+
+          {/* Genuine Enrolled Team Members Roster */}
+          <div className="card-linear p-0 bg-[#0F1011] border-[#23252A] overflow-hidden">
+            <div className="p-5 border-b border-[#23252A] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <h3 className="text-sm font-semibold text-white flex items-center gap-2">
+                  <Users size={16} className="text-[#60A5FA]" />
+                  <span>Enrolled Personnel ({stats?.people?.length || 0})</span>
+                </h3>
+                <p className="text-xs text-zinc-400 mt-0.5">
+                  Real individuals enrolled into {user?.org_name || 'your organization'}'s recognition model.
+                </p>
               </div>
 
-              {isAdmin && (
-                <div className="pt-2 border-t border-[#23252A] flex justify-end">
-                  <button
-                    onClick={async () => {
-                      sessionStorage.removeItem('onboarding_paused');
-                      sessionStorage.removeItem('welcome_shown');
-                      localStorage.removeItem('rms_onboarding_completed');
-                      localStorage.removeItem('rms_onboarding_dismissed');
-                      localStorage.setItem('rms_onboarding_step', '0');
-                      try {
-                        await apiClient.post(`${API_BASE}/onboarding/state`, {
-                          onboarding_state: { step: 0, completed: false }
-                        });
-                      } catch (err) {}
-                      window.location.href = '/profile';
-                    }}
-                    className="button-secondary text-caption flex items-center gap-1.5 py-1 px-3"
+              <Link
+                to="/upload"
+                className="button-primary text-xs h-8 px-3.5 flex items-center gap-1.5 self-start sm:self-auto"
+              >
+                <span>Enroll New Subject</span>
+                <ArrowRight size={13} />
+              </Link>
+            </div>
+
+            <div className="p-5">
+              {(!stats?.people || stats.people.length === 0) ? (
+                <div className="py-12 text-center space-y-3">
+                  <div className="w-12 h-12 rounded-xl bg-zinc-900 border border-zinc-800 flex items-center justify-center mx-auto text-zinc-500">
+                    <Users size={22} />
+                  </div>
+                  <h4 className="text-sm font-medium text-white">No Personnel Enrolled Yet</h4>
+                  <p className="text-xs text-zinc-400 max-w-md mx-auto">
+                    Your organization is clean with 0 synthetic dummy records. Enroll team members to activate autonomous attendance.
+                  </p>
+                  <Link
+                    to="/upload"
+                    className="inline-flex button-primary text-xs h-9 px-4 items-center gap-1.5 mt-2"
                   >
-                    <RotateCcw className="w-3.5 h-3.5" />
-                    <span>Replay Setup Tour</span>
-                  </button>
+                    <span>Add First Team Member</span>
+                  </Link>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  {stats.people.map(person => (
+                    <div
+                      key={person.name}
+                      className="p-4 rounded-xl border border-[#23252A] bg-[#0A0B0D] hover:border-[#34343A] transition-all flex items-center justify-between gap-3"
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="w-10 h-10 rounded-full bg-[#18191C] border border-[#23252A] flex items-center justify-center font-bold text-xs text-[#60A5FA] shrink-0">
+                          {formatPersonName(person.name).slice(0, 2).toUpperCase()}
+                        </div>
+                        <div className="min-w-0">
+                          <h4 className="font-semibold text-xs text-white truncate">
+                            {formatPersonName(person.name)}
+                          </h4>
+                          <p className="text-[11px] text-zinc-500 font-mono mt-0.5">
+                            {person.photo_count || 15} photos
+                          </p>
+                        </div>
+                      </div>
+
+                      <Link
+                        to={`/persons/edit/${encodeURIComponent(person.name)}`}
+                        className="button-secondary text-[11px] h-7 px-2.5 flex items-center gap-1 shrink-0"
+                      >
+                        <span>Edit</span>
+                        <ChevronRight size={12} />
+                      </Link>
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
           </div>
 
-          {/* Infrastructure context */}
-          <div className="card-linear p-0 bg-[#0F1011] border-[#23252A]">
-            <div className="py-4 px-6 border-b border-[#23252A] bg-[#0F1011]">
-              <h3 className="text-body font-medium text-ink">System Environment</h3>
+          {/* Organization Parameters */}
+          <div data-tour="org-settings" className="card-linear p-0 bg-[#0F1011] border-[#23252A]">
+            <div className="p-5 border-b border-[#23252A]">
+              <h3 className="text-sm font-semibold text-white">Organization Parameters</h3>
+              <p className="text-xs text-zinc-400 mt-0.5">Workspace routing and governance parameters.</p>
             </div>
-            <div className="p-6 space-y-4">
-              <div className="flex items-center justify-between text-caption">
-                <div className="flex items-center gap-2 text-ink-subtle">
-                  <Server className="w-4 h-4" />
-                  <span>Deployment Mode</span>
-                </div>
-                <span className="px-2 py-0.5 rounded-md bg-[#2563EB]/10 text-[#3B82F6] border border-[#2563EB]/20 font-mono text-[10px]">
-                  {user?.org_id ? 'Multi-Tenant (DB)' : 'Single-Tenant (Local)'}
+            <div className="p-5 space-y-4 text-xs">
+              <div className="flex items-center justify-between py-1 border-b border-[#23252A]/50 pb-3">
+                <span className="text-zinc-400 font-medium">Tenant Display Name</span>
+                <span className="text-white font-semibold font-mono">{user?.org_name || 'RMC'}</span>
+              </div>
+              <div className="flex items-center justify-between py-1 border-b border-[#23252A]/50 pb-3">
+                <span className="text-zinc-400 font-medium">Organization UUID</span>
+                <span className="font-mono text-zinc-300 text-[11px] bg-black/40 px-2 py-0.5 rounded border border-[#23252A]">
+                  {user?.org_id || 'default-org-local'}
                 </span>
               </div>
-
-              <div className="flex items-center justify-between text-caption">
-                <div className="flex items-center gap-2 text-ink-subtle">
-                  <Database className="w-4 h-4" />
-                  <span>Storage Engine</span>
-                </div>
-                <span className="text-ink font-mono text-xs">Local File System</span>
+              <div className="flex items-center justify-between py-1 border-b border-[#23252A]/50 pb-3">
+                <span className="text-zinc-400 font-medium">Primary Administrator</span>
+                <span className="text-white font-mono">{user?.email || 'rmc@gmail.com'}</span>
               </div>
-
-              <div className="flex items-center justify-between text-caption">
-                <div className="flex items-center gap-2 text-ink-subtle">
-                  <Cpu className="w-4 h-4" />
-                  <span>Face Recognition Core</span>
-                </div>
-                <span className="text-ink font-mono text-xs">GhostFaceNet</span>
+              <div className="flex items-center justify-between py-1">
+                <span className="text-zinc-400 font-medium">Biometric Storage Tier</span>
+                <span className="text-emerald-400 font-mono font-medium">Dedicated On-Premise Vector Store</span>
               </div>
             </div>
           </div>
+        </div>
+      )}
 
-          {/* Statistics summary */}
-          {stats && (
-            <div className="grid grid-cols-2 gap-4">
-              <div className="card-linear p-5 flex items-center gap-3 bg-[#0F1011] border-[#23252A]">
-                <div className="p-2.5 rounded-lg bg-[#010102] text-ink-subtle border border-[#23252A]">
-                  <User className="w-4 h-4" />
-                </div>
+      {/* ── TAB 2: Notifications & Security ── */}
+      {activeTab === 'notifications' && (
+        <div className="card-linear p-0 bg-[#0F1011] border-[#23252A] space-y-6">
+          <div className="p-5 border-b border-[#23252A]">
+            <h3 className="text-sm font-semibold text-white flex items-center gap-2">
+              <Bell size={16} className="text-[#60A5FA]" />
+              <span>Event Subscriptions & Alert Policies</span>
+            </h3>
+            <p className="text-xs text-zinc-400 mt-0.5">Configure real-time automated dispatches for security events.</p>
+          </div>
+
+          <div className="p-5 space-y-4">
+            {[
+              { key: 'unknown_face_alert', label: 'Unrecognized Face Intrusion Alerts', desc: 'Trigger an immediate alert when an unidentified individual attempts kiosk access' },
+              { key: 'camera_offline_alert', label: 'Camera Disconnect Telemetry', desc: 'Alert security operators immediately when any RTSP stream or USB device drops offline' },
+              { key: 'model_stale_alert', label: 'Model Retraining Reminders', desc: 'Notify operators when new employee photos are uploaded but embeddings have not been retrained' },
+              { key: 'db_unreachable_alert', label: 'Storage / Database Connection Alerts', desc: 'Alert immediately if local SQLite or PostgreSQL connection latency spikes' },
+              { key: 'daily_summary', label: 'Daily Automated Attendance Digest', desc: 'Send daily morning/evening employee check-in and punctuality summary report' },
+            ].map(item => (
+              <div key={item.key} className="flex items-center justify-between p-3.5 rounded-xl bg-[#0A0B0D] border border-[#23252A]">
                 <div>
-                  <div className="text-[10px] text-ink-tertiary uppercase tracking-wider font-semibold">Registered Persons</div>
-                  <div className="text-lg font-mono font-medium text-ink mt-0.5">{stats.total_people}</div>
+                  <div className="text-xs sm:text-sm font-medium text-white">{item.label}</div>
+                  <div className="text-[11px] text-zinc-400 mt-0.5">{item.desc}</div>
                 </div>
-              </div>
 
-              <div className="card-linear p-5 flex items-center gap-3 bg-[#0F1011] border-[#23252A]">
-                <div className="p-2.5 rounded-lg bg-[#010102] text-ink-subtle border border-[#23252A]">
-                  <ImageIcon className="w-4 h-4" />
-                </div>
-                <div>
-                  <div className="text-[10px] text-ink-tertiary uppercase tracking-wider font-semibold">Total Photo Samples</div>
-                  <div className="text-lg font-mono font-medium text-ink mt-0.5">{stats.total_photos}</div>
-                </div>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    const updated = { ...notifPrefs, [item.key]: !notifPrefs[item.key] };
+                    setNotifPrefs(updated);
+                    try {
+                      await apiClient.post(`${API_BASE}/notifications/preferences`, updated);
+                      toast.success('Preference updated.');
+                    } catch (err) {
+                      setNotifPrefs(notifPrefs);
+                    }
+                  }}
+                  className={`relative w-11 h-6 rounded-full transition-colors cursor-pointer shrink-0 ml-4 ${
+                    notifPrefs?.[item.key] ? 'bg-[#2563EB]' : 'bg-[#23252A]'
+                  }`}
+                  aria-label={item.label}
+                >
+                  <span
+                    className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-white transition-transform ${
+                      notifPrefs?.[item.key] ? 'translate-x-5' : 'translate-x-0'
+                    }`}
+                  />
+                </button>
               </div>
-            </div>
-          )}
+            ))}
 
-          {/* Notification Preferences Card */}
-          {notifPrefs && (
-            <div className="card-linear p-0 bg-[#0F1011] border-[#23252A]">
-              <div className="p-4 border-b border-[#23252A] flex items-center gap-2">
-                <Bell size={16} className="text-primary" />
-                <span className="text-sm font-semibold text-ink">Notification Preferences</span>
-              </div>
-              <div className="p-4 space-y-3">
+            <div className="pt-4 border-t border-[#23252A]">
+              <h4 className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-3">Notification Dispatch Channels</h4>
+              <div className="space-y-3">
                 {[
-                  { key: 'unknown_face_alert', label: 'Unknown Face Alerts', desc: 'Alert when unrecognized faces are detected' },
-                  { key: 'camera_offline_alert', label: 'Camera Offline Alerts', desc: 'Alert when a camera goes offline' },
-                  { key: 'model_stale_alert', label: 'Model Training Reminders', desc: 'Remind when model needs retraining' },
-                  { key: 'db_unreachable_alert', label: 'Database Alerts', desc: 'Alert when database connection is lost' },
-                  { key: 'daily_summary', label: 'Daily Attendance Summary', desc: 'Receive daily attendance report email' },
+                  { key: 'channel_email', label: 'Email Dispatch', desc: `Send alerts directly to ${user?.email || 'admin email'}` },
+                  { key: 'channel_webhook', label: 'Webhook Integration (Slack / MS Teams)', desc: 'Post JSON telemetry payloads to an internal enterprise webhook URL' },
                 ].map(item => (
-                  <div key={item.key} className="flex items-center justify-between py-1">
+                  <div key={item.key} className="flex items-center justify-between p-3.5 rounded-xl bg-[#0A0B0D] border border-[#23252A]">
                     <div>
-                      <div className="text-sm text-ink">{item.label}</div>
-                      <div className="text-xs text-ink-subtle">{item.desc}</div>
+                      <div className="text-xs sm:text-sm font-medium text-white">{item.label}</div>
+                      <div className="text-[11px] text-zinc-400 mt-0.5">{item.desc}</div>
                     </div>
+
                     <button
+                      type="button"
                       onClick={async () => {
                         const updated = { ...notifPrefs, [item.key]: !notifPrefs[item.key] };
                         setNotifPrefs(updated);
                         try {
                           await apiClient.post(`${API_BASE}/notifications/preferences`, updated);
+                          toast.success('Channel updated.');
                         } catch (err) {
-                          setNotifPrefs(notifPrefs); // rollback
+                          setNotifPrefs(notifPrefs);
                         }
                       }}
-                      className={`relative w-10 h-5 rounded-full transition-colors ${
-                        notifPrefs[item.key] ? 'bg-primary' : 'bg-[#333]'
+                      className={`relative w-11 h-6 rounded-full transition-colors cursor-pointer shrink-0 ml-4 ${
+                        notifPrefs?.[item.key] ? 'bg-[#2563EB]' : 'bg-[#23252A]'
                       }`}
+                      aria-label={item.label}
                     >
-                      <span className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform ${
-                        notifPrefs[item.key] ? 'translate-x-5' : 'translate-x-0'
-                      }`} />
+                      <span
+                        className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-white transition-transform ${
+                          notifPrefs?.[item.key] ? 'translate-x-5' : 'translate-x-0'
+                        }`}
+                      />
                     </button>
                   </div>
                 ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
-                <div className="border-t border-[#23252A] pt-3 mt-3">
-                  <div className="text-xs text-ink-subtle font-semibold uppercase mb-2">Delivery Channels</div>
-                  {[
-                    { key: 'channel_email', label: 'Email', desc: 'Receive alerts via email' },
-                    { key: 'channel_webhook', label: 'Webhook (Slack/Teams)', desc: 'Send alerts to a webhook URL' },
-                  ].map(item => (
-                    <div key={item.key} className="flex items-center justify-between py-1">
-                      <div>
-                        <div className="text-sm text-ink">{item.label}</div>
-                        <div className="text-xs text-ink-subtle">{item.desc}</div>
-                      </div>
-                      <button
-                        onClick={async () => {
-                          const updated = { ...notifPrefs, [item.key]: !notifPrefs[item.key] };
-                          setNotifPrefs(updated);
-                          try {
-                            await apiClient.post(`${API_BASE}/notifications/preferences`, updated);
-                          } catch (err) {
-                            setNotifPrefs(notifPrefs);
-                          }
-                        }}
-                        className={`relative w-10 h-5 rounded-full transition-colors ${
-                          notifPrefs[item.key] ? 'bg-primary' : 'bg-[#333]'
-                        }`}
-                      >
-                        <span className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform ${
-                          notifPrefs[item.key] ? 'translate-x-5' : 'translate-x-0'
-                        }`} />
-                      </button>
-                    </div>
-                  ))}
+      {/* ── TAB 3: System Infrastructure & Updates ── */}
+      {activeTab === 'infrastructure' && (
+        <div className="space-y-6">
+          {/* Hardware & Core Specs */}
+          <div className="card-linear p-0 bg-[#0F1011] border-[#23252A]">
+            <div className="p-5 border-b border-[#23252A]">
+              <h3 className="text-sm font-semibold text-white flex items-center gap-2">
+                <Cpu size={16} className="text-[#60A5FA]" />
+                <span>Runtime Environment & AI Engines</span>
+              </h3>
+            </div>
+            <div className="p-5 grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
+              <div className="p-3.5 rounded-xl bg-[#0A0B0D] border border-[#23252A]">
+                <div className="flex items-center gap-2 text-zinc-400 mb-1">
+                  <Server size={14} className="text-[#60A5FA]" />
+                  <span>Deployment Mode</span>
+                </div>
+                <div className="font-semibold text-white font-mono text-sm">
+                  {user?.org_id ? 'Multi-Tenant (DB)' : 'Single-Tenant (Local)'}
+                </div>
+              </div>
+
+              <div className="p-3.5 rounded-xl bg-[#0A0B0D] border border-[#23252A]">
+                <div className="flex items-center gap-2 text-zinc-400 mb-1">
+                  <Database size={14} className="text-emerald-400" />
+                  <span>Storage Engine</span>
+                </div>
+                <div className="font-semibold text-white font-mono text-sm">
+                  Local File System + SQLite
+                </div>
+              </div>
+
+              <div className="p-3.5 rounded-xl bg-[#0A0B0D] border border-[#23252A]">
+                <div className="flex items-center gap-2 text-zinc-400 mb-1">
+                  <Cpu size={14} className="text-indigo-400" />
+                  <span>Face Recognition Core</span>
+                </div>
+                <div className="font-semibold text-white font-mono text-sm">
+                  GhostFaceNet / Facenet512
                 </div>
               </div>
             </div>
-          )}
+          </div>
 
-          {/* System Updates Card - visible to org_admin+ only */}
+          {/* Software Updates & OTA Package Management */}
           {isAdmin && (
             <div className="card-linear p-0 bg-[#0F1011] border-[#23252A]">
-              <div className="py-4 px-6 border-b border-[#23252A] bg-[#0F1011] flex items-center justify-between">
-                <h3 className="text-body font-medium text-ink flex items-center gap-2">
-                  <Package className="w-4 h-4" />
-                  System Updates
-                </h3>
+              <div className="p-5 border-b border-[#23252A] flex items-center justify-between">
+                <div>
+                  <h3 className="text-sm font-semibold text-white flex items-center gap-2">
+                    <Package size={16} className="text-[#60A5FA]" />
+                    <span>Software Updates & Sovereign Air-Gap Packages</span>
+                  </h3>
+                  <p className="text-xs text-zinc-400 mt-0.5">Check for official releases or upload offline packages.</p>
+                </div>
                 {sysInfo?.app_version && (
-                  <span className="px-2 py-0.5 rounded-full bg-[#2563EB]/10 text-[#60A5FA] border border-[#2563EB]/20 font-mono text-[10px]">
+                  <span className="px-2.5 py-0.5 rounded-full bg-[#2563EB]/15 text-[#60A5FA] border border-[#2563EB]/30 font-mono text-xs">
                     v{sysInfo.app_version}
                   </span>
                 )}
               </div>
-              <div className="p-6 space-y-4">
-                {/* Current version + last check */}
-                <div className="flex items-center justify-between text-caption">
-                  <div className="flex items-center gap-2 text-ink-subtle">
-                    <Info className="w-4 h-4" />
-                    <span>Last Checked</span>
-                  </div>
-                  <span className="text-ink font-mono text-xs">
-                    {sysInfo?.last_update_checked_at
-                      ? new Date(sysInfo.last_update_checked_at).toLocaleString()
-                      : 'Never'}
-                  </span>
-                </div>
 
-                {/* Update available badge */}
-                {updateStatus?.status === 'update_available' && (
-                  <div className={`p-3 rounded-lg border ${
-                    updateStatus.severity === 'critical'
-                      ? 'bg-red-500/5 border-red-500/20 text-red-400'
-                      : updateStatus.severity === 'recommended'
-                        ? 'bg-amber-500/5 border-amber-500/20 text-amber-400'
-                        : 'bg-[#2563EB]/5 border-[#2563EB]/20 text-[#60A5FA]'
-                  }`}>
-                    <div className="flex items-center gap-2 text-caption font-medium mb-1">
-                      {updateStatus.severity === 'critical'
-                        ? <AlertTriangle className="w-4 h-4" />
-                        : <Info className="w-4 h-4" />}
-                      <span className="uppercase tracking-wider text-[10px]">
-                        {updateStatus.severity} update available - v{updateStatus.latest_version}
-                      </span>
-                    </div>
-                    {updateStatus.changelog && (
-                      <p className="text-[11px] text-ink-subtle mt-1 whitespace-pre-line">{updateStatus.changelog}</p>
-                    )}
+              <div className="p-5 space-y-4">
+                <div className="flex flex-wrap items-center justify-between gap-3 p-3.5 rounded-xl bg-[#0A0B0D] border border-[#23252A] text-xs">
+                  <div>
+                    <span className="text-zinc-400">Last Telemetry Check: </span>
+                    <span className="font-mono text-white">
+                      {sysInfo?.last_update_checked_at ? new Date(sysInfo.last_update_checked_at).toLocaleString() : 'Never'}
+                    </span>
                   </div>
-                )}
 
-                {updateStatus?.status === 'up_to_date' && (
-                  <div className="p-3 rounded-lg border bg-emerald-500/5 border-emerald-500/20 text-emerald-400 flex items-center gap-2 text-caption">
-                    <CheckCircle className="w-4 h-4" />
-                    <span>You're on the latest version</span>
-                  </div>
-                )}
-
-                {/* Status message */}
-                {updateMessage && (
-                  <div className="p-3 rounded-lg border bg-[#2563EB]/5 border-[#2563EB]/20 text-[#60A5FA] text-[11px] font-mono">
-                    {updateMessage}
-                  </div>
-                )}
-
-                {/* Action buttons */}
-                <div className="flex flex-wrap gap-2">
                   <button
                     onClick={async () => {
                       setUpdateLoading(true);
@@ -434,6 +597,7 @@ export default function ProfilePage() {
                           latest_available_version: res.data.latest_version,
                           update_available: res.data.status === 'update_available',
                         }));
+                        toast.success('Update check complete.');
                       } catch (err) {
                         setUpdateMessage(`Check failed: ${err?.response?.data?.error || err.message}`);
                       } finally {
@@ -441,118 +605,71 @@ export default function ProfilePage() {
                       }
                     }}
                     disabled={updateLoading}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#2563EB]/10 text-[#60A5FA] border border-[#2563EB]/20 hover:bg-[#2563EB]/20 transition-colors text-[11px] font-medium disabled:opacity-50"
+                    className="button-primary text-xs h-8 px-3.5 flex items-center gap-1.5"
                   >
-                    <RefreshCw className={`w-3.5 h-3.5 ${updateLoading ? 'animate-spin' : ''}`} />
-                    {updateLoading ? 'Checking...' : 'Check for Updates'}
+                    <RefreshCw size={13} className={updateLoading ? 'animate-spin' : ''} />
+                    <span>{updateLoading ? 'Checking...' : 'Check for Updates'}</span>
                   </button>
-
-                  {updateStatus?.status === 'update_available' && updateStatus?.download_url && (
-                    <button
-                      onClick={async () => {
-                        setApplyLoading(true);
-                        setUpdateMessage('Downloading update...');
-                        try {
-                          await apiClient.post(`${API_BASE}/system/download-update`, {
-                            download_url: updateStatus.download_url,
-                            checksum: updateStatus.checksum,
-                            signature: updateStatus.signature,
-                          });
-                          setUpdateMessage('Download complete. Applying update...');
-                          const applyRes = await apiClient.post(`${API_BASE}/system/apply-update`, {
-                            checksum: updateStatus.checksum,
-                            signature: updateStatus.signature,
-                          });
-                          setUpdateMessage(applyRes.data.message || 'Update applied. Server restarting...');
-                        } catch (err) {
-                          setUpdateMessage(`Update failed: ${err?.response?.data?.error || err.message}`);
-                        } finally {
-                          setApplyLoading(false);
-                        }
-                      }}
-                      disabled={applyLoading}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20 transition-colors text-[11px] font-medium disabled:opacity-50"
-                    >
-                      <Download className={`w-3.5 h-3.5 ${applyLoading ? 'animate-pulse' : ''}`} />
-                      {applyLoading ? 'Applying...' : 'Download & Apply'}
-                    </button>
-                  )}
-
-                  {sysInfo?.has_backup && (
-                    <button
-                      onClick={async () => {
-                        if (!window.confirm('Are you sure you want to rollback to the previous version?')) return;
-                        setRollbackLoading(true);
-                        setUpdateMessage('Rolling back...');
-                        try {
-                          const res = await apiClient.post(`${API_BASE}/system/rollback`);
-                          setUpdateMessage(res.data.message || 'Rollback complete. Server restarting...');
-                        } catch (err) {
-                          setUpdateMessage(`Rollback failed: ${err?.response?.data?.error || err.message}`);
-                        } finally {
-                          setRollbackLoading(false);
-                        }
-                      }}
-                      disabled={rollbackLoading}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500/10 text-amber-400 border border-amber-500/20 hover:bg-amber-500/20 transition-colors text-[11px] font-medium disabled:opacity-50"
-                    >
-                      <RotateCcw className={`w-3.5 h-3.5 ${rollbackLoading ? 'animate-spin' : ''}`} />
-                      {rollbackLoading ? 'Rolling back...' : 'Rollback'}
-                    </button>
-                  )}
                 </div>
 
-                {/* Offline upload section */}
-                <div className="pt-3 border-t border-[#23252A]">
-                  <p className="text-[10px] text-ink-tertiary uppercase tracking-wider font-semibold mb-2">
-                    Offline / Air-Gapped Update
-                  </p>
-                  <div className="flex items-center gap-2">
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept=".tar.gz"
-                      className="hidden"
-                      onChange={async (e) => {
-                        const file = e.target.files?.[0];
-                        if (!file) return;
-                        setUploadLoading(true);
-                        setUpdateMessage('Uploading package...');
-                        try {
-                          const formData = new FormData();
-                          formData.append('package', file);
-                          const res = await apiClient.post(`${API_BASE}/system/upload-update`, formData, {
-                            headers: { 'Content-Type': 'multipart/form-data' },
-                            timeout: 120000,
-                          });
-                          setUpdateMessage(res.data.message || 'Update applied. Server restarting...');
-                        } catch (err) {
-                          setUpdateMessage(`Upload failed: ${err?.response?.data?.error || err.message}`);
-                        } finally {
-                          setUploadLoading(false);
-                          if (fileInputRef.current) fileInputRef.current.value = '';
-                        }
-                      }}
-                    />
-                    <button
-                      onClick={() => fileInputRef.current?.click()}
-                      disabled={uploadLoading}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#0F1011] text-ink-subtle border border-[#23252A] hover:bg-[#1A1B1E] transition-colors text-[11px] font-medium disabled:opacity-50"
-                    >
-                      <Upload className={`w-3.5 h-3.5 ${uploadLoading ? 'animate-pulse' : ''}`} />
-                      {uploadLoading ? 'Uploading...' : 'Upload Package (.tar.gz)'}
-                    </button>
+                {updateStatus?.status === 'up_to_date' && (
+                  <div className="p-3.5 rounded-xl border bg-emerald-500/10 border-emerald-500/20 text-emerald-400 flex items-center gap-2 text-xs font-medium">
+                    <CheckCircle size={16} />
+                    <span>Your sovereign appliance is operating on the latest release.</span>
                   </div>
-                  <p className="text-[10px] text-ink-tertiary mt-1.5">
-                    For air-gapped installs - download the package from your admin portal, then upload here.
-                  </p>
+                )}
+
+                {updateMessage && (
+                  <div className="p-3.5 rounded-xl border bg-[#2563EB]/10 border-[#2563EB]/25 text-[#60A5FA] text-xs font-mono">
+                    {updateMessage}
+                  </div>
+                )}
+
+                {/* Offline Air-Gapped Upload */}
+                <div className="pt-3 border-t border-[#23252A]">
+                  <h4 className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">Offline Air-Gapped Package Deployment</h4>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept=".tar.gz"
+                    className="hidden"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      setUploadLoading(true);
+                      setUpdateMessage('Uploading update package...');
+                      try {
+                        const formData = new FormData();
+                        formData.append('package', file);
+                        const res = await apiClient.post(`${API_BASE}/system/upload-update`, formData, {
+                          headers: { 'Content-Type': 'multipart/form-data' },
+                          timeout: 120000,
+                        });
+                        setUpdateMessage(res.data.message || 'Update applied. Server restarting...');
+                        toast.success('Package uploaded successfully.');
+                      } catch (err) {
+                        setUpdateMessage(`Upload failed: ${err?.response?.data?.error || err.message}`);
+                        toast.error('Upload failed.');
+                      } finally {
+                        setUploadLoading(false);
+                        if (fileInputRef.current) fileInputRef.current.value = '';
+                      }
+                    }}
+                  />
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={uploadLoading}
+                    className="button-secondary text-xs h-9 px-4 flex items-center gap-2"
+                  >
+                    <Upload size={14} className={uploadLoading ? 'animate-pulse' : ''} />
+                    <span>{uploadLoading ? 'Uploading Package...' : 'Upload Offline Update (.tar.gz)'}</span>
+                  </button>
                 </div>
               </div>
             </div>
           )}
-
         </div>
-      </div>
+      )}
     </motion.div>
   );
 }

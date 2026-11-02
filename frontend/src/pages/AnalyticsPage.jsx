@@ -112,8 +112,8 @@ function HeatmapGrid({ data }) {
 }
 
 function DepartmentTable({ data, deptConfigs, onOpenManage }) {
-  if (!data?.departments?.length && !data?.unassigned) return null;
-  const all = [...(data.departments || []), ...(data.unassigned ? [data.unassigned] : [])];
+  const hasRows = (data?.departments?.length > 0) || Boolean(data?.unassigned);
+  const all = [...(data?.departments || []), ...(data?.unassigned ? [data.unassigned] : [])];
 
   const configMap = (deptConfigs || []).reduce((acc, c) => {
     acc[c.name] = c;
@@ -136,6 +136,11 @@ function DepartmentTable({ data, deptConfigs, onOpenManage }) {
         </button>
       </div>
 
+      {!hasRows ? (
+        <div className="py-8 text-center text-ink-subtle text-caption border border-dashed border-[#23252A] rounded-lg">
+          No department attendance activity recorded yet.
+        </div>
+      ) : (
       <div className="overflow-x-auto">
         <table className="w-full text-caption">
           <thead>
@@ -190,12 +195,16 @@ function DepartmentTable({ data, deptConfigs, onOpenManage }) {
           </tbody>
         </table>
       </div>
+      )}
     </div>
   );
 }
 
 function LateArrivalsPanel({ data }) {
   if (!data || data.error) return null;
+
+  const hasDayData = data.by_day_of_week && data.by_day_of_week.length > 0;
+  const hasLateEmps = data.top_late_employees && data.top_late_employees.length > 0;
 
   return (
     <div className="card-linear p-5 bg-[#0F1011] border-[#23252A]">
@@ -205,8 +214,13 @@ function LateArrivalsPanel({ data }) {
         <span className="text-[10px] text-ink-tertiary ml-2">(Start: {data.work_start || '09:00'})</span>
       </h3>
 
-      {/* Day of week breakdown */}
-      {data.by_day_of_week?.length > 0 && (
+      {!hasDayData && !hasLateEmps ? (
+        <div className="py-8 text-center text-ink-subtle text-caption border border-dashed border-[#23252A] rounded-lg">
+          Zero late arrivals recorded. All team members on schedule.
+        </div>
+      ) : (
+        <>
+          {data.by_day_of_week?.length > 0 && (
         <div className="mb-4">
           <div className="text-[11px] text-ink-subtle mb-2 uppercase tracking-wider">By Day of Week</div>
           <div className="flex gap-1.5">
@@ -244,6 +258,8 @@ function LateArrivalsPanel({ data }) {
             ))}
           </div>
         </div>
+      )}
+      </>
       )}
     </div>
   );
@@ -553,36 +569,36 @@ function DepartmentScheduleRow({ dept, onSave, isSaving }) {
         </div>
       </div>
 
-      <div className="flex items-center gap-3">
+      <div className="grid grid-cols-2 sm:flex sm:items-center gap-2 sm:gap-3 w-full sm:w-auto">
         <div className="flex items-center gap-1.5">
-          <label className="text-[10px] text-ink-subtle">Work Start</label>
+          <label className="text-[10px] text-ink-subtle shrink-0">Start</label>
           <input
             type="time"
             value={start}
             onChange={(e) => handleChange('start', e.target.value)}
-            className="h-7 px-2 text-xs rounded bg-[#0A0B0D] border border-[#23252A] text-ink focus:border-[#2563EB] focus:outline-none"
+            className="h-8 px-2 text-xs rounded bg-[#0A0B0D] border border-[#23252A] text-ink focus:border-[#2563EB] focus:outline-none flex-1"
           />
         </div>
 
         <div className="flex items-center gap-1.5">
-          <label className="text-[10px] text-ink-subtle">Work End</label>
+          <label className="text-[10px] text-ink-subtle shrink-0">End</label>
           <input
             type="time"
             value={end}
             onChange={(e) => handleChange('end', e.target.value)}
-            className="h-7 px-2 text-xs rounded bg-[#0A0B0D] border border-[#23252A] text-ink focus:border-[#2563EB] focus:outline-none"
+            className="h-8 px-2 text-xs rounded bg-[#0A0B0D] border border-[#23252A] text-ink focus:border-[#2563EB] focus:outline-none flex-1"
           />
         </div>
 
         <div className="flex items-center gap-1.5">
-          <label className="text-[10px] text-ink-subtle">Grace (min)</label>
+          <label className="text-[10px] text-ink-subtle shrink-0">Grace(m)</label>
           <input
             type="number"
             min="0"
             max="120"
             value={grace}
             onChange={(e) => handleChange('grace', e.target.value)}
-            className="h-7 w-14 px-2 text-xs rounded bg-[#0A0B0D] border border-[#23252A] text-ink focus:border-[#2563EB] focus:outline-none text-center"
+            className="h-8 w-14 px-2 text-xs rounded bg-[#0A0B0D] border border-[#23252A] text-ink focus:border-[#2563EB] focus:outline-none text-center"
           />
         </div>
 
@@ -592,7 +608,7 @@ function DepartmentScheduleRow({ dept, onSave, isSaving }) {
             setChanged(false);
           }}
           disabled={isSaving || !changed}
-          className={`h-7 px-3 text-xs rounded flex items-center gap-1 font-medium transition-colors ${
+          className={`h-8 px-3 text-xs rounded flex items-center justify-center gap-1 font-medium transition-colors ${
             changed
               ? 'bg-[#2563EB] text-white hover:bg-[#1d4ed8]'
               : 'bg-[#23252A] text-ink-tertiary cursor-not-allowed'
@@ -670,7 +686,7 @@ export default function AnalyticsPage() {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `rms_report_${new Date().toISOString().slice(0, 10)}.json`;
+      a.download = `aurapass_report_${new Date().toISOString().slice(0, 10)}.json`;
       a.click();
       URL.revokeObjectURL(url);
       toast.success('JSON report exported.');
@@ -690,7 +706,7 @@ export default function AnalyticsPage() {
       const url = URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }));
       const a = document.createElement('a');
       a.href = url;
-      a.download = `rms_analytics_report_${new Date().toISOString().slice(0, 10)}.pdf`;
+      a.download = `aurapass_analytics_report_${new Date().toISOString().slice(0, 10)}.pdf`;
       a.click();
       URL.revokeObjectURL(url);
       toast.success('PDF report downloaded.');
@@ -710,55 +726,55 @@ export default function AnalyticsPage() {
           </h1>
           <p className="mt-1 text-caption text-ink-subtle">Department-level insights, attendance trends, and schedule management.</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
           <button
             onClick={() => handleOpenManage('schedules')}
-            className="button-secondary flex items-center gap-1.5 text-caption h-8 px-3 border-[#23252A] hover:border-[#2563EB]/50"
+            className="button-secondary flex-1 sm:flex-none flex items-center justify-center gap-1.5 text-caption h-8 px-3 border-[#23252A] hover:border-[#2563EB]/50"
           >
-            <Settings size={13} className="text-[#60a5fa]" /> Manage Departments
+            <Settings size={13} className="text-[#60a5fa]" /> Manage
           </button>
-          <button onClick={fetchAll} className="button-secondary flex items-center gap-1.5 text-caption h-8 px-3">
+          <button onClick={fetchAll} className="button-secondary flex items-center justify-center gap-1.5 text-caption h-8 px-3">
             <RefreshCw size={13} /> Refresh
           </button>
-          <button onClick={exportReport} className="button-secondary flex items-center gap-1.5 text-caption h-8 px-3">
-            <Download size={13} /> Export JSON
+          <button onClick={exportReport} className="button-secondary flex items-center justify-center gap-1.5 text-caption h-8 px-3">
+            <Download size={13} /> JSON
           </button>
-          <button onClick={exportPDF} className="button-primary flex items-center gap-1.5 text-caption h-8 px-3">
-            <Download size={13} /> Export PDF
+          <button onClick={exportPDF} className="button-primary flex items-center justify-center gap-1.5 text-caption h-8 px-3">
+            <Download size={13} /> PDF
           </button>
         </div>
       </div>
 
       {/* Filters */}
-      <div className="card-linear p-4 bg-[#0F1011] border-[#23252A] flex flex-wrap items-end gap-4">
-        <div>
+      <div className="card-linear p-3.5 sm:p-4 bg-[#0F1011] border-[#23252A] grid grid-cols-1 sm:grid-cols-2 lg:flex lg:flex-wrap items-end gap-3 sm:gap-4">
+        <div className="w-full sm:w-auto">
           <label className="text-[11px] text-ink-subtle uppercase tracking-wider block mb-1">Start Date</label>
           <input
             type="date"
             value={dateRange.start}
             onChange={e => setDateRange(p => ({ ...p, start: e.target.value }))}
-            className="h-8 px-3 rounded-md bg-[#010102] border border-[#23252A] text-caption text-ink focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] outline-none accent-[#2563EB]"
+            className="h-8 px-3 rounded-md bg-[#010102] border border-[#23252A] text-caption text-ink focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] outline-none accent-[#2563EB] w-full"
           />
         </div>
-        <div>
+        <div className="w-full sm:w-auto">
           <label className="text-[11px] text-ink-subtle uppercase tracking-wider block mb-1">End Date</label>
           <input
             type="date"
             value={dateRange.end}
             onChange={e => setDateRange(p => ({ ...p, end: e.target.value }))}
-            className="h-8 px-3 rounded-md bg-[#010102] border border-[#23252A] text-caption text-ink focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] outline-none accent-[#2563EB]"
+            className="h-8 px-3 rounded-md bg-[#010102] border border-[#23252A] text-caption text-ink focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] outline-none accent-[#2563EB] w-full"
           />
         </div>
-        <div>
+        <div className="w-full sm:w-auto">
           <label className="text-[11px] text-ink-subtle uppercase tracking-wider block mb-1">Default Work Start</label>
           <input
             type="time"
             value={workStart}
             onChange={e => setWorkStart(e.target.value)}
-            className="h-8 px-3 rounded-md bg-[#010102] border border-[#23252A] text-caption text-ink focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] outline-none accent-[#2563EB]"
+            className="h-8 px-3 rounded-md bg-[#010102] border border-[#23252A] text-caption text-ink focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] outline-none accent-[#2563EB] w-full"
           />
         </div>
-        <button onClick={fetchAll} className="button-secondary h-8 px-4 text-caption">Apply</button>
+        <button onClick={fetchAll} className="button-secondary h-8 px-4 text-caption w-full sm:w-auto">Apply</button>
       </div>
 
       {loading ? (

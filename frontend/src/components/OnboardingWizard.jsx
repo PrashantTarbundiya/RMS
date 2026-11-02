@@ -291,7 +291,7 @@ export default function OnboardingWizard() {
     if (rect.top < 64 || rect.bottom > window.innerHeight - 20) {
       if (!isScrollingRef.current) {
         isScrollingRef.current = true;
-        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         setTimeout(() => {
           isScrollingRef.current = false;
           positionSpotlight();
@@ -978,7 +978,15 @@ export default function OnboardingWizard() {
           .onb-stepper-dots { display: none; }
           .onb-step-title { display: none; }
           .onb-substep-badge { display: none; }
-          .onb-tooltip { max-width: 300px; }
+          .onb-tooltip {
+            max-width: calc(100vw - 24px) !important;
+            left: 12px !important;
+            right: 12px !important;
+            width: auto !important;
+            padding: 14px !important;
+            box-sizing: border-box !important;
+          }
+          .onb-tooltip-arrow { display: none !important; }
         }
       `}</style>
     </>

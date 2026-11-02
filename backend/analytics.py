@@ -70,10 +70,11 @@ def get_department_breakdown(org_id, start_date=None, end_date=None):
             for emp in employees:
                 emp_dept[emp.id] = emp.department or '_unassigned'
 
-            # Count checkins by department
+            # Count checkins and distinct employee-days by department
             dept_checkins = defaultdict(int)
             dept_confidences = defaultdict(list)
             dept_unique_days = defaultdict(set)
+            dept_emp_days = defaultdict(set)
             for log in logs:
                 if log.is_confirmed and log.employee_id:
                     dept = emp_dept.get(log.employee_id, '_unassigned')
@@ -81,7 +82,9 @@ def get_department_breakdown(org_id, start_date=None, end_date=None):
                     if log.confidence:
                         dept_confidences[dept].append(log.confidence)
                     if log.checkin_time:
-                        dept_unique_days[dept].add(log.checkin_time.date())
+                        log_date = log.checkin_time.date()
+                        dept_unique_days[dept].add(log_date)
+                        dept_emp_days[dept].add((log.employee_id, log_date))
 
             # Calculate rates
             results = []
@@ -91,15 +94,16 @@ def get_department_breakdown(org_id, start_date=None, end_date=None):
                 total_days = len(dept_unique_days.get(dept_name, set())) or 1
                 total_checkins = dept_checkins.get(dept_name, 0)
                 confs = dept_confidences.get(dept_name, [])
+                distinct_attendances = len(dept_emp_days.get(dept_name, set()))
+
+                # Actual attendance rate cannot exceed 100%
+                raw_rate = (distinct_attendances / (total_emp * total_days) * 100) if (total_emp > 0 and total_days > 0) else 0
 
                 entry = {
                     'name': dept_name if dept_name != '_unassigned' else 'Unassigned',
                     'total_employees': total_emp,
                     'total_checkins': total_checkins,
-                    'avg_attendance_rate': round(
-                        (total_checkins / (total_emp * total_days) * 100)
-                        if total_emp > 0 else 0, 1
-                    ),
+                    'avg_attendance_rate': round(min(100.0, raw_rate), 1),
                     'avg_confidence': round(sum(confs) / len(confs), 3) if confs else 0,
                     'working_days': total_days,
                 }

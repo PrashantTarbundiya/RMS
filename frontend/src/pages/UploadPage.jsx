@@ -681,53 +681,53 @@ export default function UploadPage() {
         <button
           type="button"
           onClick={() => { setUploadMethod('auto'); setStatus({ type: '', message: '' }); }}
-          className={`flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg text-sm font-medium transition-all ${
+          className={`flex items-center justify-center gap-1.5 sm:gap-2 py-2 sm:py-2.5 px-2 sm:px-3 rounded-lg text-xs sm:text-sm font-medium transition-all ${
             uploadMethod === 'auto'
               ? 'bg-[#2563EB] text-white shadow-md font-semibold'
               : 'text-ink-subtle hover:text-ink hover:bg-[#1C1D1F]'
           }`}
         >
           <Zap className="w-4 h-4 text-amber-300" />
-          <span>Smart Auto-Sort</span>
+          <span className="truncate">Smart Auto-Sort</span>
         </button>
 
         <button
           type="button"
           onClick={() => { setUploadMethod('bulk_zip'); setStatus({ type: '', message: '' }); }}
-          className={`flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg text-sm font-medium transition-all ${
+          className={`flex items-center justify-center gap-2 py-2 sm:py-2.5 px-2 sm:px-3 rounded-lg text-xs sm:text-sm font-medium transition-all ${
             uploadMethod === 'bulk_zip'
               ? 'bg-[#2563EB] text-white shadow-md font-semibold'
               : 'text-ink-subtle hover:text-ink hover:bg-[#1C1D1F]'
           }`}
         >
           <Archive className="w-4 h-4" />
-          <span>Bulk ZIP Archive</span>
+          <span className="truncate">Bulk ZIP</span>
         </button>
 
         <button
           type="button"
           onClick={() => { setUploadMethod('bulk_folder'); setStatus({ type: '', message: '' }); }}
-          className={`flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg text-sm font-medium transition-all ${
+          className={`flex items-center justify-center gap-2 py-2 sm:py-2.5 px-2 sm:px-3 rounded-lg text-xs sm:text-sm font-medium transition-all ${
             uploadMethod === 'bulk_folder'
               ? 'bg-[#2563EB] text-white shadow-md font-semibold'
               : 'text-ink-subtle hover:text-ink hover:bg-[#1C1D1F]'
           }`}
         >
           <Folder className="w-4 h-4" />
-          <span>Bulk Folder Select</span>
+          <span className="truncate">Bulk Folder</span>
         </button>
 
         <button
           type="button"
           onClick={() => { setUploadMethod('manual'); setStatus({ type: '', message: '' }); }}
-          className={`flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg text-sm font-medium transition-all ${
+          className={`flex items-center justify-center gap-2 py-2 sm:py-2.5 px-2 sm:px-3 rounded-lg text-xs sm:text-sm font-medium transition-all ${
             uploadMethod === 'manual'
               ? 'bg-[#2563EB] text-white shadow-md font-semibold'
               : 'text-ink-subtle hover:text-ink hover:bg-[#1C1D1F]'
           }`}
         >
           <Sliders className="w-4 h-4" />
-          <span>Manual Angle Slots</span>
+          <span className="truncate">Manual Slots</span>
         </button>
       </div>
 

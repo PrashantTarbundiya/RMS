@@ -395,7 +395,7 @@ export default function ManagePersonPage() {
 
 
             <div className="flex flex-wrap gap-4 mb-6">
-              <div className="flex-2 min-w-[250px] flex flex-col gap-1.5">
+              <div className="flex-1 sm:flex-2 min-w-0 sm:min-w-[200px] flex flex-col gap-1.5">
                 <label className="text-caption font-medium text-ink-subtle">Person Name</label>
                 <input 
                   type="text" 
@@ -405,7 +405,7 @@ export default function ManagePersonPage() {
                   className="input-linear"
                 />
               </div>
-              <div className="flex-1 min-w-[150px] flex flex-col gap-1.5">
+              <div className="flex-1 min-w-0 sm:min-w-[140px] flex flex-col gap-1.5">
                 <label className="text-caption font-medium text-ink-subtle">Training Epochs</label>
                 <input 
                   type="number" 
@@ -417,7 +417,7 @@ export default function ManagePersonPage() {
               </div>
             </div>
 
-            <div className="flex justify-between items-center mb-4 pt-4 border-t border-[#23252A]">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 mb-4 pt-4 border-t border-[#23252A]">
               <h3 className="text-body font-medium text-ink m-0">Reference Images</h3>
               <div className="flex items-center gap-4">
                 <span className="px-2 py-0.5 rounded-full font-mono text-[10px] bg-[#010102] border border-[#23252A] text-ink-muted">Total: {photos.length + totalNewImages}</span>

@@ -1,0 +1,2026 @@
+{
+  "summary": {
+    "totalTested": 252,
+    "passCount": 252,
+    "failCount": 0,
+    "passRate": "100%"
+  },
+  "results": [
+    {
+      "viewport": "320px",
+      "route": "/",
+      "passed": true,
+      "winWidth": 320,
+      "scrollWidth": 320,
+      "offending": []
+    },
+    {
+      "viewport": "320px",
+      "route": "/login",
+      "passed": true,
+      "winWidth": 320,
+      "scrollWidth": 320,
+      "offending": []
+    },
+    {
+      "viewport": "320px",
+      "route": "/register",
+      "passed": true,
+      "winWidth": 320,
+      "scrollWidth": 320,
+      "offending": []
+    },
+    {
+      "viewport": "320px",
+      "route": "/dashboard",
+      "passed": true,
+      "winWidth": 320,
+      "scrollWidth": 320,
+      "offending": []
+    },
+    {
+      "viewport": "320px",
+      "route": "/attendance",
+      "passed": true,
+      "winWidth": 320,
+      "scrollWidth": 320,
+      "offending": []
+    },
+    {
+      "viewport": "320px",
+      "route": "/live",
+      "passed": true,
+      "winWidth": 320,
+      "scrollWidth": 320,
+      "offending": []
+    },
+    {
+      "viewport": "320px",
+      "route": "/cameras",
+      "passed": true,
+      "winWidth": 320,
+      "scrollWidth": 320,
+      "offending": []
+    },
+    {
+      "viewport": "320px",
+      "route": "/upload",
+      "passed": true,
+      "winWidth": 320,
+      "scrollWidth": 320,
+      "offending": []
+    },
+    {
+      "viewport": "320px",
+      "route": "/test",
+      "passed": true,
+      "winWidth": 320,
+      "scrollWidth": 320,
+      "offending": []
+    },
+    {
+      "viewport": "320px",
+      "route": "/mosaic",
+      "passed": true,
+      "winWidth": 320,
+      "scrollWidth": 320,
+      "offending": []
+    },
+    {
+      "viewport": "320px",
+      "route": "/kiosk",
+      "passed": true,
+      "winWidth": 320,
+      "scrollWidth": 320,
+      "offending": []
+    },
+    {
+      "viewport": "320px",
+      "route": "/logs",
+      "passed": true,
+      "winWidth": 320,
+      "scrollWidth": 320,
+      "offending": []
+    },
+    {
+      "viewport": "320px",
+      "route": "/analytics",
+      "passed": true,
+      "winWidth": 320,
+      "scrollWidth": 320,
+      "offending": []
+    },
+    {
+      "viewport": "320px",
+      "route": "/audit-logs",
+      "passed": true,
+      "winWidth": 320,
+      "scrollWidth": 320,
+      "offending": []
+    },
+    {
+      "viewport": "320px",
+      "route": "/profile",
+      "passed": true,
+      "winWidth": 320,
+      "scrollWidth": 320,
+      "offending": []
+    },
+    {
+      "viewport": "320px",
+      "route": "/models",
+      "passed": true,
+      "winWidth": 320,
+      "scrollWidth": 320,
+      "offending": []
+    },
+    {
+      "viewport": "320px",
+      "route": "/training",
+      "passed": true,
+      "winWidth": 320,
+      "scrollWidth": 320,
+      "offending": []
+    },
+    {
+      "viewport": "320px",
+      "route": "/support",
+      "passed": true,
+      "winWidth": 320,
+      "scrollWidth": 320,
+      "offending": []
+    },
+    {
+      "viewport": "320px",
+      "route": "/privacy-policy",
+      "passed": true,
+      "winWidth": 320,
+      "scrollWidth": 320,
+      "offending": []
+    },
+    {
+      "viewport": "320px",
+      "route": "/terms",
+      "passed": true,
+      "winWidth": 320,
+      "scrollWidth": 320,
+      "offending": []
+    },
+    {
+      "viewport": "320px",
+      "route": "/404",
+      "passed": true,
+      "winWidth": 320,
+      "scrollWidth": 320,
+      "offending": []
+    },
+    {
+      "viewport": "360px",
+      "route": "/",
+      "passed": true,
+      "winWidth": 360,
+      "scrollWidth": 360,
+      "offending": []
+    },
+    {
+      "viewport": "360px",
+      "route": "/login",
+      "passed": true,
+      "winWidth": 360,
+      "scrollWidth": 360,
+      "offending": []
+    },
+    {
+      "viewport": "360px",
+      "route": "/register",
+      "passed": true,
+      "winWidth": 360,
+      "scrollWidth": 360,
+      "offending": []
+    },
+    {
+      "viewport": "360px",
+      "route": "/dashboard",
+      "passed": true,
+      "winWidth": 360,
+      "scrollWidth": 360,
+      "offending": []
+    },
+    {
+      "viewport": "360px",
+      "route": "/attendance",
+      "passed": true,
+      "winWidth": 360,
+      "scrollWidth": 360,
+      "offending": []
+    },
+    {
+      "viewport": "360px",
+      "route": "/live",
+      "passed": true,
+      "winWidth": 360,
+      "scrollWidth": 360,
+      "offending": []
+    },
+    {
+      "viewport": "360px",
+      "route": "/cameras",
+      "passed": true,
+      "winWidth": 360,
+      "scrollWidth": 360,
+      "offending": []
+    },
+    {
+      "viewport": "360px",
+      "route": "/upload",
+      "passed": true,
+      "winWidth": 360,
+      "scrollWidth": 360,
+      "offending": []
+    },
+    {
+      "viewport": "360px",
+      "route": "/test",
+      "passed": true,
+      "winWidth": 360,
+      "scrollWidth": 360,
+      "offending": []
+    },
+    {
+      "viewport": "360px",
+      "route": "/mosaic",
+      "passed": true,
+      "winWidth": 360,
+      "scrollWidth": 360,
+      "offending": []
+    },
+    {
+      "viewport": "360px",
+      "route": "/kiosk",
+      "passed": true,
+      "winWidth": 360,
+      "scrollWidth": 360,
+      "offending": []
+    },
+    {
+      "viewport": "360px",
+      "route": "/logs",
+      "passed": true,
+      "winWidth": 360,
+      "scrollWidth": 360,
+      "offending": []
+    },
+    {
+      "viewport": "360px",
+      "route": "/analytics",
+      "passed": true,
+      "winWidth": 360,
+      "scrollWidth": 360,
+      "offending": []
+    },
+    {
+      "viewport": "360px",
+      "route": "/audit-logs",
+      "passed": true,
+      "winWidth": 360,
+      "scrollWidth": 360,
+      "offending": []
+    },
+    {
+      "viewport": "360px",
+      "route": "/profile",
+      "passed": true,
+      "winWidth": 360,
+      "scrollWidth": 360,
+      "offending": []
+    },
+    {
+      "viewport": "360px",
+      "route": "/models",
+      "passed": true,
+      "winWidth": 360,
+      "scrollWidth": 360,
+      "offending": []
+    },
+    {
+      "viewport": "360px",
+      "route": "/training",
+      "passed": true,
+      "winWidth": 360,
+      "scrollWidth": 360,
+      "offending": []
+    },
+    {
+      "viewport": "360px",
+      "route": "/support",
+      "passed": true,
+      "winWidth": 360,
+      "scrollWidth": 360,
+      "offending": []
+    },
+    {
+      "viewport": "360px",
+      "route": "/privacy-policy",
+      "passed": true,
+      "winWidth": 360,
+      "scrollWidth": 360,
+      "offending": []
+    },
+    {
+      "viewport": "360px",
+      "route": "/terms",
+      "passed": true,
+      "winWidth": 360,
+      "scrollWidth": 360,
+      "offending": []
+    },
+    {
+      "viewport": "360px",
+      "route": "/404",
+      "passed": true,
+      "winWidth": 360,
+      "scrollWidth": 360,
+      "offending": []
+    },
+    {
+      "viewport": "375px",
+      "route": "/",
+      "passed": true,
+      "winWidth": 375,
+      "scrollWidth": 375,
+      "offending": []
+    },
+    {
+      "viewport": "375px",
+      "route": "/login",
+      "passed": true,
+      "winWidth": 375,
+      "scrollWidth": 375,
+      "offending": []
+    },
+    {
+      "viewport": "375px",
+      "route": "/register",
+      "passed": true,
+      "winWidth": 375,
+      "scrollWidth": 375,
+      "offending": []
+    },
+    {
+      "viewport": "375px",
+      "route": "/dashboard",
+      "passed": true,
+      "winWidth": 375,
+      "scrollWidth": 375,
+      "offending": []
+    },
+    {
+      "viewport": "375px",
+      "route": "/attendance",
+      "passed": true,
+      "winWidth": 375,
+      "scrollWidth": 375,
+      "offending": []
+    },
+    {
+      "viewport": "375px",
+      "route": "/live",
+      "passed": true,
+      "winWidth": 375,
+      "scrollWidth": 375,
+      "offending": []
+    },
+    {
+      "viewport": "375px",
+      "route": "/cameras",
+      "passed": true,
+      "winWidth": 375,
+      "scrollWidth": 375,
+      "offending": []
+    },
+    {
+      "viewport": "375px",
+      "route": "/upload",
+      "passed": true,
+      "winWidth": 375,
+      "scrollWidth": 375,
+      "offending": []
+    },
+    {
+      "viewport": "375px",
+      "route": "/test",
+      "passed": true,
+      "winWidth": 375,
+      "scrollWidth": 375,
+      "offending": []
+    },
+    {
+      "viewport": "375px",
+      "route": "/mosaic",
+      "passed": true,
+      "winWidth": 375,
+      "scrollWidth": 375,
+      "offending": []
+    },
+    {
+      "viewport": "375px",
+      "route": "/kiosk",
+      "passed": true,
+      "winWidth": 375,
+      "scrollWidth": 375,
+      "offending": []
+    },
+    {
+      "viewport": "375px",
+      "route": "/logs",
+      "passed": true,
+      "winWidth": 375,
+      "scrollWidth": 375,
+      "offending": []
+    },
+    {
+      "viewport": "375px",
+      "route": "/analytics",
+      "passed": true,
+      "winWidth": 375,
+      "scrollWidth": 375,
+      "offending": []
+    },
+    {
+      "viewport": "375px",
+      "route": "/audit-logs",
+      "passed": true,
+      "winWidth": 375,
+      "scrollWidth": 375,
+      "offending": []
+    },
+    {
+      "viewport": "375px",
+      "route": "/profile",
+      "passed": true,
+      "winWidth": 375,
+      "scrollWidth": 375,
+      "offending": []
+    },
+    {
+      "viewport": "375px",
+      "route": "/models",
+      "passed": true,
+      "winWidth": 375,
+      "scrollWidth": 375,
+      "offending": []
+    },
+    {
+      "viewport": "375px",
+      "route": "/training",
+      "passed": true,
+      "winWidth": 375,
+      "scrollWidth": 375,
+      "offending": []
+    },
+    {
+      "viewport": "375px",
+      "route": "/support",
+      "passed": true,
+      "winWidth": 375,
+      "scrollWidth": 375,
+      "offending": []
+    },
+    {
+      "viewport": "375px",
+      "route": "/privacy-policy",
+      "passed": true,
+      "winWidth": 375,
+      "scrollWidth": 375,
+      "offending": []
+    },
+    {
+      "viewport": "375px",
+      "route": "/terms",
+      "passed": true,
+      "winWidth": 375,
+      "scrollWidth": 375,
+      "offending": []
+    },
+    {
+      "viewport": "375px",
+      "route": "/404",
+      "passed": true,
+      "winWidth": 375,
+      "scrollWidth": 375,
+      "offending": []
+    },
+    {
+      "viewport": "390px",
+      "route": "/",
+      "passed": true,
+      "winWidth": 390,
+      "scrollWidth": 390,
+      "offending": []
+    },
+    {
+      "viewport": "390px",
+      "route": "/login",
+      "passed": true,
+      "winWidth": 390,
+      "scrollWidth": 390,
+      "offending": []
+    },
+    {
+      "viewport": "390px",
+      "route": "/register",
+      "passed": true,
+      "winWidth": 390,
+      "scrollWidth": 390,
+      "offending": []
+    },
+    {
+      "viewport": "390px",
+      "route": "/dashboard",
+      "passed": true,
+      "winWidth": 390,
+      "scrollWidth": 390,
+      "offending": []
+    },
+    {
+      "viewport": "390px",
+      "route": "/attendance",
+      "passed": true,
+      "winWidth": 390,
+      "scrollWidth": 390,
+      "offending": []
+    },
+    {
+      "viewport": "390px",
+      "route": "/live",
+      "passed": true,
+      "winWidth": 390,
+      "scrollWidth": 390,
+      "offending": []
+    },
+    {
+      "viewport": "390px",
+      "route": "/cameras",
+      "passed": true,
+      "winWidth": 390,
+      "scrollWidth": 390,
+      "offending": []
+    },
+    {
+      "viewport": "390px",
+      "route": "/upload",
+      "passed": true,
+      "winWidth": 390,
+      "scrollWidth": 390,
+      "offending": []
+    },
+    {
+      "viewport": "390px",
+      "route": "/test",
+      "passed": true,
+      "winWidth": 390,
+      "scrollWidth": 390,
+      "offending": []
+    },
+    {
+      "viewport": "390px",
+      "route": "/mosaic",
+      "passed": true,
+      "winWidth": 390,
+      "scrollWidth": 390,
+      "offending": []
+    },
+    {
+      "viewport": "390px",
+      "route": "/kiosk",
+      "passed": true,
+      "winWidth": 390,
+      "scrollWidth": 390,
+      "offending": []
+    },
+    {
+      "viewport": "390px",
+      "route": "/logs",
+      "passed": true,
+      "winWidth": 390,
+      "scrollWidth": 390,
+      "offending": []
+    },
+    {
+      "viewport": "390px",
+      "route": "/analytics",
+      "passed": true,
+      "winWidth": 390,
+      "scrollWidth": 390,
+      "offending": []
+    },
+    {
+      "viewport": "390px",
+      "route": "/audit-logs",
+      "passed": true,
+      "winWidth": 390,
+      "scrollWidth": 390,
+      "offending": []
+    },
+    {
+      "viewport": "390px",
+      "route": "/profile",
+      "passed": true,
+      "winWidth": 390,
+      "scrollWidth": 390,
+      "offending": []
+    },
+    {
+      "viewport": "390px",
+      "route": "/models",
+      "passed": true,
+      "winWidth": 390,
+      "scrollWidth": 390,
+      "offending": []
+    },
+    {
+      "viewport": "390px",
+      "route": "/training",
+      "passed": true,
+      "winWidth": 390,
+      "scrollWidth": 390,
+      "offending": []
+    },
+    {
+      "viewport": "390px",
+      "route": "/support",
+      "passed": true,
+      "winWidth": 390,
+      "scrollWidth": 390,
+      "offending": []
+    },
+    {
+      "viewport": "390px",
+      "route": "/privacy-policy",
+      "passed": true,
+      "winWidth": 390,
+      "scrollWidth": 390,
+      "offending": []
+    },
+    {
+      "viewport": "390px",
+      "route": "/terms",
+      "passed": true,
+      "winWidth": 390,
+      "scrollWidth": 390,
+      "offending": []
+    },
+    {
+      "viewport": "390px",
+      "route": "/404",
+      "passed": true,
+      "winWidth": 390,
+      "scrollWidth": 390,
+      "offending": []
+    },
+    {
+      "viewport": "414px",
+      "route": "/",
+      "passed": true,
+      "winWidth": 414,
+      "scrollWidth": 414,
+      "offending": []
+    },
+    {
+      "viewport": "414px",
+      "route": "/login",
+      "passed": true,
+      "winWidth": 414,
+      "scrollWidth": 414,
+      "offending": []
+    },
+    {
+      "viewport": "414px",
+      "route": "/register",
+      "passed": true,
+      "winWidth": 414,
+      "scrollWidth": 414,
+      "offending": []
+    },
+    {
+      "viewport": "414px",
+      "route": "/dashboard",
+      "passed": true,
+      "winWidth": 414,
+      "scrollWidth": 414,
+      "offending": []
+    },
+    {
+      "viewport": "414px",
+      "route": "/attendance",
+      "passed": true,
+      "winWidth": 414,
+      "scrollWidth": 414,
+      "offending": []
+    },
+    {
+      "viewport": "414px",
+      "route": "/live",
+      "passed": true,
+      "winWidth": 414,
+      "scrollWidth": 414,
+      "offending": []
+    },
+    {
+      "viewport": "414px",
+      "route": "/cameras",
+      "passed": true,
+      "winWidth": 414,
+      "scrollWidth": 414,
+      "offending": []
+    },
+    {
+      "viewport": "414px",
+      "route": "/upload",
+      "passed": true,
+      "winWidth": 414,
+      "scrollWidth": 414,
+      "offending": []
+    },
+    {
+      "viewport": "414px",
+      "route": "/test",
+      "passed": true,
+      "winWidth": 414,
+      "scrollWidth": 414,
+      "offending": []
+    },
+    {
+      "viewport": "414px",
+      "route": "/mosaic",
+      "passed": true,
+      "winWidth": 414,
+      "scrollWidth": 414,
+      "offending": []
+    },
+    {
+      "viewport": "414px",
+      "route": "/kiosk",
+      "passed": true,
+      "winWidth": 414,
+      "scrollWidth": 414,
+      "offending": []
+    },
+    {
+      "viewport": "414px",
+      "route": "/logs",
+      "passed": true,
+      "winWidth": 414,
+      "scrollWidth": 414,
+      "offending": []
+    },
+    {
+      "viewport": "414px",
+      "route": "/analytics",
+      "passed": true,
+      "winWidth": 414,
+      "scrollWidth": 414,
+      "offending": []
+    },
+    {
+      "viewport": "414px",
+      "route": "/audit-logs",
+      "passed": true,
+      "winWidth": 414,
+      "scrollWidth": 414,
+      "offending": []
+    },
+    {
+      "viewport": "414px",
+      "route": "/profile",
+      "passed": true,
+      "winWidth": 414,
+      "scrollWidth": 414,
+      "offending": []
+    },
+    {
+      "viewport": "414px",
+      "route": "/models",
+      "passed": true,
+      "winWidth": 414,
+      "scrollWidth": 414,
+      "offending": []
+    },
+    {
+      "viewport": "414px",
+      "route": "/training",
+      "passed": true,
+      "winWidth": 414,
+      "scrollWidth": 414,
+      "offending": []
+    },
+    {
+      "viewport": "414px",
+      "route": "/support",
+      "passed": true,
+      "winWidth": 414,
+      "scrollWidth": 414,
+      "offending": []
+    },
+    {
+      "viewport": "414px",
+      "route": "/privacy-policy",
+      "passed": true,
+      "winWidth": 414,
+      "scrollWidth": 414,
+      "offending": []
+    },
+    {
+      "viewport": "414px",
+      "route": "/terms",
+      "passed": true,
+      "winWidth": 414,
+      "scrollWidth": 414,
+      "offending": []
+    },
+    {
+      "viewport": "414px",
+      "route": "/404",
+      "passed": true,
+      "winWidth": 414,
+      "scrollWidth": 414,
+      "offending": []
+    },
+    {
+      "viewport": "430px",
+      "route": "/",
+      "passed": true,
+      "winWidth": 430,
+      "scrollWidth": 430,
+      "offending": []
+    },
+    {
+      "viewport": "430px",
+      "route": "/login",
+      "passed": true,
+      "winWidth": 430,
+      "scrollWidth": 430,
+      "offending": []
+    },
+    {
+      "viewport": "430px",
+      "route": "/register",
+      "passed": true,
+      "winWidth": 430,
+      "scrollWidth": 430,
+      "offending": []
+    },
+    {
+      "viewport": "430px",
+      "route": "/dashboard",
+      "passed": true,
+      "winWidth": 430,
+      "scrollWidth": 430,
+      "offending": []
+    },
+    {
+      "viewport": "430px",
+      "route": "/attendance",
+      "passed": true,
+      "winWidth": 430,
+      "scrollWidth": 430,
+      "offending": []
+    },
+    {
+      "viewport": "430px",
+      "route": "/live",
+      "passed": true,
+      "winWidth": 430,
+      "scrollWidth": 430,
+      "offending": []
+    },
+    {
+      "viewport": "430px",
+      "route": "/cameras",
+      "passed": true,
+      "winWidth": 430,
+      "scrollWidth": 430,
+      "offending": []
+    },
+    {
+      "viewport": "430px",
+      "route": "/upload",
+      "passed": true,
+      "winWidth": 430,
+      "scrollWidth": 430,
+      "offending": []
+    },
+    {
+      "viewport": "430px",
+      "route": "/test",
+      "passed": true,
+      "winWidth": 430,
+      "scrollWidth": 430,
+      "offending": []
+    },
+    {
+      "viewport": "430px",
+      "route": "/mosaic",
+      "passed": true,
+      "winWidth": 430,
+      "scrollWidth": 430,
+      "offending": []
+    },
+    {
+      "viewport": "430px",
+      "route": "/kiosk",
+      "passed": true,
+      "winWidth": 430,
+      "scrollWidth": 430,
+      "offending": []
+    },
+    {
+      "viewport": "430px",
+      "route": "/logs",
+      "passed": true,
+      "winWidth": 430,
+      "scrollWidth": 430,
+      "offending": []
+    },
+    {
+      "viewport": "430px",
+      "route": "/analytics",
+      "passed": true,
+      "winWidth": 430,
+      "scrollWidth": 430,
+      "offending": []
+    },
+    {
+      "viewport": "430px",
+      "route": "/audit-logs",
+      "passed": true,
+      "winWidth": 430,
+      "scrollWidth": 430,
+      "offending": []
+    },
+    {
+      "viewport": "430px",
+      "route": "/profile",
+      "passed": true,
+      "winWidth": 430,
+      "scrollWidth": 430,
+      "offending": []
+    },
+    {
+      "viewport": "430px",
+      "route": "/models",
+      "passed": true,
+      "winWidth": 430,
+      "scrollWidth": 430,
+      "offending": []
+    },
+    {
+      "viewport": "430px",
+      "route": "/training",
+      "passed": true,
+      "winWidth": 430,
+      "scrollWidth": 430,
+      "offending": []
+    },
+    {
+      "viewport": "430px",
+      "route": "/support",
+      "passed": true,
+      "winWidth": 430,
+      "scrollWidth": 430,
+      "offending": []
+    },
+    {
+      "viewport": "430px",
+      "route": "/privacy-policy",
+      "passed": true,
+      "winWidth": 430,
+      "scrollWidth": 430,
+      "offending": []
+    },
+    {
+      "viewport": "430px",
+      "route": "/terms",
+      "passed": true,
+      "winWidth": 430,
+      "scrollWidth": 430,
+      "offending": []
+    },
+    {
+      "viewport": "430px",
+      "route": "/404",
+      "passed": true,
+      "winWidth": 430,
+      "scrollWidth": 430,
+      "offending": []
+    },
+    {
+      "viewport": "480px",
+      "route": "/",
+      "passed": true,
+      "winWidth": 480,
+      "scrollWidth": 480,
+      "offending": []
+    },
+    {
+      "viewport": "480px",
+      "route": "/login",
+      "passed": true,
+      "winWidth": 480,
+      "scrollWidth": 480,
+      "offending": []
+    },
+    {
+      "viewport": "480px",
+      "route": "/register",
+      "passed": true,
+      "winWidth": 480,
+      "scrollWidth": 480,
+      "offending": []
+    },
+    {
+      "viewport": "480px",
+      "route": "/dashboard",
+      "passed": true,
+      "winWidth": 480,
+      "scrollWidth": 480,
+      "offending": []
+    },
+    {
+      "viewport": "480px",
+      "route": "/attendance",
+      "passed": true,
+      "winWidth": 480,
+      "scrollWidth": 480,
+      "offending": []
+    },
+    {
+      "viewport": "480px",
+      "route": "/live",
+      "passed": true,
+      "winWidth": 480,
+      "scrollWidth": 480,
+      "offending": []
+    },
+    {
+      "viewport": "480px",
+      "route": "/cameras",
+      "passed": true,
+      "winWidth": 480,
+      "scrollWidth": 480,
+      "offending": []
+    },
+    {
+      "viewport": "480px",
+      "route": "/upload",
+      "passed": true,
+      "winWidth": 480,
+      "scrollWidth": 480,
+      "offending": []
+    },
+    {
+      "viewport": "480px",
+      "route": "/test",
+      "passed": true,
+      "winWidth": 480,
+      "scrollWidth": 480,
+      "offending": []
+    },
+    {
+      "viewport": "480px",
+      "route": "/mosaic",
+      "passed": true,
+      "winWidth": 480,
+      "scrollWidth": 480,
+      "offending": []
+    },
+    {
+      "viewport": "480px",
+      "route": "/kiosk",
+      "passed": true,
+      "winWidth": 480,
+      "scrollWidth": 480,
+      "offending": []
+    },
+    {
+      "viewport": "480px",
+      "route": "/logs",
+      "passed": true,
+      "winWidth": 480,
+      "scrollWidth": 480,
+      "offending": []
+    },
+    {
+      "viewport": "480px",
+      "route": "/analytics",
+      "passed": true,
+      "winWidth": 480,
+      "scrollWidth": 480,
+      "offending": []
+    },
+    {
+      "viewport": "480px",
+      "route": "/audit-logs",
+      "passed": true,
+      "winWidth": 480,
+      "scrollWidth": 480,
+      "offending": []
+    },
+    {
+      "viewport": "480px",
+      "route": "/profile",
+      "passed": true,
+      "winWidth": 480,
+      "scrollWidth": 480,
+      "offending": []
+    },
+    {
+      "viewport": "480px",
+      "route": "/models",
+      "passed": true,
+      "winWidth": 480,
+      "scrollWidth": 480,
+      "offending": []
+    },
+    {
+      "viewport": "480px",
+      "route": "/training",
+      "passed": true,
+      "winWidth": 480,
+      "scrollWidth": 480,
+      "offending": []
+    },
+    {
+      "viewport": "480px",
+      "route": "/support",
+      "passed": true,
+      "winWidth": 480,
+      "scrollWidth": 480,
+      "offending": []
+    },
+    {
+      "viewport": "480px",
+      "route": "/privacy-policy",
+      "passed": true,
+      "winWidth": 480,
+      "scrollWidth": 480,
+      "offending": []
+    },
+    {
+      "viewport": "480px",
+      "route": "/terms",
+      "passed": true,
+      "winWidth": 480,
+      "scrollWidth": 480,
+      "offending": []
+    },
+    {
+      "viewport": "480px",
+      "route": "/404",
+      "passed": true,
+      "winWidth": 480,
+      "scrollWidth": 480,
+      "offending": []
+    },
+    {
+      "viewport": "768px",
+      "route": "/",
+      "passed": true,
+      "winWidth": 768,
+      "scrollWidth": 768,
+      "offending": []
+    },
+    {
+      "viewport": "768px",
+      "route": "/login",
+      "passed": true,
+      "winWidth": 768,
+      "scrollWidth": 768,
+      "offending": []
+    },
+    {
+      "viewport": "768px",
+      "route": "/register",
+      "passed": true,
+      "winWidth": 768,
+      "scrollWidth": 768,
+      "offending": []
+    },
+    {
+      "viewport": "768px",
+      "route": "/dashboard",
+      "passed": true,
+      "winWidth": 768,
+      "scrollWidth": 768,
+      "offending": []
+    },
+    {
+      "viewport": "768px",
+      "route": "/attendance",
+      "passed": true,
+      "winWidth": 768,
+      "scrollWidth": 768,
+      "offending": []
+    },
+    {
+      "viewport": "768px",
+      "route": "/live",
+      "passed": true,
+      "winWidth": 768,
+      "scrollWidth": 768,
+      "offending": []
+    },
+    {
+      "viewport": "768px",
+      "route": "/cameras",
+      "passed": true,
+      "winWidth": 768,
+      "scrollWidth": 768,
+      "offending": []
+    },
+    {
+      "viewport": "768px",
+      "route": "/upload",
+      "passed": true,
+      "winWidth": 768,
+      "scrollWidth": 768,
+      "offending": []
+    },
+    {
+      "viewport": "768px",
+      "route": "/test",
+      "passed": true,
+      "winWidth": 768,
+      "scrollWidth": 768,
+      "offending": []
+    },
+    {
+      "viewport": "768px",
+      "route": "/mosaic",
+      "passed": true,
+      "winWidth": 768,
+      "scrollWidth": 768,
+      "offending": []
+    },
+    {
+      "viewport": "768px",
+      "route": "/kiosk",
+      "passed": true,
+      "winWidth": 768,
+      "scrollWidth": 768,
+      "offending": []
+    },
+    {
+      "viewport": "768px",
+      "route": "/logs",
+      "passed": true,
+      "winWidth": 768,
+      "scrollWidth": 768,
+      "offending": []
+    },
+    {
+      "viewport": "768px",
+      "route": "/analytics",
+      "passed": true,
+      "winWidth": 768,
+      "scrollWidth": 768,
+      "offending": []
+    },
+    {
+      "viewport": "768px",
+      "route": "/audit-logs",
+      "passed": true,
+      "winWidth": 768,
+      "scrollWidth": 768,
+      "offending": []
+    },
+    {
+      "viewport": "768px",
+      "route": "/profile",
+      "passed": true,
+      "winWidth": 768,
+      "scrollWidth": 768,
+      "offending": []
+    },
+    {
+      "viewport": "768px",
+      "route": "/models",
+      "passed": true,
+      "winWidth": 768,
+      "scrollWidth": 768,
+      "offending": []
+    },
+    {
+      "viewport": "768px",
+      "route": "/training",
+      "passed": true,
+      "winWidth": 768,
+      "scrollWidth": 768,
+      "offending": []
+    },
+    {
+      "viewport": "768px",
+      "route": "/support",
+      "passed": true,
+      "winWidth": 768,
+      "scrollWidth": 768,
+      "offending": []
+    },
+    {
+      "viewport": "768px",
+      "route": "/privacy-policy",
+      "passed": true,
+      "winWidth": 768,
+      "scrollWidth": 768,
+      "offending": []
+    },
+    {
+      "viewport": "768px",
+      "route": "/terms",
+      "passed": true,
+      "winWidth": 768,
+      "scrollWidth": 768,
+      "offending": []
+    },
+    {
+      "viewport": "768px",
+      "route": "/404",
+      "passed": true,
+      "winWidth": 768,
+      "scrollWidth": 768,
+      "offending": []
+    },
+    {
+      "viewport": "1024px",
+      "route": "/",
+      "passed": true,
+      "winWidth": 1024,
+      "scrollWidth": 1024,
+      "offending": []
+    },
+    {
+      "viewport": "1024px",
+      "route": "/login",
+      "passed": true,
+      "winWidth": 1024,
+      "scrollWidth": 1024,
+      "offending": []
+    },
+    {
+      "viewport": "1024px",
+      "route": "/register",
+      "passed": true,
+      "winWidth": 1024,
+      "scrollWidth": 1024,
+      "offending": []
+    },
+    {
+      "viewport": "1024px",
+      "route": "/dashboard",
+      "passed": true,
+      "winWidth": 1024,
+      "scrollWidth": 1024,
+      "offending": []
+    },
+    {
+      "viewport": "1024px",
+      "route": "/attendance",
+      "passed": true,
+      "winWidth": 1024,
+      "scrollWidth": 1024,
+      "offending": []
+    },
+    {
+      "viewport": "1024px",
+      "route": "/live",
+      "passed": true,
+      "winWidth": 1024,
+      "scrollWidth": 1024,
+      "offending": []
+    },
+    {
+      "viewport": "1024px",
+      "route": "/cameras",
+      "passed": true,
+      "winWidth": 1024,
+      "scrollWidth": 1024,
+      "offending": []
+    },
+    {
+      "viewport": "1024px",
+      "route": "/upload",
+      "passed": true,
+      "winWidth": 1024,
+      "scrollWidth": 1024,
+      "offending": []
+    },
+    {
+      "viewport": "1024px",
+      "route": "/test",
+      "passed": true,
+      "winWidth": 1024,
+      "scrollWidth": 1024,
+      "offending": []
+    },
+    {
+      "viewport": "1024px",
+      "route": "/mosaic",
+      "passed": true,
+      "winWidth": 1024,
+      "scrollWidth": 1024,
+      "offending": []
+    },
+    {
+      "viewport": "1024px",
+      "route": "/kiosk",
+      "passed": true,
+      "winWidth": 1024,
+      "scrollWidth": 1024,
+      "offending": []
+    },
+    {
+      "viewport": "1024px",
+      "route": "/logs",
+      "passed": true,
+      "winWidth": 1024,
+      "scrollWidth": 1024,
+      "offending": []
+    },
+    {
+      "viewport": "1024px",
+      "route": "/analytics",
+      "passed": true,
+      "winWidth": 1024,
+      "scrollWidth": 1024,
+      "offending": []
+    },
+    {
+      "viewport": "1024px",
+      "route": "/audit-logs",
+      "passed": true,
+      "winWidth": 1024,
+      "scrollWidth": 1024,
+      "offending": []
+    },
+    {
+      "viewport": "1024px",
+      "route": "/profile",
+      "passed": true,
+      "winWidth": 1024,
+      "scrollWidth": 1024,
+      "offending": []
+    },
+    {
+      "viewport": "1024px",
+      "route": "/models",
+      "passed": true,
+      "winWidth": 1024,
+      "scrollWidth": 1024,
+      "offending": []
+    },
+    {
+      "viewport": "1024px",
+      "route": "/training",
+      "passed": true,
+      "winWidth": 1024,
+      "scrollWidth": 1024,
+      "offending": []
+    },
+    {
+      "viewport": "1024px",
+      "route": "/support",
+      "passed": true,
+      "winWidth": 1024,
+      "scrollWidth": 1024,
+      "offending": []
+    },
+    {
+      "viewport": "1024px",
+      "route": "/privacy-policy",
+      "passed": true,
+      "winWidth": 1024,
+      "scrollWidth": 1024,
+      "offending": []
+    },
+    {
+      "viewport": "1024px",
+      "route": "/terms",
+      "passed": true,
+      "winWidth": 1024,
+      "scrollWidth": 1024,
+      "offending": []
+    },
+    {
+      "viewport": "1024px",
+      "route": "/404",
+      "passed": true,
+      "winWidth": 1024,
+      "scrollWidth": 1024,
+      "offending": []
+    },
+    {
+      "viewport": "1280px",
+      "route": "/",
+      "passed": true,
+      "winWidth": 1280,
+      "scrollWidth": 1280,
+      "offending": []
+    },
+    {
+      "viewport": "1280px",
+      "route": "/login",
+      "passed": true,
+      "winWidth": 1280,
+      "scrollWidth": 1280,
+      "offending": []
+    },
+    {
+      "viewport": "1280px",
+      "route": "/register",
+      "passed": true,
+      "winWidth": 1280,
+      "scrollWidth": 1280,
+      "offending": []
+    },
+    {
+      "viewport": "1280px",
+      "route": "/dashboard",
+      "passed": true,
+      "winWidth": 1280,
+      "scrollWidth": 1280,
+      "offending": []
+    },
+    {
+      "viewport": "1280px",
+      "route": "/attendance",
+      "passed": true,
+      "winWidth": 1280,
+      "scrollWidth": 1280,
+      "offending": []
+    },
+    {
+      "viewport": "1280px",
+      "route": "/live",
+      "passed": true,
+      "winWidth": 1280,
+      "scrollWidth": 1280,
+      "offending": []
+    },
+    {
+      "viewport": "1280px",
+      "route": "/cameras",
+      "passed": true,
+      "winWidth": 1280,
+      "scrollWidth": 1280,
+      "offending": []
+    },
+    {
+      "viewport": "1280px",
+      "route": "/upload",
+      "passed": true,
+      "winWidth": 1280,
+      "scrollWidth": 1280,
+      "offending": []
+    },
+    {
+      "viewport": "1280px",
+      "route": "/test",
+      "passed": true,
+      "winWidth": 1280,
+      "scrollWidth": 1280,
+      "offending": []
+    },
+    {
+      "viewport": "1280px",
+      "route": "/mosaic",
+      "passed": true,
+      "winWidth": 1280,
+      "scrollWidth": 1280,
+      "offending": []
+    },
+    {
+      "viewport": "1280px",
+      "route": "/kiosk",
+      "passed": true,
+      "winWidth": 1280,
+      "scrollWidth": 1280,
+      "offending": []
+    },
+    {
+      "viewport": "1280px",
+      "route": "/logs",
+      "passed": true,
+      "winWidth": 1280,
+      "scrollWidth": 1280,
+      "offending": []
+    },
+    {
+      "viewport": "1280px",
+      "route": "/analytics",
+      "passed": true,
+      "winWidth": 1280,
+      "scrollWidth": 1280,
+      "offending": []
+    },
+    {
+      "viewport": "1280px",
+      "route": "/audit-logs",
+      "passed": true,
+      "winWidth": 1280,
+      "scrollWidth": 1280,
+      "offending": []
+    },
+    {
+      "viewport": "1280px",
+      "route": "/profile",
+      "passed": true,
+      "winWidth": 1280,
+      "scrollWidth": 1280,
+      "offending": []
+    },
+    {
+      "viewport": "1280px",
+      "route": "/models",
+      "passed": true,
+      "winWidth": 1280,
+      "scrollWidth": 1280,
+      "offending": []
+    },
+    {
+      "viewport": "1280px",
+      "route": "/training",
+      "passed": true,
+      "winWidth": 1280,
+      "scrollWidth": 1280,
+      "offending": []
+    },
+    {
+      "viewport": "1280px",
+      "route": "/support",
+      "passed": true,
+      "winWidth": 1280,
+      "scrollWidth": 1280,
+      "offending": []
+    },
+    {
+      "viewport": "1280px",
+      "route": "/privacy-policy",
+      "passed": true,
+      "winWidth": 1280,
+      "scrollWidth": 1280,
+      "offending": []
+    },
+    {
+      "viewport": "1280px",
+      "route": "/terms",
+      "passed": true,
+      "winWidth": 1280,
+      "scrollWidth": 1280,
+      "offending": []
+    },
+    {
+      "viewport": "1280px",
+      "route": "/404",
+      "passed": true,
+      "winWidth": 1280,
+      "scrollWidth": 1280,
+      "offending": []
+    },
+    {
+      "viewport": "1440px",
+      "route": "/",
+      "passed": true,
+      "winWidth": 1440,
+      "scrollWidth": 1440,
+      "offending": []
+    },
+    {
+      "viewport": "1440px",
+      "route": "/login",
+      "passed": true,
+      "winWidth": 1440,
+      "scrollWidth": 1440,
+      "offending": []
+    },
+    {
+      "viewport": "1440px",
+      "route": "/register",
+      "passed": true,
+      "winWidth": 1440,
+      "scrollWidth": 1440,
+      "offending": []
+    },
+    {
+      "viewport": "1440px",
+      "route": "/dashboard",
+      "passed": true,
+      "winWidth": 1440,
+      "scrollWidth": 1440,
+      "offending": []
+    },
+    {
+      "viewport": "1440px",
+      "route": "/attendance",
+      "passed": true,
+      "winWidth": 1440,
+      "scrollWidth": 1440,
+      "offending": []
+    },
+    {
+      "viewport": "1440px",
+      "route": "/live",
+      "passed": true,
+      "winWidth": 1440,
+      "scrollWidth": 1440,
+      "offending": []
+    },
+    {
+      "viewport": "1440px",
+      "route": "/cameras",
+      "passed": true,
+      "winWidth": 1440,
+      "scrollWidth": 1440,
+      "offending": []
+    },
+    {
+      "viewport": "1440px",
+      "route": "/upload",
+      "passed": true,
+      "winWidth": 1440,
+      "scrollWidth": 1440,
+      "offending": []
+    },
+    {
+      "viewport": "1440px",
+      "route": "/test",
+      "passed": true,
+      "winWidth": 1440,
+      "scrollWidth": 1440,
+      "offending": []
+    },
+    {
+      "viewport": "1440px",
+      "route": "/mosaic",
+      "passed": true,
+      "winWidth": 1440,
+      "scrollWidth": 1440,
+      "offending": []
+    },
+    {
+      "viewport": "1440px",
+      "route": "/kiosk",
+      "passed": true,
+      "winWidth": 1440,
+      "scrollWidth": 1440,
+      "offending": []
+    },
+    {
+      "viewport": "1440px",
+      "route": "/logs",
+      "passed": true,
+      "winWidth": 1440,
+      "scrollWidth": 1440,
+      "offending": []
+    },
+    {
+      "viewport": "1440px",
+      "route": "/analytics",
+      "passed": true,
+      "winWidth": 1440,
+      "scrollWidth": 1440,
+      "offending": []
+    },
+    {
+      "viewport": "1440px",
+      "route": "/audit-logs",
+      "passed": true,
+      "winWidth": 1440,
+      "scrollWidth": 1440,
+      "offending": []
+    },
+    {
+      "viewport": "1440px",
+      "route": "/profile",
+      "passed": true,
+      "winWidth": 1440,
+      "scrollWidth": 1440,
+      "offending": []
+    },
+    {
+      "viewport": "1440px",
+      "route": "/models",
+      "passed": true,
+      "winWidth": 1440,
+      "scrollWidth": 1440,
+      "offending": []
+    },
+    {
+      "viewport": "1440px",
+      "route": "/training",
+      "passed": true,
+      "winWidth": 1440,
+      "scrollWidth": 1440,
+      "offending": []
+    },
+    {
+      "viewport": "1440px",
+      "route": "/support",
+      "passed": true,
+      "winWidth": 1440,
+      "scrollWidth": 1440,
+      "offending": []
+    },
+    {
+      "viewport": "1440px",
+      "route": "/privacy-policy",
+      "passed": true,
+      "winWidth": 1440,
+      "scrollWidth": 1440,
+      "offending": []
+    },
+    {
+      "viewport": "1440px",
+      "route": "/terms",
+      "passed": true,
+      "winWidth": 1440,
+      "scrollWidth": 1440,
+      "offending": []
+    },
+    {
+      "viewport": "1440px",
+      "route": "/404",
+      "passed": true,
+      "winWidth": 1440,
+      "scrollWidth": 1440,
+      "offending": []
+    },
+    {
+      "viewport": "1920px",
+      "route": "/",
+      "passed": true,
+      "winWidth": 1920,
+      "scrollWidth": 1920,
+      "offending": []
+    },
+    {
+      "viewport": "1920px",
+      "route": "/login",
+      "passed": true,
+      "winWidth": 1920,
+      "scrollWidth": 1920,
+      "offending": []
+    },
+    {
+      "viewport": "1920px",
+      "route": "/register",
+      "passed": true,
+      "winWidth": 1920,
+      "scrollWidth": 1920,
+      "offending": []
+    },
+    {
+      "viewport": "1920px",
+      "route": "/dashboard",
+      "passed": true,
+      "winWidth": 1920,
+      "scrollWidth": 1920,
+      "offending": []
+    },
+    {
+      "viewport": "1920px",
+      "route": "/attendance",
+      "passed": true,
+      "winWidth": 1920,
+      "scrollWidth": 1920,
+      "offending": []
+    },
+    {
+      "viewport": "1920px",
+      "route": "/live",
+      "passed": true,
+      "winWidth": 1920,
+      "scrollWidth": 1920,
+      "offending": []
+    },
+    {
+      "viewport": "1920px",
+      "route": "/cameras",
+      "passed": true,
+      "winWidth": 1920,
+      "scrollWidth": 1920,
+      "offending": []
+    },
+    {
+      "viewport": "1920px",
+      "route": "/upload",
+      "passed": true,
+      "winWidth": 1920,
+      "scrollWidth": 1920,
+      "offending": []
+    },
+    {
+      "viewport": "1920px",
+      "route": "/test",
+      "passed": true,
+      "winWidth": 1920,
+      "scrollWidth": 1920,
+      "offending": []
+    },
+    {
+      "viewport": "1920px",
+      "route": "/mosaic",
+      "passed": true,
+      "winWidth": 1920,
+      "scrollWidth": 1920,
+      "offending": []
+    },
+    {
+      "viewport": "1920px",
+      "route": "/kiosk",
+      "passed": true,
+      "winWidth": 1920,
+      "scrollWidth": 1920,
+      "offending": []
+    },
+    {
+      "viewport": "1920px",
+      "route": "/logs",
+      "passed": true,
+      "winWidth": 1920,
+      "scrollWidth": 1920,
+      "offending": []
+    },
+    {
+      "viewport": "1920px",
+      "route": "/analytics",
+      "passed": true,
+      "winWidth": 1920,
+      "scrollWidth": 1920,
+      "offending": []
+    },
+    {
+      "viewport": "1920px",
+      "route": "/audit-logs",
+      "passed": true,
+      "winWidth": 1920,
+      "scrollWidth": 1920,
+      "offending": []
+    },
+    {
+      "viewport": "1920px",
+      "route": "/profile",
+      "passed": true,
+      "winWidth": 1920,
+      "scrollWidth": 1920,
+      "offending": []
+    },
+    {
+      "viewport": "1920px",
+      "route": "/models",
+      "passed": true,
+      "winWidth": 1920,
+      "scrollWidth": 1920,
+      "offending": []
+    },
+    {
+      "viewport": "1920px",
+      "route": "/training",
+      "passed": true,
+      "winWidth": 1920,
+      "scrollWidth": 1920,
+      "offending": []
+    },
+    {
+      "viewport": "1920px",
+      "route": "/support",
+      "passed": true,
+      "winWidth": 1920,
+      "scrollWidth": 1920,
+      "offending": []
+    },
+    {
+      "viewport": "1920px",
+      "route": "/privacy-policy",
+      "passed": true,
+      "winWidth": 1920,
+      "scrollWidth": 1920,
+      "offending": []
+    },
+    {
+      "viewport": "1920px",
+      "route": "/terms",
+      "passed": true,
+      "winWidth": 1920,
+      "scrollWidth": 1920,
+      "offending": []
+    },
+    {
+      "viewport": "1920px",
+      "route": "/404",
+      "passed": true,
+      "winWidth": 1920,
+      "scrollWidth": 1920,
+      "offending": []
+    }
+  ]
+}
