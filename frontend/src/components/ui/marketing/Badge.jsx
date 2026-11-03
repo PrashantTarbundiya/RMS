@@ -16,3 +16,4 @@ export default function Badge({ children, variant = 'accent', icon: Icon, classN
     </span>
   );
 }
+

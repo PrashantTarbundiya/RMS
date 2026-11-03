@@ -20,3 +20,4 @@ Disallow: /departments
 Disallow: /profile
 
 Sitemap: https://13-60-225-165.sslip.io/sitemap.xml
+

@@ -50,3 +50,4 @@ export default function Callout({ type = 'info', title, children, className = ''
     </div>
   );
 }
+

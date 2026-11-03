@@ -39,3 +39,4 @@ export default function CodeBlock({ language = 'bash', code = '', filename = '' 
     </div>
   );
 }
+

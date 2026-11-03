@@ -32,3 +32,4 @@ export default function TableOfContents({ items = [], activeId, onItemClick }) {
     </div>
   );
 }
+
