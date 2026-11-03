@@ -543,61 +543,30 @@ export default function ProfilePage() {
 
 
 
-      {/* ── Tabbed Section Navigation ── */}
-
-      <div className="flex items-center gap-1 p-1 bg-[#0F1011] border border-[#23252A] rounded-xl overflow-x-auto no-scrollbar">
-
+      {/* ── Liquid Glass Segmented Navigation ── */}
+      <div className="segmented-nav w-full">
         {[
-
           { id: 'organization', label: 'Organization & Team', shortLabel: 'Team', icon: Users },
-
           { id: 'notifications', label: 'Alerts & Notifications', shortLabel: 'Alerts', icon: Bell },
-
           { id: 'infrastructure', label: 'System Infrastructure', shortLabel: 'System', icon: Server },
-
         ].map(tab => {
-
           const Icon = tab.icon;
-
           const active = activeTab === tab.id;
-
           return (
-
             <button
-
               key={tab.id}
-
               onClick={() => setActiveTab(tab.id)}
-
-              className={`flex-1 min-w-0 py-2 px-1.5 sm:px-4 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 sm:gap-2 transition-all cursor-pointer ${
-
-                active
-
-                  ? 'bg-emerald-500 text-black font-semibold shadow-md shadow-emerald-950/20'
-
-                  : 'text-zinc-400 hover:text-white hover:bg-white/[0.03]'
-
-              }`}
-
+              className={`segment-item ${active ? 'active' : ''}`}
             >
-
               <Icon size={14} className="shrink-0" />
-
               <span className="sm:hidden truncate">{tab.shortLabel}</span>
-
               <span className="hidden sm:inline">{tab.label}</span>
-
             </button>
-
           );
-
         })}
-
       </div>
 
-
-
-      {/* ── TAB 1: Organization & Real Team Roster ── */}
+{/* ── TAB 1: Organization & Real Team Roster ── */}
 
       {activeTab === 'organization' && (
 

@@ -272,29 +272,23 @@ export default function DepartmentsPage() {
         </div>
       </div>
 
-      {/* Tabs Navigation - Compact labels on small viewports */}
-      <div className="border-b border-[#23252A] flex items-center gap-1">
+      {/* Tabs Navigation - Harmonized Liquid Glass Segmented Nav */}
+      <div className="segmented-nav w-full">
         <button
           onClick={() => updateParams({ tab: 'schedules' })}
-          className={`py-2.5 px-3 sm:px-4 text-xs font-semibold border-b-2 transition-all flex items-center gap-1.5 ${
-            activeTab === 'schedules'
-              ? 'border-emerald-500 text-emerald-400'
-              : 'border-transparent text-ink-subtle hover:text-ink'
-          }`}
+          className={`segment-item ${activeTab === 'schedules' ? 'active' : ''}`}
         >
           <Clock size={14} className="shrink-0" />
-          <span className="sm:hidden">Schedules</span><span className="hidden sm:inline">Department Schedules & Grace Periods</span>
+          <span className="sm:hidden">Schedules</span>
+          <span className="hidden sm:inline">Department Schedules & Grace Periods</span>
         </button>
         <button
           onClick={() => updateParams({ tab: 'roster' })}
-          className={`py-2.5 px-3 sm:px-4 text-xs font-semibold border-b-2 transition-all flex items-center gap-1.5 ${
-            activeTab === 'roster'
-              ? 'border-emerald-500 text-emerald-400'
-              : 'border-transparent text-ink-subtle hover:text-ink'
-          }`}
+          className={`segment-item ${activeTab === 'roster' ? 'active' : ''}`}
         >
           <Users size={14} className="shrink-0" />
-          <span className="sm:hidden">Roster ({totalEmployeesCount})</span><span className="hidden sm:inline">Staff Department Rostering ({totalEmployeesCount})</span>
+          <span className="sm:hidden">Roster ({totalEmployeesCount})</span>
+          <span className="hidden sm:inline">Staff Department Rostering ({totalEmployeesCount})</span>
         </button>
       </div>
 
@@ -527,27 +521,27 @@ export default function DepartmentsPage() {
                   </div>
                 </div>
 
-                <div className="pt-3 border-t border-[#23252A] flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div className="pt-4 border-t border-[#23252A] flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-3">
                   <Link
                     to={`/persons/edit/${encodeURIComponent(editingEmp.name)}`}
-                    className="text-xs text-emerald-400 hover:text-emerald-300 flex items-center gap-1 font-medium transition-colors"
+                    className="text-xs text-emerald-400 hover:text-emerald-300 flex items-center gap-1.5 font-medium transition-colors py-1"
                   >
                     <span>Manage Biometrics & Photos</span>
                     <ArrowRight size={13} />
                   </Link>
 
-                  <div className="flex items-center justify-end gap-2 shrink-0">
+                  <div className="flex items-center justify-end gap-2.5 w-full sm:w-auto">
                     <button
                       type="button"
                       onClick={() => setEditingEmp(null)}
-                      className="h-8 px-3.5 text-xs font-medium text-ink-subtle hover:text-ink bg-[#141516] hover:bg-[#1C1D21] border border-[#23252A] rounded-lg transition-colors whitespace-nowrap cursor-pointer"
+                      className="button-secondary flex-1 sm:flex-none h-9 px-4 text-xs font-medium"
                     >
                       Cancel
                     </button>
                     <button
                       type="submit"
                       disabled={isSavingEmp}
-                      className="h-8 px-4 text-xs font-medium text-white bg-emerald-600 hover:bg-emerald-500 rounded-lg shadow-sm shadow-emerald-500/20 transition-all flex items-center justify-center gap-1.5 whitespace-nowrap cursor-pointer disabled:opacity-50"
+                      className="button-primary flex-1 sm:flex-none h-9 px-5 text-xs font-medium whitespace-nowrap"
                     >
                       {isSavingEmp ? <Loader2 size={13} className="animate-spin" /> : <Check size={13} />}
                       <span>Save Changes</span>
@@ -584,8 +578,8 @@ function DepartmentScheduleCard({ dept, onSave, isSaving }) {
   };
 
   return (
-    <div className="p-4 bg-[#0F1011] border border-[#23252A] rounded-xl flex flex-wrap items-center justify-between gap-4 hover:border-[#30333C] transition-colors">
-      <div>
+    <div className="p-4 bg-[#0F1011] border border-[#23252A] rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:border-[#30333C] transition-colors">
+      <div className="min-w-0">
         <div className="font-semibold text-ink text-sm flex items-center gap-2">
           <span>{dept.name}</span>
           <span className="text-[11px] text-ink-tertiary font-mono">({dept.total_employees || 0} employees)</span>
@@ -595,43 +589,46 @@ function DepartmentScheduleCard({ dept, onSave, isSaving }) {
         </div>
       </div>
 
-      <div className="flex items-center gap-3 text-xs flex-wrap">
+      <div className="grid grid-cols-2 sm:flex sm:items-center gap-2.5 sm:gap-3 text-xs w-full sm:w-auto">
         <div className="flex items-center gap-1.5">
-          <span className="text-caption text-ink-subtle">Start</span>
+          <span className="text-caption text-ink-subtle w-9 sm:w-auto shrink-0">Start</span>
           <input
             type="time"
             value={start}
             onChange={(e) => handleChange('start', e.target.value)}
-            className="h-8 px-2 text-xs rounded bg-[#010102] border border-[#23252A] text-ink focus:border-emerald-500 focus:outline-none"
+            className="h-8.5 px-2 text-xs rounded-lg bg-[#010102] border border-[#23252A] text-ink focus:border-emerald-500 focus:outline-none w-full sm:w-auto"
           />
         </div>
 
         <div className="flex items-center gap-1.5">
-          <span className="text-caption text-ink-subtle">End</span>
+          <span className="text-caption text-ink-subtle w-9 sm:w-auto shrink-0">End</span>
           <input
             type="time"
             value={end}
             onChange={(e) => handleChange('end', e.target.value)}
-            className="h-8 px-2 text-xs rounded bg-[#010102] border border-[#23252A] text-ink focus:border-emerald-500 focus:outline-none"
+            className="h-8.5 px-2 text-xs rounded-lg bg-[#010102] border border-[#23252A] text-ink focus:border-emerald-500 focus:outline-none w-full sm:w-auto"
           />
         </div>
 
         <div className="flex items-center gap-1.5">
-          <span className="text-caption text-ink-subtle">Grace(m)</span>
-          <input
-            type="number"
-            min="0"
-            max="120"
-            value={grace}
-            onChange={(e) => handleChange('grace', e.target.value)}
-            className="h-8 w-14 px-2 text-xs rounded bg-[#010102] border border-[#23252A] text-ink font-mono focus:border-emerald-500 focus:outline-none"
-          />
+          <span className="text-caption text-ink-subtle w-9 sm:w-auto shrink-0">Grace</span>
+          <div className="flex items-center gap-1 w-full sm:w-auto">
+            <input
+              type="number"
+              min="0"
+              max="120"
+              value={grace}
+              onChange={(e) => handleChange('grace', e.target.value)}
+              className="h-8.5 w-14 px-2 text-xs rounded-lg bg-[#010102] border border-[#23252A] text-ink font-mono focus:border-emerald-500 focus:outline-none"
+            />
+            <span className="text-[11px] text-ink-tertiary">min</span>
+          </div>
         </div>
 
         <button
           onClick={() => onSave(dept.name, start, end, grace)}
           disabled={isSaving}
-          className={`h-8 px-3 rounded text-caption flex items-center gap-1.5 transition-all ${
+          className={`h-8.5 px-3 rounded-lg text-xs flex items-center justify-center gap-1.5 transition-all col-span-2 sm:col-span-1 w-full sm:w-auto ${
             changed
               ? 'bg-emerald-500 text-white hover:bg-emerald-600 font-semibold shadow-sm shadow-emerald-500/20'
               : 'button-secondary text-ink-subtle'

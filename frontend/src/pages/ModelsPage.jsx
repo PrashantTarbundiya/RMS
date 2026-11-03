@@ -220,8 +220,8 @@ export default function ModelsPage() {
         </div>
       </div>
 
-      {/* ── Navigation Tabs ── */}
-      <div className="flex items-center gap-1 p-1 bg-[#0F1011] border border-[#23252A] rounded-xl overflow-x-auto no-scrollbar">
+      {/* ── Navigation Tabs (Liquid Glass Segmented Nav) ── */}
+      <div className="segmented-nav w-full">
         {[
           { id: 'engine', label: 'AI Engine & Accuracy Gates', shortLabel: 'AI Engine', icon: Sliders },
           { id: 'exports', label: 'Edge Models & Artifacts', shortLabel: 'Models', icon: HardDrive },
@@ -234,11 +234,7 @@ export default function ModelsPage() {
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex-1 min-w-0 py-2 px-1 sm:px-3 rounded-lg text-xs font-semibold flex items-center justify-center gap-1 sm:gap-2 transition-all cursor-pointer ${
-                active
-                  ? 'bg-emerald-500 text-black font-semibold shadow-md shadow-emerald-950/20'
-                  : 'text-zinc-400 hover:text-white hover:bg-white/[0.03]'
-              }`}
+              className={`segment-item ${active ? 'active' : ''}`}
             >
               <Icon size={14} className="shrink-0" />
               <span className="sm:hidden truncate">{tab.shortLabel}</span>
@@ -248,7 +244,7 @@ export default function ModelsPage() {
         })}
       </div>
 
-      {/* ── TAB 1: AI Engine & Accuracy Gates ── */}
+{/* ── TAB 1: AI Engine & Accuracy Gates ── */}
       {activeTab === 'engine' && (
         <div className="space-y-6">
           {/* Active Model Backbones Card */}

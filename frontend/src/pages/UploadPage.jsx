@@ -693,62 +693,46 @@ export default function UploadPage() {
         </div>
       </div>
 
-      {/* Upload Method Segmented Switcher */}
-      <div className="bg-[#141516] p-1.5 rounded-xl border border-[#23252A] grid grid-cols-2 lg:grid-cols-4 gap-1.5 shadow-inner">
+      {/* Upload Method Segmented Switcher (Liquid Glass Segmented Nav) */}
+      <div className="segmented-nav grid grid-cols-2 lg:grid-cols-4 w-full">
         <button
           type="button"
           onClick={() => { setUploadMethod('auto'); setStatus({ type: '', message: '' }); }}
-          className={`flex items-center justify-center gap-1.5 sm:gap-2 py-2 sm:py-2.5 px-2 sm:px-3 rounded-lg text-xs sm:text-sm font-medium transition-all ${
-            uploadMethod === 'auto'
-              ? 'bg-[#10B981] text-white shadow-md font-semibold'
-              : 'text-ink-subtle hover:text-ink hover:bg-[#1C1D1F]'
-          }`}
+          className={`segment-item ${uploadMethod === 'auto' ? 'active' : ''}`}
         >
-          <Zap className="w-4 h-4 text-amber-300" />
+          <Zap className="w-4 h-4 shrink-0 text-amber-300" />
           <span className="truncate">Smart Auto-Sort</span>
         </button>
 
         <button
           type="button"
           onClick={() => { setUploadMethod('bulk_zip'); setStatus({ type: '', message: '' }); }}
-          className={`flex items-center justify-center gap-2 py-2 sm:py-2.5 px-2 sm:px-3 rounded-lg text-xs sm:text-sm font-medium transition-all ${
-            uploadMethod === 'bulk_zip'
-              ? 'bg-[#10B981] text-white shadow-md font-semibold'
-              : 'text-ink-subtle hover:text-ink hover:bg-[#1C1D1F]'
-          }`}
+          className={`segment-item ${uploadMethod === 'bulk_zip' ? 'active' : ''}`}
         >
-          <Archive className="w-4 h-4" />
+          <Archive className="w-4 h-4 shrink-0" />
           <span className="truncate">Bulk ZIP</span>
         </button>
 
         <button
           type="button"
           onClick={() => { setUploadMethod('bulk_folder'); setStatus({ type: '', message: '' }); }}
-          className={`flex items-center justify-center gap-2 py-2 sm:py-2.5 px-2 sm:px-3 rounded-lg text-xs sm:text-sm font-medium transition-all ${
-            uploadMethod === 'bulk_folder'
-              ? 'bg-[#10B981] text-white shadow-md font-semibold'
-              : 'text-ink-subtle hover:text-ink hover:bg-[#1C1D1F]'
-          }`}
+          className={`segment-item ${uploadMethod === 'bulk_folder' ? 'active' : ''}`}
         >
-          <Folder className="w-4 h-4" />
+          <Folder className="w-4 h-4 shrink-0" />
           <span className="truncate">Bulk Folder</span>
         </button>
 
         <button
           type="button"
           onClick={() => { setUploadMethod('manual'); setStatus({ type: '', message: '' }); }}
-          className={`flex items-center justify-center gap-2 py-2 sm:py-2.5 px-2 sm:px-3 rounded-lg text-xs sm:text-sm font-medium transition-all ${
-            uploadMethod === 'manual'
-              ? 'bg-[#10B981] text-white shadow-md font-semibold'
-              : 'text-ink-subtle hover:text-ink hover:bg-[#1C1D1F]'
-          }`}
+          className={`segment-item ${uploadMethod === 'manual' ? 'active' : ''}`}
         >
-          <Sliders className="w-4 h-4" />
+          <Sliders className="w-4 h-4 shrink-0" />
           <span className="truncate">Manual Slots</span>
         </button>
       </div>
 
-      {/* Global Status Banner */}
+{/* Global Status Banner */}
       <AnimatePresence>
         {status.message && (
           <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">

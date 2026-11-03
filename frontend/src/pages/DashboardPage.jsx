@@ -553,13 +553,13 @@ export default function DashboardPage() {
 function KpiCard({ icon, label, value, highlight = false }) {
   return (
     <ApertureReticle active={true} className="w-full" status="default">
-      <div className="bg-[#0F1011] border border-[#23252A] rounded-lg p-3 sm:p-5 flex items-start gap-2.5 sm:gap-4 h-full">
-        <div className="text-ink-tertiary mt-1 shrink-0">
+      <div className="bg-[#0F1011] border border-[#23252A] rounded-xl p-3 sm:p-5 flex items-start gap-2.5 sm:gap-4 h-full transition-all hover:border-[#383A42]">
+        <div className="text-emerald-400/80 mt-1 shrink-0">
           {icon}
         </div>
-        <div>
-          <div className="text-caption text-ink-subtle uppercase tracking-wider font-medium">{label}</div>
-          <div className={`text-headline text-mono font-medium mt-1 ${highlight ? 'text-emerald-400' : 'text-ink'}`}>{value}</div>
+        <div className="min-w-0">
+          <div className="text-xs text-ink-subtle uppercase tracking-wider font-medium truncate">{label}</div>
+          <div className={`text-xl sm:text-2xl font-bold tracking-tight tabular-nums mt-1 ${highlight ? 'text-emerald-400' : 'text-ink'}`}>{value}</div>
         </div>
       </div>
     </ApertureReticle>

@@ -254,10 +254,10 @@ export default function AttendancePage() {
               <ClipboardList size={16} />
             </div>
             <div className="min-w-0">
-              <div className="stat-number text-base sm:text-xl text-emerald-400 leading-tight flex items-baseline gap-1.5">
+              <div className="text-base sm:text-xl font-bold tracking-tight tabular-nums text-emerald-400 leading-tight flex items-baseline gap-1.5">
                 <span>{confirmedCount}</span>
                 {filteredData.length > 0 && (
-                  <span className="text-xs font-normal text-ink-subtle hidden sm:inline">
+                  <span className="text-xs font-normal text-ink-subtle tabular-nums hidden sm:inline">
                     ({Math.round((confirmedCount / filteredData.length) * 100)}%)
                   </span>
                 )}
