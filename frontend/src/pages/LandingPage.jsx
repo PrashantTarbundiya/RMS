@@ -210,7 +210,7 @@ export default function LandingPage() {
             : 'h-20 bg-transparent border-b border-transparent'
         }`}
       >
-        <div className="max-w-[1200px] mx-auto px-6 h-full flex items-center justify-between">
+        <div className="max-w-[1720px] mx-auto px-4 sm:px-6 lg:px-10 xl:px-14 h-full flex items-center justify-between">
           
           {/* Logo & Wordmark (No Enterprise pill in nav per 5.1) */}
           <Link to="/" className="flex items-center gap-2.5 group">
@@ -348,12 +348,12 @@ export default function LandingPage() {
       {/* ─────────────────────────────────────────────────────────────────────────────
           5.2 HERO SECTION (TWO-COLUMN DESKTOP 50/50 PER SECTION 5.2)
       ───────────────────────────────────────────────────────────────────────────── */}
-      <section className="relative pt-12 sm:pt-20 pb-16 px-6 max-w-[1200px] mx-auto w-full z-10">
+      <section className="relative pt-10 sm:pt-16 pb-16 px-4 sm:px-6 lg:px-10 xl:px-14 max-w-[1720px] mx-auto w-full z-10">
         
         {/* Soft Emerald Glow Behind Hero Visual */}
         <div className="absolute top-1/3 right-10 w-[500px] h-[500px] bg-emerald-500/10 rounded-full blur-[140px] pointer-events-none -z-10" />
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-14 items-center">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-14 xl:gap-20 items-center">
           
           {/* Left Column: Copy (~50%) */}
           <div className="text-left space-y-6">
@@ -365,13 +365,13 @@ export default function LandingPage() {
             </div>
 
             {/* H1 (max 2 lines desktop, text-wrap: balance) */}
-            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-white leading-[1.12]">
+            <h1 className="text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-bold tracking-tight text-white leading-[1.1]">
               Attendance that recognizes people, <br />
               <span className="specular-text-shimmer">not badges.</span>
             </h1>
 
             {/* Subhead (max 2 lines, 18-20px, --text-2) */}
-            <p className="text-base sm:text-lg text-slate-300 leading-relaxed max-w-[540px] font-normal">
+            <p className="text-base sm:text-lg lg:text-xl text-slate-300 leading-relaxed max-w-[620px] font-normal">
               Turn any IP camera or USB webcam into a sub-300 ms face-verification gate. Everything runs on your own hardware, behind your own firewall.
             </p>
 
@@ -508,7 +508,7 @@ export default function LandingPage() {
       {/* ─────────────────────────────────────────────────────────────────────────────
           5.3 "THE PROBLEM" STRIP
       ───────────────────────────────────────────────────────────────────────────── */}
-      <section className="py-14 px-6 max-w-[1200px] mx-auto w-full section-hairline z-10">
+      <section className="py-14 px-4 sm:px-6 lg:px-10 xl:px-14 max-w-[1720px] mx-auto w-full section-hairline z-10">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-left">
           <div className="p-5 rounded-2xl public-card space-y-2">
             <span className="text-xs font-mono-tag font-bold text-rose-400 bg-rose-500/10 px-2 py-0.5 rounded border border-rose-500/20 inline-block">
@@ -550,7 +550,7 @@ export default function LandingPage() {
       {/* ─────────────────────────────────────────────────────────────────────────────
           5.4 INTERACTIVE SIMULATOR ("SEE IT WORK")
       ───────────────────────────────────────────────────────────────────────────── */}
-      <section id="simulator" className="py-20 px-6 max-w-[1200px] mx-auto w-full section-hairline z-10">
+      <section id="simulator" className="py-20 px-4 sm:px-6 lg:px-10 xl:px-14 max-w-[1720px] mx-auto w-full section-hairline z-10">
         <SectionHeader
           badge="Interactive Hardware Simulator"
           badgeIcon={Sparkles}
@@ -737,7 +737,7 @@ export default function LandingPage() {
       {/* ─────────────────────────────────────────────────────────────────────────────
           5.5 HOW IT WORKS (4 STEPS PER SECTION 5.5)
       ───────────────────────────────────────────────────────────────────────────── */}
-      <section id="how-it-works" className="py-20 px-6 max-w-[1200px] mx-auto w-full section-hairline z-10">
+      <section id="how-it-works" className="py-20 px-4 sm:px-6 lg:px-10 xl:px-14 max-w-[1720px] mx-auto w-full section-hairline z-10">
         <SectionHeader
           badge="4-Step Deployment"
           badgeIcon={Layers}
@@ -784,7 +784,7 @@ export default function LandingPage() {
       {/* ─────────────────────────────────────────────────────────────────────────────
           5.6 CAPABILITIES (ASYMMETRIC BENTO GRID PER SECTION 5.6)
       ───────────────────────────────────────────────────────────────────────────── */}
-      <section id="capabilities" className="py-20 px-6 max-w-[1200px] mx-auto w-full section-hairline z-10">
+      <section id="capabilities" className="py-20 px-4 sm:px-6 lg:px-10 xl:px-14 max-w-[1720px] mx-auto w-full section-hairline z-10">
         <SectionHeader
           badge="Platform Capabilities"
           badgeIcon={Zap}
@@ -886,7 +886,7 @@ export default function LandingPage() {
       {/* ─────────────────────────────────────────────────────────────────────────────
           5.7 PRODUCT TOUR (REAL CONSOLE TABS PER SECTION 5.7)
       ───────────────────────────────────────────────────────────────────────────── */}
-      <section className="py-20 px-6 max-w-[1200px] mx-auto w-full section-hairline z-10">
+      <section className="py-20 px-4 sm:px-6 lg:px-10 xl:px-14 max-w-[1720px] mx-auto w-full section-hairline z-10">
         <SectionHeader
           badge="Product Tour"
           badgeIcon={Laptop}
@@ -1033,7 +1033,7 @@ export default function LandingPage() {
       {/* ─────────────────────────────────────────────────────────────────────────────
           5.8 BIOMETRIC SOVEREIGNTY & DATA FLOW DIAGRAM (PER SECTION 5.8)
       ───────────────────────────────────────────────────────────────────────────── */}
-      <section id="sovereignty" className="py-20 px-6 max-w-[1200px] mx-auto w-full section-hairline z-10">
+      <section id="sovereignty" className="py-20 px-4 sm:px-6 lg:px-10 xl:px-14 max-w-[1720px] mx-auto w-full section-hairline z-10">
         <SectionHeader
           badge="Biometric Sovereignty"
           badgeIcon={ShieldCheck}
@@ -1041,7 +1041,7 @@ export default function LandingPage() {
           subtitle="Built to support GDPR Article 9, Illinois BIPA, and California CCPA requirements."
         />
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center max-w-4xl mx-auto">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center max-w-6xl mx-auto">
           
           {/* Principles */}
           <div className="space-y-4 text-left">
@@ -1097,7 +1097,7 @@ export default function LandingPage() {
         </div>
 
         {/* What We Store vs What We Never Store */}
-        <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-5 max-w-4xl mx-auto text-left text-xs">
+        <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-5 max-w-6xl mx-auto text-left text-xs">
           <div className="p-5 rounded-2xl bg-[#09121F] border border-emerald-500/20 space-y-2">
             <p className="font-bold text-emerald-400 font-mono-tag uppercase">What Stays On Your Hardware:</p>
             <ul className="list-disc pl-4 space-y-1 text-slate-300 font-normal">
@@ -1124,7 +1124,7 @@ export default function LandingPage() {
       {/* ─────────────────────────────────────────────────────────────────────────────
           5.10 PRICING (WORKING ANNUAL TOGGLE WITH $319 / MO PER SECTION 5.10)
       ───────────────────────────────────────────────────────────────────────────── */}
-      <section id="pricing" className="py-20 px-6 max-w-[1200px] mx-auto w-full section-hairline z-10">
+      <section id="pricing" className="py-20 px-4 sm:px-6 lg:px-10 xl:px-14 max-w-[1720px] mx-auto w-full section-hairline z-10">
         <SectionHeader
           badge="Transparent Pricing"
           badgeIcon={Zap}
@@ -1328,7 +1328,7 @@ export default function LandingPage() {
       {/* ─────────────────────────────────────────────────────────────────────────────
           5.11 FREQUENTLY ASKED QUESTIONS (ACCORDION)
       ───────────────────────────────────────────────────────────────────────────── */}
-      <section id="faq" className="py-20 px-6 max-w-[800px] mx-auto w-full section-hairline z-10">
+      <section id="faq" className="py-20 px-4 sm:px-6 lg:px-10 max-w-[1200px] mx-auto w-full section-hairline z-10">
         <SectionHeader
           badge="FAQ"
           badgeIcon={HelpCircle}
@@ -1369,7 +1369,7 @@ export default function LandingPage() {
       {/* ─────────────────────────────────────────────────────────────────────────────
           5.12 FINAL CTA BAND (PER SECTION 5.12)
       ───────────────────────────────────────────────────────────────────────────── */}
-      <section className="py-20 px-6 max-w-[1000px] mx-auto w-full z-10">
+      <section className="py-20 px-4 sm:px-6 lg:px-10 xl:px-14 max-w-[1500px] mx-auto w-full z-10">
         <div className="rounded-3xl border border-emerald-500/35 bg-gradient-to-b from-[#0E1729] to-[#070B14] p-8 sm:p-14 text-center relative overflow-hidden shadow-2xl shadow-emerald-950/40">
           <div className="relative z-10 max-w-xl mx-auto space-y-4">
             <span className="inline-block px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 text-[11px] font-mono-tag font-bold tracking-wider uppercase">
@@ -1408,8 +1408,8 @@ export default function LandingPage() {
       {/* ─────────────────────────────────────────────────────────────────────────────
           5.13 FOOTER (4+ COLUMNS PER SECTION 5.13)
       ───────────────────────────────────────────────────────────────────────────── */}
-      <footer className="mt-auto border-t border-white/[0.08] bg-[#05070D] py-14 px-6 z-10">
-        <div className="max-w-[1200px] mx-auto grid grid-cols-1 md:grid-cols-5 gap-8 mb-12">
+      <footer className="mt-auto border-t border-white/[0.08] bg-[#05070D] py-14 px-4 sm:px-6 lg:px-10 xl:px-14 z-10">
+        <div className="max-w-[1720px] mx-auto grid grid-cols-1 md:grid-cols-5 gap-8 mb-12">
           
           <div className="md:col-span-2 space-y-3 text-left">
             <div className="flex items-center gap-2">
@@ -1462,7 +1462,7 @@ export default function LandingPage() {
           </div>
         </div>
 
-        <div className="max-w-[1200px] mx-auto pt-8 border-t border-white/[0.06] flex flex-col sm:flex-row items-center justify-between gap-3 text-[11px] text-slate-500 font-mono-tag">
+        <div className="max-w-[1720px] mx-auto pt-8 border-t border-white/[0.06] flex flex-col sm:flex-row items-center justify-between gap-3 text-[11px] text-slate-500 font-mono-tag">
           <p>&copy; {new Date().getFullYear()} AuraPass. All rights reserved.</p>
           <p>On-premise engine v2026.2</p>
         </div>

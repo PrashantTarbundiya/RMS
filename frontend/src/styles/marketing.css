@@ -60,7 +60,11 @@
 
 .public-surface p {
   text-wrap: pretty;
-  max-width: 65ch;
+}
+
+.public-surface .prose p,
+.public-surface article p {
+  max-width: 68ch;
 }
 
 .public-surface .font-mono-tag {

@@ -178,7 +178,7 @@ export default function SupportPage() {
       
       {/* Header */}
       <header className="border-b border-white/[0.08] bg-[#070A12]/90 backdrop-blur-xl sticky top-0 z-30">
-        <div className="max-w-[1200px] mx-auto px-6 h-16 flex items-center justify-between">
+        <div className="max-w-[1720px] mx-auto px-4 sm:px-6 lg:px-10 h-16 flex items-center justify-between">
           <Link
             to="/"
             className="flex items-center gap-2 text-xs sm:text-sm text-slate-400 hover:text-white transition-colors"
@@ -210,7 +210,7 @@ export default function SupportPage() {
 
       {/* Hero Banner */}
       <div className="border-b border-white/[0.08] bg-[#0B0F19] py-12 px-6">
-        <div className="max-w-[1200px] mx-auto flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+        <div className="max-w-[1720px] mx-auto px-4 sm:px-6 lg:px-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
           <div>
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/25 text-emerald-300 text-[11px] font-semibold uppercase tracking-wider font-mono-tag mb-3">
               <LifeBuoy className="w-3.5 h-3.5" />
@@ -244,7 +244,7 @@ export default function SupportPage() {
       </div>
 
       {/* Main Content Area */}
-      <main className="flex-1 max-w-[1200px] w-full mx-auto px-6 py-10 space-y-12">
+      <main className="flex-1 max-w-[1720px] w-full mx-auto px-4 sm:px-6 lg:px-10 py-10 space-y-12">
         
         {/* Search & Topic Filters */}
         <div className="space-y-4">

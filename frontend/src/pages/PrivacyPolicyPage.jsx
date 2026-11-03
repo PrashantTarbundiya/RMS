@@ -36,7 +36,7 @@ export default function PrivacyPolicyPage() {
       
       {/* Header */}
       <header className="border-b border-white/[0.08] bg-[#070A12]/90 backdrop-blur-xl sticky top-0 z-30 no-print">
-        <div className="max-w-[1200px] mx-auto px-6 h-16 flex items-center justify-between">
+        <div className="max-w-[1720px] mx-auto px-4 sm:px-6 lg:px-10 h-16 flex items-center justify-between">
           <Link
             to="/"
             className="flex items-center gap-2 text-xs sm:text-sm text-slate-400 hover:text-white transition-colors"
@@ -62,7 +62,7 @@ export default function PrivacyPolicyPage() {
       </header>
 
       {/* Main 2-Column Document Layout */}
-      <main className="flex-1 max-w-[1200px] w-full mx-auto px-6 py-12 flex flex-col lg:flex-row gap-12">
+      <main className="flex-1 max-w-[1500px] w-full mx-auto px-4 sm:px-6 lg:px-10 py-12 flex flex-col lg:flex-row gap-12">
         
         {/* Sticky Table of Contents (260px) */}
         <aside className="w-[260px] shrink-0 hidden lg:block no-print">

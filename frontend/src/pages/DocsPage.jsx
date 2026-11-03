@@ -514,7 +514,7 @@ export default function DocsPage() {
           DOCS HEADER
       ───────────────────────────────────────────────────────────────────────────── */}
       <header className="sticky top-0 z-40 border-b border-white/[0.08] bg-[#070A12]/90 backdrop-blur-xl">
-        <div className="max-w-[1440px] mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
+        <div className="max-w-[1720px] mx-auto px-4 sm:px-6 lg:px-10 h-16 flex items-center justify-between gap-4">
           
           <div className="flex items-center gap-3">
             <Link to="/" className="flex items-center gap-2 group">
@@ -576,7 +576,7 @@ export default function DocsPage() {
       {/* ─────────────────────────────────────────────────────────────────────────────
           3-COLUMN DOCUMENTATION LAYOUT
       ───────────────────────────────────────────────────────────────────────────── */}
-      <div className="flex-1 max-w-[1440px] w-full mx-auto px-4 sm:px-6 py-8 flex flex-col lg:flex-row gap-8">
+      <div className="flex-1 max-w-[1720px] w-full mx-auto px-4 sm:px-6 lg:px-10 py-8 flex flex-col lg:flex-row gap-8">
         
         {/* Left Sidebar (280px) */}
         <aside className="w-full lg:w-[280px] shrink-0 hidden lg:block">
