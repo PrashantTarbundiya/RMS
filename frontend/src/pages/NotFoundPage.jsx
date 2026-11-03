@@ -1,14 +1,14 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Home, ArrowLeft, HelpCircle, Search } from 'lucide-react';
+import { Home, ArrowLeft, HelpCircle, Search, BookOpen } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 /**
- * NotFoundPage - Clean 404 page with navigation links.
+ * NotFoundPage - Clean 404 page with navigation links to Home, Docs, Console, and Support.
  */
 export default function NotFoundPage() {
   return (
-    <div className="min-h-screen bg-[#010102] flex items-center justify-center p-6 relative overflow-hidden">
+    <div className="min-h-screen bg-[#070A12] flex items-center justify-center p-6 relative overflow-hidden">
       {/* Background Subtle Hairline Grid */}
       <div className="absolute inset-0 opacity-[0.03]" style={{
         backgroundImage: `linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px)`,
@@ -38,9 +38,9 @@ export default function NotFoundPage() {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
-          className="mx-auto mb-6 w-14 h-14 rounded-xl bg-[#059669]/10 border border-[#059669]/20 flex items-center justify-center"
+          className="mx-auto mb-6 w-14 h-14 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center"
         >
-          <Search className="w-6 h-6 text-[#10B981]" />
+          <Search className="w-6 h-6 text-emerald-400" />
         </motion.div>
 
         {/* Heading */}
@@ -49,11 +49,11 @@ export default function NotFoundPage() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.4 }}
         >
-          <h1 className="text-2xl font-semibold text-ink tracking-tight mb-2">
+          <h1 className="text-2xl font-semibold text-white tracking-tight mb-2">
             Page not found
           </h1>
-          <p className="text-ink-subtle text-sm leading-relaxed max-w-sm mx-auto mb-8">
-            The page you're looking for doesn't exist or has been relocated within the console.
+          <p className="text-slate-400 text-sm leading-relaxed max-w-sm mx-auto mb-8">
+            The page you're looking for doesn't exist or has been relocated within the platform.
           </p>
         </motion.div>
 
@@ -62,28 +62,34 @@ export default function NotFoundPage() {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.5 }}
-          className="flex flex-col sm:flex-row items-center justify-center gap-3"
+          className="flex flex-wrap items-center justify-center gap-3"
         >
           <Link
-            to="/dashboard"
-            className="button-primary flex items-center gap-2 px-5 py-2.5 w-full sm:w-auto justify-center bg-[#059669] hover:bg-[#047857] rounded-md transition-colors"
+            to="/"
+            className="flex items-center gap-2 px-5 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-semibold text-xs rounded-xl transition-all shadow-lg shadow-emerald-500/20"
           >
             <Home className="w-4 h-4" />
-            <span className="text-button text-white">Go to Dashboard</span>
+            <span>Return Home</span>
           </Link>
-          <button
-            onClick={() => window.history.back()}
-            className="button-secondary flex items-center gap-2 px-5 py-2.5 w-full sm:w-auto justify-center rounded-md"
+          <Link
+            to="/docs"
+            className="flex items-center gap-2 px-4 py-2.5 bg-[#141B2E] hover:bg-[#1E293B] border border-white/[0.08] text-slate-200 text-xs font-medium rounded-xl transition-colors"
           >
-            <ArrowLeft className="w-4 h-4" />
-            <span className="text-button">Go Back</span>
-          </button>
+            <BookOpen className="w-4 h-4 text-emerald-400" />
+            <span>Documentation</span>
+          </Link>
+          <Link
+            to="/dashboard"
+            className="flex items-center gap-2 px-4 py-2.5 bg-[#141B2E] hover:bg-[#1E293B] border border-white/[0.08] text-slate-200 text-xs font-medium rounded-xl transition-colors"
+          >
+            <span>Console</span>
+          </Link>
           <Link
             to="/support"
-            className="button-secondary flex items-center gap-2 px-5 py-2.5 w-full sm:w-auto justify-center rounded-md"
+            className="flex items-center gap-2 px-4 py-2.5 bg-[#141B2E] hover:bg-[#1E293B] border border-white/[0.08] text-slate-200 text-xs font-medium rounded-xl transition-colors"
           >
-            <HelpCircle className="w-4 h-4" />
-            <span className="text-button">Help Center</span>
+            <HelpCircle className="w-4 h-4 text-slate-400" />
+            <span>Support</span>
           </Link>
         </motion.div>
 
@@ -92,9 +98,9 @@ export default function NotFoundPage() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.7 }}
-          className="mt-12 text-[10px] text-ink-tertiary tracking-wider uppercase font-mono"
+          className="mt-12 text-[10px] text-slate-500 tracking-wider uppercase font-mono"
         >
-          AuraPass™ Enterprise • Biometric Access Management
+          AuraPass™ Enterprise • On-Premise Biometric Platform
         </motion.p>
       </motion.div>
     </div>

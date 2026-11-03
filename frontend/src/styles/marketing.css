@@ -1,83 +1,114 @@
 /* =============================================================================
-   AuraPass™ Enterprise — Marketing & Public Experience Design System
-   Apple-Inspired Liquid Glass, Ambient Illumination, and Motion Tokens
+   AuraPass™ Enterprise — Public Experience Design System Tokens
+   Source: AURAPASS_PUBLIC_UI_REDESIGN.md Section 3
    ============================================================================= */
+
+:root {
+  /* Surfaces */
+  --bg-0: #070A12;        /* page background (deepest) */
+  --bg-1: #0B0F19;        /* section background */
+  --bg-2: #0F1524;        /* card */
+  --bg-3: #141B2E;        /* raised card / hover */
+  --border: rgba(148, 163, 184, 0.14);
+  --border-strong: rgba(148, 163, 184, 0.26);
+
+  /* Text */
+  --text-1: #F1F5F9;      /* headings */
+  --text-2: #CBD5E1;      /* body */
+  --text-3: #94A3B8;      /* muted */
+
+  /* Brand */
+  --accent: #34D399;      /* emerald, primary CTA */
+  --accent-strong: #10B981;
+  --accent-soft: rgba(52, 211, 153, 0.12);
+  --accent-glow: rgba(52, 211, 153, 0.35);
+
+  /* Semantic Secondary */
+  --violet: #A78BFA;
+  --amber: #FBBF24;
+  --cyan: #22D3EE;
+  --rose: #FB7185;
+
+  /* Radius, shadow, motion */
+  --r-sm: 8px;
+  --r-md: 12px;
+  --r-lg: 20px;
+  --r-xl: 28px;
+  --shadow-card: 0 1px 0 rgba(255, 255, 255, 0.04) inset, 0 20px 50px -20px rgba(0, 0, 0, 0.6);
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Base Body & Layout Rules for Public Surfaces */
+.public-surface {
+  background-color: var(--bg-0);
+  color: var(--text-2);
+  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  line-height: 1.65;
+}
+
+/* Typography Hierarchy per Section 3 */
+.public-surface h1,
+.public-surface h2,
+.public-surface h3,
+.public-surface h4 {
+  color: var(--text-1);
+  font-weight: 700 !important; /* Max weight 700 */
+  letter-spacing: -0.02em !important;
+  text-wrap: balance;
+  line-height: 1.15;
+}
+
+.public-surface p {
+  text-wrap: pretty;
+  max-width: 65ch;
+}
+
+.public-surface .font-mono-tag {
+  font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
 
 /* Ambient Radial Backgrounds */
 .marketing-bg {
-  background-color: #06080F;
+  background-color: var(--bg-0);
   background-image: 
-    radial-gradient(circle at 50% 0%, rgba(16, 185, 129, 0.14) 0%, transparent 60%),
-    radial-gradient(circle at 85% 30%, rgba(14, 165, 233, 0.08) 0%, transparent 50%),
-    radial-gradient(circle at 15% 70%, rgba(139, 92, 246, 0.06) 0%, transparent 50%);
+    radial-gradient(circle at 50% 0%, rgba(16, 185, 129, 0.12) 0%, transparent 55%),
+    radial-gradient(circle at 85% 25%, rgba(14, 165, 233, 0.06) 0%, transparent 45%);
   background-attachment: fixed;
 }
 
-/* Subtle Tech Dot Grid Pattern */
-.marketing-grid-pattern {
-  background-size: 32px 32px;
-  background-image: radial-gradient(rgba(255, 255, 255, 0.06) 1px, transparent 1px);
-  mask-image: radial-gradient(ellipse 80% 60% at 50% 10%, #000 60%, transparent 100%);
-  -webkit-mask-image: radial-gradient(ellipse 80% 60% at 50% 10%, #000 60%, transparent 100%);
+/* Subtle Dotted Grid Behind Hero Only */
+.hero-dot-grid {
+  background-size: 28px 28px;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.07) 1px, transparent 1px);
+  mask-image: radial-gradient(ellipse 65% 55% at 50% 15%, #000 50%, transparent 100%);
+  -webkit-mask-image: radial-gradient(ellipse 65% 55% at 50% 15%, #000 50%, transparent 100%);
 }
 
-/* Liquid Glass Cards */
-.liquid-glass-card {
-  background: rgba(13, 18, 29, 0.72);
-  backdrop-filter: blur(20px) saturate(180%);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: 
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.12),
-    0 16px 40px -12px rgba(0, 0, 0, 0.6);
-  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+/* Section Hairline Separator */
+.section-hairline {
+  border-top: 1px solid transparent;
+  border-image: linear-gradient(90deg, transparent 0%, rgba(148, 163, 184, 0.15) 30%, rgba(148, 163, 184, 0.15) 70%, transparent 100%) 1;
 }
 
-.liquid-glass-card:hover {
-  border-color: rgba(52, 211, 153, 0.28);
-  box-shadow: 
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.18),
-    0 24px 50px -12px rgba(16, 185, 129, 0.12),
-    0 16px 40px -12px rgba(0, 0, 0, 0.7);
+/* Card Tokens */
+.public-card {
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-card);
+  border-radius: var(--r-lg);
+  transition: all 0.25s var(--ease-out);
+}
+
+.public-card:hover {
+  background: var(--bg-3);
+  border-color: var(--border-strong);
   transform: translateY(-2px);
-}
-
-/* Elevated Glass Panel (No Hover Lift) */
-.liquid-glass-panel {
-  background: rgba(11, 15, 24, 0.82);
-  backdrop-filter: blur(24px) saturate(190%);
-  -webkit-backdrop-filter: blur(24px) saturate(190%);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: 
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.1),
-    0 20px 48px -10px rgba(0, 0, 0, 0.7);
-}
-
-/* Glowing Border Accent */
-.glow-border-emerald {
-  position: relative;
-}
-.glow-border-emerald::before {
-  content: '';
-  position: absolute;
-  inset: -1px;
-  border-radius: inherit;
-  padding: 1px;
-  background: linear-gradient(135deg, rgba(52, 211, 153, 0.6), rgba(20, 184, 166, 0.2), rgba(255, 255, 255, 0.05));
-  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-  -webkit-mask-composite: xor;
-  mask-composite: exclude;
-  pointer-events: none;
 }
 
 /* Shimmer Highlight Keyframe */
 @keyframes specular-shimmer {
-  0% {
-    background-position: -200% 0;
-  }
-  100% {
-    background-position: 200% 0;
-  }
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
 }
 
 .specular-text-shimmer {
@@ -96,67 +127,62 @@
   animation: specular-shimmer 6s linear infinite;
 }
 
-/* Hardware Scanning Line Animation */
+/* Scanline Animation */
 @keyframes hud-scanline {
-  0% {
-    top: 0%;
-    opacity: 0.8;
-  }
-  50% {
-    opacity: 1;
-  }
-  100% {
-    top: 100%;
-    opacity: 0.2;
-  }
+  0% { top: 0%; opacity: 0.8; }
+  50% { opacity: 1; }
+  100% { top: 100%; opacity: 0.2; }
 }
 
 .animate-scanline {
   animation: hud-scanline 2.2s ease-in-out infinite alternate;
 }
 
-/* Pulse Glow Keyframe */
-@keyframes ambient-pulse {
-  0%, 100% {
-    opacity: 0.6;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 0.9;
-    transform: scale(1.04);
-  }
+/* Top Progress Bar */
+.scroll-progress-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--accent);
+  transform-origin: 0%;
+  z-index: 100;
+  box-shadow: 0 0 10px var(--accent-glow);
 }
 
-.animate-ambient-pulse {
-  animation: ambient-pulse 5s ease-in-out infinite;
-}
-
-/* Documentation Content Code Styling */
-.docs-prose pre {
-  background: #060911 !important;
-  border: 1px solid rgba(255, 255, 255, 0.08) !important;
-  border-radius: 0.75rem !important;
-  padding: 1rem 1.25rem !important;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace !important;
-}
-
-.docs-prose code {
-  color: #34d399 !important;
-  font-size: 0.8125rem !important;
-}
-
-/* Custom Scrollbar for Documentation and Code */
-.marketing-scroll::-webkit-scrollbar {
+/* Custom Scrollbar */
+.public-scroll::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
-.marketing-scroll::-webkit-scrollbar-track {
-  background: rgba(10, 14, 22, 0.6);
+.public-scroll::-webkit-scrollbar-track {
+  background: rgba(11, 15, 25, 0.6);
 }
-.marketing-scroll::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.12);
+.public-scroll::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.2);
   border-radius: 9999px;
 }
-.marketing-scroll::-webkit-scrollbar-thumb:hover {
-  background: rgba(52, 211, 153, 0.35);
+.public-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(52, 211, 153, 0.4);
+}
+
+/* Print Stylesheet per Section 8 */
+@media print {
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+  header, footer, nav, aside, .no-print {
+    display: none !important;
+  }
+  .public-surface {
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+  .public-card {
+    border: 1px solid #ccc !important;
+    box-shadow: none !important;
+    background: #ffffff !important;
+  }
 }

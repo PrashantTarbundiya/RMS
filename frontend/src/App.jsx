@@ -237,6 +237,7 @@ function AnimatedRoutes() {
         <Route path="/departments" element={<ProtectedRoute><PageWrapper><DepartmentsPage /></PageWrapper></ProtectedRoute>} />
 
         <Route path="/support" element={<PageWrapper><SupportPage /></PageWrapper>} />
+        <Route path="/help" element={<PageWrapper><SupportPage /></PageWrapper>} />
 
         <Route path="/docs" element={<PageWrapper><DocsPage /></PageWrapper>} />
 

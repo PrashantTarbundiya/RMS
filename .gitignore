@@ -4,8 +4,10 @@ __pycache__/
 *$py.class
 *.so
 *.egg-info/
-dist/
-build/
+# Build artifacts & scratch
+*.tar.gz
+scratch/
+frontend/dist/
 .eggs/
 .pytest_cache/
 

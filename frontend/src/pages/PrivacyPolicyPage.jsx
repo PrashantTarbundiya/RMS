@@ -4,42 +4,39 @@ import {
   Shield,
   ArrowLeft,
   Lock,
-  Database,
-  Trash2,
-  Server,
-  FileCheck,
-  CheckCircle2,
-  BookOpen,
-  ChevronRight
+  Printer,
+  ChevronRight,
+  FileText
 } from 'lucide-react';
+import Callout from '../components/ui/marketing/Callout';
+import TableOfContents from '../components/ui/marketing/TableOfContents';
 
 const SECTIONS = [
-  { id: 'controller', title: '1. Data Controller & Deployment Model' },
-  { id: 'collected-data', title: '2. Information Processed by AuraPass' },
-  { id: 'biometric-architecture', title: '3. Biometric Vector Protection & Irreversibility' },
-  { id: 'zero-cloud', title: '4. Zero Third-Party Cloud Transmission' },
-  { id: 'employee-rights', title: '5. Employee Rights & Regulatory Mandates' },
-  { id: 'retention-deletion', title: '6. Data Retention & 1-Click Purging' },
-  { id: 'audit-logging', title: '7. Access Controls & Cryptographic Audit Trails' },
+  { id: 'plain-summary', title: 'Plain-Language Summary' },
+  { id: '1-data-controller', title: '1. Data Controller & Deployment Model' },
+  { id: '2-data-categories', title: '2. Information Processed & Stored' },
+  { id: '3-biometric-protection', title: '3. Biometric Vectors & Irreversibility' },
+  { id: '4-zero-cloud', title: '4. Local Processing & Zero Cloud Egress' },
+  { id: '5-employee-rights', title: '5. Employee Biometric Rights & Consent' },
+  { id: '6-retention-deletion', title: '6. Data Retention & 1-Click Purging' },
+  { id: '7-contact-governance', title: '7. Policy Updates & Governance Contact' }
 ];
 
 export default function PrivacyPolicyPage() {
-  const [activeSection, setActiveSection] = useState('controller');
+  const [activeTocId, setActiveTocId] = useState('plain-summary');
 
   const scrollTo = (id) => {
-    setActiveSection(id);
-    const element = document.getElementById(id);
-    if (element) {
-      element.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
+    setActiveTocId(id);
+    const el = document.getElementById(id);
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
   return (
-    <div className="min-h-screen bg-[#080B11] text-slate-100 flex flex-col font-sans relative overflow-x-hidden selection:bg-emerald-500/20 selection:text-emerald-300">
+    <div className="min-h-screen public-surface bg-[#070A12] flex flex-col font-sans relative">
       
-      {/* Top Header */}
-      <header className="border-b border-[#1A2234] bg-[#0A0D15]/90 backdrop-blur-md sticky top-0 z-30">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+      {/* Header */}
+      <header className="border-b border-white/[0.08] bg-[#070A12]/90 backdrop-blur-xl sticky top-0 z-30 no-print">
+        <div className="max-w-[1200px] mx-auto px-6 h-16 flex items-center justify-between">
           <Link
             to="/"
             className="flex items-center gap-2 text-xs sm:text-sm text-slate-400 hover:text-white transition-colors"
@@ -48,55 +45,37 @@ export default function PrivacyPolicyPage() {
             <span>Back to Home</span>
           </Link>
 
-          <div className="flex items-center gap-3 sm:gap-4 text-xs">
-            <Link to="/docs" className="text-slate-400 hover:text-white transition-colors">
-              Docs
-            </Link>
-            <Link to="/terms" className="text-slate-400 hover:text-white transition-colors">
-              Terms of Service
-            </Link>
-            <Link to="/support" className="text-slate-400 hover:text-white transition-colors">
-              Support
-            </Link>
-            <Link
-              to="/login"
-              className="px-3.5 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-semibold hover:bg-emerald-500/20 transition-colors"
+          <div className="flex items-center gap-4 text-xs font-medium">
+            <Link to="/docs" className="text-slate-400 hover:text-white transition-colors">Docs</Link>
+            <Link to="/terms" className="text-slate-400 hover:text-white transition-colors">Terms of Service</Link>
+            <Link to="/support" className="text-slate-400 hover:text-white transition-colors">Support</Link>
+            <button
+              type="button"
+              onClick={() => window.print()}
+              className="px-3 py-1.5 rounded-lg border border-white/[0.08] bg-[#141B2E] text-slate-200 hover:text-white flex items-center gap-1.5 transition-colors cursor-pointer"
             >
-              Sign In
-            </Link>
+              <Printer className="w-3.5 h-3.5" />
+              <span>Print Policy</span>
+            </button>
           </div>
         </div>
       </header>
 
-      {/* Main Content Layout */}
-      <main className="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 py-12 sm:py-16 flex flex-col lg:flex-row gap-10">
+      {/* Main 2-Column Document Layout */}
+      <main className="flex-1 max-w-[1200px] w-full mx-auto px-6 py-12 flex flex-col lg:flex-row gap-12">
         
-        {/* Sticky Table of Contents (Desktop) */}
-        <aside className="w-full lg:w-72 shrink-0 hidden lg:block">
-          <div className="sticky top-28 space-y-4">
-            <p className="text-xs font-bold text-white uppercase tracking-wider font-mono">
-              Table of Contents
-            </p>
-            <nav className="space-y-1">
-              {SECTIONS.map((sec) => (
-                <button
-                  key={sec.id}
-                  onClick={() => scrollTo(sec.id)}
-                  className={`w-full text-left px-3 py-2 rounded-xl text-xs font-medium transition-all flex items-center justify-between cursor-pointer ${
-                    activeSection === sec.id
-                      ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 font-semibold'
-                      : 'text-slate-400 hover:text-white hover:bg-[#0E1422]'
-                  }`}
-                >
-                  <span className="truncate">{sec.title}</span>
-                  {activeSection === sec.id && <ChevronRight className="w-3.5 h-3.5 text-emerald-400 shrink-0" />}
-                </button>
-              ))}
-            </nav>
+        {/* Sticky Table of Contents (260px) */}
+        <aside className="w-[260px] shrink-0 hidden lg:block no-print">
+          <div className="sticky top-24 space-y-4">
+            <TableOfContents
+              items={SECTIONS}
+              activeId={activeTocId}
+              onItemClick={scrollTo}
+            />
 
-            <div className="p-4 rounded-xl bg-[#0D121D] border border-[#1E2638] text-xs text-slate-400 space-y-2">
-              <div className="flex items-center gap-1.5 text-emerald-400 font-semibold font-mono">
-                <Shield className="w-4 h-4" />
+            <div className="p-4 rounded-xl bg-[#0B0F19] border border-white/[0.08] text-xs text-slate-400 space-y-2">
+              <div className="flex items-center gap-1.5 text-emerald-400 font-semibold font-mono-tag">
+                <Shield className="w-3.5 h-3.5" />
                 <span>On-Premise Guarantee</span>
               </div>
               <p className="text-[11px] leading-relaxed">
@@ -106,167 +85,155 @@ export default function PrivacyPolicyPage() {
           </div>
         </aside>
 
-        {/* Legal Text Document */}
-        <div className="flex-1 min-w-0 max-w-3xl space-y-10">
+        {/* Center Legal Prose (max 760px) */}
+        <div className="flex-1 min-w-0 max-w-[760px] space-y-10 text-slate-300 text-sm leading-relaxed">
           
-          {/* Header Card */}
-          <div className="pb-8 border-b border-[#1A2234] space-y-3">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/25 text-emerald-400 text-xs font-semibold uppercase tracking-wider font-mono">
-              <Shield className="w-3.5 h-3.5" />
-              Biometric Sovereignty & Privacy Policy
-            </div>
-            <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-white">
+          {/* Header Block */}
+          <div className="pb-8 border-b border-white/[0.08] space-y-3">
+            <span className="text-[11px] font-mono-tag uppercase tracking-wider text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-md border border-emerald-500/20 inline-block font-bold">
+              Biometric Privacy & Data Governance
+            </span>
+            <h1 className="text-3xl sm:text-4xl font-bold text-white tracking-tight leading-tight">
               AuraPass Privacy Policy
             </h1>
-            <p className="text-xs sm:text-sm text-slate-400 leading-relaxed font-mono">
-              Version 2026.2 &bull; Effective Date: November 3, 2026 &bull; Strict On-Premise Air-Gap Architecture
-            </p>
+            <div className="flex flex-wrap items-center gap-3 text-xs text-slate-400 font-mono-tag pt-1">
+              <span>Effective: November 3, 2026</span>
+              <span>&bull;</span>
+              <span>Last Updated: November 3, 2026</span>
+              <span>&bull;</span>
+              <span>Version: v2026.2</span>
+            </div>
           </div>
 
-          {/* 3 Core Architecture Guarantees */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div className="p-4 rounded-xl bg-[#0D121D] border border-[#1E2638]">
-              <Server className="w-5 h-5 text-emerald-400 mb-2" />
-              <h3 className="text-xs font-bold text-white mb-1">Local Host Storage</h3>
-              <p className="text-xs text-slate-400 leading-relaxed">
-                All photos and employee records stay on your company hardware. Never transmitted to external cloud servers.
-              </p>
-            </div>
-            <div className="p-4 rounded-xl bg-[#0D121D] border border-[#1E2638]">
-              <Lock className="w-5 h-5 text-emerald-400 mb-2" />
-              <h3 className="text-xs font-bold text-white mb-1">Irreversible Vectors</h3>
-              <p className="text-xs text-slate-400 leading-relaxed">
-                Faces are transformed into 512-d mathematical coordinates that cannot be reverse-engineered into photographs.
-              </p>
-            </div>
-            <div className="p-4 rounded-xl bg-[#0D121D] border border-[#1E2638]">
-              <Trash2 className="w-5 h-5 text-purple-400 mb-2" />
-              <h3 className="text-xs font-bold text-white mb-1">1-Click Erasure</h3>
-              <p className="text-xs text-slate-400 leading-relaxed">
-                Administrators can delete any employee record and permanently erase all associated vectors in one click.
-              </p>
-            </div>
-          </div>
+          {/* Plain Language Summary Callout */}
+          <section id="plain-summary" className="scroll-mt-24">
+            <Callout type="info" title="Plain-Language Summary (Does Not Replace Full Legal Text)">
+              <ul className="list-disc pl-4 space-y-1 text-xs text-slate-300">
+                <li><strong>Local Ownership:</strong> Your organization is the sole Data Controller. AuraPass operates on your local equipment; our team has no access to your cameras or staff data.</li>
+                <li><strong>One-Way Numeric Vectors:</strong> Facial imagery is converted into irreversible 512-dimensional numeric unit vectors. Original photographs are not required after enrollment.</li>
+                <li><strong>Zero Cloud Egress:</strong> The software operates 100% offline. No face images, vectors, or timestamps are sent to external cloud APIs.</li>
+                <li><strong>Employee Rights:</strong> Administrators can delete an employee profile and purge their facial vectors permanently in one click.</li>
+                <li><strong>No Advertising or Tracking:</strong> The application contains zero commercial tracking pixels, telemetry scripts, or third-party cookies.</li>
+              </ul>
+            </Callout>
+          </section>
 
           {/* Section 1 */}
-          <section id="controller" className="space-y-3 scroll-mt-28">
-            <h2 className="text-lg font-bold text-white flex items-center gap-2">
-              <span className="text-emerald-400 font-mono text-sm">01.</span>
-              Data Controller & Deployment Model
+          <section id="1-data-controller" className="space-y-3 scroll-mt-24">
+            <h2 className="text-xl font-bold text-white pt-4 border-t border-white/[0.08]">
+              1. Data Controller & Deployment Model
             </h2>
-            <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
-              In the AuraPass software ecosystem, **your organization is the sole Data Controller**. AuraPass is deployed as an on-premise application running on your internal computer infrastructure, private local network, or authorized private server.
+            <p>
+              In the AuraPass software ecosystem, <strong>your organization is the sole Data Controller</strong>. AuraPass is delivered as an on-premise software package deployed within your private local network, internal workstation, or dedicated on-site server appliance.
             </p>
-            <p className="text-xs sm:text-sm text-slate-400 leading-relaxed">
-              AuraPass creators, maintainers, and cloud providers have **zero access** to your database, your cameras, your employee facial photographs, or your biometric mathematical templates.
+            <p className="text-slate-400 text-xs">
+              AuraPass creators, maintainers, and hosting infrastructure providers act strictly as software authors. We do not have remote access, administrative credentials, or transmission pipelines to view, copy, or process your employee database or camera feeds.
             </p>
           </section>
 
           {/* Section 2 */}
-          <section id="collected-data" className="space-y-3 scroll-mt-28">
-            <h2 className="text-lg font-bold text-white flex items-center gap-2">
-              <span className="text-emerald-400 font-mono text-sm">02.</span>
-              Information Processed by AuraPass
+          <section id="2-data-categories" className="space-y-3 scroll-mt-24">
+            <h2 className="text-xl font-bold text-white pt-4 border-t border-white/[0.08]">
+              2. Information Processed & Stored
             </h2>
-            <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
-              To deliver high-speed attendance verification, AuraPass processes the minimum necessary data points:
+            <p>
+              AuraPass processes only the minimum data required to calculate automated attendance records:
             </p>
-            <ul className="text-xs sm:text-sm text-slate-400 space-y-2 list-disc pl-5 leading-relaxed">
-              <li>
-                <strong className="text-white">Employee Profile Metadata:</strong> Employee full name, unique alphanumeric badge ID, and assigned organizational department.
-              </li>
-              <li>
-                <strong className="text-white">Biometric Facial Vectors:</strong> Mathematical unit vectors (512 float32 coordinates) generated by deep feature extractors (Facenet512).
-              </li>
-              <li>
-                <strong className="text-white">Attendance Timestamp Records:</strong> Date, local clock time (e.g. 09:02 AM), verification confidence percentage, camera stream identifier, and status flags (On Time, Late, Early Exit).
-              </li>
-              <li>
-                <strong className="text-white">Session Credentials:</strong> Cryptographically hashed administrator passwords (bcrypt, work factor 12) and ephemeral local JWT tokens.
-              </li>
-            </ul>
+
+            <div className="overflow-x-auto my-4 rounded-xl border border-white/[0.08] bg-[#0A0E17]">
+              <table className="w-full text-left text-xs border-collapse">
+                <thead className="bg-[#0F1626] border-b border-white/[0.08] text-slate-300 font-mono-tag uppercase">
+                  <tr>
+                    <th className="p-3">Data Category</th>
+                    <th className="p-3">Technical Description</th>
+                    <th className="p-3">Retention Period</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/[0.04]">
+                  <tr>
+                    <td className="p-3 font-semibold text-white">Staff Metadata</td>
+                    <td className="p-3 text-slate-300">Full name, badge ID, department assignment.</td>
+                    <td className="p-3 text-slate-400">Duration of employment.</td>
+                  </tr>
+                  <tr>
+                    <td className="p-3 font-semibold text-white">Biometric Vector</td>
+                    <td className="p-3 text-slate-300">512-dimensional float32 coordinate vector.</td>
+                    <td className="p-3 text-slate-400">Deleted immediately upon staff removal.</td>
+                  </tr>
+                  <tr>
+                    <td className="p-3 font-semibold text-white">Attendance Logs</td>
+                    <td className="p-3 text-slate-300">Date, timestamp, camera lane, match confidence.</td>
+                    <td className="p-3 text-slate-400">Configured by customer retention policy.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
           </section>
 
           {/* Section 3 */}
-          <section id="biometric-architecture" className="space-y-3 scroll-mt-28">
-            <h2 className="text-lg font-bold text-white flex items-center gap-2">
-              <span className="text-emerald-400 font-mono text-sm">03.</span>
-              Biometric Vector Protection & Irreversibility
+          <section id="3-biometric-protection" className="space-y-3 scroll-mt-24">
+            <h2 className="text-xl font-bold text-white pt-4 border-t border-white/[0.08]">
+              3. Biometric Vectors & Irreversibility
             </h2>
-            <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
-              AuraPass does not perform recognition by comparing raw pixel images. Upon enrollment, facial landmarks are detected, cropped, normalized, and mapped onto a 512-dimensional hypersphere:
+            <p>
+              Embeddings are designed as one-way numeric representations. AuraPass does not store raw face images after enrollment processing. Facial crops are transformed via neural network layers into a 512-dimensional hypersphere coordinate vector.
             </p>
-            <div className="p-4 rounded-xl bg-[#0D121D] border border-[#1E2638] font-mono text-xs text-emerald-300">
-              Embedding Dimension: 512 &bull; Metric: Cosine Similarity &bull; Type: Irreversible Float32
-            </div>
-            <p className="text-xs sm:text-sm text-slate-400 leading-relaxed">
-              Because deep neural network embeddings represent a lossy, high-dimensional abstraction of geometric contours, **it is mathematically and technically impossible to reconstruct or reverse-engineer the original face photograph from stored embedding vectors**.
+            <p className="text-slate-400 text-xs">
+              Because convolutional pooling and dense normalization discard raw pixel intensity matrices, the stored vector cannot be reverse-engineered to reconstruct the original employee photograph.
             </p>
           </section>
 
           {/* Section 4 */}
-          <section id="zero-cloud" className="space-y-3 scroll-mt-28">
-            <h2 className="text-lg font-bold text-white flex items-center gap-2">
-              <span className="text-emerald-400 font-mono text-sm">04.</span>
-              Zero Third-Party Cloud Transmission
+          <section id="4-zero-cloud" className="space-y-3 scroll-mt-24">
+            <h2 className="text-xl font-bold text-white pt-4 border-t border-white/[0.08]">
+              4. Local Processing & Zero Cloud Egress
             </h2>
-            <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
-              AuraPass guarantees complete network air-gap capability:
+            <p>
+              AuraPass runs fully offline. No outbound internet connection is required for ongoing operations. All camera decoding, anti-spoofing liveness scoring, and database lookups execute within the physical confines of your local host.
             </p>
-            <ul className="text-xs sm:text-sm text-slate-400 space-y-1.5 list-disc pl-5 leading-relaxed">
-              <li>No video streams, frames, or crops are ever sent to external cloud APIs (e.g. AWS Rekognition, Azure Face, Google Vision).</li>
-              <li>No third-party analytics trackers, advertising pixels, or telemetry beacons exist in the software.</li>
-              <li>All database operations execute against local SQLite or private PostgreSQL instances hosted on your network.</li>
-            </ul>
           </section>
 
           {/* Section 5 */}
-          <section id="employee-rights" className="space-y-3 scroll-mt-28">
-            <h2 className="text-lg font-bold text-white flex items-center gap-2">
-              <span className="text-emerald-400 font-mono text-sm">05.</span>
-              Employee Rights & Regulatory Mandates
+          <section id="5-employee-rights" className="space-y-3 scroll-mt-24">
+            <h2 className="text-xl font-bold text-white pt-4 border-t border-white/[0.08]">
+              5. Employee Biometric Rights & Consent
             </h2>
-            <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
-              AuraPass provides enterprise features designed to comply with global biometric privacy legislation:
+            <p>
+              AuraPass is built to support GDPR Article 9, Illinois BIPA, and California CCPA/CPRA requirements. Compliance depends on how your organization deploys and operates the system. As Data Controller, you are responsible for obtaining appropriate written employee notices or consent forms where required by regional labor regulations.
             </p>
-            <div className="space-y-2 text-xs sm:text-sm text-slate-400">
-              <p><strong className="text-white">GDPR Article 9 (EU):</strong> Provides tools for documented employee consent tracking and local processing restriction.</p>
-              <p><strong className="text-white">Illinois BIPA (USA):</strong> Complies with biometric storage limitation schedules and written disclosure requirements.</p>
-              <p><strong className="text-white">California CCPA/CPRA:</strong> Employees have the right to request a complete copy of their attendance logs and demand permanent vector deletion.</p>
-            </div>
           </section>
 
           {/* Section 6 */}
-          <section id="retention-deletion" className="space-y-3 scroll-mt-28">
-            <h2 className="text-lg font-bold text-white flex items-center gap-2">
-              <span className="text-emerald-400 font-mono text-sm">06.</span>
-              Data Retention & 1-Click Purging
+          <section id="6-retention-deletion" className="space-y-3 scroll-mt-24">
+            <h2 className="text-xl font-bold text-white pt-4 border-t border-white/[0.08]">
+              6. Data Retention & 1-Click Purging
             </h2>
-            <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
-              Administrators maintain absolute control over data lifecycles:
+            <p>
+              Administrators maintain complete control over biometric template lifecycles. Removing a staff member from the console immediately purges their 512-dimensional embedding from the active index file.
             </p>
-            <ul className="text-xs sm:text-sm text-slate-400 space-y-1.5 list-disc pl-5 leading-relaxed">
-              <li>When an employee leaves the company, an administrator can click **Delete** to immediately and permanently remove their name, badge ID, and 512-d vector from the active embedding index.</li>
-              <li>Attendance logs can be retained according to your internal compliance retention schedule (e.g. 1 year, 3 years, or 7 years) or purged via database maintenance scripts.</li>
-            </ul>
           </section>
 
           {/* Section 7 */}
-          <section id="audit-logging" className="space-y-3 scroll-mt-28">
-            <h2 className="text-lg font-bold text-white flex items-center gap-2">
-              <span className="text-emerald-400 font-mono text-sm">07.</span>
-              Access Controls & Cryptographic Audit Trails
+          <section id="7-contact-governance" className="space-y-3 scroll-mt-24">
+            <h2 className="text-xl font-bold text-white pt-4 border-t border-white/[0.08]">
+              7. Policy Updates & Governance Contact
             </h2>
-            <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
-              AuraPass enforces role-based access control (RBAC). Only authenticated administrators with verified JWT sessions can view raw attendance histories, enroll staff members, or alter department shift rules. Every administrative change is logged to an immutable audit table.
+            <p>
+              We reserve the right to update this policy to reflect software architectural updates. Direct any governance questions to:
+            </p>
+            <div className="p-3.5 rounded-xl bg-[#0F1524] border border-white/[0.08] font-mono-tag text-xs text-emerald-300">
+              TODO(owner): Insert organization legal contact email (e.g. privacy@aurapass.org)
+            </div>
+            <p className="text-[11px] text-slate-500 pt-2 italic">
+              *Notice: This document provides software operational disclosures and does not substitute formal legal counsel review.*
             </p>
           </section>
         </div>
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-[#1A2234] bg-[#06080E] py-8 px-4 sm:px-6 text-center text-xs text-slate-500 font-mono">
-        <p>&copy; {new Date().getFullYear()} AuraPass Enterprise. Local Biometric Sovereignty Policy.</p>
+      <footer className="border-t border-white/[0.08] bg-[#05070D] py-8 px-6 text-center text-xs text-slate-500 font-mono-tag no-print">
+        <p>&copy; {new Date().getFullYear()} AuraPass Enterprise. Local Privacy Policy v2026.2.</p>
       </footer>
     </div>
   );
