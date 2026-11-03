@@ -182,7 +182,7 @@ export function Navbar() {
                     onClick={() => setIsMobileOpen(false)}
                     className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}
                   >
-                    <item.icon size={15} className="link-icon" />
+                    <item.icon size={17} className="link-icon" />
                     <span className="link-label">{item.label}</span>
                   </NavLink>
                 ))}
@@ -196,7 +196,7 @@ export function Navbar() {
                     className="logout-btn" 
                     style={{ color: '#10B981' }}
                   >
-                    <Download size={15} />
+                    <Download size={17} />
                     <span>Install App (PWA)</span>
                   </button>
                 )}
@@ -207,13 +207,13 @@ export function Navbar() {
                     className="logout-btn w-full text-left cursor-pointer" 
                     style={{ color: 'var(--accent-primary)', background: 'none', border: 'none' }}
                   >
-                    <Play size={15} />
+                    <Play size={17} />
                     <span>Setup Guide</span>
                   </button>
                 )}
                 {user && (
                   <button onClick={() => { logout(); setIsMobileOpen(false); }} className="logout-btn">
-                    <LogOut size={15} />
+                    <LogOut size={17} />
                     <span>Sign Out</span>
                   </button>
                 )}
@@ -269,7 +269,7 @@ export function Navbar() {
               className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''} ${isCollapsed ? 'collapsed-link' : ''}`}
               title={isCollapsed ? item.label : undefined}
             >
-              <item.icon size={15} className="link-icon" />
+              <item.icon size={17} className="link-icon" />
               {!isCollapsed && <span className="link-label">{item.label}</span>}
             </NavLink>
           ))}
@@ -284,7 +284,7 @@ export function Navbar() {
               style={{ color: '#10B981' }}
               title={isCollapsed ? "Install App (PWA)" : undefined}
             >
-              <Download size={15} />
+              <Download size={17} />
               {!isCollapsed && <span>Install App</span>}
             </button>
           )}
@@ -296,13 +296,13 @@ export function Navbar() {
               style={{ color: 'var(--accent-primary)', background: 'none', border: 'none' }} 
               title={isCollapsed ? "Setup Guide" : undefined}
             >
-              <Play size={15} />
+              <Play size={17} />
               {!isCollapsed && <span>Setup Guide</span>}
             </button>
           )}
           {user && (
             <button onClick={logout} className={`logout-btn ${isCollapsed ? 'justify-center' : ''}`} title={isCollapsed ? "Sign Out" : undefined}>
-              <LogOut size={15} />
+              <LogOut size={17} />
               {!isCollapsed && <span>Sign Out</span>}
             </button>
           )}
@@ -315,16 +315,16 @@ export function Navbar() {
 
           @media (min-width: 768px) {
             .ui-sidebar {
-              background: rgba(13, 15, 18, 0.82) !important;
+              background: rgba(13, 15, 18, 0.85) !important;
               backdrop-filter: blur(20px) saturate(180%) !important;
               -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
               border-right: 1px solid rgba(255, 255, 255, 0.07) !important;
               box-shadow: inset -1px 0 0 0 rgba(255, 255, 255, 0.04) !important;
               display: flex !important;
               flex-direction: column;
-              width: ${isCollapsed ? '64px' : '230px'};
-              min-width: ${isCollapsed ? '64px' : '230px'};
-              max-width: ${isCollapsed ? '64px' : '230px'};
+              width: ${isCollapsed ? '70px' : '250px'};
+              min-width: ${isCollapsed ? '70px' : '250px'};
+              max-width: ${isCollapsed ? '70px' : '250px'};
               flex-shrink: 0;
               height: 100vh;
               position: sticky;
@@ -335,7 +335,7 @@ export function Navbar() {
           }
 
           .sidebar-header {
-            padding: 10px 14px;
+            padding: 12px 14px;
             border-bottom: 1px solid rgba(255, 255, 255, 0.07);
             display: flex;
             align-items: center;
@@ -348,7 +348,7 @@ export function Navbar() {
           }
 
           .brand-text h1 {
-            font-size: 14px;
+            font-size: 14.5px;
             font-weight: 600;
             letter-spacing: -0.2px;
             margin: 0;
@@ -363,7 +363,7 @@ export function Navbar() {
           }
 
           .org-name {
-            font-size: 11px;
+            font-size: 11.5px;
             color: var(--ink-subtle);
           }
 
@@ -371,20 +371,21 @@ export function Navbar() {
             flex: 1;
             display: flex;
             flex-direction: column;
-            padding: 6px 0; gap: 1px;
+            padding: 8px 0;
+            gap: 2px;
             overflow-y: auto;
           }
 
           .sidebar-link {
             display: flex;
             align-items: center;
-            gap: 8px;
-            padding: 5px 10px;
-            margin: 1px 6px;
-            border-radius: 6px;
+            gap: 10px;
+            padding: 6px 12px;
+            margin: 1.5px 8px;
+            border-radius: 8px;
             color: var(--ink-muted);
             text-decoration: none;
-            font-size: 12px;
+            font-size: 13.5px;
             font-weight: 500;
             position: relative;
             transition: all 0.15s ease;
@@ -401,26 +402,17 @@ export function Navbar() {
             border: 1px solid rgba(16, 185, 129, 0.22);
           }
 
-          .sidebar-link::before {
-            content: '';
-            position: absolute;
-            left: 0;
-            top: 0;
-            bottom: 0;
-            width: 3px;
-            background: var(--accent-primary);
-            transform: scaleY(0);
-            transform-origin: top;
-            transition: transform 0.2s ease;
-          }
-
-          .sidebar-link.active::before {
-            transform: scaleY(1);
+          .sidebar-link.collapsed-link {
+            padding: 8px 0;
+            justify-content: center;
+            gap: 0;
+            margin: 2px 4px;
           }
 
           .link-icon {
-            opacity: 0.7;
+            opacity: 0.75;
             color: var(--ink-subtle);
+            flex-shrink: 0;
           }
           .sidebar-link:hover .link-icon,
           .sidebar-link.active .link-icon {
@@ -429,61 +421,32 @@ export function Navbar() {
           }
 
           .sidebar-footer {
-            padding: var(--space-md) var(--space-lg);
-            border-top: 1px solid var(--hairline);
-          }
-
-          .sidebar-footer {
-            padding: 8px 10px;
+            padding: 10px 12px;
             border-top: 1px solid rgba(255, 255, 255, 0.07);
             display: flex;
             flex-direction: column;
-            gap: 4px;
+            gap: 6px;
           }
 
           .logout-btn {
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 10px;
             background: transparent;
             border: none;
             color: var(--ink-subtle);
-            font-size: 11.5px;
+            font-size: 13px;
             font-weight: 500;
             cursor: pointer;
             width: 100%;
             text-align: left;
-            padding: 4px 8px;
-            border-radius: 6px;
+            padding: 6px 10px;
+            border-radius: 8px;
             transition: all 0.15s ease;
           }
           .logout-btn:hover {
             color: var(--ink);
-          }
-
-          /* Desktop specific overrides */
-          @media (min-width: 768px) {
-            .ui-sidebar {
-              width: ${isCollapsed ? '72px' : '260px'};
-              min-width: ${isCollapsed ? '72px' : '260px'};
-              max-width: ${isCollapsed ? '72px' : '260px'};
-              flex-shrink: 0;
-              height: 100vh;
-              position: sticky;
-              top: 0;
-            }
-            .sidebar-link.collapsed-link {
-              padding: var(--space-sm) 0;
-              justify-content: center;
-              gap: 0;
-            }
-            .sidebar-header {
-              padding: var(--space-md) ${isCollapsed ? '0' : 'var(--space-lg)'};
-              justify-content: center;
-            }
-            .sidebar-footer {
-              padding: var(--space-md) ${isCollapsed ? '0' : 'var(--space-lg)'};
-            }
+            background: rgba(255, 255, 255, 0.04);
           }
         `}</style>
       </nav>
