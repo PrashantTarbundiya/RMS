@@ -149,8 +149,12 @@ export function AuthProvider({ children }) {
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
       }
-      if (config.data && !(config.data instanceof FormData) && !config.headers['Content-Type']) {
+      const method = (config.method || 'get').toLowerCase();
+      if (['post', 'put', 'patch', 'delete'].includes(method) && !(config.data instanceof FormData)) {
         config.headers['Content-Type'] = 'application/json';
+        if (config.data === undefined) {
+          config.data = {};
+        }
       }
       return config;
     });

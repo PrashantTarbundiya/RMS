@@ -3,7 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { API_BASE } from '../config';
 import { io } from 'socket.io-client';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Shield, ShieldCheck, ShieldAlert, ShieldX, Scan, Wifi, WifiOff, Clock, ChevronLeft, Settings, Maximize, Minimize, Eye, Volume2, Users, RotateCw } from 'lucide-react';
+import { Shield, ShieldCheck, ShieldAlert, ShieldX, Scan, Wifi, WifiOff, Clock, ChevronLeft, Settings, Maximize, Minimize, Eye, Volume2, Users, RotateCw, AlertTriangle, Sliders } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { formatPersonName } from '../utils/format';
 
@@ -45,6 +45,14 @@ export default function KioskPage() {
   const [isPaused, setIsPaused] = useState(false);
   const [facesDetected, setFacesDetected] = useState(0);
   const [facingMode, setFacingMode] = useState('user');
+
+  // Toggle real confidence score (Default: false per enterprise privacy standard)
+  const [showConfidence, setShowConfidence] = useState(() => {
+    return localStorage.getItem('rms_kiosk_show_confidence') === 'true';
+  });
+
+  // Quality assessment alert (e.g. low light / darkness warning)
+  const [qualityWarning, setQualityWarning] = useState(null);
 
   // Dynamic user threshold (Default: 70%)
   const [kioskThreshold, setKioskThreshold] = useState(() => {
@@ -267,6 +275,15 @@ export default function KioskPage() {
     const livenessData = primary?.liveness;
 
     if (!ensemble) return;
+
+    // Quality check (e.g. low lighting / face not visible)
+    if (ensemble.method === 'quality_rejection' || ensemble.quality_error) {
+      const msg = ensemble.display || ensemble.quality_message || 'Lighting too low. Face is not visible.';
+      setQualityWarning(msg);
+      if (window.__fqaWarningTimer) clearTimeout(window.__fqaWarningTimer);
+      window.__fqaWarningTimer = setTimeout(() => setQualityWarning(null), 3500);
+      return;
+    }
 
     setLiveness(livenessData);
 
@@ -698,6 +715,18 @@ export default function KioskPage() {
             <Settings size={16} className={showSettings ? 'text-emerald-400' : ''} />
           </button>
           <button 
+            onClick={() => {
+              const next = !showConfidence;
+              setShowConfidence(next);
+              localStorage.setItem('rms_kiosk_show_confidence', String(next));
+            }}
+            className={`kiosk-icon-btn ${showConfidence ? 'text-emerald-400 border-emerald-500/40 bg-emerald-500/10' : 'text-ink-tertiary'}`}
+            title={`Confidence Score: ${showConfidence ? 'Visible' : 'Hidden (Default)'} (Click to toggle)`}
+            aria-label="Toggle Confidence Metrics"
+          >
+            <Sliders size={15} />
+          </button>
+          <button 
             onClick={toggleCameraFacingMode} 
             className="kiosk-icon-btn" 
             title={`Switch Camera (Current: ${facingMode === 'user' ? 'Front' : 'Back'})`}
@@ -743,6 +772,24 @@ export default function KioskPage() {
                 <option value="85">85% (Very Strict)</option>
               </select>
             </div>
+            <div className="flex items-center justify-between gap-2 py-1 border-t border-[#23252A]/50">
+              <span className="text-xs text-ink-subtle font-mono">Show Confidence Metric:</span>
+              <button
+                type="button"
+                onClick={() => {
+                  const next = !showConfidence;
+                  setShowConfidence(next);
+                  localStorage.setItem('rms_kiosk_show_confidence', String(next));
+                }}
+                className={`text-xs px-2.5 py-1 rounded font-mono border transition-colors ${
+                  showConfidence 
+                    ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40' 
+                    : 'bg-[#141516] text-ink-tertiary border-[#23252A]'
+                }`}
+              >
+                {showConfidence ? 'ON' : 'OFF (Default)'}
+              </button>
+            </div>
             <div className="flex items-center justify-between gap-2">
               <span className="text-xs text-ink-subtle font-mono">Direction Mode:</span>
               <select 
@@ -771,6 +818,20 @@ export default function KioskPage() {
               background: cfg.glowColor 
             }} 
           />
+          {/* Low Light / Face Quality Alert Banner */}
+          <AnimatePresence>
+            {qualityWarning && (
+              <motion.div
+                initial={{ opacity: 0, y: -12, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -12, scale: 0.95 }}
+                className="absolute top-4 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-full border border-amber-500/35 bg-[#0F1011]/90 backdrop-blur-xl text-amber-300 text-xs font-medium flex items-center gap-2 shadow-2xl"
+              >
+                <AlertTriangle size={14} className="text-amber-400 shrink-0" />
+                <span>{qualityWarning}</span>
+              </motion.div>
+            )}
+          </AnimatePresence>
           <div className="kiosk-viewport" style={{ '--kiosk-border-color': cfg.borderColor, '--kiosk-glow': cfg.glowColor }}>
             {/* Corner Reticle Brackets */}
             <div className="kiosk-reticle kiosk-reticle-tl" />
@@ -827,78 +888,93 @@ export default function KioskPage() {
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.95 }}
-                  transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+                  transition={{ duration: 0.25, ease: 'easeOut' }}
                 >
-                  <motion.div
-                    className="kiosk-result-icon"
-                    initial={{ scale: 0, rotate: -180 }}
-                    animate={{ scale: 1, rotate: 0 }}
-                    transition={{ delay: 0.1, type: 'spring', stiffness: 200, damping: 15 }}
-                  >
-                    {cfg.icon}
-                  </motion.div>
-                  <motion.h2
-                    className="kiosk-result-title"
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.2 }}
-                  >
-                    {status === STATUS.GRANTED && attendanceEvent?.event_type === 'check_out'
-                      ? 'CHECKED OUT'
-                      : cfg.label}
-                  </motion.h2>
-                  <motion.div
-                    className="flex flex-col items-center gap-1.5 mt-1"
-                    initial={{ opacity: 0, y: 5 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.3 }}
-                  >
-                    <p className="kiosk-result-subtitle text-lg font-semibold text-white">
-                      {status === STATUS.GRANTED ? recognizedName : cfg.sublabel}
-                    </p>
-                    {status === STATUS.GRANTED && (
-                      <div className="flex items-center gap-2 mt-1">
-                        <span className="text-[11px] font-medium px-2.5 py-0.5 rounded bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
-                          {attendanceEvent?.department || 'General'}
-                        </span>
-                        {attendanceEvent?.status_label && (
-                          <span className={`text-[11px] font-medium px-2.5 py-0.5 rounded border ${
-                            attendanceEvent.status === 'late'
-                              ? 'bg-amber-500/15 text-amber-300 border-amber-500/30'
-                              : 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30'
-                          }`}>
-                            {attendanceEvent.status_label}
-                          </span>
-                        )}
-                      </div>
-                    )}
-                  </motion.div>
-
-                  {/* Confidence Ring (only for granted) */}
-                  {status === STATUS.GRANTED && (
+                  <div className="kiosk-glass-card">
                     <motion.div
-                      className="kiosk-confidence-ring"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      transition={{ delay: 0.4 }}
+                      className="kiosk-result-icon"
+                      initial={{ scale: 0, rotate: -180 }}
+                      animate={{ scale: 1, rotate: 0 }}
+                      transition={{ delay: 0.1, type: 'spring', stiffness: 200, damping: 15 }}
                     >
-                      <svg viewBox="0 0 100 100" className="kiosk-ring-svg">
-                        <circle cx="50" cy="50" r="42" fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="4" />
-                        <motion.circle
-                          cx="50" cy="50" r="42" fill="none"
-                          stroke="#22c55e"
-                          strokeWidth="4"
-                          strokeLinecap="round"
-                          strokeDasharray={`${2 * Math.PI * 42}`}
-                          initial={{ strokeDashoffset: 2 * Math.PI * 42 }}
-                          animate={{ strokeDashoffset: 2 * Math.PI * 42 * (1 - confidence / 100) }}
-                          transition={{ delay: 0.5, duration: 0.8, ease: 'easeOut' }}
-                          transform="rotate(-90 50 50)"
-                        />
-                      </svg>
-                      <span className="kiosk-ring-value">{confidence}%</span>
+                      {cfg.icon}
                     </motion.div>
-                  )}
+                    <motion.h2
+                      className="kiosk-result-title"
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.2 }}
+                    >
+                      {status === STATUS.GRANTED && attendanceEvent?.event_type === 'check_out'
+                        ? 'CHECKED OUT'
+                        : cfg.label}
+                    </motion.h2>
+                    <motion.div
+                      className="flex flex-col items-center gap-1.5 mt-1"
+                      initial={{ opacity: 0, y: 5 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.3 }}
+                    >
+                      <p className="kiosk-result-subtitle text-base sm:text-lg font-semibold text-white">
+                        {status === STATUS.GRANTED ? recognizedName : cfg.sublabel}
+                      </p>
+                      {status === STATUS.GRANTED && (
+                        <div className="flex items-center gap-2 mt-1">
+                          <span className="text-[11px] font-medium px-2.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                            {attendanceEvent?.department || 'General'}
+                          </span>
+                          {attendanceEvent?.status_label && (
+                            <span className={`text-[11px] font-medium px-2.5 py-0.5 rounded-full border ${
+                              attendanceEvent.status === 'late'
+                                ? 'bg-amber-500/15 text-amber-300 border-amber-500/30'
+                                : 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30'
+                            }`}>
+                              {attendanceEvent.status_label}
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </motion.div>
+
+                    {/* Confidence Ring only when toggled ON */}
+                    {status === STATUS.GRANTED && showConfidence && (
+                      <motion.div
+                        className="kiosk-confidence-ring"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ delay: 0.4 }}
+                      >
+                        <svg viewBox="0 0 100 100" className="kiosk-ring-svg">
+                          <circle cx="50" cy="50" r="42" fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="4" />
+                          <motion.circle
+                            cx="50" cy="50" r="42" fill="none"
+                            stroke="#10B981"
+                            strokeWidth="4"
+                            strokeLinecap="round"
+                            strokeDasharray={`${2 * Math.PI * 42}`}
+                            initial={{ strokeDashoffset: 2 * Math.PI * 42 }}
+                            animate={{ strokeDashoffset: 2 * Math.PI * 42 * (1 - confidence / 100) }}
+                            transition={{ delay: 0.5, duration: 0.8, ease: 'easeOut' }}
+                            transform="rotate(-90 50 50)"
+                          />
+                        </svg>
+                        <span className="kiosk-ring-value font-mono">{confidence}%</span>
+                      </motion.div>
+                    )}
+
+                    {/* Default Privacy-Compliant Verified Badge when confidence is hidden */}
+                    {status === STATUS.GRANTED && !showConfidence && (
+                      <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ delay: 0.35 }}
+                        className="flex items-center gap-1.5 mt-3 text-xs text-emerald-400 font-medium px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/25"
+                      >
+                        <ShieldCheck size={14} />
+                        <span>Biometric Verified</span>
+                      </motion.div>
+                    )}
+                  </div>
                 </motion.div>
               )}
             </AnimatePresence>

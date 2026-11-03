@@ -39,7 +39,7 @@ export default function ModelsPage() {
   });
 
   const [showConfidence, setShowConfidence] = useState(() => {
-    return localStorage.getItem('showConfidence') !== 'false';
+    return localStorage.getItem('showConfidence') === 'true';
   });
 
   // ── Downloadable Model Artefacts for Offline / Edge ──

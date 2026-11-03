@@ -182,7 +182,7 @@ export function Navbar() {
                     onClick={() => setIsMobileOpen(false)}
                     className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}
                   >
-                    <item.icon size={18} className="link-icon" />
+                    <item.icon size={15} className="link-icon" />
                     <span className="link-label">{item.label}</span>
                   </NavLink>
                 ))}
@@ -196,7 +196,7 @@ export function Navbar() {
                     className="logout-btn" 
                     style={{ color: '#10B981' }}
                   >
-                    <Download size={18} />
+                    <Download size={15} />
                     <span>Install App (PWA)</span>
                   </button>
                 )}
@@ -207,13 +207,13 @@ export function Navbar() {
                     className="logout-btn w-full text-left cursor-pointer" 
                     style={{ color: 'var(--accent-primary)', background: 'none', border: 'none' }}
                   >
-                    <Play size={18} />
+                    <Play size={15} />
                     <span>Setup Guide</span>
                   </button>
                 )}
                 {user && (
                   <button onClick={() => { logout(); setIsMobileOpen(false); }} className="logout-btn">
-                    <LogOut size={18} />
+                    <LogOut size={15} />
                     <span>Sign Out</span>
                   </button>
                 )}
@@ -269,7 +269,7 @@ export function Navbar() {
               className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''} ${isCollapsed ? 'collapsed-link' : ''}`}
               title={isCollapsed ? item.label : undefined}
             >
-              <item.icon size={18} className="link-icon" />
+              <item.icon size={15} className="link-icon" />
               {!isCollapsed && <span className="link-label">{item.label}</span>}
             </NavLink>
           ))}
@@ -284,7 +284,7 @@ export function Navbar() {
               style={{ color: '#10B981' }}
               title={isCollapsed ? "Install App (PWA)" : undefined}
             >
-              <Download size={18} />
+              <Download size={15} />
               {!isCollapsed && <span>Install App</span>}
             </button>
           )}
@@ -296,13 +296,13 @@ export function Navbar() {
               style={{ color: 'var(--accent-primary)', background: 'none', border: 'none' }} 
               title={isCollapsed ? "Setup Guide" : undefined}
             >
-              <Play size={18} />
+              <Play size={15} />
               {!isCollapsed && <span>Setup Guide</span>}
             </button>
           )}
           {user && (
             <button onClick={logout} className={`logout-btn ${isCollapsed ? 'justify-center' : ''}`} title={isCollapsed ? "Sign Out" : undefined}>
-              <LogOut size={18} />
+              <LogOut size={15} />
               {!isCollapsed && <span>Sign Out</span>}
             </button>
           )}
@@ -315,13 +315,16 @@ export function Navbar() {
 
           @media (min-width: 768px) {
             .ui-sidebar {
-              background: var(--surface-1);
-              border-right: 1px solid var(--hairline);
+              background: rgba(13, 15, 18, 0.82) !important;
+              backdrop-filter: blur(20px) saturate(180%) !important;
+              -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
+              border-right: 1px solid rgba(255, 255, 255, 0.07) !important;
+              box-shadow: inset -1px 0 0 0 rgba(255, 255, 255, 0.04) !important;
               display: flex !important;
               flex-direction: column;
-              width: ${isCollapsed ? '72px' : '260px'};
-              min-width: ${isCollapsed ? '72px' : '260px'};
-              max-width: ${isCollapsed ? '72px' : '260px'};
+              width: ${isCollapsed ? '64px' : '230px'};
+              min-width: ${isCollapsed ? '64px' : '230px'};
+              max-width: ${isCollapsed ? '64px' : '230px'};
               flex-shrink: 0;
               height: 100vh;
               position: sticky;
@@ -332,8 +335,8 @@ export function Navbar() {
           }
 
           .sidebar-header {
-            padding: var(--space-md) var(--space-lg);
-            border-bottom: 1px solid var(--hairline);
+            padding: 10px 14px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.07);
             display: flex;
             align-items: center;
           }
@@ -368,21 +371,23 @@ export function Navbar() {
             flex: 1;
             display: flex;
             flex-direction: column;
-            padding: var(--space-md) 0;
+            padding: 6px 0; gap: 1px;
             overflow-y: auto;
           }
 
           .sidebar-link {
             display: flex;
             align-items: center;
-            gap: var(--space-sm);
-            padding: var(--space-sm) var(--space-lg);
+            gap: 8px;
+            padding: 5px 10px;
+            margin: 1px 6px;
+            border-radius: 6px;
             color: var(--ink-muted);
             text-decoration: none;
-            font-size: 15px;
+            font-size: 12px;
             font-weight: 500;
             position: relative;
-            transition: all 0.2s ease;
+            transition: all 0.15s ease;
           }
 
           .sidebar-link:hover {
@@ -391,8 +396,9 @@ export function Navbar() {
           }
 
           .sidebar-link.active {
-            color: var(--ink);
-            background: var(--surface-2);
+            color: #10B981;
+            background: rgba(16, 185, 129, 0.12);
+            border: 1px solid rgba(16, 185, 129, 0.22);
           }
 
           .sidebar-link::before {
@@ -427,20 +433,29 @@ export function Navbar() {
             border-top: 1px solid var(--hairline);
           }
 
+          .sidebar-footer {
+            padding: 8px 10px;
+            border-top: 1px solid rgba(255, 255, 255, 0.07);
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+          }
+
           .logout-btn {
             display: flex;
             align-items: center;
-            gap: var(--space-sm);
+            gap: 8px;
             background: transparent;
             border: none;
             color: var(--ink-subtle);
-            font-size: 15px;
+            font-size: 11.5px;
             font-weight: 500;
             cursor: pointer;
             width: 100%;
             text-align: left;
-            padding: var(--space-xs) 0;
-            transition: color 0.2s ease;
+            padding: 4px 8px;
+            border-radius: 6px;
+            transition: all 0.15s ease;
           }
           .logout-btn:hover {
             color: var(--ink);

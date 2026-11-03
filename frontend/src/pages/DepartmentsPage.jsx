@@ -451,12 +451,12 @@ export default function DepartmentsPage() {
       {/* Edit Employee Modal */}
       <AnimatePresence>
         {editingEmp && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md">
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="w-full max-w-md bg-[#0F1011] border border-[#23252A] rounded-2xl shadow-2xl overflow-hidden"
+              className="w-full max-w-md bg-[#0F1011]/90 backdrop-blur-2xl border border-white/10 rounded-2xl shadow-[0_20px_60px_rgba(0,0,0,0.7)] overflow-hidden"
             >
               <div className="flex items-center justify-between p-5 border-b border-[#23252A]">
                 <div className="flex items-center gap-2.5">
@@ -484,7 +484,7 @@ export default function DepartmentsPage() {
                     required
                     value={editName}
                     onChange={(e) => setEditName(e.target.value)}
-                    className="w-full h-10 px-3 text-sm bg-[#090A0C] border border-[#23252A] rounded-lg text-ink focus:border-emerald-500 focus:outline-none transition-colors"
+                    className="w-full h-9 px-3 text-xs bg-[#090A0C] border border-[#23252A] rounded-lg text-ink focus:border-emerald-500 focus:outline-none transition-colors"
                     placeholder="e.g. John Doe"
                   />
                 </div>
@@ -495,7 +495,7 @@ export default function DepartmentsPage() {
                     type="text"
                     value={editCode}
                     onChange={(e) => setEditCode(e.target.value)}
-                    className="w-full h-10 px-3 text-sm bg-[#090A0C] border border-[#23252A] rounded-lg text-ink font-mono focus:border-emerald-500 focus:outline-none transition-colors"
+                    className="w-full h-9 px-3 text-xs bg-[#090A0C] border border-[#23252A] rounded-lg text-ink font-mono focus:border-emerald-500 focus:outline-none transition-colors"
                     placeholder="e.g. EMP-1042"
                   />
                 </div>
@@ -506,7 +506,7 @@ export default function DepartmentsPage() {
                     <select
                       value={editDept}
                       onChange={(e) => setEditDept(e.target.value)}
-                      className="w-full h-10 px-3 text-sm bg-[#090A0C] border border-[#23252A] rounded-lg text-ink focus:border-emerald-500 focus:outline-none transition-colors"
+                      className="w-full h-9 px-3 text-xs bg-[#090A0C] border border-[#23252A] rounded-lg text-ink focus:border-emerald-500 focus:outline-none transition-colors"
                     >
                       {STANDARD_DEPARTMENTS.map((d) => (
                         <option key={d} value={d} className="bg-[#141516] text-white">{d}</option>
@@ -519,7 +519,7 @@ export default function DepartmentsPage() {
                     <select
                       value={editStatus}
                       onChange={(e) => setEditStatus(e.target.value)}
-                      className="w-full h-10 px-3 text-sm bg-[#090A0C] border border-[#23252A] rounded-lg text-ink focus:border-emerald-500 focus:outline-none transition-colors"
+                      className="w-full h-9 px-3 text-xs bg-[#090A0C] border border-[#23252A] rounded-lg text-ink focus:border-emerald-500 focus:outline-none transition-colors"
                     >
                       <option value="active" className="bg-[#141516] text-white">Active</option>
                       <option value="inactive" className="bg-[#141516] text-white">Inactive</option>
@@ -527,7 +527,7 @@ export default function DepartmentsPage() {
                   </div>
                 </div>
 
-                <div className="pt-3 border-t border-[#23252A] flex items-center justify-between gap-3">
+                <div className="pt-3 border-t border-[#23252A] flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                   <Link
                     to={`/persons/edit/${encodeURIComponent(editingEmp.name)}`}
                     className="text-xs text-emerald-400 hover:text-emerald-300 flex items-center gap-1 font-medium transition-colors"
@@ -536,20 +536,20 @@ export default function DepartmentsPage() {
                     <ArrowRight size={13} />
                   </Link>
 
-                  <div className="flex items-center gap-2 shrink-0">
+                  <div className="flex items-center justify-end gap-2 shrink-0">
                     <button
                       type="button"
                       onClick={() => setEditingEmp(null)}
-                      className="h-9 px-4 text-xs font-medium text-ink-subtle hover:text-ink bg-[#141516] hover:bg-[#1C1D21] border border-[#23252A] rounded-lg transition-colors whitespace-nowrap cursor-pointer"
+                      className="h-8 px-3.5 text-xs font-medium text-ink-subtle hover:text-ink bg-[#141516] hover:bg-[#1C1D21] border border-[#23252A] rounded-lg transition-colors whitespace-nowrap cursor-pointer"
                     >
                       Cancel
                     </button>
                     <button
                       type="submit"
                       disabled={isSavingEmp}
-                      className="h-9 px-4 text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-500 rounded-lg shadow-sm shadow-emerald-500/20 transition-all flex items-center justify-center gap-1.5 whitespace-nowrap cursor-pointer disabled:opacity-50"
+                      className="h-8 px-4 text-xs font-medium text-white bg-emerald-600 hover:bg-emerald-500 rounded-lg shadow-sm shadow-emerald-500/20 transition-all flex items-center justify-center gap-1.5 whitespace-nowrap cursor-pointer disabled:opacity-50"
                     >
-                      {isSavingEmp ? <RefreshCw size={13} className="animate-spin" /> : <Check size={13} />}
+                      {isSavingEmp ? <Loader2 size={13} className="animate-spin" /> : <Check size={13} />}
                       <span>Save Changes</span>
                     </button>
                   </div>

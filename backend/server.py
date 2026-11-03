@@ -760,10 +760,14 @@ def update_kiosk_temporal_consensus(org_id, candidate_name, confidence, is_confi
     
     matching_votes = [e for e in buffer if e['name'] == candidate_name]
     if len(matching_votes) >= 2:
-        max_conf = max(e['confidence'] for e in matching_votes)
-        # Consolidate consensus: boost confidence smoothly
-        boosted_conf = max(max_conf, 0.90)
-        return candidate_name, boosted_conf, True, 'temporal_consensus'
+        # Require genuine model confirmation on at least one sample
+        confirmed_votes = [e for e in matching_votes if e.get('confirmed')]
+        if len(confirmed_votes) >= 1:
+            mean_conf = float(np.mean([e['confidence'] for e in matching_votes]))
+            # Return true consensus confidence without artificial 90% boosting
+            return candidate_name, round(mean_conf, 3), True, 'temporal_consensus'
+        else:
+            return candidate_name, confidence, False, 'single_model'
         
     return candidate_name, confidence, is_confirmed, 'single_model'
 
@@ -4196,10 +4200,9 @@ def predict(org_id):
         focus_single = request.form.get('single_focus', '').lower() in ('true', '1') or request.form.get('kiosk_mode', '').lower() in ('true', '1')
 
         if raw_faces_count == 0:
-            # Fallback: Treat the whole image as the bounding box and pass to models
-            h, w = img_np.shape[:2]
-            faces_data = [(0, 0, w, h, 'frontal', 0.0)]
-            message = "Detector failed to find a face: Full image evaluated."
+            # Strict Biometric Rule: Never treat background walls or dark room as a face
+            faces_data = []
+            message = "No face detected in camera viewport."
         else:
             # Sort by area descending so primary / closest face is first
             faces_data = sorted(faces_data, key=lambda f: f[2] * f[3], reverse=True)
@@ -4221,6 +4224,50 @@ def predict(org_id):
             
             face_roi_pil = pil_img.crop((x1, y1, x2, y2))
             face_roi_cv = img_np[y1:y2, x1:x2]
+
+            # ── Face Quality Assessment Gate (ISO/IEC 29794-5) ──────────
+            # Rejects dark/underexposed frames, severe glare, and motion blur before ML inference.
+            def _check_face_roi_quality(roi):
+                if roi is None or roi.size == 0 or roi.shape[0] < 20 or roi.shape[1] < 20:
+                    return False, 'invalid_crop', 'Face crop too small or invalid'
+                gray = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
+                mean_lum = float(np.mean(gray))
+                if mean_lum < 42.0:
+                    return False, 'low_light', 'Lighting too dark. Face is not visible. Please face a light source.'
+                if mean_lum > 225.0:
+                    return False, 'overexposed', 'Severe glare or backlight detected. Please adjust lighting.'
+                lap_var = float(cv2.Laplacian(gray, cv2.CV_64F).var())
+                if lap_var < 28.0 and mean_lum < 65.0:
+                    return False, 'motion_blur', 'Face image is blurry. Please hold steady.'
+                return True, 'passed', 'Face quality checks passed.'
+
+            is_quality_ok, q_reason, q_msg = _check_face_roi_quality(face_roi_cv)
+            if not is_quality_ok:
+                logger.warning(f"[FQA] Rejected low quality face ({q_reason}): {q_msg}")
+                results.append({
+                    'bbox': {'x': int(round(x * scale_factor)), 'y': int(round(y * scale_factor)), 'w': int(round(w * scale_factor)), 'h': int(round(h * scale_factor))},
+                    'predictions': {},
+                    'ensemble': {
+                        'label': 'Low Light: Face Not Visible' if q_reason == 'low_light' else 'Poor Image Quality',
+                        'raw_label': 'Quality Rejected',
+                        'candidate_name': None,
+                        'confidence': 0.0,
+                        'method': 'quality_rejection',
+                        'agreement': 'N/A',
+                        'is_recognized': False,
+                        'is_confirmed': False,
+                        'confidence_level': 'rejected',
+                        'display': q_msg,
+                        'quality_error': q_reason,
+                        'quality_message': q_msg,
+                    },
+                    'liveness': {
+                        'is_live': False,
+                        'score': 0.0,
+                        'reason': q_msg,
+                    }
+                })
+                continue
             
             # ── Liveness Detection (Anti-Spoofing) ──────────────────────
             # SECURITY: This gate MUST block ML inference for non-live faces.

@@ -166,6 +166,19 @@
 
     --font-mono: 'JetBrains Mono', monospace;
 
+    /* ── Liquid Glassmorphism Tokens (macOS Sonoma / Sequoia Spec) ── */
+    --glass-bg: rgba(15, 17, 21, 0.72);
+    --glass-bg-subtle: rgba(20, 24, 29, 0.50);
+    --glass-bg-elevated: rgba(24, 28, 35, 0.78);
+    --glass-border: rgba(255, 255, 255, 0.08);
+    --glass-border-subtle: rgba(255, 255, 255, 0.05);
+    --glass-border-specular: inset 0 1px 0 0 rgba(255, 255, 255, 0.12);
+    --glass-border-emerald: 1px solid rgba(16, 185, 129, 0.25);
+    --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.42);
+    --glass-shadow-lg: 0 20px 50px 0 rgba(0, 0, 0, 0.55);
+    --glass-blur: blur(16px) saturate(180%);
+    --glass-blur-lg: blur(24px) saturate(180%);
+
   }
 
 }
@@ -180,8 +193,26 @@
 
     scrollbar-width: thin;
 
-    scrollbar-color: #23252A #010102;
+    scrollbar-color: rgba(255, 255, 255, 0.16) transparent;
 
+  }
+
+  *::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  *::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  *::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.14);
+    border-radius: 9999px;
+  }
+
+  *::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.28);
   }
 
   html {
@@ -728,13 +759,29 @@
 
 .card-linear {
 
-  background-color: var(--surface-1);
+  background: var(--glass-bg);
 
-  border: 1px solid var(--hairline);
+  backdrop-filter: var(--glass-blur);
+
+  -webkit-backdrop-filter: var(--glass-blur);
+
+  border: 1px solid var(--glass-border);
+
+  box-shadow: var(--glass-border-specular), var(--glass-shadow);
 
   border-radius: var(--radius-md);
 
   padding: var(--space-lg);
+
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+
+  transform: translateZ(0);
+
+}
+
+.card-linear:hover {
+
+  border-color: rgba(255, 255, 255, 0.14);
 
 }
 
@@ -3453,7 +3500,39 @@ button:focus-visible {
 
   text-align: center;
 
-  padding: 32px;
+  padding: 20px;
+
+}
+
+.kiosk-glass-card {
+
+  background: rgba(12, 16, 14, 0.78);
+
+  backdrop-filter: blur(24px) saturate(180%);
+
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+
+  border: 1px solid rgba(16, 185, 129, 0.30);
+
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.16), 0 20px 50px rgba(0, 0, 0, 0.60);
+
+  border-radius: 20px;
+
+  padding: 24px 32px;
+
+  display: flex;
+
+  flex-direction: column;
+
+  align-items: center;
+
+  text-align: center;
+
+  max-width: 440px;
+
+  width: 90%;
+
+  transform: translateZ(0);
 
 }
 
@@ -4273,6 +4352,8 @@ button:focus-visible {
 
     flex-direction: column;
 
+    overflow-y: auto;
+
   }
 
 
@@ -4287,15 +4368,13 @@ button:focus-visible {
 
     padding: 16px;
 
-    flex-direction: row;
+    flex-direction: column;
 
-    flex-wrap: wrap;
+    gap: 12px;
 
-    gap: 10px;
+    max-height: none;
 
-    max-height: 200px;
-
-    overflow-y: auto;
+    overflow: visible;
 
   }
 
@@ -4305,9 +4384,7 @@ button:focus-visible {
 
   .kiosk-info-card {
 
-    flex: 1 1 auto;
-
-    min-width: 180px;
+    width: 100%;
 
   }
 
@@ -4315,7 +4392,9 @@ button:focus-visible {
 
   .kiosk-activity-card {
 
-    min-width: 100%;
+    width: 100%;
+
+    max-height: 240px;
 
   }
 
@@ -4339,7 +4418,7 @@ button:focus-visible {
 
   .kiosk-result-title {
 
-    font-size: 22px;
+    font-size: 20px;
 
   }
 
@@ -4359,7 +4438,7 @@ button:focus-visible {
 
   .kiosk-header {
 
-    padding: 10px 16px;
+    padding: 10px 14px;
 
   }
 
@@ -4383,9 +4462,19 @@ button:focus-visible {
 
   .kiosk-sidebar {
 
-    max-height: 160px;
+    max-height: none;
 
-    padding: 12px;
+    padding: 10px;
+
+    gap: 10px;
+
+  }
+
+
+
+  .kiosk-activity-card {
+
+    max-height: 180px;
 
   }
 
@@ -4393,7 +4482,7 @@ button:focus-visible {
 
   .kiosk-viewport-wrapper {
 
-    padding: 10px;
+    padding: 8px;
 
   }
 
