@@ -45,6 +45,15 @@ def is_default_org(org_id):
     return org_id is None or str(org_id).strip() in ('', 'default-org', 'default_org', 'None')
 
 
+def is_multitenant_mode():
+    """Check if the system is running in multi-tenant (database) mode."""
+    try:
+        from database.db import is_db_available
+        return is_db_available()
+    except Exception:
+        return False
+
+
 def _get_org_data_dir(org_id):
     """Get the data directory for a specific organization."""
     return os.path.join(BACKEND_DIR, 'data', 'orgs', str(org_id))
@@ -72,6 +81,15 @@ def get_encodings_path(org_id=None, model_name="Facenet512"):
     """
     filename = f'encodings_{model_name}.pickle' if model_name != "Facenet512" else 'encodings.pickle'
     
+    # In multi-tenant database mode, all organizations (including 'default-org')
+    # must have their encodings stored in isolated per-tenant directories.
+    # Normal production tenant inference must NEVER access root benchmark weights.
+    if is_multitenant_mode():
+        target_org = str(org_id).strip() if (org_id and str(org_id).strip() not in ('', 'None')) else 'default-org'
+        org_dir = _get_org_data_dir(target_org)
+        os.makedirs(org_dir, exist_ok=True)
+        return os.path.join(org_dir, filename)
+
     if is_default_org(org_id):
         return os.path.join(_GLOBAL_DATA_DIR, filename)
         

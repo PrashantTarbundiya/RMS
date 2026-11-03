@@ -30,6 +30,27 @@ export function PwaProvider({ children }) {
 
   // Register Service Worker and track updates
   useEffect(() => {
+    if (import.meta.env.DEV) {
+      // In development mode, purge any registered service worker to prevent stale asset caching
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then(regs => {
+          regs.forEach(reg => {
+            console.log('[PWA DEV] Unregistering stale service worker:', reg.scope);
+            reg.unregister();
+          });
+        });
+        if (window.caches) {
+          caches.keys().then(keys => {
+            keys.forEach(k => {
+              console.log('[PWA DEV] Purging cache:', k);
+              caches.delete(k);
+            });
+          });
+        }
+      }
+      return;
+    }
+
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
         navigator.serviceWorker.register('/sw.js')

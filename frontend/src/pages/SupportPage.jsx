@@ -1,322 +1,427 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
-import { 
-  HelpCircle, BookOpen, Monitor, Smartphone, Server,
-  ChevronDown, ChevronRight, AlertTriangle, CheckCircle, 
-  Camera, Brain, Zap, Keyboard, Activity, Loader2
+import { Link, useSearchParams } from 'react-router-dom';
+import {
+  HelpCircle,
+  BookOpen,
+  Server,
+  ChevronDown,
+  Camera,
+  Activity,
+  ArrowLeft,
+  Search,
+  Code,
+  Users,
+  CheckCircle2,
+  Terminal,
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { API_BASE } from '../config';
 
-const FAQ_DATA = [
+const DOC_TABS = [
+  { id: 'quickstart', label: 'Setup & Requirements', icon: Server },
+  { id: 'camera', label: 'Connecting Cameras', icon: Camera },
+  { id: 'employees', label: 'Adding Employees', icon: Users },
+  { id: 'api', label: 'API & Developer Access', icon: Code },
+  { id: 'faq', label: 'FAQ & Help', icon: HelpCircle },
+];
+
+const FAQ_ITEMS = [
   {
-    q: 'How many photos do I need per person?',
-    a: 'Minimum 1 photo works, but we recommend 3-5 photos from different angles (frontal, left profile, right profile) for best accuracy. More photos = better recognition.'
+    category: 'Photos & Enrollment',
+    q: 'How many photos do I need to enroll an employee?',
+    a: 'You only need 3 clear photos: one looking straight ahead, one slightly turned to the left, and one slightly turned to the right. Good lighting helps the system recognize workers even faster.',
   },
   {
-    q: 'Does it work with side-face / profile views?',
-    a: 'Yes! The system is specifically designed for side-face recognition. It uses MediaPipe BlazeFace for detection which handles profile views well, and the training pipeline includes perspective augmentation for angle robustness.'
+    category: 'Photos & Enrollment',
+    q: 'Does it recognize people wearing glasses, hats, or masks?',
+    a: 'Yes. Normal prescription glasses and headwear work without issue. For best results during initial enrollment, have the employee take at least one photo with their normal daily glasses on.',
   },
   {
-    q: 'What AI models are running under the hood?',
-    a: 'The system uses: (1) InsightFace ArcFace embeddings: high-speed, high-accuracy primary model. (2) GhostFaceNet: optimized for fast edge inference. The Ensemble mode combines both for the most reliable result.'
+    category: 'Cameras & Hardware',
+    q: 'Do I need a special GPU or an expensive gaming computer?',
+    a: 'No. Any modern standard PC with a 4-core processor (like an Intel Core i5 or AMD Ryzen 5) and 8 GB of RAM can easily handle face recognition in under 300 milliseconds. A dedicated graphics card is only needed if you are running more than 10 camera lanes simultaneously.',
   },
   {
-    q: 'Do I need a GPU?',
-    a: 'No, the system runs on CPU. Training a few people takes 1-2 minutes. For larger datasets (50+ people), a CUDA GPU will significantly speed up training.'
+    category: 'Cameras & Hardware',
+    q: 'What cameras work with AuraPass?',
+    a: 'Any security camera that supports standard RTSP or ONVIF video streams works directly (Hikvision, Dahua, Axis, Bosch, Hanwha). Standard USB webcams also work when plugged directly into your computer.',
   },
   {
-    q: 'How do I connect the mobile app?',
-    a: 'Both your phone and computer must be on the same WiFi network. Open the app, go to Settings, and enter your computer\'s IP address (shown when the Flask server starts). The format is: http://YOUR_IP:5000'
+    category: 'Privacy & Security',
+    q: 'Does employee face data ever leave our company building?',
+    a: 'Never. AuraPass runs 100% on your own computer. All face matching and attendance logs stay inside your local network. No data is sent over the internet.',
   },
   {
-    q: 'Why did the system predict "Unknown"?',
-    a: 'The Ensemble system returns "Unknown" when the confidence is below 25% or when the models disagree strongly. The InsightFace ArcFace model is weighted highest in the ensemble. Try uploading more/better photos of that person to improve accuracy.'
-  },
-  {
-    q: 'Can I delete a person after registration?',
-    a: 'Yes! Go to the Dashboard page, find the person in the list, and click the delete button. This removes their photos and retrains the models. You can also rename people from the Dashboard.'
-  },
-  {
-    q: 'Is my data sent to any cloud?',
-    a: 'No. Everything runs 100% locally on your computer. No data leaves your network. The mobile app sends images to your computer\'s local Flask server over WiFi.'
+    category: 'Privacy & Security',
+    q: 'How can I back up or export attendance records?',
+    a: 'From the Dashboard, you can download all attendance logs as Excel (CSV) or printable PDF reports with one click.',
   },
 ];
 
 export default function SupportPage() {
-  const { apiClient } = useAuth();
-  const [healthStatus, setHealthStatus] = useState('checking'); // checking, ok, error
-  const [healthLatency, setHealthLatency] = useState(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab = searchParams.get('tab') || 'quickstart';
+  const searchQuery = searchParams.get('q') || '';
+
+  const updateTab = (newTab) => {
+    setSearchParams(prev => {
+      const next = new URLSearchParams(prev);
+      if (newTab === 'quickstart') next.delete('tab'); else next.set('tab', newTab);
+      return next;
+    }, { replace: true });
+  };
+
+  const updateSearch = (newQ) => {
+    setSearchParams(prev => {
+      const next = new URLSearchParams(prev);
+      if (!newQ) next.delete('q'); else next.set('q', newQ);
+      return next;
+    }, { replace: true });
+  };
+  const [expandedFaq, setExpandedFaq] = useState(null);
+  const [systemHealth, setSystemHealth] = useState(null);
+  const [healthLoading, setHealthLoading] = useState(true);
 
   useEffect(() => {
-    const checkHealth = async () => {
-      const start = performance.now();
-      try {
-        await apiClient.get(`${API_BASE}/ping`);
-        setHealthLatency(Math.round(performance.now() - start));
-        setHealthStatus('ok');
-      } catch {
-        setHealthStatus('error');
-      }
-    };
-    checkHealth();
-  }, [apiClient]);
+    fetch(`${API_BASE}/health`)
+      .then((res) => res.json())
+      .then((data) => {
+        setSystemHealth(data);
+        setHealthLoading(false);
+      })
+      .catch((err) => {
+        console.warn('Could not reach backend health endpoint', err);
+        setHealthLoading(false);
+      });
+  }, []);
+
+  const filteredFaqs = FAQ_ITEMS.filter(
+    (item) =>
+      item.q.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      item.a.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      item.category.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="pb-12 max-w-5xl mx-auto space-y-8 page-container">
-      <div>
-        <h1 className="text-headline font-semibold text-ink font-display">Help & Support</h1>
-        <p className="mt-1 text-caption text-ink-subtle">
-          Learn how to use the platform, troubleshoot issues, and get the most out of face recognition.
-        </p>
-      </div>
+    <div className="min-h-screen bg-[#080B11] text-slate-100 flex flex-col font-sans">
+      {/* Top Header */}
+      <header className="border-b border-[#1A2234] bg-[#0A0D15]/90 backdrop-blur-md sticky top-0 z-30">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+          <Link
+            to="/"
+            className="flex items-center gap-2 text-xs sm:text-sm text-slate-400 hover:text-white transition-colors"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span>Back to Home</span>
+          </Link>
 
-      <section className="space-y-4">
-        <h2 className="text-body font-semibold flex items-center gap-2 text-ink uppercase tracking-wider">
-          <BookOpen className="w-4 h-4 text-blue-400" />
-          Quick Start Guide
-        </h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <GuideStep num={1} icon={<Camera className="w-4 h-4" />} title="Register a Person" link="/upload">
-            Go to the <strong className="text-ink font-medium">Upload</strong> page. Enter the person's name and upload 3+ face photos from different angles.
-          </GuideStep>
-          <GuideStep num={2} icon={<Brain className="w-4 h-4" />} title="Train the Models" link="/training">
-            Navigate to <strong className="text-ink font-medium">Training</strong>. All models train automatically when you upload. Watch the progress in the terminal.
-          </GuideStep>
-          <GuideStep num={3} icon={<Zap className="w-4 h-4" />} title="Test Recognition" link="/test">
-            Go to <strong className="text-ink font-medium">Test</strong>. Upload a photo or use your webcam. The Ensemble result shows the combined prediction.
-          </GuideStep>
-          <GuideStep num={4} icon={<Smartphone className="w-4 h-4" />} title="Use Mobile App" link="/test">
-            Open the mobile app, go to Settings → enter your PC's IP. Then use the camera to recognize faces on-the-go.
-          </GuideStep>
-        </div>
-      </section>
-
-      <div className="card-linear p-6">
-        <div>
-          <h2 className="text-body font-semibold mb-4 flex items-center gap-2 text-ink">
-            <CheckCircle className="w-5 h-5 text-[#27A644]" />
-            Tips for Best Accuracy
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <h4 className="text-[#27A644] text-[11px] font-semibold mb-2 uppercase tracking-wide font-mono">Recommended Practices</h4>
-              <ul className="text-ink-subtle text-caption leading-relaxed space-y-1.5">
-                <li>• Upload at least 3 photos per person</li>
-                <li>• Include frontal + left + right angles</li>
-                <li>• Use well-lit photos with clear faces</li>
-                <li>• Keep faces centered and unobstructed</li>
-                <li>• Use photos with consistent background</li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="text-[#F87171] text-[11px] font-semibold mb-2 uppercase tracking-wide font-mono">Practices to Avoid</h4>
-              <ul className="text-ink-subtle text-caption leading-relaxed space-y-1.5">
-                <li>• Blurry or motion-blurred photos</li>
-                <li>• Photos with sunglasses or masks</li>
-                <li>• Very dark or overexposed images</li>
-                <li>• Heavily cropped or zoomed images</li>
-                <li>• Group photos (use individual face shots)</li>
-              </ul>
-            </div>
+          <div className="flex items-center gap-3 sm:gap-4 text-xs">
+            <Link to="/privacy-policy" className="text-slate-400 hover:text-white transition-colors">
+              Privacy Policy
+            </Link>
+            <Link to="/terms" className="text-slate-400 hover:text-white transition-colors">
+              Terms
+            </Link>
+            <Link
+              to="/dashboard"
+              className="px-3.5 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-semibold hover:bg-emerald-500/20 transition-colors"
+            >
+              Open Dashboard
+            </Link>
           </div>
         </div>
-      </div>
+      </header>
 
-      <section className="space-y-4">
-        <h2 className="text-body font-semibold flex items-center gap-2 text-ink uppercase tracking-wider">
-          <Server className="w-4 h-4 text-blue-400" />
-          System Architecture
-        </h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <ArchCard
-            icon={<Server className="w-4 h-4" />}
-            title="Backend (Flask API)"
-            items={['Python 3.13 + Flask on port 5000', 'Handles training, inference, model management', 'Runs PyTorch models + DeepFace embeddings', 'RESTful API consumed by web + mobile']}
-          />
-          <ArchCard
-            icon={<Monitor className="w-4 h-4" />}
-            title="Web Dashboard (React)"
-            items={['Vite + React on port 5173', 'Upload faces, trigger training, test predictions', 'Webcam support for live inference', 'Responsive design for all screen sizes']}
-          />
-          <ArchCard
-            icon={<Smartphone className="w-4 h-4" />}
-            title="Mobile App (Expo)"
-            items={['React Native with Expo', 'Camera-based face capture + recognition', 'Connects to Flask server over WiFi', 'Works with Expo Go or standalone APK']}
-          />
-        </div>
-      </section>
-
-      <section className="space-y-4">
-        <h2 className="text-body font-semibold flex items-center gap-2 text-ink uppercase tracking-wider">
-          <HelpCircle className="w-4 h-4 text-[#60A5FA]" />
-          Frequently Asked Questions
-        </h2>
-        <div className="flex flex-col gap-2">
-          {FAQ_DATA.map((faq, i) => <FAQItem key={i} question={faq.q} answer={faq.a} />)}
-        </div>
-      </section>
-
-      <div className="border border-[#FBBF24]/20 bg-[#FBBF24]/5 rounded-lg p-6">
-        <div>
-          <h2 className="text-body font-semibold mb-4 flex items-center gap-2 text-[#FBBF24]">
-            <AlertTriangle className="w-5 h-5" />
-            Common Issues
-          </h2>
-          <div className="flex flex-col gap-4">
-            <TroubleItem
-              issue="Mobile app can't connect to server"
-              fix="Ensure both devices are on the same WiFi. Check your PC's IP with 'ipconfig' (Windows) or 'ifconfig' (Mac). Enter it in the mobile app's Settings screen as http://YOUR_IP:5000"
-            />
-            <TroubleItem
-              issue="Webcam shows black screen or error"
-              fix="Webcam requires HTTPS or localhost. Open the dashboard at http://localhost:5173 (not via IP address). Also check that no other app is using the camera."
-            />
-            <TroubleItem
-              issue="Recognition says 'Unknown' for everyone"
-              fix="The confidence threshold is 35%. Upload more photos (5+ per person) from varied angles. After uploading, wait for training to complete before testing."
-            />
-            <TroubleItem
-              issue="Server crashes on startup"
-              fix="Ensure all Python dependencies are installed: pip install flask flask-cors torch torchvision opencv-python mediapipe deepface. Use Python 3.13."
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* System Health Check */}
-      <section className="space-y-4">
-        <h2 className="text-body font-semibold flex items-center gap-2 text-ink uppercase tracking-wider">
-          <Activity className="w-4 h-4 text-[#60A5FA]" />
-          System Health
-        </h2>
-        <div className="card-linear p-5 bg-[#0F1011] border-[#23252A] flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            {healthStatus === 'checking' && <Loader2 className="w-5 h-5 text-[#60A5FA] animate-spin" />}
-            {healthStatus === 'ok' && <CheckCircle className="w-5 h-5 text-[#27A644]" />}
-            {healthStatus === 'error' && <AlertTriangle className="w-5 h-5 text-[#F87171]" />}
+      {/* Hero Banner */}
+      <div className="border-b border-[#1A2234] bg-[#0A0D15] py-10 px-4 sm:px-6">
+        <div className="max-w-6xl mx-auto">
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
             <div>
-              <div className="text-sm font-medium text-ink">
-                {healthStatus === 'checking' ? 'Checking backend...' : healthStatus === 'ok' ? 'Backend Online' : 'Backend Unreachable'}
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/25 text-emerald-400 text-xs font-semibold uppercase tracking-wider mb-3">
+                <BookOpen className="w-3.5 h-3.5" />
+                Help & Documentation
               </div>
-              {healthLatency && (
-                <div className="text-[11px] text-ink-tertiary font-mono">Latency: {healthLatency}ms</div>
-              )}
+              <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">
+                AuraPass Help Center
+              </h1>
+              <p className="text-xs sm:text-sm text-slate-400 mt-1 max-w-2xl leading-relaxed">
+                Simple guides to connect your cameras, enroll workers, and check daily attendance logs.
+              </p>
             </div>
-          </div>
-          <span className={`inline-flex px-2 py-0.5 rounded font-mono text-[10px] font-semibold border ${
-            healthStatus === 'ok' ? 'bg-[#27A644]/10 text-[#27A644] border-[#27A644]/20' :
-            healthStatus === 'error' ? 'bg-[#F87171]/10 text-[#F87171] border-[#F87171]/20' :
-            'bg-[#2563EB]/10 text-[#60A5FA] border-[#2563EB]/20'
-          }`}>
-            {healthStatus === 'ok' ? 'HEALTHY' : healthStatus === 'error' ? 'DOWN' : 'CHECKING'}
-          </span>
-        </div>
-      </section>
 
-      {/* Keyboard Shortcuts */}
-      <section className="space-y-4">
-        <h2 className="text-body font-semibold flex items-center gap-2 text-ink uppercase tracking-wider">
-          <Keyboard className="w-4 h-4 text-[#60A5FA]" />
-          Keyboard Shortcuts
-        </h2>
-        <div className="card-linear p-5 bg-[#0F1011] border-[#23252A]">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {[
-              { keys: 'Ctrl + V', desc: 'Paste image into upload' },
-              { keys: 'Ctrl + S', desc: 'Save configuration' },
-              { keys: 'Esc', desc: 'Close modals & dialogs' },
-              { keys: 'Tab', desc: 'Navigate between fields' },
-            ].map((s, i) => (
-              <div key={i} className="flex items-center justify-between p-2.5 rounded-md bg-[#010102]/40 border border-[#23252A]/50">
-                <span className="text-caption text-ink-subtle">{s.desc}</span>
-                <kbd className="bg-[#141516] border border-[#23252A] text-ink-muted text-[11px] font-mono px-2 py-0.5 rounded">{s.keys}</kbd>
+            {/* Quick System Health Box */}
+            <div className="p-3.5 rounded-xl bg-[#0D121D] border border-[#1E2638] shrink-0 w-full md:w-auto">
+              <div className="flex items-center justify-between gap-3 text-xs">
+                <span className="text-slate-400 flex items-center gap-1.5">
+                  <Activity className="w-3.5 h-3.5 text-emerald-400" />
+                  Local System:
+                </span>
+                <span className="font-mono font-bold text-emerald-400 flex items-center gap-1">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                  {healthLoading ? 'Checking...' : systemHealth?.status === 'ok' ? 'Online & Ready' : 'Running Locally'}
+                </span>
               </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Version and Legal Links */}
-      <div className="text-center text-[11px] text-ink-tertiary pt-4 border-t border-[#23252A] flex flex-col sm:flex-row items-center justify-between gap-3">
-        <span>RMS Recognition Management System v2.0 • On-premise platform</span>
-        <div className="flex gap-4">
-          <Link to="/privacy-policy" className="hover:text-ink transition-colors">Privacy Policy</Link>
-          <Link to="/terms" className="hover:text-ink transition-colors">Terms of Service</Link>
-        </div>
-      </div>
-    </motion.div>
-  );
-}
-
-function GuideStep({ num, icon, title, link, children }) {
-  return (
-    <Link to={link} className="block group">
-      <div className="card-linear h-full transition-all group-hover:border-[#2563EB]/50 group-hover:bg-[#141516] p-6 bg-[#0F1011] border-[#23252A]">
-        <div className="flex items-center gap-3 mb-3">
-          <div className="w-6 h-6 rounded bg-[#010102] border border-[#23252A] flex items-center justify-center text-[#60A5FA] text-[11px] font-bold font-mono">
-            {num}
-          </div>
-          <span className="font-semibold text-ink text-caption">{title}</span>
-        </div>
-        <p className="text-caption text-ink-subtle leading-relaxed">{children}</p>
-      </div>
-    </Link>
-  );
-}
-
-function ArchCard({ icon, title, items }) {
-  return (
-    <div className="card-linear p-6 bg-[#0F1011] border-[#23252A]">
-      <div className="flex items-center gap-2 mb-4 text-[#60A5FA] font-semibold">
-        {icon}
-        <span className="text-ink text-caption font-medium">{title}</span>
-      </div>
-      <ul className="space-y-2">
-        {items.map((item, i) => (
-          <li key={i} className="text-caption text-ink-subtle flex items-start gap-2 leading-relaxed">
-            <ChevronRight className="w-3.5 h-3.5 text-ink-tertiary shrink-0 mt-1" />
-            <span>{item}</span>
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-}
-
-function FAQItem({ question, answer }) {
-  const [open, setOpen] = useState(false);
-  return (
-    <div className={`border rounded-lg overflow-hidden transition-colors ${open ? 'border-[#2563EB]/50 bg-[#141516]' : 'border-[#23252A] bg-[#0F1011]'}`}>
-      <button 
-        onClick={() => setOpen(!open)} 
-        className="w-full flex justify-between items-center p-4 text-left font-medium text-ink hover:text-ink-subtle focus:outline-none"
-      >
-        <span className="text-caption">{question}</span>
-        <ChevronDown className={`w-4 h-4 text-ink-subtle transition-transform ${open ? 'rotate-180' : 'rotate-0'} shrink-0`} />
-      </button>
-      <AnimatePresence>
-        {open && (
-          <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
-            <div className="px-4 pb-4 text-caption text-ink-subtle leading-relaxed border-t border-[#23252A]/30 pt-3">
-              {answer}
+              <p className="text-[10px] text-slate-500 font-mono mt-1">
+                Version: {systemHealth?.app_version || '1.0.0'} &bull; Database: SQLite (Local)
+              </p>
             </div>
-          </motion.div>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Documentation Area */}
+      <main className="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 py-8">
+        {/* Navigation Tabs */}
+        <div className="flex items-center gap-2 overflow-x-auto pb-3 mb-8 border-b border-[#1A2234]">
+          {DOC_TABS.map((tab) => {
+            const Icon = tab.icon;
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => updateTab(tab.id)}
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-medium transition-all shrink-0 cursor-pointer ${
+                  isActive
+                    ? 'bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 shadow-sm'
+                    : 'bg-[#0D121D] border border-[#1B2336] text-slate-400 hover:text-white hover:bg-[#121929]'
+                }`}
+              >
+                <Icon className="w-4 h-4" />
+                <span>{tab.label}</span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* TAB 1: SETUP & REQUIREMENTS */}
+        {activeTab === 'quickstart' && (
+          <div className="space-y-6">
+            <div className="p-6 rounded-2xl bg-[#0D121D] border border-[#1E2638]">
+              <h2 className="text-lg font-bold text-white mb-2 flex items-center gap-2">
+                <Server className="w-5 h-5 text-emerald-400" />
+                Computer Requirements & Getting Started
+              </h2>
+              <p className="text-xs sm:text-sm text-slate-400 mb-6 leading-relaxed">
+                AuraPass runs on standard Windows or Linux computers. No special cloud setup is required.
+              </p>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                <div className="p-4 rounded-xl bg-[#080B11] border border-[#1A2234]">
+                  <p className="text-xs font-semibold text-emerald-400 mb-1">Recommended Office Setup</p>
+                  <p className="text-sm font-bold text-white mb-2">Standard Desktop PC or Laptop</p>
+                  <ul className="text-xs text-slate-400 space-y-1.5">
+                    <li>&bull; <strong className="text-white">Processor:</strong> 4 cores (Intel Core i5, AMD Ryzen 5, or newer)</li>
+                    <li>&bull; <strong className="text-white">Memory:</strong> 8 GB RAM</li>
+                    <li>&bull; <strong className="text-white">Storage:</strong> 20 GB free disk space</li>
+                    <li>&bull; <strong className="text-white">Operating System:</strong> Windows 10/11 or Ubuntu Linux 22.04</li>
+                    <li>&bull; <strong className="text-white">Speed:</strong> Under 300ms per check-in</li>
+                  </ul>
+                </div>
+
+                <div className="p-4 rounded-xl bg-[#080B11] border border-[#1A2234]">
+                  <p className="text-xs font-semibold text-emerald-400 mb-1">Heavy Industrial Setup</p>
+                  <p className="text-sm font-bold text-white mb-2">Multi-Lane Factory Gate (5+ Cameras)</p>
+                  <ul className="text-xs text-slate-400 space-y-1.5">
+                    <li>&bull; <strong className="text-white">Processor:</strong> 8 cores (Intel Core i7 / AMD Ryzen 7)</li>
+                    <li>&bull; <strong className="text-white">Memory:</strong> 16 GB RAM</li>
+                    <li>&bull; <strong className="text-white">Network:</strong> Gigabit Ethernet switch for camera feeds</li>
+                    <li>&bull; <strong className="text-white">Optional:</strong> NVIDIA GPU for sub-100ms multi-camera speed</li>
+                  </ul>
+                </div>
+              </div>
+
+              <div className="space-y-3 border-t border-[#1C2538] pt-5">
+                <h3 className="text-sm font-bold text-white">3 Steps to Start:</h3>
+                <div className="space-y-2 text-xs text-slate-300">
+                  <p><strong className="text-emerald-400">Step 1:</strong> Create your free account or sign in to the console.</p>
+                  <p><strong className="text-emerald-400">Step 2:</strong> Go to the "Cameras" tab and enter your camera's local RTSP stream address or choose your USB webcam.</p>
+                  <p><strong className="text-emerald-400">Step 3:</strong> Click "Upload" to add employee photos and start marking attendance automatically.</p>
+                </div>
+              </div>
+            </div>
+          </div>
         )}
-      </AnimatePresence>
-    </div>
-  );
-}
 
-function TroubleItem({ issue, fix }) {
-  return (
-    <div className="p-3.5 rounded-lg bg-[#141516] border border-[#23252A] space-y-1.5">
-      <div className="flex items-center gap-2">
-        <span className="w-1.5 h-1.5 rounded-full bg-[#FBBF24]" />
-        <span className="font-semibold text-caption text-ink">{issue}</span>
-      </div>
-      <div className="text-caption text-ink-subtle leading-relaxed pl-3.5">{fix}</div>
+        {/* TAB 2: CONNECTING CAMERAS */}
+        {activeTab === 'camera' && (
+          <div className="space-y-6">
+            <div className="p-6 rounded-2xl bg-[#0D121D] border border-[#1E2638]">
+              <h2 className="text-lg font-bold text-white mb-2 flex items-center gap-2">
+                <Camera className="w-5 h-5 text-emerald-400" />
+                Connecting Your Cameras
+              </h2>
+              <p className="text-xs sm:text-sm text-slate-400 mb-6 leading-relaxed">
+                Connect standard IP security cameras or plug-in USB webcams in under two minutes.
+              </p>
+
+              <div className="space-y-4">
+                <div className="p-4 rounded-xl bg-[#080B11] border border-[#1A2234]">
+                  <h3 className="text-xs font-bold text-white mb-1">Option A: Standard IP Cameras (RTSP URL)</h3>
+                  <p className="text-xs text-slate-400 mb-2">Most security cameras provide an RTSP stream format like this:</p>
+                  <div className="p-2.5 rounded-lg bg-[#05070B] border border-[#161D2B] font-mono text-xs text-emerald-400">
+                    rtsp://admin:password@192.168.1.100:554/h264Preview_01_main
+                  </div>
+                  <p className="text-[11px] text-slate-500 mt-2">
+                    Tip: Set the camera resolution to 1080p and frame rate to 15-25 FPS for smooth face detection.
+                  </p>
+                </div>
+
+                <div className="p-4 rounded-xl bg-[#080B11] border border-[#1A2234]">
+                  <h3 className="text-xs font-bold text-white mb-1">Option B: USB Webcam</h3>
+                  <p className="text-xs text-slate-400">
+                    Plug your webcam into any USB port on your computer. In the AuraPass dashboard under "Test Camera", select "Camera Index 0" to view the live video feed.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* TAB 3: ADDING EMPLOYEES */}
+        {activeTab === 'employees' && (
+          <div className="space-y-6">
+            <div className="p-6 rounded-2xl bg-[#0D121D] border border-[#1E2638]">
+              <h2 className="text-lg font-bold text-white mb-2 flex items-center gap-2">
+                <Users className="w-5 h-5 text-emerald-400" />
+                Adding Employees & Photos
+              </h2>
+              <p className="text-xs sm:text-sm text-slate-400 mb-6 leading-relaxed">
+                Best practices for getting high recognition accuracy from day one.
+              </p>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+                <div className="p-4 rounded-xl bg-[#080B11] border border-[#1A2234] text-center">
+                  <div className="w-8 h-8 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center justify-center mx-auto mb-2 font-bold text-xs">1</div>
+                  <p className="text-xs font-bold text-white">Front View</p>
+                  <p className="text-[11px] text-slate-400 mt-1">One clear photo looking straight into the camera with good room lighting.</p>
+                </div>
+
+                <div className="p-4 rounded-xl bg-[#080B11] border border-[#1A2234] text-center">
+                  <div className="w-8 h-8 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center justify-center mx-auto mb-2 font-bold text-xs">2</div>
+                  <p className="text-xs font-bold text-white">Slight Left Turn</p>
+                  <p className="text-[11px] text-slate-400 mt-1">Head turned about 15-20 degrees to the left so side angles are recognized.</p>
+                </div>
+
+                <div className="p-4 rounded-xl bg-[#080B11] border border-[#1A2234] text-center">
+                  <div className="w-8 h-8 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center justify-center mx-auto mb-2 font-bold text-xs">3</div>
+                  <p className="text-xs font-bold text-white">Slight Right Turn</p>
+                  <p className="text-[11px] text-slate-400 mt-1">Head turned about 15-20 degrees to the right to complete the profile.</p>
+                </div>
+              </div>
+
+              <div className="p-4 rounded-xl bg-[#080B11] border border-[#1A2234]">
+                <p className="text-xs font-semibold text-emerald-400 mb-1">Quick Tip for Best Results</p>
+                <p className="text-xs text-slate-300">
+                  Avoid extreme dark shadows, hats covering the eyebrows, or very blurry phone pictures. 3 clear well-lit photos allow AuraPass to achieve over 99% accuracy.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* TAB 4: API & INTEGRATIONS */}
+        {activeTab === 'api' && (
+          <div className="space-y-6">
+            <div className="p-6 rounded-2xl bg-[#0D121D] border border-[#1E2638]">
+              <h2 className="text-lg font-bold text-white mb-2 flex items-center gap-2">
+                <Code className="w-5 h-5 text-emerald-400" />
+                REST API & Webhook Notifications
+              </h2>
+              <p className="text-xs sm:text-sm text-slate-400 mb-6 leading-relaxed">
+                Connect AuraPass directly to your payroll, HR software, or door-unlocking relays.
+              </p>
+
+              <div className="space-y-4">
+                <div className="p-4 rounded-xl bg-[#080B11] border border-[#1A2234]">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="font-mono text-xs font-bold text-emerald-400">GET /api/history</span>
+                    <span className="text-[10px] text-slate-500">Fetch recent attendance</span>
+                  </div>
+                  <p className="text-xs text-slate-400 mb-2">Returns recent check-in events in clean JSON format:</p>
+                  <pre className="p-3 rounded-lg bg-[#05070B] border border-[#161D2B] font-mono text-[11px] text-slate-300 overflow-x-auto">
+{`{
+  "status": "success",
+  "history": [
+    {
+      "name": "Rajesh Patel",
+      "timestamp": "2026-11-03T09:02:14Z",
+      "camera": "Gate 1",
+      "status": "present"
+    }
+  ]
+}`}
+                  </pre>
+                </div>
+
+                <div className="p-4 rounded-xl bg-[#080B11] border border-[#1A2234]">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="font-mono text-xs font-bold text-emerald-400">POST /api/attendance/mark</span>
+                    <span className="text-[10px] text-slate-500">Manual Check-In</span>
+                  </div>
+                  <p className="text-xs text-slate-400">Allows security guards or managers to manually mark attendance for visitors or special shifts.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* TAB 5: FAQ & TROUBLESHOOTING */}
+        {activeTab === 'faq' && (
+          <div className="space-y-6">
+            <div className="p-6 rounded-2xl bg-[#0D121D] border border-[#1E2638]">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+                <div>
+                  <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                    <HelpCircle className="w-5 h-5 text-emerald-400" />
+                    Frequently Asked Questions
+                  </h2>
+                  <p className="text-xs text-slate-400 mt-0.5">Quick answers to common questions.</p>
+                </div>
+
+                {/* Search Input */}
+                <div className="relative w-full sm:w-64">
+                  <Search className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => updateSearch(e.target.value)}
+                    placeholder="Search help topics..."
+                    className="w-full h-9 pl-9 pr-3 rounded-lg bg-[#080B11] border border-[#1E2638] text-xs text-white placeholder-slate-500 outline-none focus:border-emerald-500"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                {filteredFaqs.map((faq, idx) => (
+                  <div key={idx} className="rounded-xl border border-[#1E2638] bg-[#080B11] overflow-hidden">
+                    <button
+                      type="button"
+                      onClick={() => setExpandedFaq(expandedFaq === idx ? null : idx)}
+                      className="w-full p-4 flex items-center justify-between gap-3 text-left cursor-pointer hover:bg-[#0D121D] transition-colors"
+                    >
+                      <div>
+                        <span className="text-[10px] font-mono text-emerald-400 uppercase tracking-wider block mb-0.5">
+                          {faq.category}
+                        </span>
+                        <span className="text-xs sm:text-sm font-semibold text-white">{faq.q}</span>
+                      </div>
+                      <ChevronDown
+                        className={`w-4 h-4 text-slate-400 shrink-0 transition-transform ${
+                          expandedFaq === idx ? 'rotate-180' : ''
+                        }`}
+                      />
+                    </button>
+                    {expandedFaq === idx && (
+                      <div className="px-4 pb-4 pt-1 text-xs text-slate-300 leading-relaxed border-t border-[#161D2B]">
+                        {faq.a}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+      </main>
     </div>
   );
 }

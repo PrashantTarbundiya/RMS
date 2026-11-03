@@ -27,8 +27,8 @@ export default function PwaBanner() {
           >
             <div className="bg-[#0F1011] border border-[#23252A] shadow-lg rounded-lg p-3.5 flex items-center justify-between gap-3">
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-md bg-[#2563EB]/15 text-[#3B82F6] flex items-center justify-center shrink-0">
-                  <RefreshCw size={15} className="animate-spin text-[#3B82F6]" />
+                <div className="w-8 h-8 rounded-md bg-[#059669]/15 text-[#10B981] flex items-center justify-center shrink-0">
+                  <RefreshCw size={15} className="animate-spin text-[#10B981]" />
                 </div>
                 <div>
                   <div className="text-xs font-semibold text-white flex items-center gap-1.5">
@@ -42,7 +42,7 @@ export default function PwaBanner() {
               </div>
               <button
                 onClick={applyUpdate}
-                className="button-primary text-xs py-1.5 px-3 h-8 whitespace-nowrap text-white font-medium flex items-center gap-1.5 bg-[#2563EB] hover:bg-[#1D4ED8] rounded-md transition-colors"
+                className="button-primary text-xs py-1.5 px-3 h-8 whitespace-nowrap text-white font-medium flex items-center gap-1.5 bg-[#059669] hover:bg-[#047857] rounded-md transition-colors"
               >
                 <span>Update Now</span>
               </button>
@@ -59,18 +59,18 @@ export default function PwaBanner() {
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: 80, opacity: 0 }}
             transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-            className="fixed bottom-5 right-5 z-[9999] w-[90%] sm:w-auto sm:max-w-sm"
+            className="fixed bottom-20 right-5 z-[9990] w-[90%] sm:w-auto sm:max-w-sm"
           >
             <div className="bg-[#0F1011] border border-[#23252A] shadow-lg rounded-lg p-3.5 flex items-center gap-3">
               <img
                 src="/pwa-192x192.png"
-                alt="RMS Icon"
+                alt="AuraPass Enterprise Icon"
                 className="w-9 h-9 rounded-md border border-[#23252A] shrink-0"
               />
               <div className="flex-1 min-w-0">
                 <div className="text-xs font-semibold text-white flex items-center gap-1">
                   <span>Install Enterprise App</span>
-                  <ShieldCheck size={12} className="text-[#3B82F6]" />
+                  <ShieldCheck size={12} className="text-[#10B981]" />
                 </div>
                 <div className="text-[11px] text-zinc-400 truncate">
                   Dedicated kiosk mode & low-latency desktop access.
@@ -79,7 +79,7 @@ export default function PwaBanner() {
               <div className="flex items-center gap-1.5 shrink-0">
                 <button
                   onClick={installApp}
-                  className="button-primary text-xs py-1.5 px-3 h-8 text-white font-medium flex items-center gap-1.5 bg-[#2563EB] hover:bg-[#1D4ED8] rounded-md transition-colors"
+                  className="button-primary text-xs py-1.5 px-3 h-8 text-white font-medium flex items-center gap-1.5 bg-[#059669] hover:bg-[#047857] rounded-md transition-colors"
                 >
                   <Download size={13} />
                   <span>Install</span>

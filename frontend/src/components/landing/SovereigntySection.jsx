@@ -34,7 +34,7 @@ export default function SovereigntySection() {
       <div className="max-w-6xl mx-auto">
         <div className="rounded-xl border border-zinc-800 bg-[#0A0D15] p-8 sm:p-12">
           <div className="max-w-3xl mb-10">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-md bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs font-semibold uppercase tracking-wider mb-3">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-md bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-semibold uppercase tracking-wider mb-3">
               <Shield className="w-3.5 h-3.5" />
               <span>Biometric Data Sovereignty</span>
             </div>
@@ -42,7 +42,7 @@ export default function SovereigntySection() {
               Complete Control Over Biometric Templates & Personnel Data
             </h2>
             <p className="text-sm text-zinc-400 leading-relaxed">
-              Unlike cloud biometric vendors that transmit sensitive human identity markers across public networks, RMS retains all raw images and mathematical vectors within your secured perimeter.
+              Unlike cloud biometric vendors that transmit sensitive human identity markers across public networks, AuraPass™ retains all raw images and mathematical vectors within your secured perimeter.
             </p>
           </div>
 
@@ -53,7 +53,7 @@ export default function SovereigntySection() {
                 key={idx}
                 className="p-5 rounded-lg bg-zinc-950/70 border border-zinc-800/90 hover:border-zinc-700 transition-colors flex items-start gap-4"
               >
-                <div className="w-9 h-9 rounded-md bg-blue-500/10 border border-blue-500/20 text-blue-400 flex items-center justify-center shrink-0 mt-0.5">
+                <div className="w-9 h-9 rounded-md bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0 mt-0.5">
                   <item.icon className="w-4 h-4" />
                 </div>
                 <div className="flex-1 min-w-0">

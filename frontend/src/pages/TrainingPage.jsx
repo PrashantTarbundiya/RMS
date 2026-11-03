@@ -9,20 +9,31 @@ import EmptyState from '../components/ui/EmptyState';
 
 
 export default function TrainingPage() {
-  const { apiClient } = useAuth();
+  const { apiClient, accessToken } = useAuth();
   const toast = useToast();
   const [logs, setLogs] = useState([]);
   const [isTraining, setIsTraining] = useState(false);
   const [isRetrigger, setIsRetrigger] = useState(false);
   const [autoScroll, setAutoScroll] = useState(true);
   const [copied, setCopied] = useState(false);
+  const [isModelLoaded, setIsModelLoaded] = useState(false);
   const terminalContainerRef = useRef(null);
   const eventSourceRef = useRef(null);
+
+  useEffect(() => {
+    apiClient.get(`${API_BASE}/dashboard`).then(res => {
+      if (res.data?.models_loaded?.deepface) {
+        setIsModelLoaded(true);
+      }
+    }).catch(() => {});
+  }, []);
 
   const connectToStream = () => {
     if (eventSourceRef.current) eventSourceRef.current.close();
     setIsTraining(true);
-    const source = new EventSource(`${API_BASE}/train/status`);
+    const token = accessToken || sessionStorage.getItem('rms_access_token') || localStorage.getItem('rms_access_token');
+    const url = token ? `${API_BASE}/train/status?token=${encodeURIComponent(token)}` : `${API_BASE}/train/status`;
+    const source = new EventSource(url);
     eventSourceRef.current = source;
 
     source.onmessage = (e) => {
@@ -55,7 +66,7 @@ export default function TrainingPage() {
   const triggerRetrainAll = async () => {
     setIsRetrigger(true);
     try {
-      await apiClient.post(`${API_BASE}/train/all`);
+      await apiClient.post(`${API_BASE}/train/all`, {});
       toast.info('Full retraining started. Connecting to live log stream...');
       setLogs([]);
       // Reconnect to the SSE stream after a short delay
@@ -88,21 +99,33 @@ export default function TrainingPage() {
   const enableInsightFace = localStorage.getItem('enableInsightFace') === 'true';
 
   const extractProgress = () => {
-    let facenet512 = 0;
-    let insightface = 0;
+    let facenet512 = (isModelLoaded && !isTraining && logs.length === 0) ? 100 : 0;
+    let insightface = (isModelLoaded && !isTraining && logs.length === 0) ? 100 : 0;
+
+    const processedLines = logs.filter(l => l.includes('[OK] Processed:') || l.includes('Processed ')).length;
 
     logs.forEach(line => {
-      if (line.includes('Retraining Facenet512') || line.includes('Facenet512')) facenet512 = Math.max(facenet512, 30);
+      const fnMatch = line.match(/\[PROGRESS:Facenet512:(\d+)\]/);
+      if (fnMatch) facenet512 = Math.max(facenet512, parseInt(fnMatch[1], 10));
+
+      const ifMatch = line.match(/\[PROGRESS:InsightFace:(\d+)\]/);
+      if (ifMatch) insightface = Math.max(insightface, parseInt(ifMatch[1], 10));
+
+      if (line.includes('Retraining Facenet512') || line.includes('Facenet512')) facenet512 = Math.max(facenet512, 25);
       if (line.includes('[OK] Facenet512') || line.includes('Facenet512 embeddings updated')) facenet512 = 100;
-      if (line.includes('Retraining InsightFace') || line.includes('InsightFace')) insightface = Math.max(insightface, 30);
+      if (line.includes('Retraining InsightFace') || line.includes('InsightFace')) insightface = Math.max(insightface, 25);
       if (line.includes('[OK] InsightFace') || line.includes('InsightFace embeddings updated')) insightface = 100;
-      if (line.includes('[SUCCESS]') || line.includes('Models updated')) {
+      if (line.includes('[SUCCESS]') || line.includes('Models updated') || line.includes('finished training')) {
         facenet512 = 100;
         insightface = 100;
       }
     });
 
-    if (isTraining && facenet512 === 0 && logs.length > 0) facenet512 = 5;
+    if (processedLines > 0) {
+      facenet512 = Math.max(facenet512, Math.min(95, 20 + processedLines * 5));
+    }
+
+    if (isTraining && facenet512 === 0) facenet512 = 15;
 
     return { facenet512, insightface };
   };
@@ -137,7 +160,7 @@ export default function TrainingPage() {
         <button
           onClick={triggerRetrainAll}
           disabled={isTraining || isRetrigger}
-          className="button-primary text-white flex items-center gap-2 h-10 px-5 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="bg-emerald-600 hover:bg-emerald-500 text-white font-medium flex items-center gap-2 h-9 px-4 rounded-lg shadow-md shadow-emerald-500/20 transition-all text-xs sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {isRetrigger ? <Loader2 size={16} className="animate-spin text-white" /> : <Play size={16} className="text-white" />}
           {isTraining ? 'Training in Progress…' : 'Retrain Active Models'}
@@ -182,14 +205,14 @@ export default function TrainingPage() {
                       <button
                         type="button"
                         onClick={() => handleDownloadFile('encodings_InsightFace.pickle')}
-                        className="button-secondary text-ink text-caption flex items-center gap-2 h-9 px-3 border border-[#23252A] hover:border-[#2563EB]"
+                        className="button-secondary text-ink text-caption flex items-center gap-2 h-9 px-3 border border-[#23252A] hover:border-emerald-500"
                       >
                         <Download className="w-4 h-4 text-ink-subtle" /> encodings_InsightFace.pickle
                       </button>
                       <button
                         type="button"
                         onClick={() => handleDownloadFile('best_mobile_sideface.pth')}
-                        className="button-secondary text-ink text-caption flex items-center gap-2 h-9 px-3 border border-[#23252A] hover:border-[#2563EB]"
+                        className="button-secondary text-ink text-caption flex items-center gap-2 h-9 px-3 border border-[#23252A] hover:border-emerald-500"
                       >
                         <Download className="w-4 h-4 text-ink-subtle" /> best_mobile_sideface.pth
                       </button>
@@ -212,14 +235,14 @@ export default function TrainingPage() {
           </div>
           <div className="flex items-center gap-2">
             <label className="flex items-center gap-1.5 text-[11px] text-ink-tertiary cursor-pointer select-none mr-1">
-              <input type="checkbox" checked={autoScroll} onChange={e => setAutoScroll(e.target.checked)} className="accent-[#2563EB]" />
+              <input type="checkbox" checked={autoScroll} onChange={e => setAutoScroll(e.target.checked)} className="accent-emerald-500" />
               Auto-scroll
             </label>
             <button
               type="button"
               onClick={copyLogs}
               disabled={logs.length === 0}
-              className="h-7 px-2.5 rounded-md border border-[#23252A] bg-[#141516] hover:bg-[#1E2024] hover:border-[#60A5FA]/40 text-ink-subtle hover:text-ink text-[11px] font-medium flex items-center gap-1.5 transition-all disabled:opacity-30 disabled:pointer-events-none"
+              className="h-7 px-2.5 rounded-md border border-[#23252A] bg-[#141516] hover:bg-[#1E2024] hover:border-emerald-500/40 text-ink-subtle hover:text-ink text-[11px] font-medium flex items-center gap-1.5 transition-all disabled:opacity-30 disabled:pointer-events-none"
               title="Copy terminal logs"
             >
               {copied ? <Check size={12} className="text-emerald-400" /> : <Copy size={12} />}
@@ -246,20 +269,23 @@ export default function TrainingPage() {
               description={isTraining ? 'Waiting for training telemetry...' : 'Click "Retrain All Models" to start a new training session.'}
             />
           ) : (
-            logs.map((log, i) => (
+            logs.map((log, i) => {
+              const cleanLog = log.replace(/\[PROGRESS:[^\]]+\]\s*/g, '');
+              return (
                 <div key={i} className="py-0.5 border-b border-white/[0.02] flex">
                   <span className="text-ink-muted mr-4 w-9 shrink-0 select-none text-right font-normal">
                     {String(i + 1).padStart(4, '0')}
                   </span>
                   <span className={`break-all flex-1 ${
-                    log.includes('[ERROR]') || log.includes('failed') ? 'text-[#F87171] font-medium' :
-                    log.includes('[WARNING]') ? 'text-amber-400' :
-                    log.includes('[SUCCESS]') || log.includes('[OK]') ? 'text-[#4ade80]' : ''
+                    cleanLog.includes('[ERROR]') || cleanLog.includes('failed') ? 'text-[#F87171] font-medium' :
+                    cleanLog.includes('[WARNING]') ? 'text-amber-400' :
+                    cleanLog.includes('[SUCCESS]') || cleanLog.includes('[OK]') ? 'text-[#4ade80]' : ''
                   }`}>
-                    {log}
+                    {cleanLog}
                   </span>
                 </div>
-              ))
+              );
+            })
           )}
         </div>
       </div>
@@ -282,7 +308,7 @@ function ModelProgressCard({ title, subtitle, percent, isTraining }) {
           <span
             className={`inline-flex px-2 py-0.5 rounded font-mono text-[9px] font-semibold border uppercase tracking-wider ${
               status === 'success' ? 'bg-[#27A644]/10 text-[#27A644] border-[#27A644]/20' :
-              status === 'progress' ? 'bg-[#2563EB]/10 text-[#60A5FA] border-[#2563EB]/20 animate-pulse' :
+              status === 'progress' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 animate-pulse' :
               'bg-[#141516] text-ink-muted border-[#23252A]'
             }`}
           >
@@ -299,7 +325,7 @@ function ModelProgressCard({ title, subtitle, percent, isTraining }) {
               initial={{ width: 0 }}
               animate={{ width: `${percent}%` }}
               transition={{ type: 'tween', duration: 0.5 }}
-              className={`h-full ${status === 'success' ? 'bg-[#27A644]' : 'bg-[#2563EB]'}`}
+              className={`h-full ${status === 'success' ? 'bg-emerald-400' : 'bg-emerald-500'}`}
             />
           </div>
         </div>

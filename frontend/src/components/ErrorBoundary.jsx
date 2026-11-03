@@ -98,7 +98,7 @@ function ErrorFallback({ error, errorInfo, onReset }) {
 
         {/* Branding */}
         <p className="mt-10 text-[10px] text-ink-tertiary tracking-wider uppercase">
-          RMS Face AI • Error Recovery
+          AuraPass™ Enterprise • Error Recovery
         </p>
       </motion.div>
     </div>

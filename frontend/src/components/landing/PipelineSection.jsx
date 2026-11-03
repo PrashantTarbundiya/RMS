@@ -27,7 +27,7 @@ export default function PipelineSection() {
     <section id="how-it-works" className="py-20 px-4 sm:px-6 border-t border-zinc-800/80 bg-[#0B0E17]/60">
       <div className="max-w-5xl mx-auto">
         <div className="text-center mb-14">
-          <p className="text-xs font-semibold uppercase tracking-wider text-blue-400 mb-2">
+          <p className="text-xs font-semibold uppercase tracking-wider text-emerald-400 mb-2">
             Technical Architecture
           </p>
           <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-white">

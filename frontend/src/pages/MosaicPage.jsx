@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { Camera, Monitor, RefreshCw, Wifi, WifiOff, Users, AlertCircle, Settings2 } from 'lucide-react';
+import { Camera, Monitor, RefreshCw, Wifi, WifiOff, Users, AlertCircle, Settings2, RotateCw } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { API_BASE } from '../config';
 
@@ -16,6 +16,7 @@ function CameraFeedTile({ camera, apiClient, columns }) {
   const loopRef = useRef(null);
   const [results, setResults] = useState(null);
   const [isLive, setIsLive] = useState(false);
+  const [facingMode, setFacingMode] = useState('user');
   const [error, setError] = useState(null);
   const [fps, setFps] = useState(0);
   const lastFrameTime = useRef(Date.now());
@@ -26,11 +27,14 @@ function CameraFeedTile({ camera, apiClient, columns }) {
     let mounted = true;
     const startCamera = async () => {
       try {
+        if (streamRef.current) {
+          streamRef.current.getTracks().forEach(t => t.stop());
+        }
         // If camera has a device_id, try to use it; otherwise use default
         const constraints = { 
           video: camera.device_id 
             ? { deviceId: { exact: camera.device_id } } 
-            : { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } }
+            : { facingMode: { ideal: facingMode }, width: { ideal: 640 }, height: { ideal: 480 } }
         };
         const stream = await navigator.mediaDevices.getUserMedia(constraints);
         if (!mounted) { stream.getTracks().forEach(t => t.stop()); return; }
@@ -54,7 +58,7 @@ function CameraFeedTile({ camera, apiClient, columns }) {
       streamRef.current?.getTracks().forEach(t => t.stop());
       if (loopRef.current) clearTimeout(loopRef.current);
     };
-  }, [camera.id]);
+  }, [camera.id, camera.device_id, facingMode]);
 
   // Prediction loop
   const predict = useCallback(async () => {
@@ -200,14 +204,30 @@ function CameraFeedTile({ camera, apiClient, columns }) {
         </div>
       )}
 
-      {/* Face Count Badge */}
+      {/* Camera Toggle Button */}
+      {isLive && !camera.device_id && (
+        <button
+          type="button"
+          onClick={() => setFacingMode(prev => prev === 'user' ? 'environment' : 'user')}
+          style={{
+            position: 'absolute', top: '8px', right: fps > 0 ? '60px' : '8px',
+            background: 'rgba(0,0,0,0.7)', borderRadius: '4px', border: '1px solid #23252A',
+            padding: '2px 6px', fontSize: '10px', color: '#34d399', cursor: 'pointer',
+            display: 'flex', alignItems: 'center', gap: '4px',
+          }}
+          title="Toggle Front/Back Camera"
+        >
+          <RotateCw size={11} />
+          <span>{facingMode === 'user' ? 'Front' : 'Back'}</span>
+        </button>
+      )}
       {results?.faces && results.faces.length > 0 && (
         <div style={{
           position: 'absolute', bottom: '8px', right: '8px',
           background: 'rgba(0,0,0,0.7)', borderRadius: '6px',
           padding: '4px 8px', display: 'flex', alignItems: 'center', gap: '4px',
         }}>
-          <Users size={12} style={{ color: '#60a5fa' }} />
+          <Users size={12} style={{ color: '#34D399' }} />
           <span style={{ fontSize: '11px', color: '#E0E0E0' }}>
             {results.faces.length} face{results.faces.length !== 1 ? 's' : ''}
           </span>
@@ -287,8 +307,8 @@ export default function MosaicPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-[#2563EB]/10 border border-[#2563EB]/20 flex items-center justify-center">
-            <Monitor size={20} className="text-[#60A5FA]" />
+          <div className="w-10 h-10 rounded-lg bg-[#059669]/10 border border-[#059669]/20 flex items-center justify-center">
+            <Monitor size={20} className="text-[#34D399]" />
           </div>
           <div>
             <h1 className="text-headline font-semibold text-ink font-display m-0">
@@ -309,7 +329,7 @@ export default function MosaicPage() {
               onClick={() => setColumns(n)}
               className={`px-2.5 py-1 rounded-md text-xs font-mono font-medium transition-all cursor-pointer ${
                 columns === n
-                  ? 'bg-[#2563EB] text-white shadow-sm font-semibold'
+                  ? 'bg-[#059669] text-white shadow-sm font-semibold'
                   : 'text-ink-subtle hover:text-ink hover:bg-[#141516]'
               }`}
             >

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { Shield, Search, ChevronLeft, ChevronRight, CheckCircle, XCircle, UserX, FileText, RefreshCw, Download, Calendar } from 'lucide-react';
@@ -12,16 +13,29 @@ export default function AuditLogsPage() {
   const toast = useToast();
   const [logs, setLogs] = useState([]);
   const [total, setTotal] = useState(0);
-  const [page, setPage] = useState(1);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [page, setPage] = useState(() => parseInt(searchParams.get('page') || '1', 10));
   const [totalPages, setTotalPages] = useState(1);
   const [perPage] = useState(25);
-  const [logType, setLogType] = useState('all');
-  const [search, setSearch] = useState('');
-  const [sortOrder, setSortOrder] = useState('desc');
+  const [logType, setLogType] = useState(() => searchParams.get('type') || 'all');
+  const [search, setSearch] = useState(() => searchParams.get('q') || '');
+  const [sortOrder, setSortOrder] = useState(() => searchParams.get('sort') || 'desc');
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [dateStart, setDateStart] = useState('');
-  const [dateEnd, setDateEnd] = useState('');
+  const [dateStart, setDateStart] = useState(() => searchParams.get('start') || '');
+  const [dateEnd, setDateEnd] = useState(() => searchParams.get('end') || '');
+
+  const updateParam = useCallback((key, val, defaultVal = '') => {
+    setSearchParams(prev => {
+      const next = new URLSearchParams(prev);
+      if (!val || val === defaultVal || (key === 'page' && val === 1)) {
+        next.delete(key);
+      } else {
+        next.set(key, String(val));
+      }
+      return next;
+    }, { replace: true });
+  }, [setSearchParams]);
 
   const fetchLogs = useCallback(async () => {
     setIsLoading(true);
@@ -57,10 +71,10 @@ export default function AuditLogsPage() {
   }, [fetchLogs]);
 
   // Debounced search
-  const [searchInput, setSearchInput] = useState('');
+  const [searchInput, setSearchInput] = useState(() => searchParams.get('q') || '');
   useEffect(() => {
     const timer = setTimeout(() => {
-      setSearch(searchInput);
+      setSearch(searchInput); updateParam('q', searchInput);
       setPage(1);
     }, 400);
     return () => clearTimeout(timer);
@@ -108,8 +122,8 @@ export default function AuditLogsPage() {
       {/* Page Header */}
       <div className="page-header flex-col sm:flex-row items-start sm:items-center gap-3">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-[#2563EB]/10 border border-[#2563EB]/20 flex items-center justify-center">
-            <Shield className="w-5 h-5 text-[#60A5FA]" />
+          <div className="w-10 h-10 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
+            <Shield className="w-5 h-5 text-emerald-400" />
           </div>
           <div>
             <h1 className="page-header-title">Audit Logs</h1>
@@ -132,7 +146,7 @@ export default function AuditLogsPage() {
       {/* Filters Bar */}
       <div className="card-linear p-3 flex flex-wrap items-center gap-3">
         {/* Search Input */}
-        <div className="flex items-center gap-2 bg-[#010102] border border-[#23252A] rounded-lg h-9 px-3 flex-1 min-w-[220px] focus-within:border-[#60A5FA]/50 transition-colors">
+        <div className="flex items-center gap-2 bg-[#010102] border border-[#23252A] rounded-lg h-9 px-3 flex-1 min-w-[220px] focus-within:border-[#34D399]/50 transition-colors">
           <Search size={14} className="text-ink-tertiary shrink-0" />
           <input
             type="text"
@@ -148,10 +162,10 @@ export default function AuditLogsPage() {
           {filterTabs.map(opt => (
             <button
               key={opt.value}
-              onClick={() => { setLogType(opt.value); setPage(1); }}
+              onClick={() => { setLogType(opt.value); setPage(1); updateParam('type', opt.value, 'all'); updateParam('page', 1); }}
               className={`px-3 py-1.5 rounded-md text-caption font-medium transition-all cursor-pointer ${
                 logType === opt.value 
-                  ? 'bg-[#2563EB] text-white' 
+                  ? 'bg-emerald-500 text-black font-semibold' 
                   : 'text-ink-subtle hover:text-ink'
               }`}
             >
@@ -277,7 +291,7 @@ export default function AuditLogsPage() {
                           <div className="text-caption">
                             Predicted: <strong className="text-ink">{log.predicted_name || '-'}</strong>
                             {log.correct_name && (
-                              <span className="text-ink-subtle"> → Corrected: <strong className="text-[#60A5FA]">{log.correct_name}</strong></span>
+                              <span className="text-ink-subtle"> → Corrected: <strong className="text-emerald-400">{log.correct_name}</strong></span>
                             )}
                           </div>
                           {log.message && (
@@ -474,7 +488,7 @@ export default function AuditLogsPage() {
                 onClick={() => setPage(p)}
                 className={`min-w-[36px] h-9 rounded-lg text-caption font-medium transition-all cursor-pointer ${
                   p === page 
-                    ? 'bg-[#2563EB] text-white border border-[#2563EB]' 
+                    ? 'bg-emerald-600 text-white border border-emerald-500' 
                     : 'bg-[#0F1011] text-ink-subtle border border-[#23252A] hover:border-[#34343A]'
                 }`}
               >

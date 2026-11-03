@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import {
@@ -10,10 +11,19 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { API_BASE } from '../config';
 
 export default function ModelsPage() {
-  const { apiClient } = useAuth();
+  const { apiClient, user } = useAuth();
   const toast = useToast();
 
-  const [activeTab, setActiveTab] = useState('engine'); // 'engine', 'exports', 'snapshots', 'danger'
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab = searchParams.get('tab') || 'engine';
+
+  const setActiveTab = (tab) => {
+    setSearchParams(prev => {
+      const next = new URLSearchParams(prev);
+      if (tab === 'engine') next.delete('tab'); else next.set('tab', tab);
+      return next;
+    }, { replace: true });
+  };
   const [config, setConfig] = useState(null);
   const [threshold, setThreshold] = useState(0.35);
   const [isSavingConfig, setIsSavingConfig] = useState(false);
@@ -70,7 +80,9 @@ export default function ModelsPage() {
   useEffect(() => {
     apiClient.get(`${API_BASE}/config`).then(res => {
       setConfig(res.data);
-      setThreshold(res.data.CONFIRM_THRESHOLD || 0.35);
+      const rawT = res.data.CONFIRM_THRESHOLD;
+      const safeT = (typeof rawT === 'number' && rawT > 0.50) ? 0.32 : (rawT || 0.32);
+      setThreshold(safeT);
       if (res.data.ENABLE_FACENET512 !== undefined) {
         setEnableFacenet512(res.data.ENABLE_FACENET512);
       }
@@ -199,7 +211,7 @@ export default function ModelsPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-xl sm:text-2xl font-bold text-white tracking-tight flex items-center gap-2.5">
-            <SettingsIcon className="w-6 h-6 text-[#60A5FA]" />
+            <SettingsIcon className="w-6 h-6 text-emerald-400" />
             <span>Platform & Recognition Settings</span>
           </h1>
           <p className="mt-1 text-xs sm:text-sm text-zinc-400">
@@ -211,10 +223,10 @@ export default function ModelsPage() {
       {/* ── Navigation Tabs ── */}
       <div className="flex items-center gap-1 p-1 bg-[#0F1011] border border-[#23252A] rounded-xl overflow-x-auto no-scrollbar">
         {[
-          { id: 'engine', label: 'AI Engine & Accuracy Gates', icon: Sliders },
-          { id: 'exports', label: 'Edge Models & Artifacts', icon: HardDrive },
-          { id: 'snapshots', label: 'Snapshots & Audit History', icon: Archive },
-          { id: 'danger', label: 'System Maintenance', icon: AlertOctagon },
+          { id: 'engine', label: 'AI Engine & Accuracy Gates', shortLabel: 'AI Engine', icon: Sliders },
+          { id: 'exports', label: 'Edge Models & Artifacts', shortLabel: 'Models', icon: HardDrive },
+          { id: 'snapshots', label: 'Snapshots & Audit History', shortLabel: 'Snapshots', icon: Archive },
+          { id: 'danger', label: 'System Maintenance', shortLabel: 'Maintenance', icon: AlertOctagon },
         ].map(tab => {
           const Icon = tab.icon;
           const active = activeTab === tab.id;
@@ -222,14 +234,15 @@ export default function ModelsPage() {
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex-1 min-w-[170px] py-2.5 px-4 rounded-lg text-xs font-semibold flex items-center justify-center gap-2 transition-all cursor-pointer ${
+              className={`flex-1 min-w-0 py-2 px-1 sm:px-3 rounded-lg text-xs font-semibold flex items-center justify-center gap-1 sm:gap-2 transition-all cursor-pointer ${
                 active
-                  ? 'bg-[#2563EB] text-white shadow-md shadow-blue-900/20'
+                  ? 'bg-emerald-500 text-black font-semibold shadow-md shadow-emerald-950/20'
                   : 'text-zinc-400 hover:text-white hover:bg-white/[0.03]'
               }`}
             >
-              <Icon size={15} />
-              <span>{tab.label}</span>
+              <Icon size={14} className="shrink-0" />
+              <span className="sm:hidden truncate">{tab.shortLabel}</span>
+              <span className="hidden sm:inline">{tab.label}</span>
             </button>
           );
         })}
@@ -242,7 +255,7 @@ export default function ModelsPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="card-linear p-5 bg-[#0F1011] border-[#23252A] space-y-3">
               <div className="flex items-center gap-3.5">
-                <div className="w-11 h-11 rounded-xl bg-blue-500/10 border border-blue-500/25 flex items-center justify-center text-[#60A5FA]">
+                <div className="w-11 h-11 rounded-xl bg-emerald-500/10 border border-emerald-500/25 flex items-center justify-center text-emerald-400">
                   <Cpu size={20} />
                 </div>
                 <div>
@@ -303,7 +316,7 @@ export default function ModelsPage() {
                     checked={enableFacenet512}
                     onChange={e => handleToggleFacenet512(e.target.checked)}
                   />
-                  <div className="w-11 h-6 bg-[#23252A] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#2563EB]"></div>
+                  <div className="w-11 h-6 bg-[#23252A] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#059669]"></div>
                 </label>
               </div>
 
@@ -325,7 +338,7 @@ export default function ModelsPage() {
                     checked={enableInsightFace}
                     onChange={e => handleToggleInsightFace(e.target.checked)}
                   />
-                  <div className="w-11 h-6 bg-[#23252A] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#2563EB]"></div>
+                  <div className="w-11 h-6 bg-[#23252A] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#059669]"></div>
                 </label>
               </div>
 
@@ -347,7 +360,7 @@ export default function ModelsPage() {
                     checked={showConfidence}
                     onChange={e => handleToggleConfidence(e.target.checked)}
                   />
-                  <div className="w-11 h-6 bg-[#23252A] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#2563EB]"></div>
+                  <div className="w-11 h-6 bg-[#23252A] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#059669]"></div>
                 </label>
               </div>
 
@@ -360,21 +373,21 @@ export default function ModelsPage() {
                       Controls cosine distance cutoff. Stricter thresholds eliminate false positives; balanced values optimize user throughput.
                     </p>
                   </div>
-                  <span className="text-lg font-mono font-bold text-[#60A5FA] bg-[#2563EB]/15 px-3 py-1 rounded-lg border border-[#2563EB]/30">
+                  <span className="text-lg font-mono font-bold text-emerald-400 bg-emerald-500/15 px-3 py-1 rounded-lg border border-emerald-500/30">
                     {threshold.toFixed(2)}
                   </span>
                 </div>
 
                 <div className="flex items-center gap-4 pt-2">
-                  <span className="text-[11px] text-zinc-400 font-mono">0.10 (Strict)</span>
+                  <span className="text-[11px] text-zinc-400 font-mono">0.15 (Strict - Zero False Positives)</span>
                   <input
                     type="range"
-                    min="0.10"
+                    min="0.15"
                     max="0.50"
                     step="0.01"
                     value={threshold}
                     onChange={(e) => setThreshold(parseFloat(e.target.value))}
-                    className="flex-1 accent-[#2563EB] h-2 bg-[#18191C] rounded-lg appearance-none cursor-pointer"
+                    className="flex-1 accent-emerald-500 h-2 bg-[#18191C] rounded-lg appearance-none cursor-pointer"
                   />
                   <span className="text-[11px] text-zinc-400 font-mono">0.50 (Permissive)</span>
                 </div>
@@ -401,7 +414,7 @@ export default function ModelsPage() {
           <div className="p-5 border-b border-[#23252A] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
               <h3 className="text-sm font-semibold text-white flex items-center gap-2">
-                <HardDrive size={16} className="text-[#60A5FA]" />
+                <HardDrive size={16} className="text-emerald-400" />
                 <span>Edge & Offline Model Exports</span>
               </h3>
               <p className="text-xs text-zinc-400 mt-0.5">
@@ -433,7 +446,7 @@ export default function ModelsPage() {
                   <div className="space-y-1">
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="text-xs sm:text-sm font-semibold text-white">{item.title}</span>
-                      <code className="text-[11px] font-mono text-[#60A5FA] bg-[#2563EB]/15 px-2 py-0.5 rounded border border-[#2563EB]/25">
+                      <code className="text-[11px] font-mono text-emerald-400 bg-[#059669]/15 px-2 py-0.5 rounded border border-[#059669]/25">
                         {item.name}
                       </code>
                       {sizeStr && <span className="text-[11px] font-mono text-zinc-400">({sizeStr})</span>}
@@ -447,7 +460,7 @@ export default function ModelsPage() {
                     disabled={isLoading || !isAvail}
                     className={`text-xs h-8 px-3.5 rounded-lg flex items-center justify-center gap-1.5 font-medium transition-all shrink-0 ${
                       isAvail
-                        ? 'bg-[#2563EB]/15 text-[#60A5FA] border border-[#2563EB]/30 hover:bg-[#2563EB]/25 cursor-pointer'
+                        ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/25 cursor-pointer'
                         : 'bg-zinc-800/40 text-zinc-500 border border-zinc-800 cursor-not-allowed'
                     }`}
                   >
@@ -469,7 +482,7 @@ export default function ModelsPage() {
             <div className="p-5 border-b border-[#23252A] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
                 <h3 className="text-sm font-semibold text-white flex items-center gap-2">
-                  <Archive size={16} className="text-[#60A5FA]" />
+                  <Archive size={16} className="text-emerald-400" />
                   <span>State Snapshots & Recovery</span>
                 </h3>
                 <p className="text-xs text-zinc-400 mt-0.5">
@@ -529,7 +542,7 @@ export default function ModelsPage() {
             <div className="p-5 border-b border-[#23252A] flex items-center justify-between">
               <div>
                 <h3 className="text-sm font-semibold text-white flex items-center gap-2">
-                  <History size={16} className="text-[#60A5FA]" />
+                  <History size={16} className="text-emerald-400" />
                   <span>Model Training & Fine-Tuning Audit Log</span>
                 </h3>
                 <p className="text-xs text-zinc-400 mt-0.5">Telemetry log of neural network retraining sessions.</p>
@@ -563,7 +576,7 @@ export default function ModelsPage() {
                         {item.created_at ? new Date(item.created_at).toLocaleString() : 'Recent'}
                       </td>
                       <td className="py-2.5 px-4 text-white font-sans font-medium">{item.model_name}</td>
-                      <td className="py-2.5 px-4 text-[#60A5FA]">{item.person_name || 'All'}</td>
+                      <td className="py-2.5 px-4 text-emerald-400">{item.person_name || 'All'}</td>
                       <td className="py-2.5 px-4 text-zinc-400">{item.samples_count || 'Batch'}</td>
                       <td className="py-2.5 px-4">
                         <span className="px-2 py-0.5 rounded text-[10px] bg-emerald-500/15 text-emerald-400 border border-emerald-500/25">

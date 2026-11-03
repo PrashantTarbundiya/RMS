@@ -82,17 +82,38 @@ def require_auth(f):
         else:
             token = request.args.get('token')
 
-        # Allow single-tenant token or unauthenticated local dev mode
-        if token == 'single-tenant-token' or (not token and os.environ.get('AUTH_REQUIRED', 'false').lower() != 'true'):
-            g.current_user = {
-                'user_id': 'local-admin',
-                'org_id': 'default-org',
-                'role': 'org_admin',
-            }
-            return f(*args, **kwargs)
+        # Strict multi-tenant authentication gate.
+        # Fallback to local-admin is ONLY permitted when explicitly enabled for local development.
+        allow_dev_anon = (
+            os.environ.get('ALLOW_DEV_ANONYMOUS', 'false').lower() == 'true' and
+            os.environ.get('FLASK_ENV', 'development').lower() == 'development'
+        )
 
         if not token:
-            return jsonify({'error': 'Missing or invalid authentication token. Expected Bearer header or token query parameter.'}), 401
+            if allow_dev_anon:
+                g.current_user = {
+                    'user_id': 'local-admin',
+                    'org_id': 'default-org',
+                    'role': 'org_admin',
+                }
+                return f(*args, **kwargs)
+            return jsonify({
+                'error': 'Missing authentication token. Bearer header or token query parameter required in multi-tenant environment.',
+                'code': 'AUTH_REQUIRED'
+            }), 401
+
+        if token == 'single-tenant-token':
+            if allow_dev_anon:
+                g.current_user = {
+                    'user_id': 'local-admin',
+                    'org_id': 'default-org',
+                    'role': 'org_admin',
+                }
+                return f(*args, **kwargs)
+            return jsonify({
+                'error': 'Single-tenant token is not permitted in multi-tenant mode.',
+                'code': 'INVALID_TOKEN'
+            }), 401
 
         # Decode and validate
         from auth import decode_token

@@ -17,7 +17,7 @@ const COLORS = {
   success: { bg: 'rgba(39, 166, 68, 0.12)', border: 'rgba(39, 166, 68, 0.25)', icon: '#27A644', text: '#4ade80' },
   error: { bg: 'rgba(248, 113, 113, 0.12)', border: 'rgba(248, 113, 113, 0.25)', icon: '#F87171', text: '#fca5a5' },
   warning: { bg: 'rgba(251, 191, 36, 0.12)', border: 'rgba(251, 191, 36, 0.25)', icon: '#FBBF24', text: '#fde68a' },
-  info: { bg: 'rgba(37, 99, 235, 0.12)', border: 'rgba(37, 99, 235, 0.25)', icon: '#2563EB', text: '#93c5fd' },
+  info: { bg: 'rgba(16, 185, 129, 0.12)', border: 'rgba(16, 185, 129, 0.25)', icon: '#10B981', text: '#6ee7b7' },
 };
 
 const AUTO_DISMISS_MS = {

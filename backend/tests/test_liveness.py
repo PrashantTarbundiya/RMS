@@ -228,12 +228,13 @@ if is_live:
     assert_test('composite_score' in details, "Live result has composite_score")
     assert_test('laplacian_variance' in details, "Live result has laplacian_variance")
 
-# ═══════════════════════════════════════════════════════════════════
-print("\n" + "="*60)
-if failed == 0:
-    print(f"ALL TESTS PASSED: {passed}/{total}")
-else:
-    print(f"FAILURES: {failed}/{total} tests failed")
-print("="*60 + "\n")
+if __name__ == '__main__':
+    # ═══════════════════════════════════════════════════════════════════
+    print("\n" + "="*60)
+    if failed == 0:
+        print(f"ALL TESTS PASSED: {passed}/{total}")
+    else:
+        print(f"FAILURES: {failed}/{total} tests failed")
+    print("="*60 + "\n")
 
-sys.exit(0 if failed == 0 else 1)
+    sys.exit(0 if failed == 0 else 1)

@@ -221,7 +221,7 @@ def receive_sync():
     from database.models import AttendanceLog
     from datetime import datetime
     
-    data = request.get_json()
+    data = request.get_json(silent=True) or {}
     logs = data.get('logs', [])
     
     if not logs:
@@ -317,7 +317,7 @@ def root_index():
     from version import APP_VERSION
     return jsonify({
         'status': 'ok',
-        'service': 'RMS Face AI API',
+        'service': 'AuraPass Enterprise API',
         'version': APP_VERSION,
     })
 
@@ -332,7 +332,7 @@ def root():
     """Root endpoint for cloud platform health checks & port detection."""
     return jsonify({
         'status': 'online',
-        'service': 'RMS Face AI API',
+        'service': 'AuraPass Enterprise API',
         'version': '5.0.0'
     }), 200
 
@@ -392,7 +392,7 @@ def system_download_update():
     """
     from update_checker import download_update_package
     
-    data = request.get_json() or {}
+    data = request.get_json(silent=True) or {}
     download_url = data.get('download_url')
     checksum = data.get('checksum', '')
     signature = data.get('signature')
@@ -423,7 +423,7 @@ def system_apply_update():
     """
     from update_checker import apply_update, schedule_auto_restart
     
-    data = request.get_json() or {}
+    data = request.get_json(silent=True) or {}
     package_path = data.get('package_path')
     checksum = data.get('checksum')
     signature = data.get('signature')
@@ -461,7 +461,7 @@ def system_rollback():
     """
     from update_checker import rollback_update, schedule_auto_restart
     
-    data = request.get_json() or {}
+    data = request.get_json(silent=True) or {}
     backup_path = data.get('backup_path')
     
     success, message = rollback_update(backup_path)
@@ -533,7 +533,7 @@ def save_notification_preferences(org_id):
     if not user_id:
         return jsonify({'error': 'Not available in single-tenant mode.'}), 400
 
-    data = request.get_json() or {}
+    data = request.get_json(silent=True) or {}
     # Whitelist allowed preference keys
     allowed_keys = {
         'unknown_face_alert', 'camera_offline_alert', 'model_stale_alert',
@@ -563,7 +563,7 @@ def test_email_delivery():
 
     user_email = g.current_user.get('email')
     if not user_email:
-        data = request.get_json() or {}
+        data = request.get_json(silent=True) or {}
         user_email = data.get('email')
 
     if not user_email:
@@ -595,7 +595,7 @@ def trigger_daily_summary(org_id):
     """
     from notifications import generate_daily_summary
 
-    data = request.get_json() or {}
+    data = request.get_json(silent=True) or {}
     date_str = data.get('date')
     target_date = None
     if date_str:
@@ -717,7 +717,7 @@ def export_analytics_pdf(org_id):
         io.BytesIO(pdf_bytes),
         mimetype='application/pdf',
         as_attachment=True,
-        download_name=f'rms_analytics_report_{dt.now().strftime("%Y%m%d")}.pdf'
+        download_name=f'aurapass_analytics_report_{dt.now().strftime("%Y%m%d")}.pdf'
     )
 
 
@@ -862,44 +862,74 @@ def record_attendance(org_id):
         })
 
     from database.db import is_db_available, get_db_session
-    from database.models import Employee, AttendanceLog, AttendanceStatus
+    from database.models import Employee, AttendanceLog, AttendanceStatus, EmployeeStatus
 
     dept_name = 'General'
     employee_id = None
+    req_employee_id = str(data.get('employee_id') or data.get('id') or '').strip()
 
     if is_db_available() and org_id:
         try:
             with get_db_session() as db:
-                emp_record = (
-                    db.query(Employee)
-                    .filter(
-                        Employee.org_id == str(org_id),
-                        (Employee.name.ilike(clean_name)) | 
-                        (Employee.name.ilike(clean_name.replace(' ', '_'))) |
-                        (Employee.name.ilike(raw_name))
+                emp_record = None
+
+                # 1. Primary lookup by explicit employee ID (verifying tenant ownership)
+                if req_employee_id:
+                    emp_record = (
+                        db.query(Employee)
+                        .filter(
+                            Employee.id == req_employee_id,
+                            Employee.org_id == str(org_id)
+                        )
+                        .first()
                     )
-                    .first()
-                )
-                if emp_record:
-                    dept_name = emp_record.department or 'General'
-                    employee_id = emp_record.id
-                else:
-                    clean_code_num = f"{abs(hash(clean_name)) % 900 + 100:03d}"
-                    emp_record = Employee(
-                        id=f"emp-{org_id[:8]}-{uuid.uuid4().hex[:6]}",
-                        org_id=str(org_id),
-                        name=clean_name,
-                        employee_code=f"RMS-{clean_code_num}",
-                        department='General',
-                        status=EmployeeStatus.active,
-                        image_count=5
+
+                # 2. Secondary lookup by name within this specific tenant
+                if not emp_record:
+                    emp_record = (
+                        db.query(Employee)
+                        .filter(
+                            Employee.org_id == str(org_id),
+                            (Employee.name.ilike(clean_name)) | 
+                            (Employee.name.ilike(clean_name.replace(' ', '_'))) |
+                            (Employee.name.ilike(raw_name))
+                        )
+                        .first()
                     )
-                    db.add(emp_record)
-                    db.commit()
-                    employee_id = emp_record.id
-                    dept_name = 'General'
+
+                # Strict requirement: Employee must pre-exist. Zero automatic creation.
+                if not emp_record:
+                    logger.warning(
+                        f"Attendance rejected: Employee '{clean_name}' (ID: '{req_employee_id or 'N/A'}') "
+                        f"is not registered in organization '{org_id}'."
+                    )
+                    return jsonify({
+                        'error': f'Employee "{clean_name}" not found in organization roster. Automatic employee creation is disabled.',
+                        'code': 'EMPLOYEE_NOT_FOUND',
+                        'status': 'error'
+                    }), 404
+
+                # Check active status
+                if hasattr(emp_record, 'status') and emp_record.status != EmployeeStatus.active:
+                    logger.warning(
+                        f"Attendance rejected: Employee '{emp_record.name}' ({emp_record.id}) "
+                        f"is currently inactive ({emp_record.status})."
+                    )
+                    return jsonify({
+                        'error': f'Employee "{emp_record.name}" is not active.',
+                        'code': 'EMPLOYEE_INACTIVE',
+                        'status': 'error'
+                    }), 403
+
+                dept_name = emp_record.department or 'General'
+                employee_id = emp_record.id
+                clean_name = emp_record.name
         except Exception as emp_err:
-            logger.warning(f"Error querying employee record for attendance: {emp_err}")
+            logger.error(f"Error querying employee record for attendance: {emp_err}", exc_info=True)
+            return jsonify({
+                'error': 'Internal database error while validating employee record.',
+                'code': 'EMPLOYEE_VALIDATION_ERROR'
+            }), 500
 
     # 2. Get department schedule config
     dept_configs = get_org_departments_config(org_id)
@@ -1340,6 +1370,22 @@ def update_employee_details(org_id, emp_id):
             if not emp:
                 return jsonify({'error': 'Employee not found'}), 404
 
+            if 'name' in data and data['name'].strip():
+                new_name = data['name'].strip()
+                old_name = emp.name
+                if new_name != old_name:
+                    from org_storage import get_dataset_cleaned_dir
+                    org_ds = get_dataset_cleaned_dir(org_id)
+                    old_path = os.path.join(org_ds, old_name)
+                    new_path = os.path.join(org_ds, new_name)
+                    if os.path.exists(old_path) and not os.path.exists(new_path):
+                        try:
+                            os.rename(old_path, new_path)
+                        except Exception as rename_err:
+                            logger.warning(f"Could not rename dataset folder from {old_name} to {new_name}: {rename_err}")
+                    emp.name = new_name
+            if 'employee_code' in data:
+                emp.employee_code = data['employee_code'].strip() or None
             if 'department' in data:
                 emp.department = data['department'].strip() or 'General'
             if 'status' in data:
@@ -1356,8 +1402,10 @@ def update_employee_details(org_id, emp_id):
                 'employee': {
                     'id': emp.id,
                     'name': emp.name,
+                    'employee_code': emp.employee_code,
                     'department': emp.department,
-                    'status': emp.status.value if hasattr(emp.status, 'value') else str(emp.status)
+                    'status': emp.status.value if hasattr(emp.status, 'value') else str(emp.status),
+                    'email': emp.email,
                 }
             })
     except Exception as e:
@@ -1409,7 +1457,7 @@ def sso_callback():
     if not config:
         return jsonify({'error': 'SSO not configured'}), 400
 
-    data = request.get_json() or {}
+    data = request.get_json(silent=True) or {}
     code = data.get('code')
     received_state = data.get('state')
 
@@ -1471,7 +1519,7 @@ def security_rotate_api_key(org_id):
     """Rotate a camera's API key with a grace period."""
     from security_hardening import rotate_api_key
 
-    data = request.get_json() or {}
+    data = request.get_json(silent=True) or {}
     camera_id = data.get('camera_id')
     grace_hours = int(data.get('grace_period_hours', 24))
 
@@ -1507,7 +1555,7 @@ def security_encrypt_encodings(org_id):
     if is_file_encrypted(encodings_path):
         return jsonify({'error': 'Encodings already encrypted.'}), 400
 
-    data = request.get_json() or {}
+    data = request.get_json(silent=True) or {}
     passphrase = data.get('passphrase')
 
     if passphrase:
@@ -1622,7 +1670,7 @@ def offline_sync(org_id):
         "client_timestamp": "2026-01-01T00:00:00Z"
     }
     """
-    data = request.get_json() or {}
+    data = request.get_json(silent=True) or {}
     sync_type = data.get('type', 'unknown')
     items = data.get('items', [])
     client_ts = data.get('client_timestamp')
@@ -1813,7 +1861,7 @@ def restore_backup_endpoint():
     """
     from backup_restore import restore_from_backup
 
-    data = request.get_json() or {}
+    data = request.get_json(silent=True) or {}
     filename = data.get('filename', '')
     dry_run = data.get('dry_run', True)  # Default to dry run for safety
 
@@ -1929,7 +1977,7 @@ def provision_camera(org_id):
     from database.db import get_db_session, is_db_available
     from database.models import Camera
 
-    data = request.get_json() or {}
+    data = request.get_json(silent=True) or {}
     camera_name = data.get('name', '').strip()
     location = data.get('location', '').strip()
 
@@ -2065,7 +2113,7 @@ def auth_register():
             'refresh_token': 'single-tenant-token'
         }), 200
 
-    data = request.get_json()
+    data = request.get_json(silent=True) or {}
     if not data:
         return jsonify({'error': 'JSON body required.'}), 400
 
@@ -2112,8 +2160,21 @@ def auth_register():
             if existing_user:
                 return jsonify({'error': f'Email "{email}" is already registered.'}), 409
 
-            # Create organization
-            org = Organization(name=org_name, slug=slug)
+            # Create organization with legal consent tracking
+            consent_timestamp = data.get('consent_timestamp')
+            terms_accepted = bool(data.get('terms_accepted', False))
+            legal_consent = {
+                'terms_and_privacy_accepted': terms_accepted,
+                'consent_timestamp': consent_timestamp or datetime.datetime.now(datetime.timezone.utc).isoformat(),
+                'ip_address': request.headers.get('X-Forwarded-For', request.remote_addr),
+                'user_agent': str(request.headers.get('User-Agent') or '')[:255]
+            }
+
+            org = Organization(
+                name=org_name,
+                slug=slug,
+                onboarding_state={'legal_consent': legal_consent, 'consent_timestamp': legal_consent['consent_timestamp']}
+            )
             db.add(org)
             db.flush()  # Get the generated ID
 
@@ -2138,12 +2199,10 @@ def auth_register():
             db.add(sub)
             db.commit()  # Commit Organization, User, and Subscription immediately
 
-            # Initialize file storage and seed pre-trained benchmark weights for this org
+            # Initialize sovereign per-tenant storage directory structure.
+            # Strict tenant isolation: do NOT auto-seed benchmark weights or synthetic employees.
             initialize_org_storage(org.id)
-            try:
-                seed_org_default_weights(org.id, db_session=db)
-            except Exception as seed_err:
-                logger.warning(f"Failed to auto-seed base weights on registration: {seed_err}")
+            logger.info(f"Initialized clean sovereign workspace for organization '{org.name}' ({org.id}). Zero benchmark identities seeded.")
 
             # Generate tokens
             access_token = create_access_token(user.id, org.id, user.role)
@@ -2153,11 +2212,12 @@ def auth_register():
                 'message': f'Organization "{org_name}" created successfully.',
                 'access_token': access_token,
                 'refresh_token': refresh_token,
+                'legal_consent': legal_consent,
                 'user': {
                     'id': user.id,
                     'email': user.email,
                     'name': user.name,
-                    'role': user.role.value,
+                    'role': user.role.value if hasattr(user.role, 'value') else str(user.role),
                     'org_id': org.id,
                     'org_name': org.name,
                 }
@@ -2185,7 +2245,7 @@ def auth_login():
             'refresh_token': 'single-tenant-token'
         }), 200
 
-    data = request.get_json()
+    data = request.get_json(silent=True)
     if not data:
         return jsonify({'error': 'JSON body required.'}), 400
 
@@ -2227,7 +2287,7 @@ def auth_login():
                     'id': user.id,
                     'email': user.email,
                     'name': user.name,
-                    'role': user.role.value,
+                    'role': user.role.value if hasattr(user.role, 'value') else str(user.role),
                     'org_id': user.org_id,
                     'org_name': org.name if org else 'Unknown',
                 }
@@ -2243,7 +2303,7 @@ def auth_refresh():
     if not is_db_available():
         return jsonify({'error': 'Token refresh requires multi-tenant mode.'}), 400
 
-    data = request.get_json()
+    data = request.get_json(silent=True) or {}
     refresh_token = (data or {}).get('refresh_token', '')
     if not refresh_token:
         return jsonify({'error': 'refresh_token is required.'}), 400
@@ -2284,7 +2344,7 @@ def auth_refresh():
                     'id': user.id,
                     'email': user.email,
                     'name': user.name,
-                    'role': user.role.value,
+                    'role': user.role.value if hasattr(user.role, 'value') else str(user.role),
                     'org_id': user.org_id,
                     'org_name': org.name if org else 'Unknown',
                 }
@@ -2330,7 +2390,7 @@ def auth_me():
                     'id': user.id,
                     'email': user.email,
                     'name': user.name,
-                    'role': user.role.value,
+                    'role': user.role.value if hasattr(user.role, 'value') else str(user.role),
                     'org_id': user.org_id,
                     'org_name': org.name if org else 'Unknown',
                     'onboarding_state': (org.onboarding_state if (org and hasattr(org, 'onboarding_state') and org.onboarding_state) else {}),
@@ -2350,7 +2410,7 @@ def update_onboarding_state():
     user_data = g.current_user
     org_id = user_data.get('org_id')
     
-    data = request.get_json() or {}
+    data = request.get_json(silent=True) or {}
     new_state = data.get('onboarding_state', {})
 
     if not is_db_available() or not org_id:
@@ -2388,7 +2448,7 @@ def update_onboarding_state():
 @inject_org_id
 def update_org_name(org_id):
     """Update organization name."""
-    data = request.get_json() or {}
+    data = request.get_json(silent=True) or {}
     new_name = (data.get('name') or '').strip()
     if not new_name:
         return jsonify({'error': 'Organization name is required.'}), 400
@@ -2431,7 +2491,7 @@ def auth_revoke_token():
     from database.db import get_db_session
     from database.models import RevokedToken
 
-    data = request.get_json() or {}
+    data = request.get_json(silent=True) or {}
     refresh_token = data.get('refresh_token', '')
     if not refresh_token:
         return jsonify({'error': 'refresh_token is required.'}), 400
@@ -2471,7 +2531,7 @@ def auth_revoke_all_tokens():
         return jsonify({'error': 'Not available in single-tenant mode.'}), 400
 
     # Optionally allow org_admin to revoke another user's tokens
-    data = request.get_json() or {}
+    data = request.get_json(silent=True) or {}
     target_user_id = data.get('user_id', user_id)
 
     # Only org_admin+ can revoke other users' tokens
@@ -2907,10 +2967,15 @@ def process_local_training_queue():
                 org_persons = [d for d in os.listdir(org_dataset_dir) if os.path.isdir(os.path.join(org_dataset_dir, d)) and not d.startswith('.')] if os.path.exists(org_dataset_dir) else []
                 
                 if not org_persons:
-                    print("[INFO] Org dataset directory is empty. Seeding benchmark pre-trained weights...")
-                    seed_org_default_weights(org_id)
-                    retrain_success = True
-                    training_status['progress'] = 80
+                    logger.info(f"[INFO] Org dataset directory for '{org_id}' is empty. No personnel enrolled. Retraining aborted.")
+                    training_status['logs'].append("No enrolled personnel found in organization dataset. Enrolled photos required for retraining.")
+                    training_status['progress'] = 100
+                    training_status['status'] = 'completed'
+                    training_status['message'] = 'Not Trained: No personnel enrolled in this organization.'
+                    if history_job:
+                        history_job['status'] = 'Not Trained'
+                        history_job['logs'].append("Retraining skipped: organization dataset has 0 enrolled personnel.")
+                    return
                 else:
                     try:
                         from gpu_trainer import is_gpu_available, retrain_all_gpu
@@ -2924,21 +2989,26 @@ def process_local_training_queue():
                         print(f"[WARNING] GPU/ONNX batch retrain notice: {e}. Running robust per-person fallback...")
 
                     # Per-person generation for all active models to ensure proper vector space separation
-                    for p in org_persons:
+                    total_persons = max(1, len(org_persons))
+                    for idx_p, p in enumerate(org_persons):
                         p_dir = os.path.join(org_dataset_dir, p)
                         p_imgs = glob_module.glob(os.path.join(p_dir, '**', '*.jpg'), recursive=True) + \
                                  glob_module.glob(os.path.join(p_dir, '**', '*.png'), recursive=True)
                         if p_imgs:
+                            step_pct = 20 + int(((idx_p + 1) / total_persons) * 70)
+                            print(f"[PROGRESS:Facenet512:{step_pct}] Retraining Facenet512 for {p} ({idx_p + 1}/{total_persons})...")
                             active_m = ['Facenet512']
                             if cfg.get('ENABLE_INSIGHTFACE', True):
                                 active_m.append('InsightFace')
                             for m in active_m:
                                 try:
                                     update_deepface_model(p, p_imgs, model_name=m, org_id=org_id)
+                                    print(f"[PROGRESS:{m}:{step_pct}] [OK] {m} processed for {p}")
                                 except Exception as m_err:
                                     logger.warning(f"Failed to generate {m} embeddings for {p}: {m_err}")
 
-                    training_status['progress'] = 75
+                    training_status['progress'] = 90
+                    print("[PROGRESS:Facenet512:100] [OK] Facenet512 embeddings updated successfully.")
                     retrain_success = True
             elif image_paths:
                 if job.get('skip_embedding_update'):
@@ -3260,6 +3330,7 @@ def record_model_training_log(org_id, model_name, person_name, samples_count=0, 
         logger.warning(f"Could not write training log to file: {file_err}")
 
 @app.route('/api/models/training-history', methods=['GET'])
+@app.route('/api/train/history', methods=['GET'])
 @require_auth
 @inject_org_id
 def get_model_training_history(org_id=None):
@@ -4859,7 +4930,7 @@ def submit_feedback():
         "correct_name": "Jane_Doe"  // only if is_correct=false
     }
     """
-    data = request.get_json()
+    data = request.get_json(silent=True) or {}
     if not data:
         return jsonify({'error': 'JSON body required'}), 400
     
@@ -4904,7 +4975,7 @@ def get_config_endpoint():
 def save_config_endpoint():
     try:
         from config_utils import save_config
-        data = request.get_json()
+        data = request.get_json(silent=True) or {}
         if not data:
             return jsonify({'error': 'JSON body required'}), 400
         new_config = save_config(data)
@@ -5008,8 +5079,14 @@ def get_dashboard_stats(org_id=None):
         total_photos = sum(photos_per_person.values())
 
         has_encodings = (edge_encodings is not None) or (deepface_encodings is not None) or (insightface_encodings is not None)
-        untrained = (set(all_persons) - trained_classes) if trained_classes else set(all_persons)
-        requires_retrain = (not has_encodings) or (len(untrained) > 0)
+        norm_key = lambda s: str(s).strip().lower().replace(' ', '_').replace('-', '_')
+        trained_classes_norm = {norm_key(c) for c in trained_classes}
+        all_persons_norm = {norm_key(p) for p in all_persons}
+        untrained = (all_persons_norm - trained_classes_norm) if trained_classes_norm else all_persons_norm
+        if len(all_persons) == 0:
+            requires_retrain = False
+        else:
+            requires_retrain = (not has_encodings) or (len(untrained) > 0)
 
         # Read history for stats (check DB AttendanceLog first, then recognition_history.json)
         history = []
@@ -5096,79 +5173,111 @@ def get_dashboard_stats(org_id=None):
 @app.route('/api/persons/<name>', methods=['DELETE'])
 @require_auth
 @require_role('org_admin')
-def delete_person(name):
+@inject_org_id
+def delete_person(name, org_id=None):
     # Sanitize name
     name = name.strip()
     if not name:
         return jsonify({'error': 'Name is required'}), 400
         
-    cleaned_path = os.path.join(DATASET_CLEANED_DIR, name)
-    raw_path = os.path.join(PROJECT_ROOT, 'dataset', name)
+    cleaned_dir = get_dataset_cleaned_dir(org_id)
+    raw_dir = get_raw_dataset_dir(org_id)
     
     deleted_any = False
+    name_variants = [name, name.replace(' ', '_'), name.replace('_', ' '), name.lower(), name.lower().replace(' ', '_')]
+    lower_variants = {v.lower().replace(' ', '_') for v in name_variants}
     
     try:
-        if os.path.exists(cleaned_path):
-            shutil.rmtree(cleaned_path)
-            deleted_any = True
-        if os.path.exists(raw_path):
-            shutil.rmtree(raw_path)
-            deleted_any = True
-            
+        # 1. Delete physical photo datasets for this organization
+        for variant in set(name_variants):
+            c_path = os.path.join(cleaned_dir, variant)
+            r_path = os.path.join(raw_dir, variant)
+            if os.path.exists(c_path):
+                shutil.rmtree(c_path, ignore_errors=True)
+                deleted_any = True
+            if os.path.exists(r_path):
+                shutil.rmtree(r_path, ignore_errors=True)
+                deleted_any = True
+
+        # Also search case-insensitively in cleaned_dir
+        if os.path.exists(cleaned_dir):
+            for entry in os.listdir(cleaned_dir):
+                if entry.lower().replace(' ', '_') in lower_variants:
+                    p = os.path.join(cleaned_dir, entry)
+                    if os.path.isdir(p):
+                        shutil.rmtree(p, ignore_errors=True)
+                        deleted_any = True
+
+        # 2. Update encodings across ALL active models for this tenant
+        models_to_clean = ['Facenet512', 'InsightFace', 'GhostFaceNet', 'VGG-Face']
+        for m in models_to_clean:
+            enc_path = get_encodings_path(org_id, m)
+            if os.path.exists(enc_path):
+                try:
+                    with open(enc_path, "rb") as f:
+                        data = pickle.load(f)
+                    
+                    encs = data.get("encodings", [])
+                    names = data.get("names", [])
+                    
+                    new_encs = []
+                    new_names = []
+                    for emb, n in zip(encs, names):
+                        if str(n).lower().replace(' ', '_') not in lower_variants:
+                            new_encs.append(emb)
+                            new_names.append(n)
+                        else:
+                            deleted_any = True
+                            
+                    data["encodings"] = new_encs
+                    data["names"] = new_names
+                    
+                    with open(enc_path, "wb") as f:
+                        pickle.dump(data, f)
+                except Exception as e:
+                    logger.warning(f"Failed to update {m} encodings for org {org_id} on delete: {e}")
+
+        # 3. Remove or deactivate Employee in Database if DB is active
+        from database.db import is_db_available, get_db_session
+        from database.models import Employee
+        if is_db_available() and org_id:
+            try:
+                with get_db_session() as db:
+                    if db:
+                        emps = db.query(Employee).filter(
+                            Employee.org_id == str(org_id),
+                            (Employee.name.ilike(name)) | 
+                            (Employee.name.ilike(name.replace('_', ' '))) |
+                            (Employee.name.ilike(name.replace(' ', '_')))
+                        ).all()
+                        for emp in emps:
+                            db.delete(emp)
+                            deleted_any = True
+                        db.commit()
+            except Exception as db_del_err:
+                logger.warning(f"Failed to delete Employee row for {name} in org {org_id}: {db_del_err}")
+
+        # 4. Invalidate and reload in-memory model cache for this tenant
+        reload_org_models(org_id)
+        
         if not deleted_any:
             return jsonify({'error': f"Person '{name}' not found"}), 404
             
-        # Update encodings.pickle instantly
-        if os.path.exists(DEEPFACE_MODEL_PATH):
-            try:
-                with open(DEEPFACE_MODEL_PATH, "rb") as f:
-                    data = pickle.load(f)
-                
-                encs = data.get("encodings", [])
-                names = data.get("names", [])
-                
-                # Filter out
-                new_encs = []
-                new_names = []
-                for emb, n in zip(encs, names):
-                    if n != name:
-                        new_encs.append(emb)
-                        new_names.append(n)
-                        
-                data["encodings"] = new_encs
-                data["names"] = new_names
-                
-                with open(DEEPFACE_MODEL_PATH, "wb") as f:
-                    pickle.dump(data, f)
-            except Exception as e:
-                print(f"[WARNING] Failed to update encodings.pickle on delete: {e}")
-                
-        # Update class text files
-        def filter_class_file(file_path):
-            if os.path.exists(file_path):
-                try:
-                    with open(file_path, 'r') as f:
-                        lines = [line.strip() for line in f.readlines() if line.strip() and line.strip() != name]
-                    with open(file_path, 'w') as f:
-                        f.write('\n'.join(lines) + ('\n' if lines else ''))
-                except Exception as e:
-                    print(f"[WARNING] Failed to update {file_path}: {e}")
-                    
-        filter_class_file(os.path.join(BACKEND_DIR, 'models', 'sota_finetune', 'mobile_classes.txt'))
-        
-        # Hot-reload models
-        reload_models()
-        
-        return jsonify({'message': f"Successfully deleted '{name}'"})
+        return jsonify({
+            'success': True,
+            'message': f"Successfully deleted biometric profiles and dataset for '{name}'."
+        })
     except Exception as e:
+        logger.error(f"Error deleting person {name} in org {org_id}: {e}", exc_info=True)
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/persons/<old_name>', methods=['PUT'])
 @require_auth
 @require_role('org_admin')
-def rename_person(old_name):
+@inject_org_id
+def rename_person(old_name, org_id=None):
     old_name = old_name.strip()
-    data = request.get_json() or {}
+    data = request.get_json(silent=True) or {}
     new_name = data.get('new_name', '').strip()
     
     if not new_name:
@@ -5184,12 +5293,23 @@ def rename_person(old_name):
     if len(new_name) > MAX_NAME_LENGTH:
         return jsonify({'error': f'New name must be {MAX_NAME_LENGTH} characters or less'}), 400
         
-    old_cleaned_path = os.path.join(DATASET_CLEANED_DIR, old_name)
-    new_cleaned_path = os.path.join(DATASET_CLEANED_DIR, new_name)
+    cleaned_dir = get_dataset_cleaned_dir(org_id)
+    raw_dir = get_raw_dataset_dir(org_id)
     
-    old_raw_path = os.path.join(PROJECT_ROOT, 'dataset', old_name)
-    new_raw_path = os.path.join(PROJECT_ROOT, 'dataset', new_name)
+    old_cleaned_path = os.path.join(cleaned_dir, old_name)
+    new_cleaned_path = os.path.join(cleaned_dir, new_name)
     
+    old_raw_path = os.path.join(raw_dir, old_name)
+    new_raw_path = os.path.join(raw_dir, new_name)
+    
+    # Check alternate format with underscores/spaces
+    if not os.path.exists(old_cleaned_path):
+        alt = old_name.replace(' ', '_') if ' ' in old_name else old_name.replace('_', ' ')
+        alt_path = os.path.join(cleaned_dir, alt)
+        if os.path.exists(alt_path):
+            old_cleaned_path = alt_path
+            old_raw_path = os.path.join(raw_dir, alt)
+            
     if not os.path.exists(old_cleaned_path):
         return jsonify({'error': f"Person '{old_name}' not found"}), 404
         
@@ -5202,40 +5322,50 @@ def rename_person(old_name):
         if os.path.exists(old_raw_path):
             os.rename(old_raw_path, new_raw_path)
             
-        # Update encodings.pickle
-        if os.path.exists(DEEPFACE_MODEL_PATH):
-            try:
-                with open(DEEPFACE_MODEL_PATH, "rb") as f:
-                    pickle_data = pickle.load(f)
-                
-                names = pickle_data.get("names", [])
-                updated_names = [new_name if n == old_name else n for n in names]
-                pickle_data["names"] = updated_names
-                
-                with open(DEEPFACE_MODEL_PATH, "wb") as f:
-                    pickle.dump(pickle_data, f)
-            except Exception as e:
-                print(f"[WARNING] Failed to update encodings.pickle on rename: {e}")
-                
-        # Update class text files
-        def rename_in_class_file(file_path):
-            if os.path.exists(file_path):
+        # Update encodings across all models
+        models_to_rename = ['Facenet512', 'InsightFace', 'GhostFaceNet', 'VGG-Face']
+        for m in models_to_rename:
+            enc_path = get_encodings_path(org_id, m)
+            if os.path.exists(enc_path):
                 try:
-                    with open(file_path, 'r') as f:
-                        lines = [line.strip() for line in f.readlines() if line.strip()]
-                    updated_lines = [new_name if line == old_name else line for line in lines]
-                    with open(file_path, 'w') as f:
-                        f.write('\n'.join(updated_lines) + '\n')
-                except Exception as e:
-                    print(f"[WARNING] Failed to rename in {file_path}: {e}")
+                    with open(enc_path, "rb") as f:
+                        pickle_data = pickle.load(f)
                     
-        rename_in_class_file(os.path.join(BACKEND_DIR, 'models', 'sota_finetune', 'mobile_classes.txt'))
-        
+                    names = pickle_data.get("names", [])
+                    old_variants = {old_name.lower(), old_name.lower().replace(' ', '_'), old_name.lower().replace('_', ' ')}
+                    updated_names = [new_name if str(n).lower() in old_variants else n for n in names]
+                    pickle_data["names"] = updated_names
+                    
+                    with open(enc_path, "wb") as f:
+                        pickle.dump(pickle_data, f)
+                except Exception as e:
+                    logger.warning(f"Failed to update {m} encodings for org {org_id} on rename: {e}")
+
+        # Update in database
+        from database.db import is_db_available, get_db_session
+        from database.models import Employee
+        if is_db_available() and org_id:
+            try:
+                with get_db_session() as db:
+                    if db:
+                        emps = db.query(Employee).filter(
+                            Employee.org_id == str(org_id),
+                            (Employee.name.ilike(old_name)) | 
+                            (Employee.name.ilike(old_name.replace('_', ' '))) |
+                            (Employee.name.ilike(old_name.replace(' ', '_')))
+                        ).all()
+                        for emp in emps:
+                            emp.name = new_name.replace('_', ' ')
+                        db.commit()
+            except Exception as db_rename_err:
+                logger.warning(f"Failed to rename Employee in DB: {db_rename_err}")
+
         # Hot-reload models
-        reload_models()
+        reload_org_models(org_id)
         
-        return jsonify({'message': f"Successfully renamed '{old_name}' to '{new_name}'"})
+        return jsonify({'success': True, 'message': f"Successfully renamed '{old_name}' to '{new_name}'"})
     except Exception as e:
+        logger.error(f"Error renaming person {old_name} in org {org_id}: {e}", exc_info=True)
         return jsonify({'error': str(e)}), 500
 
 def rebuild_person_embeddings(name):
@@ -5341,7 +5471,8 @@ def _find_person_photo_dir(name, org_id=None):
 def list_person_photos(name):
     """Lists all cleaned photo details for a person."""
     name = name.strip()
-    org_id = getattr(request, 'user', {}).get('org_id') if hasattr(request, 'user') else None
+    from middleware import get_current_org_id
+    org_id = get_current_org_id()
     person_dir = _find_person_photo_dir(name, org_id)
     if not person_dir:
         # Return empty list [] with 200 OK so UI does not throw 404 errors
@@ -5373,7 +5504,8 @@ def list_person_photos(name):
 @require_auth
 def get_person_photo(name, angle, filename):
     """Serves a specific cleaned photo file."""
-    org_id = getattr(request, 'user', {}).get('org_id') if hasattr(request, 'user') else None
+    from middleware import get_current_org_id
+    org_id = get_current_org_id()
     person_dir = _find_person_photo_dir(name, org_id)
     if person_dir:
         path = os.path.join(person_dir, angle, filename)
@@ -5392,11 +5524,15 @@ def get_person_photo(name, angle, filename):
 @app.route('/api/persons/<name>/photos/<angle>/<filename>', methods=['DELETE'])
 @require_auth
 @require_role('org_admin')
-def delete_person_photo(name, angle, filename):
+@inject_org_id
+def delete_person_photo(name, angle, filename, org_id=None):
     """Deletes a photo from clean (and raw) dataset and updates DeepFace."""
     name = name.strip()
-    cleaned_file_path = os.path.join(DATASET_CLEANED_DIR, name, angle, filename)
-    raw_file_path = os.path.join(PROJECT_ROOT, 'dataset', name, angle, filename)
+    cleaned_dir = get_dataset_cleaned_dir(org_id)
+    raw_dir = get_raw_dataset_dir(org_id)
+    
+    cleaned_file_path = os.path.join(cleaned_dir, name, angle, filename)
+    raw_file_path = os.path.join(raw_dir, name, angle, filename)
     
     deleted = False
     try:
@@ -5410,11 +5546,10 @@ def delete_person_photo(name, angle, filename):
         if not deleted:
             return jsonify({'error': 'Photo not found'}), 404
             
-        # Rebuild DeepFace embeddings since a photo was deleted
-        rebuild_person_embeddings(name)
-        reload_models()
+        # Hot-reload tenant models
+        reload_org_models(org_id)
         
-        return jsonify({'message': f"Deleted photo '{filename}' and updated DeepFace."})
+        return jsonify({'message': f"Deleted photo '{filename}' successfully."})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
@@ -5427,7 +5562,7 @@ photo_move_lock = threading.Lock()
 def move_person_photo(name):
     """Moves a cleaned photo (and its raw counterpart) to a different face angle folder."""
     name = name.strip()
-    data = request.get_json() or {}
+    data = request.get_json(silent=True) or {}
     source_angle = data.get('source_angle')
     target_angle = data.get('target_angle')
     filename = data.get('filename')
@@ -5513,10 +5648,10 @@ def trigger_person_retrain(name, org_id):
         return jsonify({'error': 'Person not found'}), 404
         
     try:
-        data = request.get_json() or {}
+        data = request.get_json(silent=True) or {}
         epochs = int(data.get('epochs', 15))
         epochs = max(1, min(epochs, 50))
-    except ValueError:
+    except (ValueError, TypeError):
         epochs = 15
 
     use_celery = (deployment_mode != 'local')
@@ -5558,10 +5693,10 @@ def trigger_person_retrain(name, org_id):
 def trigger_train_all(org_id=None):
     """Triggers complete model retraining for all enrolled personnel."""
     try:
-        data = request.get_json() or {}
+        data = request.get_json(silent=True) or {}
         epochs = int(data.get('epochs', 15))
         epochs = max(1, min(epochs, 50))
-    except ValueError:
+    except (ValueError, TypeError):
         epochs = 15
 
     job_id = enqueue_local_training('__ALL__', epochs, org_id)
@@ -5681,7 +5816,7 @@ if __name__ == '__main__':
         print(f"  [INFO] Anti-spoof CNN not loaded: {e}")
     
     print(f"\n{'='*50}")
-    print(f"  RMS Face AI - API Server")
+    print(f"  AuraPass Enterprise - API Server")
     print(f"{'='*50}")
     print(f"  Local:   http://127.0.0.1:{port}")
     print(f"  Network: http://{local_ip}:{port}")

@@ -4,7 +4,7 @@ import Modal from '../components/Modal';
 import { useNavigate } from 'react-router-dom';
 import { 
   Camera, Image as ImageIcon, X, UploadCloud, CheckCircle, Video, 
-  AlertCircle, Info, Move, Trash2, Zap, Archive, Folder, Sliders, Check, RefreshCw
+  AlertCircle, Info, Move, Trash2, Zap, Archive, Folder, Sliders, Check, RefreshCw, RotateCw
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { API_BASE } from '../config';
@@ -69,6 +69,7 @@ export default function UploadPage() {
     return saved ? parseInt(saved, 10) : 15;
   });
   const [showWebcam, setShowWebcam] = useState(false);
+  const [facingMode, setFacingMode] = useState('user');
   const videoRef = useRef(null);
   const streamRef = useRef(null);
   const folderInputRef = useRef(null);
@@ -132,8 +133,9 @@ export default function UploadPage() {
   }, [mode, personName, apiClient]);
 
   // Webcam Handlers
-  const startWebcam = async () => {
+  const startWebcam = async (overrideFacing) => {
     setShowWebcam(true);
+    const targetFacing = overrideFacing || facingMode;
     try {
       if (!navigator.mediaDevices?.getUserMedia) {
         if (window.location.hostname === '13.60.225.165' || window.location.protocol === 'http:') {
@@ -145,11 +147,14 @@ export default function UploadPage() {
       let stream;
       try {
         stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } }
+          video: { facingMode: { ideal: targetFacing }, width: { ideal: 640 }, height: { ideal: 480 } }
         });
       } catch (constraintErr) {
         console.warn('Upload camera constraint fallback', constraintErr);
         stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      }
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(t => t.stop());
       }
       streamRef.current = stream;
       if (videoRef.current) {
@@ -162,6 +167,12 @@ export default function UploadPage() {
       setStatus({ type: 'error', message: `Camera error: ${err.message}` });
       setShowWebcam(false);
     }
+  };
+
+  const toggleCameraFacingMode = async () => {
+    const nextFacing = facingMode === 'user' ? 'environment' : 'user';
+    setFacingMode(nextFacing);
+    await startWebcam(nextFacing);
   };
 
   const stopWebcam = () => {
@@ -578,14 +589,14 @@ export default function UploadPage() {
         style={{ transform: 'none' }}
         className={`p-4 rounded-xl border transition-all duration-200 relative ${
           isActive 
-            ? 'border-[#60A5FA] bg-[#141516] shadow-lg shadow-[#60A5FA]/10' 
+            ? 'border-[#34D399] bg-[#141516] shadow-lg shadow-[#34D399]/10' 
             : 'border-[#23252A] bg-[#191A1B] hover:border-[#34343A]'
-        } ${dragActiveField === field ? 'border-dashed border-[#60A5FA] bg-[#2563EB]/10' : ''}`}
+        } ${dragActiveField === field ? 'border-dashed border-[#34D399] bg-[#10B981]/10' : ''}`}
       >
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
             <span className="text-caption font-semibold text-ink tracking-wide">{label}</span>
-            {isActive && <span className="w-1.5 h-1.5 rounded-full bg-[#60A5FA] animate-pulse" />}
+            {isActive && <span className="w-1.5 h-1.5 rounded-full bg-[#34D399] animate-pulse" />}
           </div>
           <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-[#101012] border border-[#23252A] text-ink-subtle">
             {totalFieldPhotos}
@@ -594,11 +605,11 @@ export default function UploadPage() {
 
         <div className="relative group">
           <label className={`flex flex-col items-center justify-center w-full h-24 border-2 border-dashed rounded-lg transition-colors cursor-pointer ${
-            dragActiveField === field ? 'border-[#60A5FA] bg-[#2563EB]/10' : 'border-[#23252A] hover:bg-[#141516] hover:border-[#34343A]'
+            dragActiveField === field ? 'border-[#34D399] bg-[#10B981]/10' : 'border-[#23252A] hover:bg-[#141516] hover:border-[#34343A]'
           }`}>
             <div className="flex flex-col items-center justify-center pt-4 pb-5 text-center">
-              <UploadCloud className={`w-6 h-6 mb-1 ${dragActiveField === field ? 'text-[#60A5FA] animate-pulse' : 'text-ink-tertiary group-hover:text-ink-subtle'}`} />
-              <p className={`text-[11px] ${dragActiveField === field ? 'text-[#60A5FA] font-semibold' : 'text-ink-tertiary group-hover:text-ink-subtle'}`}>
+              <UploadCloud className={`w-6 h-6 mb-1 ${dragActiveField === field ? 'text-[#34D399] animate-pulse' : 'text-ink-tertiary group-hover:text-ink-subtle'}`} />
+              <p className={`text-[11px] ${dragActiveField === field ? 'text-[#34D399] font-semibold' : 'text-ink-tertiary group-hover:text-ink-subtle'}`}>
                 {dragActiveField === field ? 'Drop to Add!' : 'Click or Drop file'}
               </p>
             </div>
@@ -619,7 +630,13 @@ export default function UploadPage() {
                 }}
                 className="relative group w-12 h-12 rounded-md overflow-hidden border border-[#27A644]/30 cursor-grab active:cursor-grabbing shrink-0"
               >
-                <img src={`${API_BASE.replace(/\/api$/, '')}${photo.url}?token=${sessionStorage.getItem('rms_access_token') || ''}`} alt={photo.filename} className="w-full h-full object-cover" loading="lazy" />
+                <img 
+                  src={`${API_BASE.replace(/\/api$/, '')}${photo.url}?token=${encodeURIComponent(sessionStorage.getItem('rms_access_token') || localStorage.getItem('rms_access_token') || '')}`} 
+                  alt={photo.filename} 
+                  className="w-full h-full object-cover" 
+                  loading="lazy"
+                  onError={(e) => { e.currentTarget.style.opacity = '0.4'; }}
+                />
                 <span className="absolute top-0 left-0 bg-[#27A644]/10 text-[#27A644] border border-[#27A644]/20 text-[7px] py-0 px-1 rounded-none uppercase font-mono tracking-widest font-extrabold scale-75 origin-top-left">Enrolled</span>
                 <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                   <button type="button" onClick={(e) => { e.stopPropagation(); handleDeleteExistingPhoto(photo.angle, photo.filename); }} className="p-1 bg-[#F87171]/20 text-[#F87171] rounded hover:bg-[#F87171] hover:text-white transition-colors">
@@ -641,7 +658,7 @@ export default function UploadPage() {
                 className="relative group w-12 h-12 rounded-md overflow-hidden border border-[#23252A] cursor-grab active:cursor-grabbing shrink-0"
               >
                 <img src={URL.createObjectURL(file)} alt="preview" className="w-full h-full object-cover" />
-                <span className="absolute top-0 left-0 bg-[#2563EB]/10 text-[#60A5FA] border border-[#2563EB]/20 text-[7px] py-0 px-1 rounded-none uppercase font-mono tracking-widest font-extrabold scale-75 origin-top-left">New</span>
+                <span className="absolute top-0 left-0 bg-[#10B981]/10 text-[#34D399] border border-[#10B981]/20 text-[7px] py-0 px-1 rounded-none uppercase font-mono tracking-widest font-extrabold scale-75 origin-top-left">New</span>
                 <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                   <button type="button" onClick={(e) => { e.stopPropagation(); removeFile(field, idx); }} className="p-1 bg-[#F87171]/20 text-[#F87171] rounded hover:bg-[#F87171] hover:text-white transition-colors">
                     <X className="w-3.5 h-3.5" />
@@ -657,7 +674,7 @@ export default function UploadPage() {
 
   const getAngleBadgeColor = (angle) => {
     switch (angle) {
-      case 'left': return 'bg-blue-500/10 text-blue-400 border-blue-500/30';
+      case 'left': return 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30';
       case 'right': return 'bg-amber-500/10 text-amber-400 border-amber-500/30';
       default: return 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30';
     }
@@ -683,7 +700,7 @@ export default function UploadPage() {
           onClick={() => { setUploadMethod('auto'); setStatus({ type: '', message: '' }); }}
           className={`flex items-center justify-center gap-1.5 sm:gap-2 py-2 sm:py-2.5 px-2 sm:px-3 rounded-lg text-xs sm:text-sm font-medium transition-all ${
             uploadMethod === 'auto'
-              ? 'bg-[#2563EB] text-white shadow-md font-semibold'
+              ? 'bg-[#10B981] text-white shadow-md font-semibold'
               : 'text-ink-subtle hover:text-ink hover:bg-[#1C1D1F]'
           }`}
         >
@@ -696,7 +713,7 @@ export default function UploadPage() {
           onClick={() => { setUploadMethod('bulk_zip'); setStatus({ type: '', message: '' }); }}
           className={`flex items-center justify-center gap-2 py-2 sm:py-2.5 px-2 sm:px-3 rounded-lg text-xs sm:text-sm font-medium transition-all ${
             uploadMethod === 'bulk_zip'
-              ? 'bg-[#2563EB] text-white shadow-md font-semibold'
+              ? 'bg-[#10B981] text-white shadow-md font-semibold'
               : 'text-ink-subtle hover:text-ink hover:bg-[#1C1D1F]'
           }`}
         >
@@ -709,7 +726,7 @@ export default function UploadPage() {
           onClick={() => { setUploadMethod('bulk_folder'); setStatus({ type: '', message: '' }); }}
           className={`flex items-center justify-center gap-2 py-2 sm:py-2.5 px-2 sm:px-3 rounded-lg text-xs sm:text-sm font-medium transition-all ${
             uploadMethod === 'bulk_folder'
-              ? 'bg-[#2563EB] text-white shadow-md font-semibold'
+              ? 'bg-[#10B981] text-white shadow-md font-semibold'
               : 'text-ink-subtle hover:text-ink hover:bg-[#1C1D1F]'
           }`}
         >
@@ -722,7 +739,7 @@ export default function UploadPage() {
           onClick={() => { setUploadMethod('manual'); setStatus({ type: '', message: '' }); }}
           className={`flex items-center justify-center gap-2 py-2 sm:py-2.5 px-2 sm:px-3 rounded-lg text-xs sm:text-sm font-medium transition-all ${
             uploadMethod === 'manual'
-              ? 'bg-[#2563EB] text-white shadow-md font-semibold'
+              ? 'bg-[#10B981] text-white shadow-md font-semibold'
               : 'text-ink-subtle hover:text-ink hover:bg-[#1C1D1F]'
           }`}
         >
@@ -738,7 +755,7 @@ export default function UploadPage() {
             <div className={`p-4 rounded-xl flex items-center gap-3 text-sm border shadow-lg ${
               status.type === 'error' ? 'bg-[#F87171]/10 border-[#F87171]/30 text-[#F87171]' : 
               status.type === 'success' ? 'bg-[#27A644]/10 border-[#27A644]/30 text-[#27A644]' : 
-              'bg-[#2563EB]/10 border-[#2563EB]/30 text-[#60A5FA]'
+              'bg-[#10B981]/10 border-[#10B981]/30 text-[#34D399]'
             }`}>
               {status.type === 'error' && <AlertCircle className="w-5 h-5 shrink-0" />}
               {status.type === 'success' && <CheckCircle className="w-5 h-5 shrink-0" />}
@@ -783,7 +800,7 @@ export default function UploadPage() {
                     onFocus={() => setShowDropdown(true)}
                     onBlur={() => setTimeout(() => setShowDropdown(false), 200)}
                     placeholder="e.g. John_Doe, Vatsal_Vadgama"
-                    className="input-linear w-full bg-[#101012] border border-[#23252A] text-ink placeholder:text-ink-tertiary focus:border-[#2563EB] focus:outline-none"
+                    className="input-linear w-full bg-[#101012] border border-[#23252A] text-ink placeholder:text-ink-tertiary focus:border-[#10B981] focus:outline-none"
                   />
                   {showDropdown && searchQuery && (
                     <div className="absolute z-20 left-0 right-0 mt-1 bg-[#191A1B] border border-[#23252A] rounded-lg shadow-xl max-h-48 overflow-y-auto">
@@ -812,7 +829,7 @@ export default function UploadPage() {
                 <select
                   value={department}
                   onChange={(e) => setDepartment(e.target.value)}
-                  className="input-linear w-full bg-[#101012] border border-[#23252A] text-ink text-sm rounded-lg h-10 px-3 focus:border-[#2563EB] focus:outline-none"
+                  className="input-linear w-full bg-[#101012] border border-[#23252A] text-ink text-sm rounded-lg h-10 px-3 focus:border-[#10B981] focus:outline-none"
                 >
                   <option value="Engineering">Engineering</option>
                   <option value="AI Research">AI Research</option>
@@ -836,7 +853,7 @@ export default function UploadPage() {
                   max="50"
                   value={epochs}
                   onChange={(e) => setEpochs(parseInt(e.target.value, 10))}
-                  className="w-full h-1.5 bg-[#23252A] rounded-lg appearance-none cursor-pointer accent-[#2563EB]"
+                  className="w-full h-1.5 bg-[#23252A] rounded-lg appearance-none cursor-pointer accent-[#10B981]"
                 />
                 <p className="text-[11px] text-ink-tertiary">15 epochs recommended for optimal balance.</p>
               </div>
@@ -845,7 +862,7 @@ export default function UploadPage() {
             {/* Camera Toggle */}
             <div className="flex items-center justify-between pt-4 border-t border-[#23252A]">
               <span className="text-sm font-medium text-ink">Capture via Camera</span>
-              <button type="button" onClick={showWebcam ? stopWebcam : startWebcam} className="button-secondary flex items-center gap-2">
+              <button type="button" onClick={showWebcam ? stopWebcam : () => startWebcam()} className="button-secondary flex items-center gap-2">
                 <Video className="w-4 h-4" />
                 <span>{showWebcam ? 'Stop Camera' : 'Start Camera'}</span>
               </button>
@@ -854,9 +871,13 @@ export default function UploadPage() {
             {showWebcam && (
               <div className="bg-black rounded-xl overflow-hidden border border-[#23252A] relative">
                 <video ref={videoRef} autoPlay playsInline muted className="w-full h-auto max-h-[360px] object-cover" />
-                <div className="absolute bottom-4 left-0 right-0 flex justify-center">
+                <div className="absolute bottom-4 left-0 right-0 flex items-center justify-center gap-3">
                   <button type="button" onClick={captureWebcam} className="bg-white text-black rounded-full h-12 w-12 shadow-lg hover:scale-105 transition-transform flex items-center justify-center p-0">
                     <Camera className="w-5 h-5 text-black" />
+                  </button>
+                  <button type="button" onClick={toggleCameraFacingMode} className="bg-black/80 text-white rounded-full h-10 px-3.5 border border-[#23252A] shadow-lg hover:border-emerald-500/50 transition-colors flex items-center gap-1.5 text-xs">
+                    <RotateCw className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>Flip ({facingMode === 'user' ? 'Front' : 'Back'})</span>
                   </button>
                 </div>
               </div>
@@ -875,11 +896,11 @@ export default function UploadPage() {
                 if (e.dataTransfer.files?.length > 0) handleAutoFiles(e.dataTransfer.files);
               }}
               className={`p-8 border-2 border-dashed rounded-xl text-center transition-all cursor-pointer ${
-                autoDragActive ? 'border-[#2563EB] bg-[#2563EB]/10 scale-[1.01]' : 'border-[#23252A] hover:border-[#3E424A] bg-[#141516]/60'
+                autoDragActive ? 'border-[#10B981] bg-[#10B981]/10 scale-[1.01]' : 'border-[#23252A] hover:border-[#3E424A] bg-[#141516]/60'
               }`}
             >
               <label className="cursor-pointer block">
-                <UploadCloud className={`w-12 h-12 mx-auto mb-3 transition-colors ${autoDragActive ? 'text-[#3B82F6] animate-pulse' : 'text-ink-tertiary'}`} />
+                <UploadCloud className={`w-12 h-12 mx-auto mb-3 transition-colors ${autoDragActive ? 'text-[#10B981] animate-pulse' : 'text-ink-tertiary'}`} />
                 <p className="text-sm font-medium text-ink">
                   {autoDragActive ? 'Drop all photos here now!' : 'Drop all photos for this person here, or click to browse'}
                 </p>
@@ -905,7 +926,7 @@ export default function UploadPage() {
                     <span className="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
                       Frontal: {autoPhotos.filter(p => p.angle === 'frontal').length}
                     </span>
-                    <span className="px-2 py-0.5 rounded bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                    <span className="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
                       Left: {autoPhotos.filter(p => p.angle === 'left').length}
                     </span>
                     <span className="px-2 py-0.5 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20">
@@ -976,7 +997,7 @@ export default function UploadPage() {
             {/* Explainer card */}
             <div className="p-4 rounded-xl bg-[#141516] border border-[#23252A] space-y-2">
               <div className="flex items-center gap-2 text-sm font-semibold text-ink">
-                <Archive className="w-4 h-4 text-[#60A5FA]" />
+                <Archive className="w-4 h-4 text-[#34D399]" />
                 <span>Multi-Personnel ZIP Batch Upload</span>
               </div>
               <p className="text-caption text-ink-subtle">
@@ -989,7 +1010,7 @@ export default function UploadPage() {
             {/* ZIP Drag & Drop zone */}
             <div
               onClick={() => zipInputRef.current?.click()}
-              className="p-8 border-2 border-dashed border-[#23252A] hover:border-[#60A5FA] rounded-xl text-center bg-[#141516]/60 cursor-pointer transition-all"
+              className="p-8 border-2 border-dashed border-[#23252A] hover:border-[#34D399] rounded-xl text-center bg-[#141516]/60 cursor-pointer transition-all"
             >
               <input
                 ref={zipInputRef}
@@ -998,7 +1019,7 @@ export default function UploadPage() {
                 className="hidden"
                 onChange={handleZipFileChange}
               />
-              <Archive className="w-12 h-12 text-[#60A5FA] mx-auto mb-3" />
+              <Archive className="w-12 h-12 text-[#34D399] mx-auto mb-3" />
               {zipFile ? (
                 <div>
                   <p className="text-base font-semibold text-ink">{zipFile.name}</p>
@@ -1026,7 +1047,7 @@ export default function UploadPage() {
                 max="50"
                 value={epochs}
                 onChange={(e) => setEpochs(parseInt(e.target.value, 10))}
-                className="w-full h-1.5 bg-[#23252A] rounded-lg appearance-none cursor-pointer accent-[#2563EB]"
+                className="w-full h-1.5 bg-[#23252A] rounded-lg appearance-none cursor-pointer accent-[#10B981]"
               />
             </div>
 
@@ -1038,7 +1059,7 @@ export default function UploadPage() {
                   <span className="font-mono">{zipProgress}%</span>
                 </div>
                 <div className="w-full h-2 bg-[#23252A] rounded-full overflow-hidden">
-                  <div className="h-full bg-[#2563EB] transition-all duration-300" style={{ width: `${zipProgress}%` }} />
+                  <div className="h-full bg-[#10B981] transition-all duration-300" style={{ width: `${zipProgress}%` }} />
                 </div>
               </div>
             )}
@@ -1108,7 +1129,7 @@ export default function UploadPage() {
               <span>Direct Multi-Personnel Directory Picker</span>
             </div>
             <p className="text-caption text-ink-subtle">
-              Pick a parent folder containing subfolders for each employee from your computer. RMS inspects the structure client-side, lets you verify names, and automatically uploads each subject with angle estimation.
+              Pick a parent folder containing subfolders for each employee from your computer. AuraPass™ inspects the structure client-side, lets you verify names, and automatically uploads each subject with angle estimation.
             </p>
           </div>
 
@@ -1165,7 +1186,7 @@ export default function UploadPage() {
                         checked={person.selected}
                         onChange={() => toggleFolderPerson(idx)}
                         disabled={isFolderSubmitting}
-                        className="rounded border-[#23252A] text-[#2563EB] focus:ring-0"
+                        className="rounded border-[#23252A] text-[#10B981] focus:ring-0"
                       />
                       {person.previewUrl && (
                         <img src={person.previewUrl} alt={person.name} className="w-10 h-10 rounded-md object-cover border border-[#23252A]" />
@@ -1175,7 +1196,7 @@ export default function UploadPage() {
                         value={person.name}
                         onChange={(e) => updateFolderPersonName(idx, e.target.value)}
                         disabled={isFolderSubmitting}
-                        className="bg-transparent border-b border-transparent hover:border-[#3E424A] focus:border-[#60A5FA] text-sm text-ink px-1 py-0.5 font-mono"
+                        className="bg-transparent border-b border-transparent hover:border-[#3E424A] focus:border-[#34D399] text-sm text-ink px-1 py-0.5 font-mono"
                       />
                     </div>
 
@@ -1185,7 +1206,7 @@ export default function UploadPage() {
                       </span>
                       {person.status === 'success' && <span className="text-emerald-400 font-semibold flex items-center gap-1"><Check className="w-3.5 h-3.5" /> Done</span>}
                       {person.status === 'error' && <span className="text-red-400 font-semibold">Failed</span>}
-                      {person.status === 'uploading' && <span className="text-[#60A5FA] animate-pulse">Uploading...</span>}
+                      {person.status === 'uploading' && <span className="text-[#34D399] animate-pulse">Uploading...</span>}
                       {person.status === 'pending' && <span className="text-ink-tertiary">Ready</span>}
                     </div>
                   </div>
@@ -1237,7 +1258,7 @@ export default function UploadPage() {
                     onFocus={() => setShowDropdown(true)}
                     onBlur={() => setTimeout(() => setShowDropdown(false), 200)}
                     placeholder="e.g. John_Doe, Vatsal_Vadgama"
-                    className="input-linear w-full bg-[#101012] border border-[#23252A] text-ink placeholder:text-ink-tertiary focus:border-[#2563EB] focus:outline-none"
+                    className="input-linear w-full bg-[#101012] border border-[#23252A] text-ink placeholder:text-ink-tertiary focus:border-[#10B981] focus:outline-none"
                   />
                   {showDropdown && searchQuery && (
                     <div className="absolute z-20 left-0 right-0 mt-1 bg-[#191A1B] border border-[#23252A] rounded-lg shadow-xl max-h-48 overflow-y-auto">
@@ -1265,7 +1286,7 @@ export default function UploadPage() {
                 <select
                   value={department}
                   onChange={(e) => setDepartment(e.target.value)}
-                  className="input-linear w-full bg-[#101012] border border-[#23252A] text-ink text-sm rounded-lg h-10 px-3 focus:border-[#2563EB] focus:outline-none"
+                  className="input-linear w-full bg-[#101012] border border-[#23252A] text-ink text-sm rounded-lg h-10 px-3 focus:border-[#10B981] focus:outline-none"
                 >
                   <option value="Engineering">Engineering</option>
                   <option value="AI Research">AI Research</option>
@@ -1288,7 +1309,7 @@ export default function UploadPage() {
                   max="50"
                   value={epochs}
                   onChange={(e) => setEpochs(parseInt(e.target.value, 10))}
-                  className="w-full h-2 bg-[#23252A] rounded-lg appearance-none cursor-pointer accent-[#2563EB]"
+                  className="w-full h-2 bg-[#23252A] rounded-lg appearance-none cursor-pointer accent-[#10B981]"
                 />
                 <p className="text-[11px] text-ink-tertiary">Higher epochs = better accuracy but slower training.</p>
               </div>
@@ -1297,7 +1318,7 @@ export default function UploadPage() {
             <div className="space-y-4 pt-4 border-t border-[#23252A]">
               <div className="flex items-center justify-between">
                 <label className="text-body font-medium text-ink">Capture Options</label>
-                <button type="button" onClick={showWebcam ? stopWebcam : startWebcam} className="button-secondary flex items-center gap-2">
+                <button type="button" onClick={showWebcam ? stopWebcam : () => startWebcam()} className="button-secondary flex items-center gap-2">
                   <Video className="w-4 h-4" />
                   <span className="text-button">{showWebcam ? 'Stop Camera' : 'Start Camera'}</span>
                 </button>
@@ -1306,9 +1327,13 @@ export default function UploadPage() {
               {showWebcam && (
                 <div className="bg-black rounded-lg overflow-hidden border border-[#23252A] shadow-2xl relative">
                   <video ref={videoRef} autoPlay playsInline muted className="w-full h-auto max-h-[500px] object-cover" />
-                  <div className="absolute bottom-4 left-0 right-0 flex justify-center">
+                  <div className="absolute bottom-4 left-0 right-0 flex items-center justify-center gap-3">
                     <button type="button" onClick={captureWebcam} className="bg-white text-black rounded-full h-12 w-12 shadow-lg hover:scale-105 transition-transform flex items-center justify-center p-0">
                       <Camera className="w-5 h-5 text-black" />
+                    </button>
+                    <button type="button" onClick={toggleCameraFacingMode} className="bg-black/80 text-white rounded-full h-10 px-3.5 border border-[#23252A] shadow-lg hover:border-emerald-500/50 transition-colors flex items-center gap-1.5 text-xs">
+                      <RotateCw className="w-3.5 h-3.5 text-emerald-400" />
+                      <span>Flip ({facingMode === 'user' ? 'Front' : 'Back'})</span>
                     </button>
                   </div>
                 </div>

@@ -66,7 +66,7 @@ export default function BentoGrid() {
     <section id="features" className="py-20 px-4 sm:px-6 border-t border-zinc-800/80 bg-[#07090E]">
       <div className="max-w-6xl mx-auto">
         <div className="text-center mb-14">
-          <p className="text-xs font-semibold uppercase tracking-wider text-blue-400 mb-2">
+          <p className="text-xs font-semibold uppercase tracking-wider text-emerald-400 mb-2">
             System Architecture
           </p>
           <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-white">
@@ -82,7 +82,7 @@ export default function BentoGrid() {
           {CAPABILITIES.map((group, gIdx) => (
             <div key={gIdx} className="space-y-3">
               <div className="flex items-center gap-2 text-xs font-mono font-semibold uppercase tracking-wider text-zinc-400">
-                <Layers className="w-3.5 h-3.5 text-blue-400" />
+                <Layers className="w-3.5 h-3.5 text-emerald-400" />
                 <span>{group.category}</span>
               </div>
 
@@ -94,7 +94,7 @@ export default function BentoGrid() {
                   >
                     <div>
                       <div className="flex items-center justify-between mb-4">
-                        <div className="w-8 h-8 rounded-md bg-blue-500/10 border border-blue-500/20 text-blue-400 flex items-center justify-center">
+                        <div className="w-8 h-8 rounded-md bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center">
                           <item.icon className="w-4 h-4" />
                         </div>
                         <span className="px-2 py-0.5 rounded text-[10px] font-mono font-medium bg-zinc-900 text-zinc-300 border border-zinc-800">
@@ -112,7 +112,7 @@ export default function BentoGrid() {
 
                     <div className="mt-5 pt-3.5 border-t border-zinc-900 flex items-center justify-between text-[11px] font-mono text-zinc-500">
                       <span>Specification</span>
-                      <span className="text-blue-400 font-medium">{item.spec}</span>
+                      <span className="text-emerald-400 font-medium">{item.spec}</span>
                     </div>
                   </div>
                 ))}

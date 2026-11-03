@@ -76,3 +76,6 @@ backend/data/label_map.json
 backend/data/recognition_history.json
 backend/data/orgs/
 backend/tests/data/
+
+# Playwright artifacts
+.playwright-mcp/

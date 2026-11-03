@@ -10,7 +10,7 @@ export default function FinalCta() {
     <section className="py-20 px-4 sm:px-6 border-t border-zinc-800/80 bg-[#07090E]">
       <div className="max-w-4xl mx-auto">
         <div className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-8 sm:p-12 text-center">
-          <p className="text-xs font-semibold uppercase tracking-wider text-blue-400 mb-2">
+          <p className="text-xs font-semibold uppercase tracking-wider text-emerald-400 mb-2">
             Enterprise Deployment
           </p>
           <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-white mb-3">

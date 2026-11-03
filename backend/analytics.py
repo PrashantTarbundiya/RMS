@@ -465,7 +465,7 @@ def generate_pdf_report(org_id, start_date=None, end_date=None,
     gen_time = report_data.get('generated_at', '')[:19].replace('T', ' ')
     date_str = f"Date Range: {start_date.strftime('%Y-%m-%d') if start_date else 'All Time'} to {end_date.strftime('%Y-%m-%d') if end_date else 'Present'}"
 
-    elements.append(Paragraph(f"RMS Face AI — Executive Analytics Report", title_style))
+    elements.append(Paragraph(f"AuraPass™ Enterprise — Executive Analytics Report", title_style))
     elements.append(Paragraph(f"Organization: <b>{org_name}</b> | Generated: {gen_time} | {date_str}", subtitle_style))
     elements.append(Spacer(1, 10))
 
@@ -483,7 +483,7 @@ def generate_pdf_report(org_id, start_date=None, end_date=None,
 
     t_overview = Table(overview_data, colWidths=[270, 270])
     t_overview.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#2563EB')),
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#059669')),
         ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
         ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
@@ -562,7 +562,7 @@ def generate_pdf_report(org_id, start_date=None, end_date=None,
         canvas.saveState()
         canvas.setFont('Helvetica', 8)
         canvas.setFillColor(colors.HexColor('#94A3B8'))
-        canvas.drawString(36, 20, f"RMS Face AI Platform — Confidential")
+        canvas.drawString(36, 20, f"AuraPass™ Enterprise Platform — Confidential")
         canvas.drawRightString(576, 20, f"Page {doc.page}")
         canvas.restoreState()
 

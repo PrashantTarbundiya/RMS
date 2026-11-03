@@ -20,7 +20,7 @@ CONFIG_PATH = os.path.join(BACKEND_DIR, 'data', 'config.json')
 _config_lock = threading.Lock()
 
 DEFAULT_CONFIG = {
-    "CONFIRM_THRESHOLD": 0.70,
+    "CONFIRM_THRESHOLD": 0.32,
     "ENABLE_FACENET512": True,
     "ENABLE_INSIGHTFACE": True,
     "ENABLE_GHOSTFACENET": False,  # Disabled by default due to high error rate

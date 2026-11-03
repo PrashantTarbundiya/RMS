@@ -3,7 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { API_BASE } from '../config';
 import { io } from 'socket.io-client';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Shield, ShieldCheck, ShieldAlert, ShieldX, Scan, Wifi, WifiOff, Clock, ChevronLeft, Settings, Maximize, Minimize, Eye, Volume2, Users } from 'lucide-react';
+import { Shield, ShieldCheck, ShieldAlert, ShieldX, Scan, Wifi, WifiOff, Clock, ChevronLeft, Settings, Maximize, Minimize, Eye, Volume2, Users, RotateCw } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { formatPersonName } from '../utils/format';
 
@@ -44,6 +44,7 @@ export default function KioskPage() {
   const [consecutiveUnknowns, setConsecutiveUnknowns] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
   const [facesDetected, setFacesDetected] = useState(0);
+  const [facingMode, setFacingMode] = useState('user');
 
   // Dynamic user threshold (Default: 70%)
   const [kioskThreshold, setKioskThreshold] = useState(() => {
@@ -106,9 +107,10 @@ export default function KioskPage() {
   }, []);
 
   // ─── Webcam Management ─────────────────────────────────────────
-  const startWebcam = useCallback(async () => {
+  const startWebcam = useCallback(async (overrideFacing) => {
     setWebcamError('');
     setWebcamReady(false);
+    const targetFacing = overrideFacing || facingMode;
     try {
       if (!navigator.mediaDevices?.getUserMedia) {
         const isHttpOrRawIp = window.location.hostname === '13.60.225.165' || 
@@ -124,11 +126,14 @@ export default function KioskPage() {
       let stream;
       try {
         stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } }
+          video: { facingMode: { ideal: targetFacing }, width: { ideal: 1280 }, height: { ideal: 720 } }
         });
       } catch (constraintErr) {
         console.warn('Kiosk ideal constraints failed, falling back to video: true', constraintErr);
         stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      }
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(t => t.stop());
       }
       streamRef.current = stream;
       if (videoRef.current) {
@@ -145,7 +150,13 @@ export default function KioskPage() {
       else if (err.name === 'NotFoundError') setWebcamError('No camera device found on this phone/computer');
       else setWebcamError(`Camera error: ${err.message}`);
     }
-  }, []);
+  }, [facingMode]);
+
+  const toggleCameraFacingMode = useCallback(async () => {
+    const nextFacing = facingMode === 'user' ? 'environment' : 'user';
+    setFacingMode(nextFacing);
+    await startWebcam(nextFacing);
+  }, [facingMode, startWebcam]);
 
   const stopWebcam = useCallback(() => {
     if (videoRef.current) {
@@ -554,60 +565,60 @@ export default function KioskPage() {
   // ─── Derived UI State ──────────────────────────────────────────
   const statusConfig = useMemo(() => ({
     [STATUS.IDLE]: {
-      borderColor: 'var(--accent-primary)',
-      glowColor: 'rgba(37, 99, 235, 0.15)',
-      icon: <Scan size={28} />,
+      borderColor: '#10B981',
+      glowColor: 'rgba(16, 185, 129, 0.20)',
+      icon: <Scan size={28} className="text-emerald-400" />,
       label: 'Step forward to begin',
       sublabel: 'Face authentication system',
-      bgGradient: 'radial-gradient(ellipse at center, rgba(37, 99, 235,0.06) 0%, transparent 70%)',
+      bgGradient: 'radial-gradient(circle at center, rgba(16, 185, 129, 0.04) 0%, transparent 70%)',
     },
     [STATUS.SCANNING]: {
-      borderColor: 'var(--accent-primary)',
-      glowColor: 'rgba(37, 99, 235, 0.25)',
-      icon: <Eye size={28} className="kiosk-pulse" />,
+      borderColor: '#10B981',
+      glowColor: 'rgba(16, 185, 129, 0.30)',
+      icon: <Eye size={28} className="kiosk-pulse text-emerald-400" />,
       label: 'Scanning...',
       sublabel: 'Hold steady, looking at the camera',
-      bgGradient: 'radial-gradient(ellipse at center, rgba(37, 99, 235,0.08) 0%, transparent 70%)',
+      bgGradient: 'radial-gradient(circle at center, rgba(16, 185, 129, 0.06) 0%, transparent 70%)',
     },
     [STATUS.VERIFYING]: {
-      borderColor: '#38bdf8',
-      glowColor: 'rgba(56, 189, 248, 0.28)',
-      icon: <Scan size={30} className="kiosk-pulse text-sky-400" />,
+      borderColor: '#34D399',
+      glowColor: 'rgba(52, 211, 153, 0.32)',
+      icon: <Scan size={30} className="kiosk-pulse text-emerald-300" />,
       label: `Verifying: ${recognizedName}...`,
       sublabel: `Confirming consistency • ${confidence}%`,
-      bgGradient: 'radial-gradient(ellipse at center, rgba(56,189,248,0.10) 0%, transparent 70%)',
+      bgGradient: 'radial-gradient(circle at center, rgba(52, 211, 153, 0.08) 0%, transparent 70%)',
     },
     [STATUS.GRANTED]: {
-      borderColor: '#22c55e',
-      glowColor: 'rgba(34, 197, 94, 0.3)',
-      icon: <ShieldCheck size={32} />,
+      borderColor: '#10B981',
+      glowColor: 'rgba(16, 185, 129, 0.40)',
+      icon: <ShieldCheck size={32} className="text-emerald-400" />,
       label: `Welcome, ${recognizedName}`,
       sublabel: `Access Granted • ${confidence}% confidence`,
-      bgGradient: 'radial-gradient(ellipse at center, rgba(34,197,94,0.10) 0%, transparent 70%)',
+      bgGradient: 'radial-gradient(circle at center, rgba(16, 185, 129, 0.10) 0%, transparent 70%)',
     },
     [STATUS.DENIED]: {
       borderColor: '#ef4444',
       glowColor: 'rgba(239, 68, 68, 0.25)',
-      icon: <ShieldAlert size={32} />,
+      icon: <ShieldAlert size={32} className="text-red-400" />,
       label: 'Access Denied',
       sublabel: 'Face not recognized in system',
-      bgGradient: 'radial-gradient(ellipse at center, rgba(239,68,68,0.08) 0%, transparent 70%)',
+      bgGradient: 'radial-gradient(circle at center, rgba(239, 68, 68, 0.08) 0%, transparent 70%)',
     },
     [STATUS.SPOOF]: {
-      borderColor: '#f97316',
-      glowColor: 'rgba(249, 115, 22, 0.3)',
-      icon: <ShieldX size={32} />,
+      borderColor: '#f59e0b',
+      glowColor: 'rgba(245, 158, 11, 0.30)',
+      icon: <ShieldX size={32} className="text-amber-400" />,
       label: 'Spoof Detected',
       sublabel: 'Liveness check failed - use real face',
-      bgGradient: 'radial-gradient(ellipse at center, rgba(249,115,22,0.08) 0%, transparent 70%)',
+      bgGradient: 'radial-gradient(circle at center, rgba(245, 158, 11, 0.08) 0%, transparent 70%)',
     },
     [STATUS.ERROR]: {
       borderColor: '#f87171',
       glowColor: 'rgba(248, 113, 113, 0.2)',
-      icon: <ShieldAlert size={28} />,
+      icon: <ShieldAlert size={28} className="text-red-400" />,
       label: 'System Error',
       sublabel: 'Please try again or contact support',
-      bgGradient: 'radial-gradient(ellipse at center, rgba(248,113,113,0.06) 0%, transparent 70%)',
+      bgGradient: 'radial-gradient(circle at center, rgba(248, 113, 113, 0.06) 0%, transparent 70%)',
     },
   }), [recognizedName, confidence]);
 
@@ -619,9 +630,6 @@ export default function KioskPage() {
 
   return (
     <div ref={containerRef} className="kiosk-container" style={{ background: cfg.bgGradient }}>
-      {/* ─── Ambient Glow Layer ─────────────────────────────── */}
-      <div className="kiosk-ambient-glow" style={{ boxShadow: `0 0 120px 40px ${cfg.glowColor}` }} />
-
       {/* ─── Top Bar ───────────────────────────────────────── */}
       <header className="kiosk-header">
         <div className="kiosk-header-left">
@@ -631,9 +639,9 @@ export default function KioskPage() {
           </Link>
           <div className="kiosk-brand">
             <div className="kiosk-brand-icon">
-              <span>R</span>
+              <span>A</span>
             </div>
-            <span className="kiosk-brand-text">RMS Kiosk</span>
+            <span className="kiosk-brand-text">AuraPass™ Kiosk</span>
           </div>
         </div>
         <div className="kiosk-header-center flex items-center gap-2">
@@ -687,7 +695,15 @@ export default function KioskPage() {
             title="Kiosk Settings"
             aria-label="Kiosk Settings"
           >
-            <Settings size={16} className={showSettings ? 'text-[#60A5FA]' : ''} />
+            <Settings size={16} className={showSettings ? 'text-emerald-400' : ''} />
+          </button>
+          <button 
+            onClick={toggleCameraFacingMode} 
+            className="kiosk-icon-btn" 
+            title={`Switch Camera (Current: ${facingMode === 'user' ? 'Front' : 'Back'})`}
+            aria-label="Toggle Camera"
+          >
+            <RotateCw size={16} className="text-emerald-400" />
           </button>
           <button onClick={toggleFullscreen} className="kiosk-icon-btn" title={isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}>
             {isFullscreen ? <Minimize size={16} /> : <Maximize size={16} />}
@@ -747,6 +763,14 @@ export default function KioskPage() {
       <main className="kiosk-main">
         {/* Camera Viewport */}
         <div className="kiosk-viewport-wrapper">
+          {/* Centered Ambient Glow / Circle directly behind the camera viewport */}
+          <div 
+            className="kiosk-ambient-glow" 
+            style={{ 
+              boxShadow: `0 0 160px 70px ${cfg.glowColor}`,
+              background: cfg.glowColor 
+            }} 
+          />
           <div className="kiosk-viewport" style={{ '--kiosk-border-color': cfg.borderColor, '--kiosk-glow': cfg.glowColor }}>
             {/* Corner Reticle Brackets */}
             <div className="kiosk-reticle kiosk-reticle-tl" />
@@ -777,7 +801,7 @@ export default function KioskPage() {
                   {(window.location.hostname === '13.60.225.165' || window.location.protocol === 'http:') && (
                     <a 
                       href={`https://13-60-225-165.sslip.io${window.location.pathname}${window.location.search}`}
-                      className="button-primary bg-[#2563EB] hover:bg-[#1D4ED8] text-white px-4 py-2 rounded-lg text-xs font-medium"
+                      className="button-primary bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-lg text-xs font-medium"
                     >
                       Switch to Secure Domain (Camera Ready)
                     </a>
@@ -834,7 +858,7 @@ export default function KioskPage() {
                     </p>
                     {status === STATUS.GRANTED && (
                       <div className="flex items-center gap-2 mt-1">
-                        <span className="text-[11px] font-medium px-2.5 py-0.5 rounded bg-blue-500/15 text-blue-400 border border-blue-500/30">
+                        <span className="text-[11px] font-medium px-2.5 py-0.5 rounded bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
                           {attendanceEvent?.department || 'General'}
                         </span>
                         {attendanceEvent?.status_label && (
@@ -986,29 +1010,29 @@ export default function KioskPage() {
                   const logTime = log.time instanceof Date ? log.time : new Date(log.time || Date.now());
                   const isCheckOut = log.event_type === 'check_out';
                   return (
-                    <li key={i} className="flex items-center justify-between py-1.5 border-b border-[#23252A]/40 last:border-b-0">
-                      <div className="flex items-center gap-2 min-w-0">
+                    <li key={i} className="flex items-center justify-between py-1.5 pr-2.5 border-b border-[#23252A]/40 last:border-b-0">
+                      <div className="flex items-center gap-2 min-w-0 pr-2">
                         <span className={`w-2 h-2 rounded-full shrink-0 ${
-                          !log.granted ? 'bg-red-500' : (isCheckOut ? 'bg-blue-400' : 'bg-emerald-400')
+                          !log.granted ? 'bg-red-500' : (isCheckOut ? 'bg-teal-400' : 'bg-emerald-400')
                         }`} />
                         <div className="min-w-0">
-                          <div className="text-xs font-medium text-ink truncate">{log.name}</div>
-                          <div className="flex items-center gap-1.5 text-[10px] text-ink-tertiary">
-                            <span>{log.department || 'General'}</span>
+                          <div className="text-xs font-medium text-ink truncate max-w-[125px]">{log.name}</div>
+                          <div className="flex items-center gap-1 text-[10px] text-ink-tertiary">
+                            <span className="truncate max-w-[70px]">{log.department || 'General'}</span>
                             <span>•</span>
-                            <span className={isCheckOut ? 'text-blue-400' : 'text-emerald-400'}>
+                            <span className={isCheckOut ? 'text-teal-400 font-medium' : 'text-emerald-400 font-medium'}>
                               {isCheckOut ? 'Exit' : 'Entry'}
                             </span>
                           </div>
                         </div>
                       </div>
-                      <div className="text-right shrink-0">
+                      <div className="text-right shrink-0 min-w-[56px]">
                         <div className="text-[11px] font-mono text-ink-subtle">
                           {isNaN(logTime.getTime()) ? '' : logTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })}
                         </div>
                         {log.status_label && (
-                          <div className={`text-[9px] ${
-                            log.status_label.includes('Late') ? 'text-amber-400' : (isCheckOut ? 'text-blue-400' : 'text-emerald-400')
+                          <div className={`text-[9px] font-medium leading-none mt-0.5 ${
+                            log.status_label.includes('Late') ? 'text-amber-400' : (isCheckOut ? 'text-teal-400' : 'text-emerald-400')
                           }`}>
                             {log.status_label}
                           </div>
@@ -1040,7 +1064,7 @@ export default function KioskPage() {
 
       {/* ─── Bottom Bar ────────────────────────────────────── */}
       <footer className="kiosk-footer">
-        <span className="kiosk-footer-text">RMS Face AI • Biometric Authentication</span>
+        <span className="kiosk-footer-text">AuraPass™ Enterprise • Biometric Authentication</span>
         <span className="kiosk-footer-text kiosk-footer-version">v2.0 Kiosk Mode</span>
       </footer>
     </div>

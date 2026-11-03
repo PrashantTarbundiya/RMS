@@ -1,6 +1,6 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { Camera, Image as ImageIcon, Video, Maximize, Play, X, AlertCircle, ThumbsUp, ThumbsDown, Check, Loader2, UploadCloud, Sliders, ShieldAlert, Copy } from 'lucide-react';
+import { Camera, Image as ImageIcon, Video, Maximize, Play, X, AlertCircle, ThumbsUp, ThumbsDown, Check, Loader2, UploadCloud, Sliders, ShieldAlert, Copy, RotateCw } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { API_BASE } from '../config';
 import { io } from 'socket.io-client';
@@ -24,6 +24,7 @@ export default function TestPage() {
   });
   const [webcamError, setWebcamError] = useState('');
   const [webcamReady, setWebcamReady] = useState(false);
+  const [facingMode, setFacingMode] = useState('user');
   const [isDragActive, setIsDragActive] = useState(false);
   const [feedbackState, setFeedbackState] = useState({}); // track feedback status per prediction_id
   const [personsList, setPersonsList] = useState([]);
@@ -149,9 +150,10 @@ export default function TestPage() {
     }
   };
 
-  const startWebcam = useCallback(async () => {
+  const startWebcam = useCallback(async (overrideFacing) => {
     setWebcamError('');
     setWebcamReady(false);
+    const targetFacing = overrideFacing || facingMode;
     
     try {
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
@@ -174,13 +176,16 @@ export default function TestPage() {
       let stream;
       try {
         stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } }
+          video: { facingMode: { ideal: targetFacing }, width: { ideal: 640 }, height: { ideal: 480 } }
         });
       } catch (constraintErr) {
         console.warn('Initial webcam constraints failed, falling back to video: true', constraintErr);
         stream = await navigator.mediaDevices.getUserMedia({ video: true });
       }
       
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(t => t.stop());
+      }
       streamRef.current = stream;
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
@@ -195,7 +200,13 @@ export default function TestPage() {
       else if (err.name === 'NotFoundError') setWebcamError('No camera device found on this device.');
       else setWebcamError(`Camera error: ${err.message}`);
     }
-  }, []);
+  }, [facingMode]);
+
+  const toggleCameraFacingMode = useCallback(async () => {
+    const nextFacing = facingMode === 'user' ? 'environment' : 'user';
+    setFacingMode(nextFacing);
+    await startWebcam(nextFacing);
+  }, [facingMode, startWebcam]);
 
   const stopWebcam = useCallback(() => {
     if (streamRef.current) {
@@ -733,7 +744,7 @@ export default function TestPage() {
                   type="radio" name="feedbackIdentityType" value="existing" 
                   checked={feedbackIdentityType === 'existing'} 
                   onChange={() => setFeedbackIdentityType('existing')}
-                  className="accent-[#2563EB]"
+                  className="accent-emerald-500"
                 />
                 <span>Existing Person</span>
               </label>
@@ -742,7 +753,7 @@ export default function TestPage() {
                   type="radio" name="feedbackIdentityType" value="new" 
                   checked={feedbackIdentityType === 'new'} 
                   onChange={() => setFeedbackIdentityType('new')}
-                  className="accent-[#2563EB]"
+                  className="accent-emerald-500"
                 />
                 <span>New Person</span>
               </label>
@@ -776,7 +787,7 @@ export default function TestPage() {
                             setFeedbackSearchQuery(formatPersonName(p));
                             setFeedbackShowDropdown(false);
                           }}
-                          className="w-full text-left px-3 py-2 text-caption text-ink-muted hover:bg-[#2563EB]/10 hover:text-ink transition-colors font-mono border-b border-[#23252A]/30 last:border-b-0"
+                          className="w-full text-left px-3 py-2 text-caption text-ink-muted hover:bg-emerald-500/10 hover:text-emerald-300 hover:text-ink transition-colors font-mono border-b border-[#23252A]/30 last:border-b-0"
                         >
                           {formatPersonName(p)}
                         </button>
@@ -890,7 +901,7 @@ export default function TestPage() {
                 }
               }}
               className={`flex-1 flex flex-col justify-center items-center bg-[#010102]/30 rounded-lg overflow-hidden relative min-h-[350px] transition-colors border-2 ${
-                isDragActive ? 'border-dashed border-[#2563EB] bg-[#2563EB]/5' : 'border-solid border-[#23252A]'
+                isDragActive ? 'border-dashed border-emerald-500 bg-emerald-500/5' : 'border-solid border-[#23252A]'
               }`}
             >
                 {mode === 'webcam' ? (
@@ -898,8 +909,8 @@ export default function TestPage() {
                     {webcamError ? (
                        <div className="p-6 max-w-lg text-center mx-auto">
                           {webcamError === 'INSECURE_ORIGIN' ? (
-                            <div className="bg-[#141516] border border-blue-500/30 rounded-xl p-5 text-left shadow-2xl max-w-md mx-auto">
-                              <div className="flex items-center gap-2.5 mb-3 text-blue-400 font-medium">
+                            <div className="bg-[#141516] border border-emerald-500/30 rounded-xl p-5 text-left shadow-2xl max-w-md mx-auto">
+                              <div className="flex items-center gap-2.5 mb-3 text-emerald-400 font-medium">
                                 <ShieldAlert className="w-5 h-5 shrink-0" />
                                 <span className="text-sm">Secure HTTPS Origin Required</span>
                               </div>
@@ -909,7 +920,7 @@ export default function TestPage() {
                               
                               <a 
                                 href={`https://13-60-225-165.sslip.io${window.location.pathname}${window.location.search}`}
-                                className="button-primary bg-[#2563EB] hover:bg-[#1D4ED8] text-white w-full h-10 flex items-center justify-center gap-2 text-xs font-semibold rounded-lg mb-3 shadow-md"
+                                className="button-primary bg-emerald-600 hover:bg-emerald-500 text-white w-full h-10 flex items-center justify-center gap-2 text-xs font-semibold rounded-lg mb-3 shadow-md"
                               >
                                 <Play size={13} className="text-white" /> Open Secure Domain (Camera Ready)
                               </a>
@@ -949,11 +960,22 @@ export default function TestPage() {
                               }, 500);
                             }}
                           />
-                          {/* Live Feed Status Badge */}
+                          {/* Live Feed Status Badge & Camera Toggle */}
                           {webcamReady && (
-                            <span className="absolute top-3 left-3 px-2 py-0.5 rounded-full text-[9px] font-mono tracking-wider bg-red-500/10 text-red-500 border border-red-500/20 uppercase animate-pulse">
-                              Live Stream Active
-                            </span>
+                            <>
+                              <span className="absolute top-3 left-3 px-2 py-0.5 rounded-full text-[9px] font-mono tracking-wider bg-red-500/10 text-red-500 border border-red-500/20 uppercase animate-pulse">
+                                Live Stream Active
+                              </span>
+                              <button
+                                type="button"
+                                onClick={toggleCameraFacingMode}
+                                className="absolute top-3 right-3 z-20 px-2.5 py-1 rounded-md text-[11px] font-medium bg-black/80 hover:bg-black text-white border border-[#23252A] hover:border-emerald-500/40 shadow-lg flex items-center gap-1.5 transition-all"
+                                title="Switch Camera (Front / Back)"
+                              >
+                                <RotateCw className="w-3.5 h-3.5 text-emerald-400" />
+                                <span>Switch ({facingMode === 'user' ? 'Front' : 'Back'})</span>
+                              </button>
+                            </>
                           )}
                           
                           {/* Bounding Boxes for Live Webcam (Corner Bracket Style) */}
@@ -1071,12 +1093,12 @@ export default function TestPage() {
              <div className="mt-4 p-4 rounded-xl border space-y-3" style={{ background: 'rgba(15, 16, 17, 0.65)', borderColor: 'rgba(255, 255, 255, 0.08)' }}>
                <div className="flex justify-between items-center">
                  <div className="flex items-center gap-2">
-                   <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: 'rgba(37, 99, 235, 0.15)', border: '1px solid rgba(37, 99, 235, 0.30)' }}>
-                     <Sliders className="w-3.5 h-3.5 text-[#2563EB]" />
+                   <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: 'rgba(16, 185, 129, 0.15)', border: '1px solid rgba(16, 185, 129, 0.30)' }}>
+                     <Sliders className="w-3.5 h-3.5 text-emerald-400" />
                    </div>
                    <span className="text-xs font-bold text-white">Recognition Threshold</span>
                  </div>
-                 <span className="font-mono text-sm font-extrabold px-3 py-0.5 rounded-lg" style={{ color: '#2563EB', background: 'rgba(37, 99, 235, 0.18)', border: '1px solid rgba(37, 99, 235, 0.40)' }}>
+                 <span className="font-mono text-sm font-extrabold px-3 py-0.5 rounded-lg" style={{ color: '#10B981', background: 'rgba(16, 185, 129, 0.15)', border: '1px solid rgba(16, 185, 129, 0.35)' }}>
                    {Math.round(customThreshold * 100)}%
                  </span>
                </div>
@@ -1096,8 +1118,8 @@ export default function TestPage() {
                    step="0.05"
                    value={customThreshold}
                    onChange={(e) => setCustomThreshold(parseFloat(e.target.value))}
-                   className="flex-1 h-1.5 accent-[#2563EB] rounded-lg appearance-none cursor-pointer"
-                   style={{ background: `linear-gradient(to right, #2563EB ${((customThreshold - 0.50) / 0.45) * 100}%, rgba(255,255,255,0.08) ${((customThreshold - 0.50) / 0.45) * 100}%)` }}
+                   className="flex-1 h-1.5 accent-emerald-500 rounded-lg appearance-none cursor-pointer"
+                   style={{ background: `linear-gradient(to right, #10B981 ${((customThreshold - 0.50) / 0.45) * 100}%, rgba(255,255,255,0.08) ${((customThreshold - 0.50) / 0.45) * 100}%)` }}
                  />
 
                  <button
@@ -1110,10 +1132,10 @@ export default function TestPage() {
                {/* Presets */}
                <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
                  {[
-                   { val: 0.60, label: 'Relaxed (60%)', color: '#38BDF8' },
-                   { val: 0.65, label: 'Standard (65%)', color: '#2563EB' },
-                   { val: 0.70, label: 'Balanced (70%)', color: '#27A644' },
-                   { val: 0.80, label: 'Strict (80%)', color: '#F87171' },
+                   { val: 0.60, label: 'Relaxed (60%)', color: '#6EE7B7' },
+                   { val: 0.65, label: 'Standard (65%)', color: '#34D399' },
+                   { val: 0.70, label: 'Balanced (70%)', color: '#10B981' },
+                   { val: 0.80, label: 'Strict (80%)', color: '#059669' },
                  ].map(p => {
                    const active = Math.abs(customThreshold - p.val) < 0.01;
                    return (
@@ -1177,7 +1199,7 @@ export default function TestPage() {
               <div className="mb-4 p-4 bg-[#010102]/60 rounded-lg border border-[#23252A]">
                 <div className="flex gap-4 flex-wrap">
                   <div className="text-center flex-1 min-w-[80px]">
-                    <div className="text-2xl font-bold text-[#60a5fa]">{results.faces.length}</div>
+                    <div className="text-2xl font-bold text-emerald-400">{results.faces.length}</div>
                     <div className="text-[10px] uppercase tracking-wider text-ink-subtle">Faces Found</div>
                   </div>
                   <div className="text-center flex-1 min-w-[80px]">
@@ -1210,10 +1232,10 @@ export default function TestPage() {
                 
                 {enableFacenet512 && (
                   <div
-                    className="flex items-center gap-2 px-2.5 py-1 rounded-lg text-[11px] font-mono border bg-blue-500/10 border-blue-500/40 text-blue-400 font-semibold"
+                    className="flex items-center gap-2 px-2.5 py-1 rounded-lg text-[11px] font-mono border bg-emerald-500/10 border-emerald-500/30 text-emerald-300 font-semibold"
                     title="Facenet512 (Primary High-Accuracy Model)"
                   >
-                    <span className="w-2 h-2 rounded-full bg-blue-400 shadow-sm shadow-blue-400/50" />
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 shadow-sm shadow-emerald-400/50" />
                     <span>Facenet512 (Primary)</span>
                   </div>
                 )}
@@ -1300,7 +1322,7 @@ export default function TestPage() {
                                    
                                    {face.prediction_id && !spoofed && (
                                      <div className="flex gap-1.5">
-                                        <span className="px-2 py-0.5 rounded-full text-[10px] font-mono bg-[#60A5FA]/10 text-[#60A5FA] border border-[#60A5FA]/20 flex items-center gap-1">
+                                        <span className="px-2 py-0.5 rounded-full text-[10px] font-mono bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center gap-1">
                                           <AlertCircle className="w-3 h-3" /> TEST MODE - Not Logged
                                         </span>
                                      </div>

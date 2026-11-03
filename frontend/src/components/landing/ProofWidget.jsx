@@ -63,7 +63,7 @@ export default function ProofWidget() {
     <section className="py-20 px-4 sm:px-6 border-t border-zinc-800/80 bg-[#07090E]">
       <div className="max-w-5xl mx-auto">
         <div className="text-center mb-12">
-          <p className="text-xs font-semibold uppercase tracking-wider text-blue-400 mb-2">
+          <p className="text-xs font-semibold uppercase tracking-wider text-emerald-400 mb-2">
             Inference Telemetry
           </p>
           <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-white">
@@ -79,7 +79,7 @@ export default function ProofWidget() {
           {/* Header Bar with Live Scenario Selectors */}
           <div className="p-4 border-b border-zinc-800/90 bg-[#0C0F17] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex items-center gap-2">
-              <Activity className="w-4 h-4 text-blue-400" />
+              <Activity className="w-4 h-4 text-emerald-400" />
               <span className="text-xs font-mono font-semibold uppercase tracking-wider text-zinc-200">
                 Pipeline Verification Trace
               </span>
@@ -92,7 +92,7 @@ export default function ProofWidget() {
                   onClick={() => setActiveScenarioIdx(idx)}
                   className={`px-3 py-1.5 rounded text-xs font-mono font-medium transition-colors cursor-pointer ${
                     activeScenarioIdx === idx
-                      ? 'bg-blue-600 text-white shadow-sm'
+                      ? 'bg-emerald-600 text-white shadow-sm'
                       : 'bg-zinc-900 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 border border-zinc-800'
                   }`}
                 >
@@ -120,7 +120,7 @@ export default function ProofWidget() {
             </div>
             <div>
               <span className="text-zinc-500 block text-[10px] uppercase">Metric Confidence</span>
-              <span className="text-blue-400 font-semibold">{scenario.confidence}</span>
+              <span className="text-emerald-400 font-semibold">{scenario.confidence}</span>
             </div>
           </div>
 

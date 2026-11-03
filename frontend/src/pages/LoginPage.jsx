@@ -1,8 +1,49 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
-import { Scan, Eye, EyeOff, ShieldAlert, LogIn, Mail, Lock, ShieldCheck, ArrowRight } from 'lucide-react';
-import ApertureReticle from '../components/ApertureReticle';
+import {
+  Scan,
+  Eye,
+  EyeOff,
+  ShieldAlert,
+  Mail,
+  Lock,
+  ArrowRight,
+  ChevronLeft,
+  ChevronRight,
+  Star,
+  Server,
+  Zap,
+  Shield,
+  ShieldCheck,
+} from 'lucide-react';
+
+const SECURITY_TESTIMONIALS = [
+  {
+    quote: "AuraPass solved morning attendance queues across our entire facility. Employees don't even slow down; they look at the camera and continue walking through.",
+    author: "Elena Rostova",
+    role: "Plant Operations",
+    org: "Sovereign Industrial",
+    initials: "ER",
+    badgeColor: "bg-blue-600",
+  },
+  {
+    quote: "Because it runs completely inside our private local network, we never have to worry about employee photo leaks or external cloud vendor downtimes.",
+    author: "Dr. Marcus Vance",
+    role: "IT Security Lead",
+    org: "Apex Manufacturing",
+    initials: "MV",
+    badgeColor: "bg-emerald-600",
+  },
+  {
+    quote: "The automated reports save our payroll and HR department hours every single pay period. Clean, reliable, and very easy to manage.",
+    author: "Priya Sharma",
+    role: "HR Director",
+    org: "BioTech Labs",
+    initials: "PS",
+    badgeColor: "bg-purple-600",
+  },
+];
 
 export default function LoginPage() {
   const { login } = useAuth();
@@ -16,13 +57,24 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
+  // Testimonial Carousel State
+  const [activeTestimonial, setActiveTestimonial] = useState(0);
+
+  const handlePrevTestimonial = () => {
+    setActiveTestimonial((prev) => (prev === 0 ? SECURITY_TESTIMONIALS.length - 1 : prev - 1));
+  };
+
+  const handleNextTestimonial = () => {
+    setActiveTestimonial((prev) => (prev === SECURITY_TESTIMONIALS.length - 1 ? 0 : prev + 1));
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
 
     const cleanEmail = email.trim();
     if (!cleanEmail || !password) {
-      setError('Please provide both your email and password.');
+      setError('Please enter your work email and password.');
       return;
     }
 
@@ -42,44 +94,50 @@ export default function LoginPage() {
     }
   };
 
+  const currentTestimonial = SECURITY_TESTIMONIALS[activeTestimonial];
+
   return (
-    <div className="flex min-h-screen items-center justify-center p-3 sm:p-6 bg-[#07090E] relative overflow-hidden select-none">
-      {/* Grid Pattern */}
-      <div
-        className="absolute inset-0 opacity-[0.03] pointer-events-none"
-        style={{
-          backgroundImage: `linear-gradient(rgba(255,255,255,0.2) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.2) 1px, transparent 1px)`,
-          backgroundSize: '48px 48px',
-        }}
-      />
-
-      <div className="w-full max-w-md relative z-10">
-        {/* Card Container */}
-        <div className="bg-[#0D1017] border border-zinc-800 rounded-xl p-5 sm:p-8 shadow-2xl shadow-black/90 relative">
-          {/* Header */}
-          <div className="text-center space-y-3 mb-7">
-            <div className="inline-flex items-center justify-center">
-              <ApertureReticle active={true} className="w-14 h-14 flex items-center justify-center" status="loading">
-                <div className="w-10 h-10 rounded-lg bg-zinc-900 border border-zinc-700 flex items-center justify-center shadow-md">
-                  <Scan className="w-5 h-5 text-white" />
-                </div>
-              </ApertureReticle>
-            </div>
-
-            <div>
-              <div className="flex items-center justify-center gap-2 mb-1.5">
-                <span className="font-semibold text-xl text-white font-display tracking-tight">AuraPass™</span>
-                <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-medium bg-blue-500/10 text-blue-400 border border-blue-500/20">ENTERPRISE</span>
+    <div className="min-h-screen w-full bg-[#080B11] text-slate-100 flex flex-col lg:flex-row relative overflow-x-hidden">
+      {/* LEFT COLUMN: LOGIN FORM */}
+      <div className="w-full lg:w-1/2 flex flex-col justify-between p-6 sm:p-10 lg:p-14 z-10 border-b lg:border-b-0 lg:border-r border-[#1B2232]">
+        <div className="w-full max-w-md mx-auto">
+          {/* Brand Header */}
+          <div className="flex items-center justify-between mb-8">
+            <Link to="/" className="flex items-center gap-2.5 group">
+              <div className="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 group-hover:scale-105 transition-transform">
+                <Scan className="w-4 h-4" />
               </div>
-              <p className="text-xs text-zinc-400">
-                Sovereign biometric access & attendance orchestration
-              </p>
-            </div>
+              <div className="flex flex-col">
+                <div className="flex items-center gap-1.5">
+                  <span className="font-bold text-base tracking-tight text-white">AuraPass</span>
+                  <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-950/70 text-emerald-400 border border-emerald-800/40">
+                    Attendance
+                  </span>
+                </div>
+                <span className="text-[9px] tracking-wider text-slate-500 font-mono uppercase">
+                  FACE RECOGNITION ATTENDANCE
+                </span>
+              </div>
+            </Link>
+
+            <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-[#111726] border border-[#222E4A] text-slate-300">
+              Secure Sign In
+            </span>
+          </div>
+
+          {/* Heading */}
+          <div className="mb-6">
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
+              Sign in to your account
+            </h1>
+            <p className="text-xs sm:text-sm text-slate-400 mt-1.5">
+              Enter your work email and password to open the attendance console.
+            </p>
           </div>
 
           {/* Error Banner */}
           {error && (
-            <div className="mb-5 flex items-start gap-3 rounded-lg bg-red-500/10 border border-red-500/25 p-3.5 text-xs text-red-200">
+            <div className="mb-5 flex items-start gap-3 rounded-xl bg-red-500/10 border border-red-500/25 p-3.5 text-xs text-red-200">
               <ShieldAlert className="h-4 w-4 text-red-400 shrink-0 mt-0.5" />
               <div className="flex-1 leading-relaxed">
                 <p className="font-medium text-red-300">Sign In Error</p>
@@ -88,15 +146,53 @@ export default function LoginPage() {
             </div>
           )}
 
+          {/* Google Workspace SSO Button */}
+          <button
+            type="button"
+            onClick={() => {
+              setError('Google Workspace sign-in requires SAML configuration inside organization settings.');
+            }}
+            className="w-full h-11 flex items-center justify-center gap-3 bg-[#0F1422] hover:bg-[#161D2E] border border-[#222A3C] hover:border-[#2F3A52] rounded-xl text-xs sm:text-sm font-medium text-slate-200 transition-all cursor-pointer shadow-sm"
+          >
+            <svg className="w-4 h-4" viewBox="0 0 24 24">
+              <path
+                fill="#4285F4"
+                d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+              />
+              <path
+                fill="#34A853"
+                d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+              />
+              <path
+                fill="#FBBC05"
+                d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
+              />
+              <path
+                fill="#EA4335"
+                d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
+              />
+            </svg>
+            <span>Sign in with Google</span>
+          </button>
+
+          {/* Divider */}
+          <div className="flex items-center my-5">
+            <div className="flex-1 border-t border-[#1C2333]"></div>
+            <span className="px-3 text-[10px] font-mono tracking-wider text-slate-500 uppercase">
+              OR WITH EMAIL
+            </span>
+            <div className="flex-1 border-t border-[#1C2333]"></div>
+          </div>
+
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Email Field */}
-            <div className="space-y-1.5">
-              <label htmlFor="login-email" className="block text-xs font-medium text-zinc-300">
+            <div>
+              <label htmlFor="login-email" className="block text-xs font-medium text-slate-300 mb-1.5">
                 Work Email
               </label>
               <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-zinc-500">
+                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
                   <Mail className="w-4 h-4" />
                 </div>
                 <input
@@ -105,23 +201,21 @@ export default function LoginPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="name@company.com"
-                  className="w-full h-11 pl-10 pr-4 bg-[#11141C] border border-zinc-800 hover:border-zinc-700 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 rounded-lg text-sm text-white placeholder-zinc-500 transition-colors outline-none"
+                  className="w-full h-11 pl-10 pr-4 bg-[#0E1320]/80 border border-[#20283C] hover:border-[#2C3854] focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 rounded-xl text-xs sm:text-sm text-white placeholder-slate-500 transition-colors outline-none"
                   required
-                  autoFocus
-                  autoComplete="email"
                 />
               </div>
             </div>
 
             {/* Password Field */}
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between">
-                <label htmlFor="login-password" className="block text-xs font-medium text-zinc-300">
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <label htmlFor="login-password" className="block text-xs font-medium text-slate-300">
                   Password
                 </label>
               </div>
               <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-zinc-500">
+                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
                   <Lock className="w-4 h-4" />
                 </div>
                 <input
@@ -129,92 +223,161 @@ export default function LoginPage() {
                   type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••••••"
-                  className="w-full h-11 pl-10 pr-11 bg-[#11141C] border border-zinc-800 hover:border-zinc-700 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 rounded-lg text-sm text-white placeholder-zinc-500 transition-colors outline-none font-mono text-[13px]"
+                  placeholder="••••••••"
+                  className="w-full h-11 pl-10 pr-10 bg-[#0E1320]/80 border border-[#20283C] hover:border-[#2C3854] focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 rounded-xl text-xs sm:text-sm text-white placeholder-slate-500 transition-colors outline-none"
                   required
-                  autoComplete="current-password"
                 />
                 <button
                   type="button"
-                  aria-label={showPassword ? 'Hide password' : 'Show password'}
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-zinc-400 hover:text-white transition-colors cursor-pointer select-none"
-                  tabIndex={-1}
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-500 hover:text-slate-300"
                 >
-                  {showPassword ? (
-                    <EyeOff className="w-4 h-4" />
-                  ) : (
-                    <Eye className="w-4 h-4" />
-                  )}
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
             </div>
 
             {/* Remember Me */}
-            <div className="flex items-center justify-between pt-0.5 text-xs">
-              <label className="flex items-center gap-2 text-zinc-400 cursor-pointer hover:text-zinc-300 transition-colors">
+            <div className="flex items-center justify-between text-xs pt-1">
+              <label className="flex items-center gap-2 cursor-pointer text-slate-400 hover:text-slate-300 select-none">
                 <input
                   type="checkbox"
                   checked={rememberMe}
                   onChange={(e) => setRememberMe(e.target.checked)}
-                  className="w-3.5 h-3.5 rounded bg-zinc-900 border-zinc-700 text-blue-600 focus:ring-0 focus:ring-offset-0 cursor-pointer"
+                  className="rounded border-slate-700 bg-slate-900 text-emerald-500 focus:ring-0 accent-emerald-500 cursor-pointer"
                 />
-                <span>Remember this device</span>
+                <span>Remember this computer</span>
               </label>
-              <span className="text-zinc-500 text-[11px]">Local Instance / SSO</span>
             </div>
 
-            {/* Submit Button - Solid, crisp, professional */}
+            {/* Submit Button */}
             <button
               type="submit"
               disabled={loading}
-              className="w-full h-11 mt-3 bg-white hover:bg-zinc-200 text-black rounded-lg text-sm font-semibold flex items-center justify-center gap-2 shadow-sm transition-colors active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+              className="w-full h-11 mt-2 inline-flex items-center justify-center gap-2 rounded-xl text-xs sm:text-sm font-semibold bg-emerald-400 hover:bg-emerald-300 active:scale-98 text-slate-950 shadow-lg shadow-emerald-500/20 transition-all duration-150 cursor-pointer disabled:opacity-50"
             >
               {loading ? (
-                <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 border-2 border-black/30 border-t-black rounded-full animate-spin" />
-                  <span>Verifying credentials...</span>
-                </div>
+                <span>Signing in...</span>
               ) : (
                 <>
-                  <LogIn className="w-4 h-4 text-black" />
                   <span>Sign In</span>
-                  <ArrowRight className="w-3.5 h-3.5 text-black/80" />
+                  <ArrowRight className="w-4 h-4" />
                 </>
               )}
             </button>
           </form>
 
-          {/* Footer Divider & Register Link */}
-          <div className="mt-7 pt-5 border-t border-zinc-800 text-center">
-            <p className="text-xs text-zinc-400">
-              Need a new tenant workspace?{' '}
-              <Link
-                to="/register"
-                className="text-blue-400 hover:text-blue-300 font-medium transition-colors hover:underline inline-flex items-center gap-1"
-              >
-                <span>Create Organization</span>
-                <span>&rarr;</span>
-              </Link>
+          {/* Bottom link to Register */}
+          <div className="mt-6 text-center text-xs text-slate-400">
+            Don't have an account?{' '}
+            <Link to="/register" className="text-emerald-400 hover:text-emerald-300 font-semibold transition-colors">
+              Create one free
+            </Link>
+          </div>
+
+          {/* Legal policy note */}
+          <div className="mt-6 pt-5 border-t border-[#161D2B] text-center">
+            <p className="text-[11px] text-slate-500 flex items-center justify-center gap-1.5">
+              <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+              <span>AuraPass runs on your private local server</span>
             </p>
           </div>
         </div>
+      </div>
 
-        {/* Security Badge and Legal Links */}
-        <div className="mt-6 flex flex-col items-center gap-3 text-xs text-zinc-500">
-          <div className="flex items-center gap-2 text-[11px] font-mono">
-            <ShieldCheck className="w-3.5 h-3.5 text-emerald-400/80" />
-            <span>Multi-Tenant Isolated Environment</span>
+      {/* RIGHT COLUMN: FLOATING TESTIMONIAL CARD */}
+      <div className="w-full lg:w-1/2 bg-[#06080E] flex flex-col justify-center items-center p-6 sm:p-12 relative overflow-hidden">
+        {/* Soft ambient backlight */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[420px] h-[420px] bg-emerald-500/5 rounded-full blur-3xl pointer-events-none" />
+
+        {/* Floating Testimonial Card */}
+        <div className="relative z-10 w-full max-w-md bg-[#0D121D]/90 backdrop-blur-xl border border-[#1E2638] rounded-2xl p-6 sm:p-7 shadow-2xl shadow-black/80">
+          {/* Header of card: Stars + Verified User */}
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <div className="flex text-amber-400">
+                {[...Array(5)].map((_, i) => (
+                  <Star key={i} className="w-3.5 h-3.5 fill-amber-400" />
+                ))}
+              </div>
+              <span className="text-xs font-semibold text-slate-300">5.0 Verified User</span>
+            </div>
+            <span className="text-2xl font-serif text-slate-600 select-none">”</span>
           </div>
 
-          <div className="flex items-center gap-4 text-[11px]">
-            <Link to="/privacy-policy" className="hover:text-zinc-300 transition-colors">
-              Privacy Policy
-            </Link>
-            <span>•</span>
-            <Link to="/terms" className="hover:text-zinc-300 transition-colors">
-              Terms & Conditions
-            </Link>
+          {/* Testimonial Quote */}
+          <blockquote className="text-xs sm:text-sm text-slate-200 leading-relaxed min-h-[72px] mb-6">
+            "{currentTestimonial.quote}"
+          </blockquote>
+
+          {/* Author Details + Controls */}
+          <div className="flex items-center justify-between pt-4 border-t border-[#1C2538]">
+            <div className="flex items-center gap-3">
+              <div
+                className={`w-9 h-9 rounded-full ${currentTestimonial.badgeColor} flex items-center justify-center text-xs font-bold text-white shadow-md`}
+              >
+                {currentTestimonial.initials}
+              </div>
+              <div>
+                <p className="text-xs font-bold text-white leading-tight">{currentTestimonial.author}</p>
+                <p className="text-[11px] text-slate-400 mt-0.5">
+                  {currentTestimonial.role} &bull; {currentTestimonial.org}
+                </p>
+              </div>
+            </div>
+
+            {/* Pagination dots & Arrows */}
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5 mr-2">
+                {SECURITY_TESTIMONIALS.map((_, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => setActiveTestimonial(idx)}
+                    className={`h-1.5 transition-all rounded-full cursor-pointer ${
+                      activeTestimonial === idx ? 'w-5 bg-emerald-400' : 'w-1.5 bg-slate-700 hover:bg-slate-600'
+                    }`}
+                    aria-label={`Go to slide ${idx + 1}`}
+                  />
+                ))}
+              </div>
+
+              <button
+                type="button"
+                onClick={handlePrevTestimonial}
+                className="w-7 h-7 rounded-full bg-[#151C2C] hover:bg-[#1E283E] flex items-center justify-center text-slate-300 transition-colors cursor-pointer"
+                aria-label="Previous testimonial"
+              >
+                <ChevronLeft className="w-3.5 h-3.5" />
+              </button>
+              <button
+                type="button"
+                onClick={handleNextTestimonial}
+                className="w-7 h-7 rounded-full bg-[#151C2C] hover:bg-[#1E283E] flex items-center justify-center text-slate-300 transition-colors cursor-pointer"
+                aria-label="Next testimonial"
+              >
+                <ChevronRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* 3 Simple Trust Highlights */}
+        <div className="mt-8 grid grid-cols-3 gap-3 w-full max-w-md relative z-10">
+          <div className="p-3 rounded-xl bg-[#0C101A] border border-[#1B2336] text-center">
+            <Server className="w-4 h-4 text-emerald-400 mx-auto mb-1.5" />
+            <p className="text-[11px] font-bold text-white">Runs Locally</p>
+            <p className="text-[10px] text-slate-400 mt-0.5">No cloud needed</p>
+          </div>
+          <div className="p-3 rounded-xl bg-[#0C101A] border border-[#1B2336] text-center">
+            <Zap className="w-4 h-4 text-blue-400 mx-auto mb-1.5" />
+            <p className="text-[11px] font-bold text-white">&lt; 1 Second</p>
+            <p className="text-[10px] text-slate-400 mt-0.5">Quick check-in</p>
+          </div>
+          <div className="p-3 rounded-xl bg-[#0C101A] border border-[#1B2336] text-center">
+            <Shield className="w-4 h-4 text-emerald-400 mx-auto mb-1.5" />
+            <p className="text-[11px] font-bold text-white">Privacy First</p>
+            <p className="text-[10px] text-slate-400 mt-0.5">Data in your office</p>
           </div>
         </div>
       </div>

@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { NavLink, Link, useLocation, useNavigate } from 'react-router-dom';
-import { Activity, Box, Video, Home, Upload, ClipboardList, Radio, Settings, LogOut, Users, User, Menu, X, Terminal, Shield, Monitor, BarChart3, Play, Camera, Download } from 'lucide-react';
+import { Activity, Box, Video, Home, Upload, ClipboardList, Radio, Settings, LogOut, Users, User, Menu, X, Terminal, Shield, Monitor, BarChart3, Play, Camera, Download, Building2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { usePwa } from '../context/PwaContext';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -90,6 +90,7 @@ export function Navbar() {
     { to: '/kiosk', label: 'Kiosk Mode', icon: Play, minRole: 'manager' },
     { to: '/logs', label: 'Live Logs', icon: Terminal, minRole: 'manager' },
     { to: '/analytics', label: 'Analytics', icon: BarChart3, minRole: 'org_admin' },
+    { to: '/departments', label: 'Departments', icon: Building2, minRole: 'org_admin' },
     { to: '/audit', label: 'Audit Logs', icon: Shield, minRole: 'org_admin' },
     { to: '/profile', label: 'Profile', icon: User, minRole: 'viewer' },
     { to: '/models', label: 'Settings', icon: Settings, minRole: 'org_admin' },
@@ -193,7 +194,7 @@ export function Navbar() {
                   <button 
                     onClick={() => { installApp(); setIsMobileOpen(false); }} 
                     className="logout-btn" 
-                    style={{ color: '#60A5FA' }}
+                    style={{ color: '#10B981' }}
                   >
                     <Download size={18} />
                     <span>Install App (PWA)</span>
@@ -280,7 +281,7 @@ export function Navbar() {
             <button 
               onClick={installApp} 
               className={`logout-btn ${isCollapsed ? 'justify-center' : ''}`} 
-              style={{ color: '#60A5FA' }}
+              style={{ color: '#10B981' }}
               title={isCollapsed ? "Install App (PWA)" : undefined}
             >
               <Download size={18} />
@@ -319,6 +320,9 @@ export function Navbar() {
               display: flex !important;
               flex-direction: column;
               width: ${isCollapsed ? '72px' : '260px'};
+              min-width: ${isCollapsed ? '72px' : '260px'};
+              max-width: ${isCollapsed ? '72px' : '260px'};
+              flex-shrink: 0;
               height: 100vh;
               position: sticky;
               top: 0;
@@ -446,6 +450,9 @@ export function Navbar() {
           @media (min-width: 768px) {
             .ui-sidebar {
               width: ${isCollapsed ? '72px' : '260px'};
+              min-width: ${isCollapsed ? '72px' : '260px'};
+              max-width: ${isCollapsed ? '72px' : '260px'};
+              flex-shrink: 0;
               height: 100vh;
               position: sticky;
               top: 0;
@@ -470,7 +477,7 @@ export function Navbar() {
       <nav className="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-[#0F1011]/95 backdrop-blur-md border-t border-[#23252A] z-40 flex items-center justify-around px-1 shadow-2xl safe-area-bottom">
         <NavLink 
           to="/dashboard" 
-          className={({ isActive }) => `flex-1 min-w-0 max-w-[68px] flex flex-col items-center justify-center gap-1 py-1 px-0.5 text-xs font-medium transition-colors ${isActive ? 'text-[#60A5FA]' : 'text-ink-subtle hover:text-ink'}`}
+          className={({ isActive }) => `flex-1 min-w-0 max-w-[68px] flex flex-col items-center justify-center gap-1 py-1 px-0.5 text-xs font-medium transition-colors ${isActive ? 'text-emerald-400 font-semibold' : 'text-ink-subtle hover:text-ink'}`}
         >
           <Activity size={18} className="shrink-0" />
           <span className="text-[10px] truncate max-w-full text-center">Dashboard</span>
@@ -478,7 +485,7 @@ export function Navbar() {
 
         <NavLink 
           to="/attendance" 
-          className={({ isActive }) => `flex-1 min-w-0 max-w-[68px] flex flex-col items-center justify-center gap-1 py-1 px-0.5 text-xs font-medium transition-colors ${isActive ? 'text-[#60A5FA]' : 'text-ink-subtle hover:text-ink'}`}
+          className={({ isActive }) => `flex-1 min-w-0 max-w-[68px] flex flex-col items-center justify-center gap-1 py-1 px-0.5 text-xs font-medium transition-colors ${isActive ? 'text-emerald-400 font-semibold' : 'text-ink-subtle hover:text-ink'}`}
         >
           <ClipboardList size={18} className="shrink-0" />
           <span className="text-[10px] truncate max-w-full text-center">Attendance</span>
@@ -486,7 +493,7 @@ export function Navbar() {
 
         <NavLink 
           to="/kiosk" 
-          className={({ isActive }) => `flex-1 min-w-0 max-w-[68px] flex flex-col items-center justify-center gap-1 py-1 px-0.5 text-xs font-medium transition-colors ${isActive ? 'text-[#60A5FA]' : 'text-ink-subtle hover:text-ink'}`}
+          className={({ isActive }) => `flex-1 min-w-0 max-w-[68px] flex flex-col items-center justify-center gap-1 py-1 px-0.5 text-xs font-medium transition-colors ${isActive ? 'text-emerald-400 font-semibold' : 'text-ink-subtle hover:text-ink'}`}
         >
           <Play size={18} className="shrink-0" />
           <span className="text-[10px] truncate max-w-full text-center">Kiosk</span>
@@ -494,7 +501,7 @@ export function Navbar() {
 
         <NavLink 
           to="/cameras" 
-          className={({ isActive }) => `flex-1 min-w-0 max-w-[68px] flex flex-col items-center justify-center gap-1 py-1 px-0.5 text-xs font-medium transition-colors ${isActive ? 'text-[#60A5FA]' : 'text-ink-subtle hover:text-ink'}`}
+          className={({ isActive }) => `flex-1 min-w-0 max-w-[68px] flex flex-col items-center justify-center gap-1 py-1 px-0.5 text-xs font-medium transition-colors ${isActive ? 'text-emerald-400 font-semibold' : 'text-ink-subtle hover:text-ink'}`}
         >
           <Camera size={18} className="shrink-0" />
           <span className="text-[10px] truncate max-w-full text-center">Cameras</span>

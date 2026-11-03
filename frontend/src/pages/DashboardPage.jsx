@@ -254,10 +254,10 @@ export default function DashboardPage() {
        !dismissChecklist && (
         <motion.div 
           variants={itemVariants} 
-          className="p-4 sm:p-5 bg-[#2563EB]/10 border border-[#2563EB]/30 rounded-lg flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4"
+          className="p-4 sm:p-5 bg-emerald-500/10 border border-emerald-500/30 rounded-lg flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4"
         >
           <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-lg bg-[#2563EB]/20 text-[#3B82F6]">
+            <div className="p-2.5 rounded-lg bg-emerald-500/20 text-emerald-400">
               <Compass className="w-5 h-5" />
             </div>
             <div>
@@ -338,13 +338,13 @@ export default function DashboardPage() {
 
       {/* Quick Actions */}
       <motion.div variants={itemVariants} className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <Link to="/upload" className="group p-4 bg-[#0F1011] border border-[#23252A] rounded-lg flex items-center gap-3 hover:border-[#2563EB]/40 hover:bg-[#2563EB]/5 transition-all">
-          <div className="p-2 rounded-lg bg-[#2563EB]/10 text-[#60A5FA] group-hover:bg-[#2563EB]/20 transition-colors"><Upload size={18} /></div>
+        <Link to="/upload" className="group p-4 bg-[#0F1011] border border-[#23252A] rounded-lg flex items-center gap-3 hover:border-[#059669]/40 hover:bg-[#059669]/5 transition-all">
+          <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-400 group-hover:bg-emerald-500/20 transition-colors"><Upload size={18} /></div>
           <div>
             <div className="text-sm font-medium text-ink">Enroll Person</div>
             <div className="text-[11px] text-ink-tertiary">Add a new face to the system</div>
           </div>
-          <ArrowRight size={14} className="ml-auto text-ink-tertiary group-hover:text-[#60A5FA] transition-colors" />
+          <ArrowRight size={14} className="ml-auto text-ink-tertiary group-hover:text-emerald-400 transition-colors" />
         </Link>
         <Link to="/test" className="group p-4 bg-[#0F1011] border border-[#23252A] rounded-lg flex items-center gap-3 hover:border-[#27A644]/40 hover:bg-[#27A644]/5 transition-all">
           <div className="p-2 rounded-lg bg-[#27A644]/10 text-[#4ade80] group-hover:bg-[#27A644]/20 transition-colors"><Video size={18} /></div>
@@ -422,7 +422,7 @@ export default function DashboardPage() {
                             ) : (
                               <Link 
                                 to={`/persons/edit/${name}`} 
-                                className="hover:text-[#60A5FA] hover:underline transition-all font-medium"
+                                className="hover:text-emerald-400 hover:underline transition-all font-medium"
                                 title="Manage Biometric Profile"
                               >
                                 {formatPersonName(name)}
@@ -441,7 +441,7 @@ export default function DashboardPage() {
                                </div>
                             ) : (
                                <div className="inline-flex gap-1.5">
-                                 <Link to={`/persons/edit/${name}`} className="button-icon text-ink-subtle hover:text-[#60A5FA]" title="Manage Profile">
+                                 <Link to={`/persons/edit/${name}`} className="button-icon text-ink-subtle hover:text-emerald-400" title="Manage Profile">
                                    <User className="h-4 w-4" />
                                  </Link>
                                  <button className="button-icon text-ink-subtle hover:text-ink" onClick={() => { setEditingPerson(name); setNewName(name); }} title="Rename Inline">
@@ -559,7 +559,7 @@ function KpiCard({ icon, label, value, highlight = false }) {
         </div>
         <div>
           <div className="text-caption text-ink-subtle uppercase tracking-wider font-medium">{label}</div>
-          <div className={`text-headline text-mono font-medium mt-1 ${highlight ? 'text-[#60A5FA]' : 'text-ink'}`}>{value}</div>
+          <div className={`text-headline text-mono font-medium mt-1 ${highlight ? 'text-emerald-400' : 'text-ink'}`}>{value}</div>
         </div>
       </div>
     </ApertureReticle>

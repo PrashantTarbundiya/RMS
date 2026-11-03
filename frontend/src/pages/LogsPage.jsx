@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { Terminal as TerminalIcon, ClipboardList, CheckCircle, XCircle, Play, Clock, RefreshCw, Search, Copy, Trash2, Check, ArrowDown } from 'lucide-react';
@@ -14,8 +15,21 @@ export default function LogsPage() {
   const [selectedJobId, setSelectedJobId] = useState(null);
   const [liveLogs, setLiveLogs] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [logSearch, setLogSearch] = useState('');
-  const [logFilter, setLogFilter] = useState('all'); // all, error, success, warning
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [logSearch, setLogSearch] = useState(() => searchParams.get('q') || '');
+  const [logFilter, setLogFilter] = useState(() => searchParams.get('level') || 'all');
+
+  const updateParam = useCallback((key, val, defaultVal = '') => {
+    setSearchParams(prev => {
+      const next = new URLSearchParams(prev);
+      if (!val || val === defaultVal) {
+        next.delete(key);
+      } else {
+        next.set(key, val);
+      }
+      return next;
+    }, { replace: true });
+  }, [setSearchParams]);
   const [autoScroll, setAutoScroll] = useState(true);
   const [copied, setCopied] = useState(false);
   const terminalContainerRef = useRef(null);
@@ -151,7 +165,7 @@ export default function LogsPage() {
         <div className="flex items-center gap-2">
           <button
             onClick={fetchQueue}
-            className="button-secondary text-caption flex items-center gap-2 h-9 px-3.5 hover:border-[#60A5FA]/40 transition-colors"
+            className="button-secondary text-caption flex items-center gap-2 h-9 px-3.5 hover:border-[#34D399]/40 transition-colors"
           >
             <RefreshCw size={14} className={isLoading ? 'animate-spin' : ''} />
             <span>Sync Queue</span>
@@ -183,7 +197,7 @@ export default function LogsPage() {
                   onClick={() => setSelectedJobId(job.id)}
                   className={`p-3.5 rounded-xl border transition-all cursor-pointer flex items-center justify-between ${
                     (selectedJobId === job.id || (!selectedJobId && selectedJob?.id === job.id))
-                      ? 'bg-[#141516] border-[#60A5FA]/50 shadow-lg shadow-[#60A5FA]/5'
+                      ? 'bg-[#141516] border-[#34D399]/50 shadow-lg shadow-[#34D399]/5'
                       : 'bg-[#0F1011] border-[#23252A] hover:bg-[#141516]/60 hover:border-[#2E3138]'
                   }`}
                 >
@@ -226,14 +240,14 @@ export default function LogsPage() {
           {/* Premium Search & Action Toolbar */}
           <div className="p-2.5 bg-[#0F1011] border border-[#23252A] rounded-xl flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
             <div className="flex items-center gap-2 flex-1 min-w-0 w-full sm:w-auto">
-              <div className="flex items-center gap-2 bg-[#010102] border border-[#23252A] rounded-lg h-9 px-3 w-full focus-within:border-[#60A5FA]/50 transition-colors">
+              <div className="flex items-center gap-2 bg-[#010102] border border-[#23252A] rounded-lg h-9 px-3 w-full focus-within:border-[#34D399]/50 transition-colors">
                 <Search className="w-3.5 h-3.5 text-ink-tertiary shrink-0" />
                 <input
                   type="text"
                   placeholder="Filter logs by keyword..."
                   className="bg-transparent border-none text-ink text-[12px] w-full focus:outline-none p-0 placeholder:text-ink-tertiary font-mono"
                   value={logSearch}
-                  onChange={e => setLogSearch(e.target.value)}
+                  onChange={e => { setLogSearch(e.target.value); updateParam('q', e.target.value); }}
                 />
               </div>
             </div>
@@ -242,8 +256,8 @@ export default function LogsPage() {
               <div className="relative">
                 <select
                   value={logFilter}
-                  onChange={e => setLogFilter(e.target.value)}
-                  className="h-9 pl-3 pr-8 text-[12px] font-mono text-ink bg-[#010102] border border-[#23252A] rounded-lg focus:outline-none focus:border-[#60A5FA]/50 cursor-pointer appearance-none"
+                  onChange={e => { setLogFilter(e.target.value); updateParam('level', e.target.value, 'all'); }}
+                  className="h-9 pl-3 pr-8 text-[12px] font-mono text-ink bg-[#010102] border border-[#23252A] rounded-lg focus:outline-none focus:border-[#34D399]/50 cursor-pointer appearance-none"
                 >
                   <option value="all">All Levels</option>
                   <option value="error">Errors Only</option>
@@ -262,12 +276,12 @@ export default function LogsPage() {
                 onClick={() => setAutoScroll(prev => !prev)}
                 className={`h-9 px-3 rounded-lg border text-[11px] font-mono flex items-center gap-1.5 transition-colors cursor-pointer ${
                   autoScroll
-                    ? 'bg-[#60A5FA]/10 border-[#60A5FA]/30 text-[#60A5FA]'
+                    ? 'bg-[#34D399]/10 border-[#34D399]/30 text-[#34D399]'
                     : 'bg-[#010102] border-[#23252A] text-ink-muted hover:text-ink'
                 }`}
                 title="Toggle automated scrolling to bottom"
               >
-                <ArrowDown size={13} className={autoScroll ? 'text-[#60A5FA]' : 'text-ink-tertiary'} />
+                <ArrowDown size={13} className={autoScroll ? 'text-[#34D399]' : 'text-ink-tertiary'} />
                 <span>Auto-scroll</span>
               </button>
 
@@ -275,7 +289,7 @@ export default function LogsPage() {
                 type="button"
                 onClick={copyLogs}
                 disabled={filteredLogs.length === 0}
-                className="button-secondary h-9 px-3.5 text-[12px] flex items-center gap-1.5 disabled:opacity-40 hover:border-[#60A5FA]/40 hover:text-ink transition-colors"
+                className="button-secondary h-9 px-3.5 text-[12px] flex items-center gap-1.5 disabled:opacity-40 hover:border-[#34D399]/40 hover:text-ink transition-colors"
                 title="Copy current filtered logs to clipboard"
               >
                 {copied ? <Check size={14} className="text-emerald-400" /> : <Copy size={14} />}

@@ -16,7 +16,7 @@ const STEPS = [
   {
     title: 'Confirm Organization',
     icon: Shield,
-    color: '#2563EB',
+    color: '#10B981',
     path: '/profile',
     gateCheck: async () => true,
     gateMsg: '',
@@ -33,7 +33,7 @@ const STEPS = [
   {
     title: 'Add Your First Camera',
     icon: Camera,
-    color: '#2563EB',
+    color: '#10B981',
     path: '/cameras',
     gateCheck: async (api) => {
       if (sessionStorage.getItem('onboarding_camera_added') === 'true') return true;
@@ -49,7 +49,7 @@ const STEPS = [
       {
         target: '[data-tour="add-camera-btn"]',
         title: 'Create a Camera API Key',
-        desc: 'Click the "Add Camera" button to generate a secure API key. This key lets a physical camera or kiosk authenticate with RMS without a user login.',
+        desc: 'Click the "Add Camera" button to generate a secure API key. This key lets a physical camera or kiosk authenticate with AuraPass™ Enterprise securely.',
         actionHint: 'Click the highlighted button to add a camera',
         placement: 'bottom',
       },
@@ -58,7 +58,7 @@ const STEPS = [
   {
     title: 'Enroll Your First Subject',
     icon: Users,
-    color: '#2563EB',
+    color: '#10B981',
     path: '/upload',
     gateCheck: async (api) => {
       if (sessionStorage.getItem('onboarding_subject_enrolled') === 'true') return true;
@@ -97,7 +97,7 @@ const STEPS = [
   {
     title: 'Run Your First Scan',
     icon: Scan,
-    color: '#2563EB',
+    color: '#10B981',
     path: '/test',
     gateCheck: async (api) => {
       if (sessionStorage.getItem('onboarding_test_scanned') === 'true') return true;
@@ -133,7 +133,7 @@ const STEPS = [
   {
     title: 'Your Daily Command Center',
     icon: LayoutDashboard,
-    color: '#2563EB',
+    color: '#10B981',
     path: '/dashboard',
     gateCheck: async () => true,
     gateMsg: '',
@@ -519,7 +519,7 @@ export default function OnboardingWizard() {
               <div className="onb-welcome-icon">
                 <Compass className="w-6 h-6" />
               </div>
-              <h2 className="onb-welcome-title">Welcome to RMS Platform</h2>
+              <h2 className="onb-welcome-title">Welcome to AuraPass™ Enterprise</h2>
               <p className="onb-welcome-desc">
                 Let us get your organization configured in about 5 minutes. We will walk you through each step and highlight the required actions.
               </p>
@@ -610,7 +610,7 @@ export default function OnboardingWizard() {
             <div className="onb-stepper-inner">
               <div className="onb-stepper-left">
                 <span className="onb-step-badge">
-                  <StepIcon className="w-3.5 h-3.5 text-blue-500" />
+                  <StepIcon className="w-3.5 h-3.5 text-emerald-400" />
                   Step {stepIndex + 1}/{STEPS.length}
                 </span>
                 <span className="onb-step-title">{currentStep.title}</span>
@@ -651,7 +651,7 @@ export default function OnboardingWizard() {
             />
             <div className="onb-tooltip-header">
               <div className="onb-tooltip-icon">
-                <StepIcon className="w-4 h-4 text-blue-500" />
+                <StepIcon className="w-4 h-4 text-emerald-400" />
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-start justify-between gap-2">
@@ -689,8 +689,8 @@ export default function OnboardingWizard() {
             {/* Action hint */}
             {currentSubStep?.actionHint && (
               <div className="onb-action-hint">
-                <MousePointerClick className="w-3.5 h-3.5 text-blue-500 shrink-0" />
-                <span className="text-blue-400">{currentSubStep.actionHint}</span>
+                <MousePointerClick className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                <span className="text-emerald-300">{currentSubStep.actionHint}</span>
               </div>
             )}
 
@@ -748,7 +748,7 @@ export default function OnboardingWizard() {
           position: fixed; z-index: 99990;
           border-radius: 8px;
           box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.65);
-          border: 2px solid rgba(37, 99, 235, 0.60);
+          border: 2px solid rgba(16, 185, 129, 0.70);
           pointer-events: none;
           transition: all 0.3s ease;
         }
@@ -759,7 +759,7 @@ export default function OnboardingWizard() {
 
         /* ═══ Welcome / Completion Modal ═══ */
         .onb-welcome-modal {
-          background: #111214; border: 1px solid #23252A;
+          background: #0D121D; border: 1px solid #1E2638; border: 1px solid #23252A;
           border-radius: 12px; max-width: 440px; width: 100%;
           padding: 32px; text-align: center;
           box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
@@ -767,8 +767,8 @@ export default function OnboardingWizard() {
         }
         .onb-welcome-icon {
           width: 52px; height: 52px; border-radius: 10px;
-          background: rgba(37, 99, 235, 0.12); border: 1px solid rgba(37, 99, 235, 0.30);
-          display: flex; align-items: center; justify-content: center; color: #3B82F6;
+          background: rgba(16, 185, 129, 0.12); border: 1px solid rgba(16, 185, 129, 0.30);
+          display: flex; align-items: center; justify-content: center; color: #34D399;
         }
         .onb-welcome-title { color: #FFF; font-size: 20px; font-weight: 600; margin: 0; }
         .onb-welcome-desc { color: #94A3B8; font-size: 13px; line-height: 1.6; margin: 0; }
@@ -784,17 +784,17 @@ export default function OnboardingWizard() {
         }
         .onb-ws-dot {
           width: 26px; height: 26px; border-radius: 6px;
-          border: 1px solid rgba(37, 99, 235, 0.30); background: rgba(37, 99, 235, 0.10);
-          color: #3B82F6; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+          border: 1px solid rgba(16, 185, 129, 0.30); background: rgba(16, 185, 129, 0.10);
+          color: #34D399; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
         }
         .onb-btn-primary {
           display: flex; align-items: center; justify-content: center; gap: 8px;
           width: 100%; padding: 10px 16px; border-radius: 8px;
-          background: #2563EB; color: #FFF; border: none;
+          background: #10B981; color: #020617; border: none; font-weight: 700;
           font-size: 13px; font-weight: 600; cursor: pointer;
           transition: background 0.15s; margin-top: 4px;
         }
-        .onb-btn-primary:hover { background: #1D4ED8; }
+        .onb-btn-primary:hover { background: #059669; }
         .onb-btn-ghost {
           background: none; border: none; color: #64748B;
           font-size: 12px; cursor: pointer; padding: 6px;
@@ -813,8 +813,8 @@ export default function OnboardingWizard() {
         /* ═══ Stepper Bar ═══ */
         .onb-stepper-bar {
           position: fixed; top: 0; left: 0; right: 0; z-index: 99995;
-          background: #101113;
-          border-bottom: 1px solid rgba(37, 99, 235, 0.25);
+          background: #090D16; border-bottom: 1px solid #1E2638;
+          border-bottom: 1px solid rgba(16, 185, 129, 0.25);
           padding: 0 20px;
           pointer-events: all;
         }
@@ -828,8 +828,8 @@ export default function OnboardingWizard() {
           display: inline-flex; align-items: center; gap: 5px;
           padding: 4px 10px; border-radius: 6px;
           font-size: 11px; font-weight: 600; font-family: monospace;
-          background: rgba(37, 99, 235, 0.10); color: #3B82F6;
-          border: 1px solid rgba(37, 99, 235, 0.30);
+          background: rgba(16, 185, 129, 0.10); color: #34D399;
+          border: 1px solid rgba(16, 185, 129, 0.30);
           text-transform: uppercase; letter-spacing: 0.5px;
         }
         .onb-step-title { font-size: 13px; font-weight: 600; color: #FFF; }
@@ -843,7 +843,7 @@ export default function OnboardingWizard() {
           width: 24px; height: 3px; border-radius: 2px;
           background: rgba(255, 255, 255, 0.12); transition: all 0.2s;
         }
-        .onb-dot.active { width: 32px; background: #2563EB; }
+        .onb-dot.active { width: 32px; background: #10B981; }
         .onb-dot.done { background: #10B981; }
         .onb-stepper-right { display: flex; align-items: center; gap: 6px; }
         .onb-bar-btn {
@@ -855,8 +855,8 @@ export default function OnboardingWizard() {
         }
         .onb-bar-btn:hover:not(:disabled) { background: rgba(255, 255, 255, 0.14); }
         .onb-bar-btn:disabled { opacity: 0.3; cursor: not-allowed; }
-        .onb-bar-btn.primary { background: #2563EB; color: #FFF; border: 1px solid #1D4ED8; }
-        .onb-bar-btn.primary:hover:not(:disabled) { background: #1D4ED8; }
+        .onb-bar-btn.primary { background: #10B981; color: #FFF; border: 1px solid #059669; }
+        .onb-bar-btn.primary:hover:not(:disabled) { background: #059669; }
         .onb-bar-skip {
           background: rgba(239, 68, 68, 0.10); border: 1px solid rgba(239, 68, 68, 0.25);
           color: #EF4444; border-radius: 6px;
@@ -868,7 +868,7 @@ export default function OnboardingWizard() {
         /* ═══ Tooltip ═══ */
         .onb-tooltip {
           position: fixed; z-index: 99996;
-          background: #111214; border: 1px solid rgba(37, 99, 235, 0.40);
+          background: #0D121D; border: 1px solid #1E2638; border: 1px solid rgba(16, 185, 129, 0.40);
           border-radius: 10px; padding: 18px;
           max-width: 400px; width: max-content;
           box-shadow: 0 16px 50px rgba(0, 0, 0, 0.60);
@@ -877,7 +877,7 @@ export default function OnboardingWizard() {
         }
         .onb-tooltip-arrow {
           position: absolute; width: 10px; height: 10px;
-          background: #111214; border: 1px solid rgba(37, 99, 235, 0.40);
+          background: #0D121D; border: 1px solid #1E2638; border: 1px solid rgba(16, 185, 129, 0.40);
           transform: rotate(45deg);
         }
         .onb-tooltip-arrow[data-dir="top"] {
@@ -900,7 +900,7 @@ export default function OnboardingWizard() {
         .onb-tooltip-icon {
           width: 32px; height: 32px; border-radius: 8px;
           display: flex; align-items: center; justify-content: center;
-          border: 1px solid rgba(37, 99, 235, 0.30); background: rgba(37, 99, 235, 0.10);
+          border: 1px solid rgba(16, 185, 129, 0.30); background: rgba(16, 185, 129, 0.10);
           flex-shrink: 0;
         }
         .onb-tooltip-title { color: #FFF; font-size: 13px; font-weight: 600; margin: 0 0 4px; }
@@ -920,7 +920,7 @@ export default function OnboardingWizard() {
           background: rgba(255, 255, 255, 0.10);
           transition: background 0.2s;
         }
-        .onb-substep-segment.active { background: #2563EB; }
+        .onb-substep-segment.active { background: #10B981; }
         .onb-substep-segment.done { background: #10B981; }
         .onb-substep-label {
           font-size: 10px; font-weight: 600; color: #64748B;
@@ -931,7 +931,7 @@ export default function OnboardingWizard() {
         .onb-action-hint {
           display: flex; align-items: center; gap: 8px;
           margin-top: 12px; padding: 8px 12px; border-radius: 6px;
-          background: rgba(37, 99, 235, 0.08); border: 1px solid rgba(37, 99, 235, 0.25);
+          background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.25);
           font-size: 11px; font-weight: 500;
         }
 
@@ -970,9 +970,9 @@ export default function OnboardingWizard() {
         .onb-tt-btn.secondary:hover:not(:disabled) { background: rgba(255, 255, 255, 0.12); }
         .onb-tt-btn.secondary:disabled { opacity: 0.3; cursor: not-allowed; }
         .onb-tt-btn.primary {
-          background: #2563EB; color: #FFF; border: 1px solid #1D4ED8;
+          background: #10B981; color: #020617; border: 1px solid #10B981; font-weight: 700;
         }
-        .onb-tt-btn.primary:hover { background: #1D4ED8; }
+        .onb-tt-btn.primary:hover { background: #059669; }
 
         @media (max-width: 768px) {
           .onb-stepper-dots { display: none; }

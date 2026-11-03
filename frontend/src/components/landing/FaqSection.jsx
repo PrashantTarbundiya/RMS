@@ -4,7 +4,7 @@ import { ChevronDown } from 'lucide-react';
 const faqs = [
   {
     q: 'Does facial biometric data leave our local network?',
-    a: 'No. The RMS platform runs entirely on your local infrastructure or private virtual cloud. Face detection, feature extraction, vector indexing, and template matching happen locally, ensuring full compliance with enterprise privacy standards.',
+    a: 'No. The AuraPass™ platform runs entirely on your local infrastructure or private virtual cloud. Face detection, feature extraction, vector indexing, and template matching happen locally, ensuring full compliance with enterprise privacy standards.',
   },
   {
     q: 'How many photos are required to register an employee?',
@@ -16,7 +16,7 @@ const faqs = [
   },
   {
     q: 'Can the system recognize faces from profile and side angles?',
-    a: 'Yes. RMS incorporates specialized landmark pose estimation and face alignment algorithms, accurately identifying registered personnel at head turn angles up to 60 degrees.',
+    a: 'Yes. AuraPass™ incorporates specialized landmark pose estimation and face alignment algorithms, accurately identifying registered personnel at head turn angles up to 60 degrees.',
   },
 ];
 
@@ -27,7 +27,7 @@ export default function FaqSection() {
     <section id="faq" className="py-20 px-4 sm:px-6 border-t border-zinc-800/80 bg-[#0B0E17]/60">
       <div className="max-w-3xl mx-auto">
         <div className="text-center mb-12">
-          <p className="text-xs font-semibold uppercase tracking-wider text-blue-400 mb-2">
+          <p className="text-xs font-semibold uppercase tracking-wider text-emerald-400 mb-2">
             Frequently Asked Questions
           </p>
           <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-white">

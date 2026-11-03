@@ -6,10 +6,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { API_BASE } from '../config';
 import Modal from '../components/Modal';
 import { formatPersonName } from '../utils/format';
+import { getAuthenticatedPhotoUrl } from '../utils/photoUrl';
 
 
 export default function ManagePersonPage() {
-  const { apiClient } = useAuth();
+  const { apiClient, accessToken } = useAuth();
   const { name } = useParams();
   const navigate = useNavigate();
   
@@ -29,6 +30,7 @@ export default function ManagePersonPage() {
   });
   
   const [showWebcam, setShowWebcam] = useState(false);
+  const [facingMode, setFacingMode] = useState('user');
   const videoRef = useRef(null);
   const streamRef = useRef(null);
   
@@ -70,8 +72,9 @@ export default function ManagePersonPage() {
     return () => { if (streamRef.current) streamRef.current.getTracks().forEach(t => t.stop()); };
   }, []);
 
-  const startWebcam = async () => {
+  const startWebcam = async (overrideFacing) => {
     setShowWebcam(true);
+    const targetFacing = overrideFacing || facingMode;
     try {
       if (!navigator.mediaDevices?.getUserMedia) {
         if (window.location.hostname === '13.60.225.165' || window.location.protocol === 'http:') {
@@ -83,11 +86,14 @@ export default function ManagePersonPage() {
       let stream;
       try {
         stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } }
+          video: { facingMode: { ideal: targetFacing }, width: { ideal: 640 }, height: { ideal: 480 } }
         });
       } catch (constraintErr) {
         console.warn('ManagePerson camera constraint fallback', constraintErr);
         stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      }
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(t => t.stop());
       }
       streamRef.current = stream;
       if (videoRef.current) {
@@ -100,6 +106,12 @@ export default function ManagePersonPage() {
       setStatus({ type: 'error', message: `Camera error: ${err.message}` });
       setShowWebcam(false);
     }
+  };
+
+  const toggleCameraFacingMode = async () => {
+    const nextFacing = facingMode === 'user' ? 'environment' : 'user';
+    setFacingMode(nextFacing);
+    await startWebcam(nextFacing);
   };
 
   const stopWebcam = () => {
@@ -344,10 +356,14 @@ export default function ManagePersonPage() {
         <div className="flex items-center gap-4">
           <div className="w-16 h-16 rounded-full border border-[#23252A] flex items-center justify-center bg-[#010102] overflow-hidden shrink-0">
             {frontalPhoto ? (
-              <img src={`${API_BASE}/persons/${originalName}/photos/frontal/${frontalPhoto.filename}`} alt="Avatar" className="w-full h-full object-cover" />
-            ) : (
-              <User className="w-8 h-8 text-ink-subtle" />
-            )}
+              <img 
+                src={getAuthenticatedPhotoUrl(originalName, 'frontal', frontalPhoto.filename, accessToken)} 
+                alt="Avatar" 
+                className="w-full h-full object-cover"
+                onError={(e) => { e.currentTarget.style.display = 'none'; }}
+              />
+            ) : null}
+            <User className={`w-8 h-8 text-ink-subtle ${frontalPhoto ? 'hidden' : ''}`} />
           </div>
           <div>
             <h2 className="text-card-title font-semibold text-ink font-display m-0">{formatPersonName(originalName)}</h2>
@@ -384,7 +400,7 @@ export default function ManagePersonPage() {
                   <div className={`p-4 rounded-lg flex items-center gap-3 text-sm border ${
                     status.type === 'error' ? 'bg-[#F87171]/10 text-[#F87171] border-[#F87171]/20' : 
                     status.type === 'success' ? 'bg-[#27A644]/10 text-[#27A644] border-[#27A644]/20' : 
-                    'bg-[#2563EB]/10 text-[#60A5FA] border-[#2563EB]/20'
+                    'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
                   }`}>
                     {status.type === 'error' ? <AlertTriangle className="w-5 h-5" /> : status.type === 'success' ? <CheckCircle className="w-5 h-5" /> : <Info className="w-5 h-5" />}
                     <span className="text-caption">{status.message}</span>
@@ -421,7 +437,7 @@ export default function ManagePersonPage() {
               <h3 className="text-body font-medium text-ink m-0">Reference Images</h3>
               <div className="flex items-center gap-4">
                 <span className="px-2 py-0.5 rounded-full font-mono text-[10px] bg-[#010102] border border-[#23252A] text-ink-muted">Total: {photos.length + totalNewImages}</span>
-                <button type="button" onClick={showWebcam ? stopWebcam : startWebcam} className="button-secondary flex items-center gap-2">
+                <button type="button" onClick={showWebcam ? stopWebcam : () => startWebcam()} className="button-secondary flex items-center gap-2">
                   {showWebcam ? <><X className="w-4 h-4" /> Close Camera</> : <><Video className="w-4 h-4" /> Open Webcam</>}
                 </button>
               </div>
@@ -430,9 +446,12 @@ export default function ManagePersonPage() {
             {showWebcam && (
               <div className="p-4 bg-black rounded-lg border border-[#23252A] mb-6 text-center">
                 <video ref={videoRef} autoPlay playsInline muted className="w-full max-w-[400px] rounded-lg mx-auto mb-4 bg-black object-cover aspect-video" />
-                <div>
-                  <button type="button" onClick={captureWebcam} className="button-primary text-white flex items-center gap-2 mx-auto">
+                <div className="flex flex-wrap items-center justify-center gap-3">
+                  <button type="button" onClick={captureWebcam} className="button-primary text-white flex items-center gap-2">
                     <Camera className="w-4 h-4 text-white" /> Capture Photo
+                  </button>
+                  <button type="button" onClick={toggleCameraFacingMode} className="button-secondary flex items-center gap-2">
+                    <RotateCw className="w-4 h-4 text-emerald-400" /> Switch Camera ({facingMode === 'user' ? 'Front' : 'Back'})
                   </button>
                 </div>
               </div>
@@ -476,7 +495,7 @@ export default function ManagePersonPage() {
                 else if (srcType === "existing") handleMoveExistingPhoto(e.dataTransfer.getData("sourceAngle"), 'extra', e.dataTransfer.getData("filename"));
                 else if (e.dataTransfer.files) handleFile('extra_files', e.dataTransfer.files);
               }}
-              className={`min-h-[150px] p-6 rounded-lg text-center flex flex-col items-center justify-center cursor-pointer transition-all border-2 ${activeField === 'extra_files' ? 'border-[#60A5FA] border-dashed bg-[#2563EB]/5' : 'border-[#23252A] border-dashed bg-transparent hover:border-[#34343A] hover:bg-[#141516]/50'}`}
+              className={`min-h-[150px] p-6 rounded-lg text-center flex flex-col items-center justify-center cursor-pointer transition-all border-2 ${activeField === 'extra_files' ? 'border-[#34D399] border-dashed bg-[#2563EB]/5' : 'border-[#23252A] border-dashed bg-transparent hover:border-[#34343A] hover:bg-[#141516]/50'}`}
             >
               <input type="file" multiple accept="image/*" id="bulk-upload-manage" className="hidden" onChange={(e) => handleFile('extra_files', e.target.files)} />
               
@@ -489,7 +508,12 @@ export default function ManagePersonPage() {
                 <div className="flex flex-wrap gap-3 justify-center w-full">
                   {photos.filter(p => p.angle === 'extra').map(p => (
                     <div key={p.filename} draggable onDragStart={(e) => { e.dataTransfer.setData("sourceType", "existing"); e.dataTransfer.setData("sourceAngle", "extra"); e.dataTransfer.setData("filename", p.filename); }} className="relative w-16 h-16 group cursor-grab active:cursor-grabbing shrink-0">
-                      <img src={`${API_BASE}/persons/${originalName}/photos/extra/${p.filename}`} className="w-full h-full object-cover rounded border border-[#23252A] shadow-sm" />
+                      <img 
+                        src={getAuthenticatedPhotoUrl(originalName, 'extra', p.filename, accessToken)} 
+                        alt={p.filename} 
+                        className="w-full h-full object-cover rounded border border-[#23252A] shadow-sm"
+                        onError={(e) => { e.currentTarget.style.opacity = '0.4'; }}
+                      />
                       <button type="button" onClick={(e) => { e.stopPropagation(); handleDeletePhoto('extra', p.filename); }} className="absolute -top-1.5 -right-1.5 bg-[#F87171] text-white w-4 h-4 rounded-md text-[9px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-md hover:bg-red-600 focus:outline-none"><X className="w-2.5 h-2.5" /></button>
                     </div>
                   ))}
@@ -550,9 +574,9 @@ function DropBox({ field, title, files, existingFiles, personName, isActive, onF
       onClick={() => onFocus()}
       className={`relative min-h-[190px] rounded-lg p-4 flex flex-col justify-between transition-all border ${
         isActive 
-          ? 'border-[#2563EB] bg-[#141516]' 
+          ? 'border-emerald-500 bg-[#141516]' 
           : isDragActive 
-            ? 'border-[#60A5FA] bg-[#2563EB]/5' 
+            ? 'border-emerald-400 bg-emerald-500/5' 
             : 'border-[#23252A] bg-[#0F1011] hover:border-[#34343A]'
       }`}
     >
@@ -591,7 +615,12 @@ function DropBox({ field, title, files, existingFiles, personName, isActive, onF
               onClick={(e) => e.stopPropagation()} 
               className="relative w-12 h-12 group cursor-grab active:cursor-grabbing shrink-0"
             >
-              <img src={`${API_BASE}/persons/${personName}/photos/${p.angle}/${p.filename}`} className="w-full h-full object-cover rounded border border-[#27A644]/30 shadow-sm" />
+              <img 
+                src={getAuthenticatedPhotoUrl(personName, p.angle, p.filename)} 
+                alt={p.filename} 
+                className="w-full h-full object-cover rounded border border-[#27A644]/30 shadow-sm"
+                onError={(e) => { e.currentTarget.style.opacity = '0.4'; }}
+              />
               <span className="absolute top-0 left-0 bg-[#27A644]/10 text-[#27A644] border border-[#27A644]/20 text-[6px] py-0 px-0.5 rounded-none uppercase font-mono tracking-widest font-extrabold scale-75 origin-top-left">Enrolled</span>
               <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                 <button type="button" onClick={(e) => { e.stopPropagation(); onDeleteExisting(p.filename); }} className="p-1 bg-[#F87171]/20 text-[#F87171] rounded hover:bg-[#F87171] hover:text-white transition-colors">
@@ -613,7 +642,7 @@ function DropBox({ field, title, files, existingFiles, personName, isActive, onF
               className="relative w-12 h-12 group cursor-grab active:cursor-grabbing shrink-0"
             >
               <img src={URL.createObjectURL(f)} className="w-full h-full object-cover rounded border border-[#23252A] shadow-sm" />
-              <span className="absolute top-0 left-0 bg-[#2563EB]/10 text-[#60A5FA] border border-[#2563EB]/20 text-[6px] py-0 px-0.5 rounded-none uppercase font-mono tracking-widest font-extrabold scale-75 origin-top-left">New</span>
+              <span className="absolute top-0 left-0 bg-[#2563EB]/10 text-[#34D399] border border-emerald-500/20 text-[6px] py-0 px-0.5 rounded-none uppercase font-mono tracking-widest font-extrabold scale-75 origin-top-left">New</span>
               <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                 <button type="button" onClick={(e) => { e.stopPropagation(); onRemove(i); }} className="p-1 bg-[#F87171]/20 text-[#F87171] rounded hover:bg-[#F87171] hover:text-white transition-colors">
                   <X className="w-3.5 h-3.5" />

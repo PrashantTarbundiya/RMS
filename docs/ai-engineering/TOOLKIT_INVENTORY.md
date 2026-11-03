@@ -1,0 +1,44 @@
+# AuraPass™ Enterprise — Engineering Toolkit Inventory
+
+This document provides a comprehensive inventory of all tools, frameworks, MCP servers, libraries, and utilities configured in the AuraPass Enterprise engineering environment.
+
+---
+
+## 1. Installed Tools & Frameworks
+
+| Tool Name | Repository URL | Version | Scope | License | Purpose | Configuration Location | Verification Method | Known Limitations |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| **Playwright MCP** | [microsoft/playwright-mcp](https://github.com/microsoft/playwright-mcp) | `0.0.84` | Global / Workspace MCP | Apache-2.0 | Real browser automation, multi-viewport layout validation, DOM inspection | `~/.gemini/config/mcp_config.json` | `npx -y @playwright/mcp --help` | Headless Chromium requires local GPU acceleration flags on certain virtualized displays |
+| **Context7 MCP** | [upstash/context7](https://github.com/upstash/context7) | `4.4.4` | Global / Workspace MCP | MIT | Version-specific live documentation retrieval for external libraries | `~/.gemini/config/mcp_config.json` | `npx -y @upstash/context7-mcp --help` | Requires internet access to fetch remote library documentation |
+| **Stitch MCP** | [google-labs-code/stitch-skills](https://github.com/google-labs-code/stitch-skills) | Remote Endpoint | Global MCP | Google Labs | UI screen generation, design system synchronization, and variants | `~/.gemini/config/mcp_config.json` | `call_mcp_tool(ServerName='StitchMCP', ...)` | Dependent on Google Stitch cloud endpoint availability |
+| **Repomix** | [yamadashy/repomix](https://github.com/yamadashy/repomix) | `1.18.1` | Local CLI (via npx) | MIT | Codebase packing into structured markdown context bundles with token counts | `.agents/skills/codebase-exploration/` | `npx repomix --version` | Large repositories require targeted `--include` patterns to avoid exceeding token limits |
+| **DeepFace** | [serengil/deepface](https://github.com/serengil/deepface) | `0.0.100` | Backend Python venv | MIT | Authoritative Inception-ResNet Facenet512 facial feature extraction | `backend/server.py`, `backend/requirements.txt` | `python -c "import deepface; print(deepface.__version__)"` | Initial model weight download requires ~100MB on first run |
+| **InsightFace** | [deepinsight/insightface](https://github.com/deepinsight/insightface) | `1.0.1` | Backend Python venv | MIT | ArcFace secondary multi-angle facial verification and feature embedding | `backend/server.py`, `backend/org_storage.py` | `python -c "import insightface; print(insightface.__version__)"` | Requires ONNX runtime execution provider configured |
+| **MediaPipe** | [google-ai-edge/mediapipe](https://github.com/google-ai-edge/mediapipe) | `0.10.35` | Backend Python venv | Apache-2.0 | High-speed BlazeFace face detection and 6-point landmark localization | `backend/face_detection.py` | `python -c "import mediapipe as mp; print(mp.__version__)"` | CPU inference performance depends on thread pool configuration |
+| **PyTorch** | [pytorch/pytorch](https://github.com/pytorch/pytorch) | `2.5.1+cu121` | Backend Python venv | BSD-3-Clause | Deep learning framework for MobileNetV2 anti-spoofing and GhostFaceNet weights | `backend/requirements.txt`, `backend/anti_spoofing.py` | `python -c "import torch; print(torch.__version__)"` | CUDA 12.1 acceleration requires compatible NVIDIA GPU drivers |
+| **ONNX Runtime** | [microsoft/onnxruntime](https://github.com/microsoft/onnxruntime) | `1.28.0` | Backend Python venv | MIT | Cross-platform, low-latency execution provider for quantized edge models | `backend/server.py` | `python -c "import onnxruntime as ort; print(ort.__version__)"` | DirectML provider requires Windows 10/11 DirectX 12 capability |
+| **OpenCV Contrib** | [opencv/opencv](https://github.com/opencv/opencv) | `5.0.0.93` | Backend Python venv | Apache-2.0 | Real-time image processing, CLAHE, affine rotation, color space conversion | `backend/requirements.txt` | `python -c "import cv2; print(cv2.__version__)"` | Native C++ bindings require validated numpy array contiguous memory layout |
+| **Flask & Gevent** | [pallets/flask](https://github.com/pallets/flask), [gevent/gevent](https://github.com/gevent/gevent) | `3.1.3` / `26.7.0` | Backend Python venv | BSD-3-Clause / MIT | Asynchronous WSGI web server and real-time WebSocket protocol dispatcher | `backend/server.py` | `python -c "import flask, gevent; print(flask.__version__, gevent.__version__)"` | CPU-intensive loops must avoid blocking the Gevent event loop |
+| **SQLAlchemy** | [sqlalchemy/sqlalchemy](https://github.com/sqlalchemy/sqlalchemy) | `2.0.51` | Backend Python venv | MIT | Dual-mode ORM engine connecting to sovereign SQLite or cloud PostgreSQL | `backend/database/db.py` | `python -c "import sqlalchemy; print(sqlalchemy.__version__)"` | Requires explicit session scoping to avoid connection pool exhaustion |
+| **React 19 & Vite** | [facebook/react](https://github.com/facebook/react), [vitejs/vite](https://github.com/vitejs/vite) | `19.2.4` / `8.0.1` | Frontend Node runtime | MIT | Client Single Page Application with fast HMR and optimized production bundling | `frontend/package.json`, `frontend/vite.config.js` | `npm --prefix frontend run build` | Breaking changes in React 19 forwardRef and act() require updated test runners |
+| **Tailwind CSS** | [tailwindlabs/tailwindcss](https://github.com/tailwindlabs/tailwindcss) | `3.4.19` | Frontend Node runtime | MIT | Utility-first responsive styling and design system tokens | `frontend/tailwind.config.js`, `frontend/src/index.css` | Vite CSS compilation pipeline | Arbitrary values should be minimized in favor of design system tokens |
+
+---
+
+## 2. Evaluated Candidate Tools & Decision Log
+
+| Candidate Resource | Category | Purpose Evaluated | Evaluation Result | Rationale for Decision |
+| :--- | :--- | :--- | :--- | :--- |
+| **`gsd-build/get-shit-done`** | Agent Orchestration | Task breakdown, milestone gates, and phase planning | **Adopted as Workflow Pattern** | Excellent meta-prompting and execution framework. Implemented via `.agents/skills/project-architecture/` and root `GEMINI.md` Rule C. |
+| **`MichaelZelbel/awesome-antigravity`** | Reference Catalog | Antigravity community skills, rules, and configurations | **Adopted as Reference Catalog** | Used as an architectural reference for Antigravity skill structure and YAML frontmatter standards. |
+| **`wshobson/agents`** | Agent Role Library | Modular agent role definitions and prompt structures | **Adopted for Agent Roles** | Directly adapted into the 12 specialized subagent personas defined in `docs/ai-engineering/AGENT_ROLES.md`. |
+| **`nextlevelbuilder/ui-ux-pro-max-skill`** | UI/UX Skill | Commercial SaaS UI/UX design intelligence and tokens | **Installed as Agent Skill** | Installed in `.agents/skills/ui-ux-pro-max/SKILL.md`. Directly informs the mobile responsiveness and SaaS redesign. |
+| **`yamadashy/repomix`** | Codebase Understanding | Bundles codebase into structured markdown for subagents | **Configured as On-Demand CLI Tool** | Verified via `npx repomix`. Excellent for preparing focused context bundles without blowing agent context budgets. |
+| **`upstash/context7`** | Documentation Retrieval | Fetches current library docs from official repositories | **Installed as Stdio MCP Server** | Configured in `~/.gemini/config/mcp_config.json`. Prevents hallucinated API usage for React 19, Vite 8, and SQLAlchemy 2.0. |
+| **`microsoft/playwright-mcp`** | Browser Automation | End-to-end browser testing, DOM layout, and screenshots | **Installed as Stdio MCP Server** | Configured in `~/.gemini/config/mcp_config.json` with headless mode and allowed-host security restrictions. |
+| **`semgrep/semgrep`** | Static Security Analysis | Fast AST-based security vulnerability and OWASP scanner | **Recommended for CI/CD** | Lightweight, highly effective offline scanner for Python and JS. Recommended for automated pre-commit and CI gates. |
+| **`gitleaks/gitleaks`** | Secret Scanner | Scans git history and working trees for committed secrets | **Recommended for Pre-Commit** | High-speed secret detection tool to enforce Rule F and prevent credential leaks. |
+| **`aquasecurity/trivy`** | Container Security | Scans container images and filesystems for CVEs | **Recommended for Docker Pipeline** | Excellent for production Docker image audits prior to customer distribution. |
+| **`github/codeql`** | Semantic Code Analysis | Deep semantic vulnerability scanning | **Rejected for Interactive Agent Loop** | Too heavyweight for interactive developer loops; requires multi-gigabyte databases and prolonged compilation passes. |
+| **`OWASP/ASVS`** | Security Standard | Application Security Verification Standard framework | **Adopted as Audit Standard** | Incorporated as the authoritative verification checklist in `.agents/skills/application-security/`. |
+

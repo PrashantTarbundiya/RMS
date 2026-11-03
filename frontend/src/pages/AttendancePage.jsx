@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { motion } from 'framer-motion';
@@ -15,11 +16,24 @@ export default function AttendancePage() {
   const [data, setData] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [dateFilter, setDateFilter] = useState('');
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
-  const [sortBy, setSortBy] = useState('newest');
-  const [minConf, setMinConf] = useState(0);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [dateFilter, setDateFilter] = useState(searchParams.get('date') || '');
+  const [searchTerm, setSearchTerm] = useState(searchParams.get('q') || '');
+  const [statusFilter, setStatusFilter] = useState(searchParams.get('status') || 'all');
+  const [sortBy, setSortBy] = useState(searchParams.get('sort') || 'newest');
+  const [minConf, setMinConf] = useState(Number(searchParams.get('min_conf')) || 0);
+
+  const updateParam = useCallback((key, val, defaultVal = '') => {
+    setSearchParams(prev => {
+      const next = new URLSearchParams(prev);
+      if (!val || val === defaultVal) {
+        next.delete(key);
+      } else {
+        next.set(key, val);
+      }
+      return next;
+    }, { replace: true });
+  }, [setSearchParams]);
 
   const fetchHistory = useCallback(async () => {
     try {
@@ -53,11 +67,11 @@ export default function AttendancePage() {
 
   const setQuickDate = (preset) => {
     if (preset === 'today') {
-      setDateFilter(todayYMD());
+      const t = todayYMD(); setDateFilter(t); updateParam('date', t);
     } else if (preset === 'yesterday') {
-      setDateFilter(yesterdayYMD());
+      const y = yesterdayYMD(); setDateFilter(y); updateParam('date', y);
     } else if (preset === '7d') {
-      setDateFilter('last_7_days');
+      setDateFilter('last_7_days'); updateParam('date', 'last_7_days');
     } else {
       setDateFilter('');
     }
@@ -206,28 +220,52 @@ export default function AttendancePage() {
         </button>
       </motion.div>
 
-      {/* Summary Stats */}
+      {/* Summary Stats - High Density 3-col on Mobile (ISO 9241-110) */}
       {!isLoading && !error && (
-        <motion.div variants={itemVariants} className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div className="p-4 bg-[#0F1011] border border-[#23252A] rounded-lg flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-[#2563EB]/10"><ClipboardList size={18} className="text-[#60A5FA]" /></div>
-            <div>
-              <div className="text-lg font-bold text-ink">{filteredData.length}</div>
-              <div className="text-[11px] text-ink-subtle">Total Scans</div>
+        <motion.div variants={itemVariants} className="grid grid-cols-3 gap-2 sm:gap-4">
+          <div className="p-2.5 sm:p-4 bg-[#0F1011] border border-[#23252A] rounded-xl flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3">
+            <div className="p-1.5 sm:p-2 rounded-lg bg-emerald-500/10 text-emerald-400 shrink-0">
+              <ClipboardList size={16} />
+            </div>
+            <div className="min-w-0">
+              <div className="stat-number text-base sm:text-xl text-ink leading-tight">{filteredData.length}</div>
+              <div className="text-[10px] sm:text-[11px] text-ink-subtle uppercase tracking-wider font-medium truncate mt-0.5">
+                <span className="sm:hidden">Scans</span>
+                <span className="hidden sm:inline">Total Scans</span>
+              </div>
             </div>
           </div>
-          <div className="p-4 bg-[#0F1011] border border-[#23252A] rounded-lg flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-[#27A644]/10"><Users size={18} className="text-[#4ade80]" /></div>
-            <div>
-              <div className="text-lg font-bold text-ink">{uniquePersons.size}</div>
-              <div className="text-[11px] text-ink-subtle">Unique People Seen</div>
+
+          <div className="p-2.5 sm:p-4 bg-[#0F1011] border border-[#23252A] rounded-xl flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3">
+            <div className="p-1.5 sm:p-2 rounded-lg bg-emerald-500/10 text-emerald-400 shrink-0">
+              <Users size={16} />
+            </div>
+            <div className="min-w-0">
+              <div className="stat-number text-base sm:text-xl text-ink leading-tight">{uniquePersons.size}</div>
+              <div className="text-[10px] sm:text-[11px] text-ink-subtle uppercase tracking-wider font-medium truncate mt-0.5">
+                <span className="sm:hidden">People</span>
+                <span className="hidden sm:inline">Unique People</span>
+              </div>
             </div>
           </div>
-          <div className="p-4 bg-[#0F1011] border border-[#23252A] rounded-lg flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-[#FBBF24]/10"><ClipboardList size={18} className="text-[#fde68a]" /></div>
-            <div>
-              <div className="text-lg font-bold text-ink">{confirmedCount} <span className="text-sm font-normal text-ink-subtle">/ {unknownCount} unknown</span></div>
-              <div className="text-[11px] text-ink-subtle">Matched / Unmatched</div>
+
+          <div className="p-2.5 sm:p-4 bg-[#0F1011] border border-[#23252A] rounded-xl flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3">
+            <div className="p-1.5 sm:p-2 rounded-lg bg-emerald-500/10 text-emerald-400 shrink-0">
+              <ClipboardList size={16} />
+            </div>
+            <div className="min-w-0">
+              <div className="stat-number text-base sm:text-xl text-emerald-400 leading-tight flex items-baseline gap-1.5">
+                <span>{confirmedCount}</span>
+                {filteredData.length > 0 && (
+                  <span className="text-xs font-normal text-ink-subtle hidden sm:inline">
+                    ({Math.round((confirmedCount / filteredData.length) * 100)}%)
+                  </span>
+                )}
+              </div>
+              <div className="text-[10px] sm:text-[11px] text-ink-subtle uppercase tracking-wider font-medium truncate mt-0.5">
+                <span className="sm:hidden">Verified</span>
+                <span className="hidden sm:inline">Matched Scans</span>
+              </div>
             </div>
           </div>
         </motion.div>
@@ -245,7 +283,7 @@ export default function AttendancePage() {
                 placeholder="Filter by name..."
                 className="bg-transparent border-none text-ink text-caption w-full focus:outline-none p-0 placeholder:text-ink-tertiary"
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={(e) => { setSearchTerm(e.target.value); updateParam('q', e.target.value); }}
               />
             </div>
 
@@ -254,9 +292,9 @@ export default function AttendancePage() {
               <Calendar className="w-4 h-4 text-ink-tertiary shrink-0" />
               <input
                 type="date"
-                className="bg-transparent border-none text-ink text-caption font-mono focus:outline-none p-0 accent-[#2563EB] w-full"
+                className="bg-transparent border-none text-ink text-caption font-mono focus:outline-none p-0 accent-emerald-500 w-full"
                 value={dateFilter === 'last_7_days' ? '' : dateFilter}
-                onChange={(e) => setDateFilter(e.target.value)}
+                onChange={(e) => { setDateFilter(e.target.value); updateParam('date', e.target.value); }}
                 style={{ colorScheme: 'dark' }}
               />
             </div>
@@ -265,7 +303,7 @@ export default function AttendancePage() {
             <div className="grid grid-cols-2 sm:flex sm:items-center gap-2 w-full sm:w-auto">
               <select
                 value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
+                onChange={(e) => { setStatusFilter(e.target.value); updateParam('status', e.target.value, 'all'); }}
                 className="input-linear h-10 px-2.5 sm:px-3 text-caption text-ink bg-[#0F1011] border border-[#23252A] rounded-lg cursor-pointer focus:outline-none w-full"
               >
                 <option value="all">All Statuses</option>
@@ -276,7 +314,7 @@ export default function AttendancePage() {
 
               <select
                 value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
+                onChange={(e) => { setSortBy(e.target.value); updateParam('sort', e.target.value, 'newest'); }}
                 className="input-linear h-10 px-2.5 sm:px-3 text-caption text-ink bg-[#0F1011] border border-[#23252A] rounded-lg cursor-pointer focus:outline-none w-full"
               >
                 <option value="newest">Newest First</option>
@@ -293,6 +331,7 @@ export default function AttendancePage() {
                   setSearchTerm('');
                   setStatusFilter('all');
                   setSortBy('newest');
+                  setSearchParams({}, { replace: true });
                 }}
                 className="button-secondary text-caption py-1.5 px-3 h-10 text-ink-subtle hover:text-ink w-full sm:w-auto"
               >
@@ -318,7 +357,7 @@ export default function AttendancePage() {
           <button
             onClick={() => setQuickDate('all')}
             className={`px-2.5 py-1 rounded-md text-xs font-medium transition-all ${
-              !dateFilter ? 'bg-[#2563EB]/20 text-[#60A5FA] border border-[#2563EB]/40' : 'bg-[#141516] border border-[#23252A] hover:border-[#383A42]'
+              !dateFilter ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30' : 'bg-[#141516] border border-[#23252A] hover:border-[#383A42]'
             }`}
           >
             All Time
@@ -327,7 +366,7 @@ export default function AttendancePage() {
             onClick={() => setQuickDate('today')}
             className={`px-2.5 py-1 rounded-md text-xs font-medium transition-all ${
               dateFilter === todayYMD()
-                ? 'bg-[#2563EB]/20 text-[#60A5FA] border border-[#2563EB]/40'
+                ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
                 : 'bg-[#141516] border border-[#23252A] hover:border-[#383A42]'
             }`}
           >
@@ -337,7 +376,7 @@ export default function AttendancePage() {
             onClick={() => setQuickDate('yesterday')}
             className={`px-2.5 py-1 rounded-md text-xs font-medium transition-all ${
               dateFilter === yesterdayYMD()
-                ? 'bg-[#2563EB]/20 text-[#60A5FA] border border-[#2563EB]/40'
+                ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
                 : 'bg-[#141516] border border-[#23252A] hover:border-[#383A42]'
             }`}
           >
@@ -347,7 +386,7 @@ export default function AttendancePage() {
             onClick={() => setQuickDate('7d')}
             className={`px-2.5 py-1 rounded-md text-xs font-medium transition-all ${
               dateFilter === 'last_7_days'
-                ? 'bg-[#2563EB]/20 text-[#60A5FA] border border-[#2563EB]/40'
+                ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
                 : 'bg-[#141516] border border-[#23252A] hover:border-[#383A42]'
             }`}
           >
@@ -421,7 +460,7 @@ export default function AttendancePage() {
                       <td className="px-6 py-3.5 text-ink-muted font-mono text-[12px]">
                         {record.timestamp ? new Date(record.timestamp).toLocaleString([], { dateStyle: 'short', timeStyle: 'medium' }) : '-'}
                       </td>
-                      <td className="px-6 py-3.5 font-medium text-ink group-hover:text-[#60A5FA] transition-colors">
+                      <td className="px-6 py-3.5 font-medium text-ink group-hover:text-emerald-400 transition-colors">
                         {formatPersonName(record.label)}
                       </td>
                       <td className="px-6 py-3.5 text-ink-muted font-mono">

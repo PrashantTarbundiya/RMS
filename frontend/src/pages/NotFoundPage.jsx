@@ -38,9 +38,9 @@ export default function NotFoundPage() {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
-          className="mx-auto mb-6 w-14 h-14 rounded-xl bg-[#2563EB]/10 border border-[#2563EB]/20 flex items-center justify-center"
+          className="mx-auto mb-6 w-14 h-14 rounded-xl bg-[#059669]/10 border border-[#059669]/20 flex items-center justify-center"
         >
-          <Search className="w-6 h-6 text-[#3B82F6]" />
+          <Search className="w-6 h-6 text-[#10B981]" />
         </motion.div>
 
         {/* Heading */}
@@ -66,7 +66,7 @@ export default function NotFoundPage() {
         >
           <Link
             to="/dashboard"
-            className="button-primary flex items-center gap-2 px-5 py-2.5 w-full sm:w-auto justify-center bg-[#2563EB] hover:bg-[#1D4ED8] rounded-md transition-colors"
+            className="button-primary flex items-center gap-2 px-5 py-2.5 w-full sm:w-auto justify-center bg-[#059669] hover:bg-[#047857] rounded-md transition-colors"
           >
             <Home className="w-4 h-4" />
             <span className="text-button text-white">Go to Dashboard</span>
@@ -94,7 +94,7 @@ export default function NotFoundPage() {
           transition={{ delay: 0.7 }}
           className="mt-12 text-[10px] text-ink-tertiary tracking-wider uppercase font-mono"
         >
-          RMS Platform • Biometric Access Management
+          AuraPass™ Enterprise • Biometric Access Management
         </motion.p>
       </motion.div>
     </div>

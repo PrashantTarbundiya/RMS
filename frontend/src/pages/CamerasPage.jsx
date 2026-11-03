@@ -134,10 +134,10 @@ export default function CamerasPage() {
         <motion.div 
           initial={{ opacity: 0, y: -10 }} 
           animate={{ opacity: 1, y: 0 }}
-          className="p-5 rounded-lg bg-[#2563EB]/10 border border-[#2563EB]/30 space-y-3"
+          className="p-5 rounded-lg bg-emerald-500/10 border border-emerald-500/30 space-y-3"
         >
-          <div className="flex items-center gap-2 text-[#60A5FA] font-semibold text-sm">
-            <ShieldCheck className="w-5 h-5 text-[#60A5FA]" />
+          <div className="flex items-center gap-2 text-emerald-400 font-semibold text-sm">
+            <ShieldCheck className="w-5 h-5 text-emerald-400" />
             <span>Camera Registered Successfully</span>
           </div>
           <p className="text-caption text-ink-subtle">
@@ -145,7 +145,7 @@ export default function CamerasPage() {
           </p>
           <div className="flex items-center gap-2 bg-[#0F1011] p-3 rounded border border-[#23252A]">
             <Key className="w-4 h-4 text-ink-tertiary shrink-0" />
-            <code className="font-mono text-xs text-[#60A5FA] flex-1 break-all">{createdCam.api_key}</code>
+            <code className="font-mono text-xs text-emerald-400 flex-1 break-all">{createdCam.api_key}</code>
             <button
               onClick={() => copyToClipboard(createdCam.api_key)}
               className="p-1.5 rounded hover:bg-[#1C1D1F] text-ink-subtle hover:text-ink transition-colors"
@@ -233,7 +233,7 @@ export default function CamerasPage() {
               <div key={cam.id} className="py-4 flex items-center justify-between first:pt-0 last:pb-0">
                 <div className="flex items-center gap-3">
                   <div className="p-2.5 rounded-lg bg-[#141516] border border-[#23252A] text-ink-muted">
-                    <Camera className="w-5 h-5 text-[#60A5FA]" />
+                    <Camera className="w-5 h-5 text-emerald-400" />
                   </div>
                   <div>
                     <div className="flex items-center gap-2">
@@ -269,7 +269,7 @@ export default function CamerasPage() {
       <div className="card-linear">
         <div className="flex justify-between items-center mb-4">
           <div className="flex items-center gap-2">
-            <Cpu className="w-5 h-5 text-[#60A5FA]" />
+            <Cpu className="w-5 h-5 text-emerald-400" />
             <h2 className="text-body font-semibold text-ink">Edge & Hardware Specification Matrix</h2>
           </div>
           <button
@@ -294,7 +294,7 @@ export default function CamerasPage() {
 
         {edgeLoading && (
           <div className="py-8 text-center space-y-2">
-            <Loader2 className="w-8 h-8 text-[#60A5FA] mx-auto animate-spin" />
+            <Loader2 className="w-8 h-8 text-emerald-400 mx-auto animate-spin" />
             <p className="text-caption text-ink-subtle">Running evaluation benchmarks...</p>
             <p className="text-[11px] text-ink-tertiary">This may take several minutes.</p>
           </div>
@@ -315,7 +315,7 @@ export default function CamerasPage() {
                   onClick={() => setEdgeTab(tab.id)}
                   className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-md text-[11px] font-semibold transition-all ${
                     edgeTab === tab.id
-                      ? 'bg-[#2563EB]/15 text-[#60A5FA] border border-[#2563EB]/30'
+                      ? 'bg-[#059669]/15 text-emerald-400 border border-[#059669]/30'
                       : 'text-ink-tertiary hover:text-ink-muted'
                   }`}
                 >

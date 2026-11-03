@@ -6,7 +6,7 @@ export default function ProblemSection() {
     <section className="py-20 px-4 sm:px-6 border-t border-zinc-800/80 bg-[#07090E]">
       <div className="max-w-6xl mx-auto">
         <div className="text-center mb-14">
-          <p className="text-xs font-semibold uppercase tracking-wider text-blue-400 mb-2">
+          <p className="text-xs font-semibold uppercase tracking-wider text-emerald-400 mb-2">
             Perimeter Security Audit
           </p>
           <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-white">
@@ -72,31 +72,31 @@ export default function ProblemSection() {
             </div>
           </div>
 
-          {/* Panel 2: RMS Cryptographic Edge Attestation */}
+          {/* Panel 2: AuraPass™ Cryptographic Edge Attestation */}
           <div className="p-7 rounded-lg bg-zinc-950/80 border border-blue-900/40 flex flex-col justify-between">
             <div>
               <div className="flex items-center justify-between pb-4 border-b border-zinc-800/80 mb-5">
                 <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-md bg-blue-500/10 border border-blue-500/20 text-blue-400 flex items-center justify-center">
+                  <div className="w-8 h-8 rounded-md bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center">
                     <Fingerprint className="w-4 h-4" />
                   </div>
                   <div>
-                    <h3 className="text-sm font-semibold text-white">RMS Non-Repudiable Biometric Attestation</h3>
+                    <h3 className="text-sm font-semibold text-white">AuraPass™ Non-Repudiable Biometric Attestation</h3>
                     <p className="text-[11px] text-zinc-500">Local sub-second feature vector verification</p>
                   </div>
                 </div>
-                <span className="px-2 py-0.5 rounded text-[10px] font-mono font-medium bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                <span className="px-2 py-0.5 rounded text-[10px] font-mono font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
                   ZERO CLOUD RISK
                 </span>
               </div>
 
               <div className="space-y-4">
                 <div className="flex items-start gap-3 p-3.5 rounded-md bg-zinc-900/60 border border-blue-950/60">
-                  <Cpu className="w-4 h-4 text-blue-400 shrink-0 mt-0.5" />
+                  <Cpu className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
                   <div>
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-semibold text-zinc-200">Air-Gapped On-Premise Inference</span>
-                      <span className="text-xs font-mono font-bold text-blue-400">100% Local</span>
+                      <span className="text-xs font-mono font-bold text-emerald-400">100% Local</span>
                     </div>
                     <p className="text-[11px] text-zinc-400 mt-1 leading-relaxed">
                       Facial feature embeddings are extracted, aligned, and matched strictly on local host compute. No raw portraits or templates leave your perimeter.
@@ -105,7 +105,7 @@ export default function ProblemSection() {
                 </div>
 
                 <div className="flex items-start gap-3 p-3.5 rounded-md bg-zinc-900/60 border border-blue-950/60">
-                  <LockKeyhole className="w-4 h-4 text-blue-400 shrink-0 mt-0.5" />
+                  <LockKeyhole className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
                   <div>
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-semibold text-zinc-200">Multi-Angle Pose & Anti-Spoof Liveness</span>
