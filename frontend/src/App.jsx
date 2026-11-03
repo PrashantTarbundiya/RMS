@@ -1,4 +1,5 @@
 import React from 'react'
+import './styles/marketing.css'
 
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 
