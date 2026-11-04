@@ -22,6 +22,8 @@ export default function AttendancePage() {
   const [statusFilter, setStatusFilter] = useState(searchParams.get('status') || 'all');
   const [sortBy, setSortBy] = useState(searchParams.get('sort') || 'newest');
   const [minConf, setMinConf] = useState(Number(searchParams.get('min_conf')) || 0);
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 15;
 
   // Manual Attendance Modal State
   const [isManualModalOpen, setIsManualModalOpen] = useState(false);
@@ -224,6 +226,9 @@ export default function AttendancePage() {
     // Default: newest
     return new Date(b.timestamp || 0) - new Date(a.timestamp || 0);
   });
+
+  const totalPages = Math.max(1, Math.ceil(filteredData.length / pageSize));
+  const paginatedData = filteredData.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
   // Group by person for summary stats
   const uniquePersons = new Set(filteredData.filter(r => r.label && r.label !== 'Unknown').map(r => r.label));
@@ -436,6 +441,7 @@ export default function AttendancePage() {
                   setSearchTerm('');
                   setStatusFilter('all');
                   setSortBy('newest');
+                  setCurrentPage(1);
                   setSearchParams({}, { replace: true });
                 }}
                 className="button-secondary text-caption py-1.5 px-3 h-10 text-ink-subtle hover:text-ink w-full sm:w-auto"
@@ -526,7 +532,7 @@ export default function AttendancePage() {
           <div className="card-linear p-0 overflow-hidden bg-[#0F1011] border-[#23252A]">
             {/* Mobile Cards (Visible below 640px) */}
             <div className="block sm:hidden divide-y divide-[#23252A]/50 max-h-[600px] overflow-y-auto">
-              {filteredData.map((record, idx) => (
+              {paginatedData.map((record, idx) => (
                 <div key={idx} className="p-3.5 space-y-2 hover:bg-[#141516]/60 transition-colors">
                   <div className="flex items-start justify-between gap-2">
                     <span className="font-semibold text-ink text-sm">
@@ -574,7 +580,7 @@ export default function AttendancePage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#23252A]/50">
-                  {filteredData.map((record, idx) => (
+                  {paginatedData.map((record, idx) => (
                     <tr key={idx} className="hover:bg-[#141516]/60 transition-colors group">
                       <td className="px-6 py-3.5 text-ink-muted font-mono text-[12px]">
                         {record.timestamp ? new Date(record.timestamp).toLocaleString([], { dateStyle: 'short', timeStyle: 'medium' }) : '-'}
@@ -616,9 +622,31 @@ export default function AttendancePage() {
                 </tbody>
               </table>
             </div>
-            <div className="px-4 sm:px-6 py-3 border-t border-[#23252A] bg-[#0F1011] text-[11px] text-ink-tertiary flex items-center justify-between">
-              <span>Showing {filteredData.length} of {data.length} records</span>
-              <span className="sm:hidden text-ink-subtle text-[10px] font-mono">Cards Mode</span>
+            <div className="px-4 sm:px-6 py-3 border-t border-[#23252A] bg-[#0F1011] text-xs text-ink-tertiary flex flex-col sm:flex-row items-center justify-between gap-3">
+              <span className="font-mono text-[11px]">
+                Showing {Math.min(filteredData.length, (currentPage - 1) * pageSize + 1)} - {Math.min(filteredData.length, currentPage * pageSize)} of {filteredData.length} records
+              </span>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  disabled={currentPage <= 1}
+                  className="px-2.5 py-1 rounded bg-[#141516] border border-[#23252A] text-caption text-ink-subtle hover:text-ink disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                >
+                  Previous
+                </button>
+                <span className="text-[11px] font-mono text-ink-subtle px-1">
+                  Page {currentPage} of {totalPages}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                  disabled={currentPage >= totalPages}
+                  className="px-2.5 py-1 rounded bg-[#141516] border border-[#23252A] text-caption text-ink-subtle hover:text-ink disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                >
+                  Next
+                </button>
+              </div>
             </div>
           </div>
         )}
@@ -643,34 +671,24 @@ export default function AttendancePage() {
 
             <form onSubmit={handleCreateManual} className="space-y-4">
               <div>
-                <label className="block text-xs font-medium text-ink-subtle mb-1.5">Employee Name *</label>
-                {enrolledPersons.length > 0 ? (
-                  <div className="space-y-2">
-                    <input
-                      type="text"
-                      list="enrolled-persons-list"
-                      required
-                      placeholder="Type or select employee name..."
-                      value={manualForm.name}
-                      onChange={(e) => setManualForm({ ...manualForm, name: e.target.value })}
-                      className="input-linear w-full h-10 px-3 text-caption text-ink bg-[#141516] border border-[#23252A] rounded-lg focus:outline-none focus:border-emerald-500/50"
-                    />
-                    <datalist id="enrolled-persons-list">
-                      {enrolledPersons.map((p, idx) => (
-                        <option key={idx} value={p.name || p} />
-                      ))}
-                    </datalist>
-                  </div>
-                ) : (
-                  <input
-                    type="text"
-                    required
-                    placeholder="Enter full name of employee..."
-                    value={manualForm.name}
-                    onChange={(e) => setManualForm({ ...manualForm, name: e.target.value })}
-                    className="input-linear w-full h-10 px-3 text-caption text-ink bg-[#141516] border border-[#23252A] rounded-lg focus:outline-none focus:border-emerald-500/50"
-                  />
-                )}
+                <label className="block text-xs font-medium text-ink-subtle mb-1.5">Employee Name * (Verified Active Personnel Only)</label>
+                <select
+                  required
+                  value={manualForm.name}
+                  onChange={(e) => setManualForm({ ...manualForm, name: e.target.value })}
+                  className="input-linear w-full h-10 px-3 text-caption text-ink bg-[#141516] border border-[#23252A] rounded-lg focus:outline-none focus:border-emerald-500/50 cursor-pointer"
+                >
+                  <option value="" className="text-zinc-500">-- Select an enrolled employee --</option>
+                  {enrolledPersons.map((p, idx) => {
+                    const rawVal = typeof p === 'string' ? p : (p.name || p.id || '');
+                    return (
+                      <option key={idx} value={rawVal} className="bg-[#141516] text-white">
+                        {formatPersonName(rawVal)}
+                      </option>
+                    );
+                  })}
+                </select>
+                <p className="text-[10px] text-ink-tertiary mt-1">Manual overrides can only be logged for verified employees registered in your organization.</p>
               </div>
 
               <div className="grid grid-cols-2 gap-3">

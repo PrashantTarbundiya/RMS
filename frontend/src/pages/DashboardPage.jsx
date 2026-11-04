@@ -301,6 +301,39 @@ export default function DashboardPage() {
         </motion.div>
       )}
 
+      {/* Prominent Retrain Alert Banner when models need sync */}
+      {requires_retrain && (
+        <motion.div
+          variants={itemVariants}
+          className="p-4 sm:p-5 rounded-xl bg-gradient-to-r from-amber-950/50 via-[#181510] to-[#0F1011] border border-amber-500/40 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-lg shadow-amber-950/20"
+        >
+          <div className="flex items-start sm:items-center gap-3.5">
+            <div className="p-2.5 rounded-xl bg-amber-500/20 border border-amber-500/30 text-amber-400 shrink-0">
+              <RefreshCw className="w-5 h-5 animate-spin" style={{ animationDuration: '6s' }} />
+            </div>
+            <div>
+              <div className="text-sm font-semibold text-ink flex items-center gap-2">
+                <span>Model Calibration Required</span>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-medium bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                  New Photos Pending
+                </span>
+              </div>
+              <div className="text-xs text-ink-subtle mt-0.5">
+                New employee reference photos need to be embedded and synced into the local neural vector index.
+              </div>
+            </div>
+          </div>
+          <Link
+            to="/training"
+            className="w-full md:w-auto px-4 py-2.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-black text-xs font-semibold flex items-center justify-center gap-2 transition-all shadow-md shadow-amber-500/25 shrink-0"
+          >
+            <RefreshCw size={14} />
+            <span>Retrain Face AI Models</span>
+            <ArrowRight size={14} />
+          </Link>
+        </motion.div>
+      )}
+
       {/* System Status Line (Calm) */}
       <motion.div variants={itemVariants} className="flex flex-wrap gap-2.5 sm:gap-6 p-3 sm:p-4 bg-[#0F1011] border border-[#23252A] rounded-lg items-center text-caption text-ink-muted">
         <div className="flex items-center gap-2">

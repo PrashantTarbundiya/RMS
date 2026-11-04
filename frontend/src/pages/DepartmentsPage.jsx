@@ -628,10 +628,10 @@ function DepartmentScheduleCard({ dept, onSave, isSaving }) {
         <button
           onClick={() => onSave(dept.name, start, end, grace)}
           disabled={isSaving}
-          className={`h-8.5 px-3 rounded-lg text-xs flex items-center justify-center gap-1.5 transition-all col-span-2 sm:col-span-1 w-full sm:w-auto ${
+          className={`h-8.5 min-w-[88px] px-3.5 rounded-lg text-xs flex items-center justify-center gap-1.5 transition-all col-span-2 sm:col-span-1 shrink-0 font-medium ${
             changed
-              ? 'bg-emerald-500 text-white hover:bg-emerald-600 font-semibold shadow-sm shadow-emerald-500/20'
-              : 'button-secondary text-ink-subtle'
+              ? 'bg-emerald-500 text-black hover:bg-emerald-400 font-semibold shadow-sm shadow-emerald-500/25 ring-1 ring-emerald-400/40'
+              : 'bg-[#181A1F] border border-[#2B2F38] text-ink-subtle hover:text-ink hover:border-[#3E434F]'
           }`}
         >
           {isSaving ? <RefreshCw size={12} className="animate-spin" /> : <Save size={12} />}

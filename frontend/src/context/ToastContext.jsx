@@ -30,6 +30,7 @@ const AUTO_DISMISS_MS = {
 export function ToastProvider({ children }) {
   const [toasts, setToasts] = useState([]);
   const timersRef = useRef({});
+  const recentToastsRef = useRef(new Map());
 
   const removeToast = useCallback((id) => {
     setToasts(prev => prev.filter(t => t.id !== id));
@@ -40,13 +41,24 @@ export function ToastProvider({ children }) {
   }, []);
 
   const addToast = useCallback((message, type = 'info', options = {}) => {
+    if (!message) return null;
+    const now = Date.now();
+    const lastSeen = recentToastsRef.current.get(message);
+    // Deduplicate: If identical message was posted within 2200ms, ignore duplicate
+    if (lastSeen && (now - lastSeen) < 2200) {
+      return null;
+    }
+    recentToastsRef.current.set(message, now);
+
     const id = ++toastIdCounter;
     const duration = options.duration ?? AUTO_DISMISS_MS[type];
 
     setToasts(prev => {
-      const next = [...prev, { id, message, type, title: options.title }];
-      // Keep max 5 toasts
-      return next.length > 5 ? next.slice(-5) : next;
+      // Remove any existing toast with exact same message to prevent stacking
+      const filtered = prev.filter(t => t.message !== message);
+      const next = [...filtered, { id, message, type, title: options.title }];
+      // Keep max 3 toasts to prevent cognitive clutter
+      return next.length > 3 ? next.slice(-3) : next;
     });
 
     if (duration > 0) {

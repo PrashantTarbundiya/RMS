@@ -1231,9 +1231,24 @@ def create_manual_attendance(org_id):
     if is_db_available() and org_id:
         try:
             with get_db_session() as db:
-                emp = db.query(Employee).filter(Employee.org_id == str(org_id), Employee.name.ilike(employee_name)).first()
-                emp_id = emp.id if emp else None
-                dept = emp.department if emp else data.get('department', 'General')
+                # 1. Strict validation: Ensure employee actually exists in active roster
+                emp = db.query(Employee).filter(
+                    Employee.org_id == str(org_id),
+                    Employee.name.ilike(employee_name)
+                ).first()
+                if not emp:
+                    norm_target = employee_name.strip().lower().replace(' ', '_')
+                    all_emps = db.query(Employee).filter(Employee.org_id == str(org_id)).all()
+                    emp = next((e for e in all_emps if e.name.strip().lower().replace(' ', '_') == norm_target), None)
+
+                if not emp:
+                    return jsonify({
+                        'error': f"Employee '{employee_name}' does not exist in the organization roster. Manual attendance can only be logged for verified active personnel."
+                    }), 400
+
+                emp_id = emp.id
+                dept = emp.department or data.get('department', 'General')
+                employee_name = emp.name  # Use verified canonical name
                 
                 log = AttendanceLog(
                     id=log_id,
@@ -2713,11 +2728,27 @@ def get_audit_logs(org_id):
         return jsonify({'logs': [], 'total': 0, 'message': 'Audit logs require database mode.'})
 
     # Query params
+    from datetime import datetime, timezone
     log_type = request.args.get('type', 'all')  # 'all', 'access', 'feedback', 'consent'
     search = request.args.get('search', '').strip()
     page = int(request.args.get('page', 1))
     per_page = min(int(request.args.get('per_page', 50)), 100)
     sort_order = request.args.get('sort', 'desc')  # 'asc' or 'desc'
+    start_date = request.args.get('start_date') or request.args.get('start')
+    end_date = request.args.get('end_date') or request.args.get('end')
+
+    start_dt = None
+    end_dt = None
+    if start_date:
+        try:
+            start_dt = datetime.strptime(start_date, '%Y-%m-%d').replace(tzinfo=timezone.utc)
+        except Exception:
+            pass
+    if end_date:
+        try:
+            end_dt = datetime.strptime(end_date, '%Y-%m-%d').replace(hour=23, minute=59, second=59, microsecond=999999, tzinfo=timezone.utc)
+        except Exception:
+            pass
 
     results = []
 
@@ -2733,6 +2764,10 @@ def get_audit_logs(org_id):
                 )
                 if search:
                     query = query.filter(AttendanceLog.prediction_label.ilike(f'%{search}%'))
+                if start_dt:
+                    query = query.filter(AttendanceLog.checkin_time >= start_dt)
+                if end_dt:
+                    query = query.filter(AttendanceLog.checkin_time <= end_dt)
                 if sort_order == 'asc':
                     query = query.order_by(AttendanceLog.checkin_time.asc())
                 else:
@@ -2763,6 +2798,10 @@ def get_audit_logs(org_id):
                         (FeedbackLog.correct_name.ilike(f'%{search}%')) |
                         (FeedbackLog.message.ilike(f'%{search}%'))
                     )
+                if start_dt:
+                    query = query.filter(FeedbackLog.created_at >= start_dt)
+                if end_dt:
+                    query = query.filter(FeedbackLog.created_at <= end_dt)
                 if sort_order == 'asc':
                     query = query.order_by(FeedbackLog.created_at.asc())
                 else:
@@ -2790,6 +2829,10 @@ def get_audit_logs(org_id):
                         (ConsentRecord.consent_type.ilike(f'%{search}%')) |
                         (ConsentRecord.notes.ilike(f'%{search}%'))
                     )
+                if start_dt:
+                    query = query.filter(ConsentRecord.consented_at >= start_dt)
+                if end_dt:
+                    query = query.filter(ConsentRecord.consented_at <= end_dt)
                 if sort_order == 'asc':
                     query = query.order_by(ConsentRecord.consented_at.asc())
                 else:
@@ -4353,16 +4396,20 @@ def predict(org_id):
             # ── Face Quality Assessment Gate (ISO/IEC 29794-5) ──────────
             # Rejects dark/underexposed frames, severe glare, and motion blur before ML inference.
             def _check_face_roi_quality(roi):
-                if roi is None or roi.size == 0 or roi.shape[0] < 20 or roi.shape[1] < 20:
+                if roi is None or roi.size == 0 or roi.shape[0] < 24 or roi.shape[1] < 24:
                     return False, 'invalid_crop', 'Face crop too small or invalid'
                 gray = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
                 mean_lum = float(np.mean(gray))
-                if mean_lum < 42.0:
+                std_lum = float(np.std(gray))
+                # ISO/IEC 29794-5 Quality Standard: Require minimum facial illumination
+                if mean_lum < 58.0:
                     return False, 'low_light', 'Lighting too dark. Face is not visible. Please face a light source.'
-                if mean_lum > 225.0:
+                if std_lum < 16.0 and mean_lum < 75.0:
+                    return False, 'low_contrast', 'Low contrast shadow detected. Please look towards a light source.'
+                if mean_lum > 228.0:
                     return False, 'overexposed', 'Severe glare or backlight detected. Please adjust lighting.'
                 lap_var = float(cv2.Laplacian(gray, cv2.CV_64F).var())
-                if lap_var < 28.0 and mean_lum < 65.0:
+                if lap_var < 32.0 and mean_lum < 70.0:
                     return False, 'motion_blur', 'Face image is blurry. Please hold steady.'
                 return True, 'passed', 'Face quality checks passed.'
 
@@ -5256,9 +5303,10 @@ def get_dashboard_stats(org_id=None):
         has_encodings = (edge_encodings is not None) or (deepface_encodings is not None) or (insightface_encodings is not None)
         norm_key = lambda s: str(s).strip().lower().replace(' ', '_').replace('-', '_')
         trained_classes_norm = {norm_key(c) for c in trained_classes}
-        all_persons_norm = {norm_key(p) for p in all_persons}
-        untrained = (all_persons_norm - trained_classes_norm) if trained_classes_norm else all_persons_norm
-        if len(all_persons) == 0:
+        # Only require retrain for personnel who have actual reference photos on disk!
+        disk_persons_with_photos = {norm_key(p) for p, cnt in photos_per_person.items() if cnt > 0}
+        untrained = (disk_persons_with_photos - trained_classes_norm) if trained_classes_norm else set()
+        if len(disk_persons_with_photos) == 0:
             requires_retrain = False
         else:
             requires_retrain = (not has_encodings) or (len(untrained) > 0)

@@ -334,7 +334,11 @@ def find_match_knn(embedding, known_encodings, known_names, k=KNN_K, max_dist=No
     best_name = distances[0][1]
 
     # --- Gate 1: Absolute distance cutoff ---
-    if best_dist > cutoff:
+    # Strict threshold: FaceNet512 <= 0.32, InsightFace <= 0.30
+    strict_max = 0.30 if model_name == 'InsightFace' else 0.32
+    effective_cutoff = min(cutoff, strict_max + (0.03 * profile_factor))
+
+    if best_dist > effective_cutoff:
         return "Unknown", best_dist, "rejected"
 
     # --- Gate 2: Ratio test ---
@@ -344,12 +348,10 @@ def find_match_knn(embedding, known_encodings, known_names, k=KNN_K, max_dist=No
             second_best_dist = dist
             break
 
-    # In face galleries, if best_dist is already a direct genuine match,
-    # do NOT reject on ratio test. Only apply ratio test in borderline zone.
-    ambiguous_zone = (0.32 if model_name == 'InsightFace' else 0.38) + (0.08 * profile_factor)
-    ratio_cutoff = 0.95 if profile_factor > 0.0 else 0.92
-    if best_dist > ambiguous_zone and second_best_dist is not None:
-        if best_dist > ratio_cutoff * second_best_dist:
+    # If the candidate match is ambiguous (best_dist close to second_best_dist),
+    # reject as Unknown to prevent cross-person misattribution (e.g. Vatsal vs Shivam in dim light)
+    if second_best_dist is not None:
+        if best_dist > 0.24 and best_dist > (0.84 * second_best_dist):
             return "Unknown", best_dist, "rejected"
 
     # --- Gate 3: KNN Majority Vote ---

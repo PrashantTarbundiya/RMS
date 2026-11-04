@@ -335,7 +335,15 @@ export default function ManagePersonPage() {
     );
   }
 
+  const getInitials = (str) => {
+    if (!str) return 'AP';
+    const parts = str.trim().replace(/_/g, ' ').split(/\s+/);
+    if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+    return (parts[0].slice(0, 2)).toUpperCase();
+  };
+
   const frontalPhoto = Array.isArray(photos) ? photos.find(p => p.angle === 'frontal') : null;
+  const avatarPhoto = frontalPhoto || (Array.isArray(photos) && photos.length > 0 ? photos[0] : null);
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="pb-12 max-w-5xl mx-auto space-y-6 page-container">
@@ -354,16 +362,22 @@ export default function ManagePersonPage() {
       {/* Premium Profile Card */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-6 bg-[#0F1011] border border-[#23252A] rounded-xl">
         <div className="flex items-center gap-4">
-          <div className="w-16 h-16 rounded-full border border-[#23252A] flex items-center justify-center bg-[#010102] overflow-hidden shrink-0">
-            {frontalPhoto ? (
+          <div className="w-16 h-16 rounded-full border border-[#23252A] flex items-center justify-center bg-[#010102] overflow-hidden shrink-0 relative shadow-inner">
+            {avatarPhoto ? (
               <img 
-                src={getAuthenticatedPhotoUrl(originalName, 'frontal', frontalPhoto.filename, accessToken)} 
-                alt="Avatar" 
+                src={getAuthenticatedPhotoUrl(originalName, avatarPhoto.angle || 'frontal', avatarPhoto.filename, accessToken)} 
+                alt={formatPersonName(originalName)} 
                 className="w-full h-full object-cover"
-                onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                onError={(e) => { 
+                  e.currentTarget.style.display = 'none';
+                  const fb = e.currentTarget.parentElement?.querySelector('.avatar-initials');
+                  if (fb) fb.classList.remove('hidden');
+                }}
               />
             ) : null}
-            <User className={`w-8 h-8 text-ink-subtle ${frontalPhoto ? 'hidden' : ''}`} />
+            <div className={`avatar-initials ${avatarPhoto ? 'hidden' : 'flex'} w-full h-full items-center justify-center bg-gradient-to-br from-emerald-950 via-[#0F1011] to-[#010102] text-emerald-400 font-mono font-bold text-base tracking-wider border border-emerald-500/20`}>
+              {getInitials(originalName)}
+            </div>
           </div>
           <div>
             <h2 className="text-card-title font-semibold text-ink font-display m-0">{formatPersonName(originalName)}</h2>
