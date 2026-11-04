@@ -82,3 +82,6 @@ backend/tests/data/
 
 # Playwright artifacts
 .playwright-mcp/
+
+pixaai.zip
+pixaai_extracted/

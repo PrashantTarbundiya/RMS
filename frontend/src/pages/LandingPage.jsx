@@ -45,6 +45,7 @@ export default function LandingPage() {
   const [scrollProgress, setScrollProgress] = useState(0);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showStickyMobileCta, setShowStickyMobileCta] = useState(false);
+  const [showVideoModal, setShowVideoModal] = useState(false);
 
   // 3D Tilt State for Hero Terminal
   const [tilt, setTilt] = useState({ x: 0, y: 0 });
@@ -175,22 +176,22 @@ export default function LandingPage() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // Hero Camera Streams Data (Priya Sharma accurately reflects the female photo in aurapass_kiosk_preview.jpg)
+  // Hero Camera Streams Data with accurate male Rajesh Patel & female Priya Sharma
   const HERO_STREAMS = [
     {
       name: "Front Gate Lane 01",
       protocol: "Hikvision DS-2CD • RTSP 1080p",
-      location: "Main Facility Turnstiles",
+      location: "Main Entrance Turnstiles",
       fps: "29.8 FPS",
       latency: "184 ms",
-      employee: "Priya Sharma",
+      employee: "Rajesh Patel",
       badge: "EMP-0142",
-      dept: "Quality Assurance",
+      dept: "Operations",
       time: "09:12:04 AM",
       status: "ON TIME",
-      confidence: "99.4%",
-      liveness: "98.7% Verified",
-      image: "/aurapass_kiosk_preview.jpg"
+      confidence: "99.6%",
+      liveness: "99.1% Verified",
+      image: "/people/man.jpg"
     },
     {
       name: "Turnstile Gate B",
@@ -198,14 +199,14 @@ export default function LandingPage() {
       location: "Plant Logistics Gate",
       fps: "30.0 FPS",
       latency: "162 ms",
-      employee: "Rajesh Patel",
+      employee: "Priya Sharma",
       badge: "EMP-0089",
-      dept: "Operations",
+      dept: "Quality Assurance",
       time: "09:14:22 AM",
       status: "ON TIME",
-      confidence: "98.9%",
-      liveness: "99.1% Verified",
-      image: "/landing-bg.png"
+      confidence: "99.4%",
+      liveness: "98.9% Verified",
+      image: "/people/women.jpg"
     },
     {
       name: "Executive Reception",
@@ -218,9 +219,9 @@ export default function LandingPage() {
       dept: "Engineering",
       time: "09:05:12 AM",
       status: "ON TIME",
-      confidence: "99.7%",
-      liveness: "99.4% Verified",
-      image: "/auth-bg.png"
+      confidence: "99.8%",
+      liveness: "99.5% Verified",
+      image: "/people/man2.jpg"
     }
   ];
 
@@ -278,8 +279,8 @@ export default function LandingPage() {
 
   // Pricing Calculation Helpers
   const unitRate = currency === 'INR' 
-    ? (billingInterval === 'annual' ? 23 : 29) 
-    : (billingInterval === 'annual' ? 0.28 : 0.35);
+    ? (billingInterval === 'annual' ? 15 : 19) 
+    : (billingInterval === 'annual' ? 0.20 : 0.25);
   
   const currencySymbol = currency === 'INR' ? '₹' : '$';
   const calculatedProTotal = Math.round(pricingStaffCount * unitRate);
@@ -508,6 +509,10 @@ export default function LandingPage() {
                 <img
                   src={currentHeroStream.image}
                   alt={currentHeroStream.name}
+                  onError={(e) => {
+                    e.currentTarget.onerror = null;
+                    e.currentTarget.src = '/aurapass_kiosk_preview.jpg';
+                  }}
                   className="absolute inset-0 w-full h-full object-cover object-center filter brightness-95 contrast-105"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-black/35 pointer-events-none" />
@@ -1283,9 +1288,9 @@ export default function LandingPage() {
           {/* Slider */}
           <input
             type="range"
-            min="25"
+            min="10"
             max="500"
-            step="25"
+            step="10"
             value={pricingStaffCount}
             onChange={(e) => setPricingStaffCount(Number(e.target.value))}
             className="w-full range-slider-thumb accent-emerald-400 cursor-pointer mb-3"
@@ -1650,6 +1655,59 @@ export default function LandingPage() {
         </div>
       )}
 
+ 
+
+      {/* Pixa-inspired Video Demo Modal */}
+      {showVideoModal && (
+        <div 
+          id="landing-video-modal"
+          className="fixed inset-0 z-[99999] bg-black/85 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200"
+          onClick={() => setShowVideoModal(false)}
+        >
+          <div 
+            className="relative w-full max-w-4xl bg-[#0D1017] border border-white/15 rounded-2xl p-4 sm:p-6 shadow-2xl space-y-4 overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between pb-3 border-b border-white/10">
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded-full bg-emerald-500 animate-pulse" />
+                <span className="text-sm font-bold text-white font-mono-tag">AuraPass™ Edge Verification Live Demonstration</span>
+              </div>
+              <button 
+                onClick={() => setShowVideoModal(false)}
+                className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition-colors cursor-pointer"
+                aria-label="Close modal"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="relative aspect-video w-full rounded-xl bg-black overflow-hidden border border-white/10 flex items-center justify-center">
+              <iframe 
+                className="w-full h-full"
+                src="https://www.youtube.com/embed/6j4fPVkA3EA?autoplay=1&mute=1&controls=1&rel=0" 
+                title="AuraPass Edge Facial Verification Demo"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                allowFullScreen
+              />
+            </div>
+
+            <div className="flex flex-wrap items-center justify-between text-xs text-slate-400 pt-2 gap-2">
+              <div className="flex items-center gap-2">
+                <Check className="w-3.5 h-3.5 text-emerald-400" />
+                <span>Compatible with standard Hikvision, Dahua, CP Plus & USB webcams</span>
+              </div>
+              <Link 
+                to="/register"
+                onClick={() => setShowVideoModal(false)}
+                className="px-3.5 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs"
+              >
+                Start 7-Day Free Trial
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
