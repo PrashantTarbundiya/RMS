@@ -26,10 +26,10 @@ logger = logging.getLogger('rms-liveness')
 # Now calibrated to reject obvious spoofs while accepting live webcam input.
 
 LAPLACIAN_THRESHOLD = 10.0       # Minimum edge density
-BRIGHT_RATIO_THRESHOLD = 0.40    # Max fraction of blown-out pixels — glasses + white walls
+BRIGHT_RATIO_THRESHOLD = 0.12    # Max fraction of blown-out pixels — glasses + white walls
 SAT_VARIANCE_THRESHOLD = 5.0     # Min std-dev of HSV Saturation — low lighting
 HUE_VARIANCE_THRESHOLD = 3.0     # Min std-dev of HSV Hue — uniform lighting
-MOIRE_PEAK_THRESHOLD = 0.60      # Max moiré periodicity score — monitor reflections in glasses
+MOIRE_PEAK_THRESHOLD = 0.28      # Max moiré periodicity score — monitor reflections in glasses
 MICRO_MOVEMENT_THRESHOLD = 2.0   # Min pixel displacement across multi-frame
 
 # Minimum number of FAILED checks required to declare spoof
@@ -37,7 +37,7 @@ MICRO_MOVEMENT_THRESHOLD = 2.0   # Min pixel displacement across multi-frame
 MIN_FAILED_CHECKS_FOR_SPOOF = 2
 
 
-def evaluate_liveness(face_roi_bgr, threshold=None, frames=None):
+def evaluate_liveness(face_roi_bgr, threshold=None, frames=None, full_frame=None, bbox=None):
     """
     Evaluates the liveness of a face ROI using multiple anti-spoofing checks.
 
@@ -152,6 +152,21 @@ def evaluate_liveness(face_roi_bgr, threshold=None, frames=None):
         except ImportError:
             pass  # Module not available — classical checks remain active
 
+                # ── Check 7: Physical Smartphone / Screen Bezel Detection ────────
+        has_phone_bezel = False
+        if full_frame is not None and bbox is not None:
+            has_phone_bezel, bezel_score = _detect_phone_bezel(full_frame, bbox)
+            details['screen_bezel_detected'] = has_phone_bezel
+            details['bezel_score'] = round(bezel_score, 3)
+            if has_phone_bezel:
+                failed_checks.append(f"Screen chassis detected (Bezel Score: {bezel_score:.2f})")
+
+        # ── Check 8: YCrCb Physiological Skin Tone Locus ────────────────
+        skin_ratio = _check_skin_chrominance(face_roi_bgr)
+        details['skin_chroma_ratio'] = round(skin_ratio, 3)
+        if skin_ratio < 0.40:
+            failed_checks.append(f"Unnatural color gamut (Skin locus: {skin_ratio:.1%})")
+
         # ── Voting Decision ─────────────────────────────────────────────
         details['failed_checks'] = failed_checks
         details['failed_count'] = len(failed_checks)
@@ -179,6 +194,59 @@ def evaluate_liveness(face_roi_bgr, threshold=None, frames=None):
         logger.error(f"Liveness evaluation failed (REJECTED — fail-closed): {e}")
         return False, 0.0, f"Liveness evaluation error (rejected): {str(e)}", {}
 
+
+
+def _detect_phone_bezel(full_frame, bbox):
+    """
+    Detects straight vertical/horizontal high-contrast lines characteristic
+    of smartphone / tablet screen bezels surrounding the face.
+    """
+    try:
+        if full_frame is None or bbox is None:
+            return False, 0.0
+        x, y, w, h = int(bbox['x']), int(bbox['y']), int(bbox['w']), int(bbox['h'])
+        fh, fw = full_frame.shape[:2]
+        pad_w = int(w * 0.25)
+        pad_h = int(h * 0.25)
+        x1 = max(0, x - pad_w)
+        y1 = max(0, y - pad_h)
+        x2 = min(fw, x + w + pad_w)
+        y2 = min(fh, y + h + pad_h)
+        crop = full_frame[y1:y2, x1:x2]
+        if crop.shape[0] < 40 or crop.shape[1] < 40:
+            return False, 0.0
+        gray = cv2.cvtColor(crop, cv2.COLOR_BGR2GRAY)
+        edges = cv2.Canny(gray, 60, 160)
+        lines = cv2.HoughLinesP(edges, 1, 3.14159 / 180, threshold=40, minLineLength=int(h * 0.35), maxLineGap=12)
+        if lines is None:
+            return False, 0.0
+        vertical = 0
+        horizontal = 0
+        for l in lines:
+            lx1, ly1, lx2, ly2 = l[0]
+            ang = abs(ly2 - ly1) / max(1e-5, abs(lx2 - lx1))
+            if ang > 4.0: # ~76 degrees or more (vertical line)
+                vertical += 1
+            elif ang < 0.25: # ~14 degrees or less (horizontal line)
+                horizontal += 1
+        has_bezel = (vertical >= 2 and horizontal >= 1) or (vertical >= 3)
+        score = min(1.0, (vertical * 0.25 + horizontal * 0.15))
+        return has_bezel, score
+    except Exception:
+        return False, 0.0
+
+def _check_skin_chrominance(face_roi_bgr):
+    """
+    Computes fraction of pixels matching physiological human skin locus in YCrCb.
+    """
+    try:
+        ycrcb = cv2.cvtColor(face_roi_bgr, cv2.COLOR_BGR2YCrCb)
+        cr = ycrcb[:, :, 1]
+        cb = ycrcb[:, :, 2]
+        skin_mask = (cb >= 77) & (cb <= 127) & (cr >= 133) & (cr <= 173)
+        return float(skin_mask.sum()) / float(face_roi_bgr.shape[0] * face_roi_bgr.shape[1])
+    except Exception:
+        return 1.0
 
 def _detect_moire_pattern(gray):
     """

@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { motion } from 'framer-motion';
-import { Download, Calendar, Search, RefreshCw, ClipboardList, Users } from 'lucide-react';
+import { Download, Calendar, Search, RefreshCw, ClipboardList, Users, Plus, Trash2, X, CheckCircle2, AlertCircle, UserCheck } from 'lucide-react';
 import { API_BASE } from '../config';
 import { SkeletonTable, SkeletonStatCards } from '../components/ui/Skeleton';
 import EmptyState from '../components/ui/EmptyState';
@@ -22,6 +22,21 @@ export default function AttendancePage() {
   const [statusFilter, setStatusFilter] = useState(searchParams.get('status') || 'all');
   const [sortBy, setSortBy] = useState(searchParams.get('sort') || 'newest');
   const [minConf, setMinConf] = useState(Number(searchParams.get('min_conf')) || 0);
+
+  // Manual Attendance Modal State
+  const [isManualModalOpen, setIsManualModalOpen] = useState(false);
+  const [manualForm, setManualForm] = useState({
+    name: '',
+    date: '',
+    time: '',
+    event_type: 'check_in',
+    status: 'on_time',
+    department: 'General',
+    notes: 'HR Manual Punch'
+  });
+  const [enrolledPersons, setEnrolledPersons] = useState([]);
+  const [isSubmittingManual, setIsSubmittingManual] = useState(false);
+  const [deletingId, setDeletingId] = useState(null);
 
   const updateParam = useCallback((key, val, defaultVal = '') => {
     setSearchParams(prev => {
@@ -51,7 +66,82 @@ export default function AttendancePage() {
 
   useEffect(() => {
     fetchHistory();
-  }, [fetchHistory]);
+    // Fetch persons list for dropdown
+    const fetchPersons = async () => {
+      try {
+        const res = await apiClient.get(`${API_BASE}/persons`);
+        if (Array.isArray(res.data)) {
+          setEnrolledPersons(res.data);
+        }
+      } catch (err) {
+        // Non-blocking
+      }
+    };
+    fetchPersons();
+  }, [fetchHistory, apiClient]);
+
+  // Handle Manual Attendance Submission
+  const handleCreateManual = async (e) => {
+    e.preventDefault();
+    if (!manualForm.name.trim()) {
+      toast.warning('Please enter or select an employee name.');
+      return;
+    }
+    try {
+      setIsSubmittingManual(true);
+      const payload = {
+        name: manualForm.name.trim(),
+        date: manualForm.date || todayYMD(),
+        time: manualForm.time || new Date().toTimeString().slice(0, 8),
+        event_type: manualForm.event_type,
+        status: manualForm.status,
+        department: manualForm.department,
+        notes: manualForm.notes
+      };
+      const res = await apiClient.post(`${API_BASE}/attendance/manual`, payload);
+      if (res.status === 201 || res.data?.success) {
+        toast.success(`Manual punch recorded for ${manualForm.name}`);
+        setIsManualModalOpen(false);
+        setManualForm({
+          name: '',
+          date: todayYMD(),
+          time: new Date().toTimeString().slice(0, 5),
+          event_type: 'check_in',
+          status: 'on_time',
+          department: 'General',
+          notes: 'HR Manual Punch'
+        });
+        fetchHistory();
+      } else {
+        toast.error(res.data?.error || 'Failed to record manual punch');
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.error || err.message || 'Failed to record manual punch');
+    } finally {
+      setIsSubmittingManual(false);
+    }
+  };
+
+  // Handle Deleting / Voiding an Erroneous Punch
+  const handleDeleteRecord = async (record) => {
+    const targetId = record.id || record.timestamp;
+    if (!targetId) return;
+    const confirmMsg = `Void attendance punch for "${formatPersonName(record.label)}" at ${record.timestamp ? new Date(record.timestamp).toLocaleTimeString() : 'selected time'}?`;
+    if (!window.confirm(confirmMsg)) return;
+
+    try {
+      setDeletingId(targetId);
+      // Optimistically update UI
+      setData(prev => prev.filter(r => (r.id ? r.id !== targetId : r.timestamp !== targetId)));
+      await apiClient.delete(`${API_BASE}/attendance/${encodeURIComponent(targetId)}`);
+      toast.success('Attendance punch voided successfully.');
+    } catch (err) {
+      toast.error('Failed to void record. Refreshing list.');
+      fetchHistory();
+    } finally {
+      setDeletingId(null);
+    }
+  };
 
   const pad = (n) => String(n).padStart(2, '0');
   const todayYMD = () => {
@@ -215,9 +305,24 @@ export default function AttendancePage() {
           <h1 className="text-headline font-semibold text-ink font-display">Attendance Log</h1>
           <p className="mt-1 text-caption text-ink-subtle">Recognition history from all cameras and test sessions.</p>
         </div>
-        <button className="button-secondary flex items-center gap-2 h-9 text-caption" onClick={() => { setIsLoading(true); fetchHistory(); }}>
-          <RefreshCw size={14} /> Refresh
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => {
+              setManualForm(prev => ({
+                ...prev,
+                date: todayYMD(),
+                time: new Date().toTimeString().slice(0, 5)
+              }));
+              setIsManualModalOpen(true);
+            }}
+            className="button-primary bg-emerald-600 hover:bg-emerald-500 text-white flex items-center gap-2 h-9 px-3.5 text-caption font-medium rounded-lg shadow-sm"
+          >
+            <Plus size={15} /> Manual Punch / Override
+          </button>
+          <button className="button-secondary flex items-center gap-2 h-9 text-caption" onClick={() => { setIsLoading(true); fetchHistory(); }}>
+            <RefreshCw size={14} /> Refresh
+          </button>
+        </div>
       </motion.div>
 
       {/* Summary Stats - High Density 3-col on Mobile (ISO 9241-110) */}
@@ -435,9 +540,21 @@ export default function AttendancePage() {
                     <span className="text-[11px] text-ink-tertiary">
                       {record.timestamp ? new Date(record.timestamp).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' }) : '-'}
                     </span>
-                    <span className="text-[11px] text-ink-muted">
-                      {record.confidence !== undefined ? `Conf: ${(record.confidence * 100).toFixed(1)}%` : ''}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      {record.method === 'manual_admin' || record.method === 'manual_out' ? (
+                        <span className="text-[10px] text-amber-300 font-sans font-medium">Manual</span>
+                      ) : (
+                        <span className="text-[10px] text-emerald-400 font-sans font-medium">Face AI</span>
+                      )}
+                      <button
+                        onClick={() => handleDeleteRecord(record)}
+                        disabled={deletingId === (record.id || record.timestamp)}
+                        title="Void record"
+                        className="p-1 text-ink-muted hover:text-red-400"
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -450,8 +567,10 @@ export default function AttendancePage() {
                   <tr>
                     <th className="px-6 py-4 text-ink-subtle font-semibold uppercase tracking-wider text-[11px]">Time</th>
                     <th className="px-6 py-4 text-ink-subtle font-semibold uppercase tracking-wider text-[11px]">Person</th>
+                    <th className="px-6 py-4 text-ink-subtle font-semibold uppercase tracking-wider text-[11px]">Verification Method</th>
                     <th className="px-6 py-4 text-ink-subtle font-semibold uppercase tracking-wider text-[11px]">Confidence</th>
-                    <th className="px-6 py-4 text-ink-subtle font-semibold uppercase tracking-wider text-[11px] text-right">Status</th>
+                    <th className="px-6 py-4 text-ink-subtle font-semibold uppercase tracking-wider text-[11px]">Status</th>
+                    <th className="px-6 py-4 text-ink-subtle font-semibold uppercase tracking-wider text-[11px] text-right">Action</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#23252A]/50">
@@ -463,13 +582,34 @@ export default function AttendancePage() {
                       <td className="px-6 py-3.5 font-medium text-ink group-hover:text-emerald-400 transition-colors">
                         {formatPersonName(record.label)}
                       </td>
+                      <td className="px-6 py-3.5">
+                        {record.method === 'manual_admin' || record.method === 'manual_out' ? (
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-medium bg-amber-500/10 text-amber-300 border border-amber-500/25">
+                            <UserCheck size={11} /> Manual HR Override
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/25">
+                            <CheckCircle2 size={11} /> Face Biometric AI
+                          </span>
+                        )}
+                      </td>
                       <td className="px-6 py-3.5 text-ink-muted font-mono">
                         {record.confidence !== undefined ? `${(record.confidence * 100).toFixed(1)}%` : '-'}
                       </td>
-                      <td className="px-6 py-3.5 text-right">
+                      <td className="px-6 py-3.5">
                         <span className={`inline-flex px-2.5 py-0.5 rounded-full font-mono text-[10px] font-semibold border ${getStatusStyle(record)}`}>
                           {getStatusLabel(record)}
                         </span>
+                      </td>
+                      <td className="px-6 py-3.5 text-right">
+                        <button
+                          onClick={() => handleDeleteRecord(record)}
+                          disabled={deletingId === (record.id || record.timestamp)}
+                          title="Void / Delete false attendance record"
+                          className="p-1.5 rounded-lg text-ink-muted hover:text-red-400 hover:bg-red-500/10 transition-colors"
+                        >
+                          <Trash2 size={14} className={deletingId === (record.id || record.timestamp) ? 'animate-spin' : ''} />
+                        </button>
                       </td>
                     </tr>
                   ))}
@@ -483,6 +623,151 @@ export default function AttendancePage() {
           </div>
         )}
       </motion.div>
+
+      {/* Manual Attendance Entry Modal */}
+      {isManualModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-[#0F1011] border border-[#23252A] rounded-2xl w-full max-w-lg p-6 shadow-2xl space-y-5">
+            <div className="flex items-center justify-between pb-3 border-b border-[#23252A]">
+              <div>
+                <h3 className="text-base font-semibold text-white font-display">Manual Attendance Punch</h3>
+                <p className="text-caption text-ink-subtle mt-0.5">HR Override for missed scans, client visits, or system reconciliation.</p>
+              </div>
+              <button
+                onClick={() => setIsManualModalOpen(false)}
+                className="p-1.5 rounded-lg text-ink-muted hover:text-ink hover:bg-[#1A1C20] transition-colors"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateManual} className="space-y-4">
+              <div>
+                <label className="block text-xs font-medium text-ink-subtle mb-1.5">Employee Name *</label>
+                {enrolledPersons.length > 0 ? (
+                  <div className="space-y-2">
+                    <input
+                      type="text"
+                      list="enrolled-persons-list"
+                      required
+                      placeholder="Type or select employee name..."
+                      value={manualForm.name}
+                      onChange={(e) => setManualForm({ ...manualForm, name: e.target.value })}
+                      className="input-linear w-full h-10 px-3 text-caption text-ink bg-[#141516] border border-[#23252A] rounded-lg focus:outline-none focus:border-emerald-500/50"
+                    />
+                    <datalist id="enrolled-persons-list">
+                      {enrolledPersons.map((p, idx) => (
+                        <option key={idx} value={p.name || p} />
+                      ))}
+                    </datalist>
+                  </div>
+                ) : (
+                  <input
+                    type="text"
+                    required
+                    placeholder="Enter full name of employee..."
+                    value={manualForm.name}
+                    onChange={(e) => setManualForm({ ...manualForm, name: e.target.value })}
+                    className="input-linear w-full h-10 px-3 text-caption text-ink bg-[#141516] border border-[#23252A] rounded-lg focus:outline-none focus:border-emerald-500/50"
+                  />
+                )}
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-ink-subtle mb-1.5">Date</label>
+                  <input
+                    type="date"
+                    required
+                    value={manualForm.date}
+                    onChange={(e) => setManualForm({ ...manualForm, date: e.target.value })}
+                    className="input-linear w-full h-10 px-3 text-caption text-ink bg-[#141516] border border-[#23252A] rounded-lg focus:outline-none"
+                    style={{ colorScheme: 'dark' }}
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-ink-subtle mb-1.5">Time</label>
+                  <input
+                    type="time"
+                    required
+                    step="1"
+                    value={manualForm.time}
+                    onChange={(e) => setManualForm({ ...manualForm, time: e.target.value })}
+                    className="input-linear w-full h-10 px-3 text-caption text-ink bg-[#141516] border border-[#23252A] rounded-lg focus:outline-none"
+                    style={{ colorScheme: 'dark' }}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-ink-subtle mb-1.5">Event Type</label>
+                  <select
+                    value={manualForm.event_type}
+                    onChange={(e) => setManualForm({ ...manualForm, event_type: e.target.value })}
+                    className="input-linear w-full h-10 px-3 text-caption text-ink bg-[#141516] border border-[#23252A] rounded-lg cursor-pointer focus:outline-none"
+                  >
+                    <option value="check_in">Check-In (Entry)</option>
+                    <option value="check_out">Check-Out (Exit)</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-ink-subtle mb-1.5">Attendance Status</label>
+                  <select
+                    value={manualForm.status}
+                    onChange={(e) => setManualForm({ ...manualForm, status: e.target.value })}
+                    className="input-linear w-full h-10 px-3 text-caption text-ink bg-[#141516] border border-[#23252A] rounded-lg cursor-pointer focus:outline-none"
+                  >
+                    <option value="on_time">On-Time</option>
+                    <option value="late">Late Arrival</option>
+                    <option value="early_departure">Early Departure</option>
+                    <option value="overtime">Overtime</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-ink-subtle mb-1.5">Department / Zone (Optional)</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Engineering, Assembly Line 1"
+                  value={manualForm.department}
+                  onChange={(e) => setManualForm({ ...manualForm, department: e.target.value })}
+                  className="input-linear w-full h-10 px-3 text-caption text-ink bg-[#141516] border border-[#23252A] rounded-lg focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-ink-subtle mb-1.5">Reason / Audit Notes</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Field duty client visit, Camera sync glitch"
+                  value={manualForm.notes}
+                  onChange={(e) => setManualForm({ ...manualForm, notes: e.target.value })}
+                  className="input-linear w-full h-10 px-3 text-caption text-ink bg-[#141516] border border-[#23252A] rounded-lg focus:outline-none"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-3 border-t border-[#23252A]">
+                <button
+                  type="button"
+                  onClick={() => setIsManualModalOpen(false)}
+                  className="button-secondary px-4 py-2 text-caption"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmittingManual}
+                  className="button-primary bg-emerald-600 hover:bg-emerald-500 text-white px-5 py-2 text-caption font-medium rounded-lg flex items-center gap-2"
+                >
+                  {isSubmittingManual ? 'Saving...' : 'Record Attendance'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </motion.div>
   );
 }

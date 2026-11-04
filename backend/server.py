@@ -1195,6 +1195,131 @@ def get_recent_attendance(org_id):
 
     return jsonify(results)
 
+@app.route('/api/attendance/manual', methods=['POST'])
+@require_auth
+@require_role('org_admin')
+@inject_org_id
+def create_manual_attendance(org_id):
+    """
+    Allow HR / Admin to log manual attendance entry (e.g. outdoor duty, forgotten check-in, system correction).
+    """
+    from datetime import datetime, timezone
+    import uuid
+    from database.db import is_db_available, get_db_session
+    from database.models import AttendanceLog, Employee, AttendanceStatus
+    
+    data = request.get_json(silent=True) or request.form or {}
+    employee_name = (data.get('name') or data.get('employee_name') or '').strip()
+    if not employee_name:
+        return jsonify({'error': 'Employee name is required'}), 400
+        
+    date_str = data.get('date') or datetime.now(timezone.utc).strftime('%Y-%m-%d')
+    time_str = data.get('time') or datetime.now(timezone.utc).strftime('%H:%M:%S')
+    try:
+        if len(time_str) == 5:
+            time_str += ':00'
+        checkin_dt = datetime.strptime(f"{date_str} {time_str}", '%Y-%m-%d %H:%M:%S').replace(tzinfo=timezone.utc)
+    except Exception:
+        checkin_dt = datetime.now(timezone.utc)
+        
+    event_type = data.get('event_type', 'check_in')
+    status_str = data.get('status', 'on_time')
+    method_val = 'manual_admin' if event_type == 'check_in' else 'manual_out'
+    notes = data.get('notes', 'Manual HR Override')
+    
+    log_id = str(uuid.uuid4())
+    if is_db_available() and org_id:
+        try:
+            with get_db_session() as db:
+                emp = db.query(Employee).filter(Employee.org_id == str(org_id), Employee.name.ilike(employee_name)).first()
+                emp_id = emp.id if emp else None
+                dept = emp.department if emp else data.get('department', 'General')
+                
+                log = AttendanceLog(
+                    id=log_id,
+                    org_id=str(org_id),
+                    employee_id=emp_id,
+                    checkin_time=checkin_dt,
+                    confidence=1.0,
+                    method=method_val,
+                    status=AttendanceStatus.logged,
+                    prediction_label=employee_name,
+                    is_confirmed=True,
+                    synced=True
+                )
+                db.add(log)
+                db.commit()
+                return jsonify({
+                    'message': 'Manual attendance recorded successfully',
+                    'log': {
+                        'id': log.id,
+                        'name': employee_name,
+                        'department': dept,
+                        'event_type': event_type,
+                        'status': status_str,
+                        'timestamp': checkin_dt.isoformat(),
+                        'method': method_val,
+                        'notes': notes
+                    }
+                }), 201
+        except Exception as e:
+            logger.error(f"Manual attendance DB error: {e}")
+            return jsonify({'error': str(e)}), 500
+
+    return jsonify({
+        'message': 'Manual attendance recorded',
+        'log': {
+            'id': log_id,
+            'name': employee_name,
+            'event_type': event_type,
+            'status': status_str,
+            'timestamp': checkin_dt.isoformat(),
+            'method': method_val,
+            'notes': notes
+        }
+    }), 201
+
+
+@app.route('/api/attendance/<log_id>', methods=['DELETE'])
+@require_auth
+@require_role('org_admin')
+@inject_org_id
+def delete_attendance_log(org_id, log_id):
+    """
+    Allow HR / Admin to void / delete an erroneous or false attendance punch.
+    """
+    from database.db import is_db_available, get_db_session
+    from database.models import AttendanceLog
+    deleted_from_db = False
+    if is_db_available() and org_id:
+        try:
+            with get_db_session() as db:
+                log = db.query(AttendanceLog).filter(AttendanceLog.id == log_id, AttendanceLog.org_id == str(org_id)).first()
+                if log:
+                    db.delete(log)
+                    db.commit()
+                    deleted_from_db = True
+        except Exception as e:
+            logger.error(f"Delete attendance error in DB: {e}")
+
+    # Also remove from JSON history files if present
+    try:
+        from org_storage import get_recognition_history_path
+        history_path = get_recognition_history_path(org_id)
+        if os.path.exists(history_path):
+            with open(history_path, 'r') as f:
+                logs = json.load(f)
+            if isinstance(logs, list):
+                new_logs = [x for x in logs if x.get('id') != log_id and x.get('timestamp') != log_id]
+                if len(new_logs) != len(logs):
+                    with open(history_path, 'w') as f:
+                        json.dump(new_logs, f, indent=2)
+    except Exception as e:
+        logger.warning(f"Failed to delete attendance log from file: {e}")
+
+    return jsonify({'message': 'Attendance record deleted successfully', 'id': log_id})
+
+
 @app.route('/api/departments', methods=['GET'])
 @require_auth
 @inject_org_id
@@ -4289,7 +4414,10 @@ def predict(org_id):
                         additional_face_rois.append(extra_frame[ef_y1:ef_y2, ef_x1:ef_x2])
             
             is_live, liveness_score, liveness_reason, liveness_details = evaluate_liveness(
-                face_roi_cv, frames=additional_face_rois
+                face_roi_cv, 
+                frames=additional_face_rois,
+                full_frame=img_np,
+                bbox={'x': x, 'y': y, 'w': w, 'h': h}
             )
             
             if not is_live:

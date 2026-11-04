@@ -70,6 +70,17 @@ export default function KioskPage() {
     localStorage.setItem('rms_kiosk_direction', kioskDirection);
   }, [kioskDirection]);
 
+  // Trigger Mode: 'tap' (Tap to Punch on demand) | 'auto' (Continuous Auto-Scan)
+  const [triggerMode, setTriggerMode] = useState(() => {
+    return localStorage.getItem('rms_kiosk_trigger_mode') || 'tap';
+  });
+  const triggerModeRef = useRef(triggerMode);
+  useEffect(() => {
+    triggerModeRef.current = triggerMode;
+    localStorage.setItem('rms_kiosk_trigger_mode', triggerMode);
+  }, [triggerMode]);
+  const [isManualCapturing, setIsManualCapturing] = useState(false);
+
   // Current Attendance Result for overlay
   const [attendanceEvent, setAttendanceEvent] = useState(null);
 
@@ -102,6 +113,7 @@ export default function KioskPage() {
 
   // Response-driven pacing: schedule next frame with clean debouncing
   const scheduleNextCapture = useCallback((delay = 100) => {
+    if (triggerModeRef.current === 'tap') return;
     if (liveLoopRef.current) clearTimeout(liveLoopRef.current);
     liveLoopRef.current = setTimeout(() => {
       sendFrameRef.current?.();
@@ -540,19 +552,32 @@ export default function KioskPage() {
     sendFrameRef.current = sendFrame;
   }, [sendFrame]);
 
+  // ─── Manual Tap-to-Punch Action ───────────────────────────────
+  const handleManualPunch = useCallback(async () => {
+    if (!webcamReady || isRequestInFlightRef.current || isManualCapturing) return;
+    setIsManualCapturing(true);
+    setStatus(STATUS.SCANNING);
+    try {
+      await sendFrameRef.current?.();
+    } catch (err) {
+      console.warn('Manual punch error:', err);
+    } finally {
+      setIsManualCapturing(false);
+    }
+  }, [webcamReady, isManualCapturing]);
   // ─── Frame Loop ────────────────────────────────────────────────
   useEffect(() => {
-    if (!webcamReady || isPaused) {
+    if (!webcamReady || isPaused || triggerMode === 'tap') {
       if (liveLoopRef.current) { clearTimeout(liveLoopRef.current); liveLoopRef.current = null; }
       return;
     }
-    // Kick off first frame
+    // Kick off first frame in auto mode
     scheduleNextCapture(250);
     return () => {
       if (liveLoopRef.current) { clearTimeout(liveLoopRef.current); liveLoopRef.current = null; }
       if (inFlightTimerRef.current) { clearTimeout(inFlightTimerRef.current); inFlightTimerRef.current = null; }
     };
-  }, [webcamReady, isPaused, scheduleNextCapture]);
+  }, [webcamReady, isPaused, triggerMode, scheduleNextCapture]);
 
   // ─── Fullscreen Toggle ─────────────────────────────────────────
   const toggleFullscreen = useCallback(() => {
@@ -1033,6 +1058,71 @@ export default function KioskPage() {
               )}
             </div>
           )}
+
+          {/* ─── Mode Switch & Tap-to-Punch Trigger Bar ─── */}
+          <div className="mt-4 flex flex-col items-center justify-center gap-2.5 w-full max-w-md mx-auto px-2 z-20">
+            {triggerMode === 'tap' ? (
+              <button
+                onClick={handleManualPunch}
+                disabled={!webcamReady || isRequestInFlightRef.current || isManualCapturing || status === STATUS.GRANTED}
+                className={`w-full py-3.5 px-6 rounded-xl font-semibold text-sm transition-all duration-200 flex items-center justify-center gap-2.5 shadow-xl ${
+                  status === STATUS.GRANTED
+                    ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                    : (isManualCapturing || isRequestInFlightRef.current)
+                    ? 'bg-emerald-600/70 text-white cursor-wait animate-pulse'
+                    : 'bg-emerald-600 hover:bg-emerald-500 active:scale-[0.99] text-white shadow-emerald-950/40'
+                }`}
+              >
+                {isManualCapturing || isRequestInFlightRef.current ? (
+                  <>
+                    <RotateCw size={18} className="animate-spin text-white" />
+                    <span>Verifying Face...</span>
+                  </>
+                ) : status === STATUS.GRANTED ? (
+                  <>
+                    <ShieldCheck size={19} className="text-emerald-400" />
+                    <span>Verified: {recognizedName}</span>
+                  </>
+                ) : (
+                  <>
+                    <Scan size={19} />
+                    <span>Tap to Punch / Verify Face</span>
+                  </>
+                )}
+              </button>
+            ) : (
+              <div className="w-full py-2.5 px-4 rounded-xl bg-[#0F1011]/90 border border-emerald-500/30 text-center flex items-center justify-center gap-2 text-xs text-emerald-400 font-mono">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+                <span>Continuous Auto-Scan Active · Step Forward</span>
+              </div>
+            )}
+
+            {/* Segmented Mode Selector */}
+            <div className="flex items-center gap-1 p-1 bg-[#0F1011] border border-[#23252A] rounded-lg text-xs">
+              <button
+                type="button"
+                onClick={() => setTriggerMode('tap')}
+                className={`px-3 py-1 rounded-md font-medium transition-colors ${
+                  triggerMode === 'tap'
+                    ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                    : 'text-ink-tertiary hover:text-ink'
+                }`}
+              >
+                ⚡ Tap to Punch
+              </button>
+              <button
+                type="button"
+                onClick={() => setTriggerMode('auto')}
+                className={`px-3 py-1 rounded-md font-medium transition-colors ${
+                  triggerMode === 'auto'
+                    ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                    : 'text-ink-tertiary hover:text-ink'
+                }`}
+              >
+                👁️ Continuous Auto
+              </button>
+            </div>
+          </div>
         </div>
 
         {/* ─── Status Panel (Side Info) ──────────────────── */}

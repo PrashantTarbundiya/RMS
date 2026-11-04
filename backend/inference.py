@@ -278,26 +278,28 @@ def find_match_knn(embedding, known_encodings, known_names, k=KNN_K, max_dist=No
     if custom_t is not None and custom_t >= 0.50:
         # Interpreted as confidence threshold (0.50 to 0.95):
         if model_name == 'InsightFace':
-            base_thresh = 0.34 - (custom_t - 0.70) * 0.20
-            base_thresh = max(0.24, min(0.42, base_thresh))
+            base_thresh = 0.28 - (custom_t - 0.70) * 0.15
+            base_thresh = max(0.20, min(0.33, base_thresh))
+            cutoff = min(0.34, base_thresh + 0.05)
         elif model_name == 'GhostFaceNet':
-            base_thresh = 0.40 - (custom_t - 0.70) * 0.20
-            base_thresh = max(0.30, min(0.48, base_thresh))
+            base_thresh = 0.32 - (custom_t - 0.70) * 0.15
+            base_thresh = max(0.24, min(0.36, base_thresh))
+            cutoff = min(0.37, base_thresh + 0.05)
         else:  # Facenet512
-            base_thresh = 0.38 - (custom_t - 0.70) * 0.20
-            base_thresh = max(0.28, min(0.48, base_thresh))
-        cutoff = base_thresh + 0.10
+            base_thresh = 0.30 - (custom_t - 0.70) * 0.15
+            base_thresh = max(0.22, min(0.34, base_thresh))
+            cutoff = min(0.35, base_thresh + 0.05)
     else:
         # Interpreted directly as distance threshold (< 0.50) or default
         if model_name == 'InsightFace':
-            base_thresh = 0.32 if custom_t is None else min(custom_t, 0.38)
-            cutoff = max(0.40, base_thresh + 0.08)
+            base_thresh = 0.28 if custom_t is None else min(custom_t, 0.33)
+            cutoff = min(0.34, base_thresh + 0.05)
         elif model_name == 'GhostFaceNet':
-            base_thresh = 0.40 if custom_t is None else min(custom_t, 0.44)
-            cutoff = max(0.48, base_thresh + 0.08)
+            base_thresh = 0.32 if custom_t is None else min(custom_t, 0.36)
+            cutoff = min(0.37, base_thresh + 0.05)
         else:  # Facenet512
-            base_thresh = 0.38 if custom_t is None else min(custom_t, 0.44)
-            cutoff = max(0.46, base_thresh + 0.08)
+            base_thresh = 0.30 if custom_t is None else min(custom_t, 0.34)
+            cutoff = min(0.35, base_thresh + 0.05)
 
     # Determine continuous yaw profile factor
     yaw_mag = 0.0
@@ -311,10 +313,10 @@ def find_match_knn(embedding, known_encodings, known_names, k=KNN_K, max_dist=No
 
     profile_factor = min(1.0, max(0.0, (yaw_mag - 12.0) / 45.0)) if yaw_mag > 12.0 else 0.0
 
-    # Smooth dynamic threshold expansion for side profiles
+    # Smooth dynamic threshold expansion for side profiles (strictly bounded)
     if profile_factor > 0.0:
-        base_thresh += 0.09 * profile_factor
-        cutoff = max(cutoff, base_thresh + 0.10)
+        base_thresh += 0.03 * profile_factor
+        cutoff = min(0.36, cutoff + 0.02 * profile_factor)
 
     if max_dist is not None:
         cutoff = max(cutoff, max_dist)
