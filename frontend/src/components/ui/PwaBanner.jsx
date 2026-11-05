@@ -25,7 +25,7 @@ export default function PwaBanner() {
             exit={{ y: -50, opacity: 0 }}
             className="fixed top-3 left-1/2 -translate-x-1/2 z-[10000] w-[92%] max-w-md"
           >
-            <div className="bg-[#0F1011] border border-[#23252A] shadow-lg rounded-lg p-3.5 flex items-center justify-between gap-3">
+            <div className="bg-[#111111] border border-[#262626] shadow-lg rounded-lg p-3.5 flex items-center justify-between gap-3">
               <div className="flex items-center gap-2.5">
                 <div className="w-8 h-8 rounded-md bg-[#059669]/15 text-[#10B981] flex items-center justify-center shrink-0">
                   <RefreshCw size={15} className="animate-spin text-[#10B981]" />
@@ -61,11 +61,11 @@ export default function PwaBanner() {
             transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
             className="fixed bottom-20 right-5 z-[9990] w-[90%] sm:w-auto sm:max-w-sm"
           >
-            <div className="bg-[#0F1011] border border-[#23252A] shadow-lg rounded-lg p-3.5 flex items-center gap-3">
+            <div className="bg-[#111111] border border-[#262626] shadow-lg rounded-lg p-3.5 flex items-center gap-3">
               <img
                 src="/pwa-192x192.png"
                 alt="AuraPass Enterprise Icon"
-                className="w-9 h-9 rounded-md border border-[#23252A] shrink-0"
+                className="w-9 h-9 rounded-md border border-[#262626] shrink-0"
               />
               <div className="flex-1 min-w-0">
                 <div className="text-xs font-semibold text-white flex items-center gap-1">

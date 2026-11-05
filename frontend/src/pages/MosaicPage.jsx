@@ -156,7 +156,7 @@ function CameraFeedTile({ camera, apiClient, columns }) {
   return (
     <div style={{
       position: 'relative', borderRadius: '12px', overflow: 'hidden',
-      background: '#0F1011', border: '1px solid #23252A',
+      background: '#111111', border: '1px solid #262626',
       aspectRatio: '4/3',
     }}>
       {/* Video Feed */}
@@ -211,7 +211,7 @@ function CameraFeedTile({ camera, apiClient, columns }) {
           onClick={() => setFacingMode(prev => prev === 'user' ? 'environment' : 'user')}
           style={{
             position: 'absolute', top: '8px', right: fps > 0 ? '60px' : '8px',
-            background: 'rgba(0,0,0,0.7)', borderRadius: '4px', border: '1px solid #23252A',
+            background: 'rgba(0,0,0,0.7)', borderRadius: '4px', border: '1px solid #262626',
             padding: '2px 6px', fontSize: '10px', color: '#34d399', cursor: 'pointer',
             display: 'flex', alignItems: 'center', gap: '4px',
           }}
@@ -321,7 +321,7 @@ export default function MosaicPage() {
         </div>
 
         {/* Grid Controls */}
-        <div className="flex items-center gap-1 bg-[#0F1011] border border-[#23252A] rounded-lg p-1 w-fit">
+        <div className="flex items-center gap-1 bg-[#111111] border border-[#262626] rounded-lg p-1 w-fit">
           <span className="text-[11px] font-mono text-ink-tertiary px-2 hidden sm:inline">Grid:</span>
           {[1, 2, 3, 4].map(n => (
             <button
@@ -330,7 +330,7 @@ export default function MosaicPage() {
               className={`px-2.5 py-1 rounded-md text-xs font-mono font-medium transition-all cursor-pointer ${
                 columns === n
                   ? 'bg-[#059669] text-white shadow-sm font-semibold'
-                  : 'text-ink-subtle hover:text-ink hover:bg-[#141516]'
+                  : 'text-ink-subtle hover:text-ink hover:bg-[#171717]'
               }`}
             >
               {n}×{n}
@@ -362,7 +362,7 @@ export default function MosaicPage() {
 
       {/* Empty State */}
       {cameras.length === 0 && (
-        <div className="card-linear text-center py-16 space-y-3 bg-[#0F1011] border-[#23252A]">
+        <div className="card-linear text-center py-16 space-y-3 bg-[#111111] border-[#262626]">
           <Camera size={44} className="mx-auto text-ink-tertiary opacity-40" />
           <p className="text-caption text-ink-subtle font-medium">No cameras detected</p>
           <p className="text-[12px] text-ink-tertiary max-w-sm mx-auto">

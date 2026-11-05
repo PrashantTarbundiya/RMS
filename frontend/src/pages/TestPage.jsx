@@ -696,7 +696,7 @@ export default function TestPage() {
     };
 
     return (
-      <div className="flex flex-col gap-4 sm:gap-5 bg-[#0F1011] p-4 sm:p-5 rounded-lg text-sm text-ink-muted max-h-[80vh] overflow-y-auto">
+      <div className="flex flex-col gap-4 sm:gap-5 bg-[#111111] p-4 sm:p-5 rounded-lg text-sm text-ink-muted max-h-[80vh] overflow-y-auto">
         
         {/* Step 1: Is this actually a person's face? */}
         <div className="space-y-2">
@@ -746,7 +746,7 @@ export default function TestPage() {
 
         {/* Step 3: Who is this person? (Shown if wrong person OR if prediction was Unknown) */}
         {feedbackIsPerson === 'yes' && (isPredictedUnknown || feedbackIsNameCorrect === 'no') && (
-          <div className="space-y-3 fade-in p-4 bg-[#141516] border border-[#23252A] rounded-lg relative">
+          <div className="space-y-3 fade-in p-4 bg-[#111111] border border-[#262626] rounded-lg relative">
             <label className="text-ink font-medium block">
               {isPredictedUnknown ? '2. Who is this person?' : '3. Correct Identity'}
             </label>
@@ -788,7 +788,7 @@ export default function TestPage() {
                   className="input-linear w-full h-10 px-3 text-caption font-mono"
                 />
                 {feedbackShowDropdown && (
-                  <div className="absolute top-full left-0 right-0 mt-1 max-h-40 overflow-y-auto bg-[#0F1011] border border-[#23252A] rounded-md z-[999999] shadow-xl scrollbar-thin">
+                  <div className="absolute top-full left-0 right-0 mt-1 max-h-40 overflow-y-auto bg-[#111111] border border-[#262626] rounded-md z-[999999] shadow-xl scrollbar-thin">
                     {personsList
                       .filter(p => p.toLowerCase().includes(feedbackSearchQuery.toLowerCase()))
                       .map(p => (
@@ -800,7 +800,7 @@ export default function TestPage() {
                             setFeedbackSearchQuery(formatPersonName(p));
                             setFeedbackShowDropdown(false);
                           }}
-                          className="w-full text-left px-3 py-2 text-caption text-ink-muted hover:bg-emerald-500/10 hover:text-emerald-300 hover:text-ink transition-colors font-mono border-b border-[#23252A]/30 last:border-b-0"
+                          className="w-full text-left px-3 py-2 text-caption text-ink-muted hover:bg-emerald-500/10 hover:text-emerald-300 hover:text-ink transition-colors font-mono border-b border-[#262626]/30 last:border-b-0"
                         >
                           {formatPersonName(p)}
                         </button>
@@ -823,7 +823,7 @@ export default function TestPage() {
           </div>
         )}
 
-        <div className="flex justify-end gap-2 mt-4 pt-4 border-t border-[#23252A]">
+        <div className="flex justify-end gap-2 mt-4 pt-4 border-t border-[#262626]">
           <button type="button" className="button-secondary text-caption py-1.5 px-4 h-9" onClick={() => { setIsFeedbackModalOpen(false); setFeedbackContext(null); }}>
             Cancel
           </button>
@@ -866,15 +866,15 @@ export default function TestPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 min-h-[500px]">
         
         {/* Input Block */}
-        <div className="card-linear p-0 overflow-hidden flex flex-col bg-[#0F1011] border-[#23252A]">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between py-3 px-4 sm:py-4 sm:px-6 border-b border-[#23252A] bg-[#0F1011] gap-2.5">
+        <div className="card-linear p-0 overflow-hidden flex flex-col bg-[#111111] border-[#262626]">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between py-3 px-4 sm:py-4 sm:px-6 border-b border-[#262626] bg-[#111111] gap-2.5">
              <h3 className="text-body font-medium text-ink">Target Image</h3>
              
-             <div className="flex gap-1 p-1 bg-[#010102] rounded-lg border border-[#23252A] w-full sm:w-auto">
+             <div className="flex gap-1 p-1 bg-[#010102] rounded-lg border border-[#262626] w-full sm:w-auto">
                 <button 
                   onClick={switchToUpload}
                   className={`h-7 px-3 text-caption rounded-md transition-all ${
-                    mode === 'upload' ? 'bg-[#141516] text-ink font-medium' : 'text-ink-tertiary hover:text-ink-subtle'
+                    mode === 'upload' ? 'bg-[#111111] text-ink font-medium' : 'text-ink-tertiary hover:text-ink-subtle'
                   }`}
                 >
                   Upload
@@ -882,7 +882,7 @@ export default function TestPage() {
                 <button 
                   onClick={switchToWebcam}
                   className={`h-7 px-3 text-caption rounded-md transition-all ${
-                    mode === 'webcam' ? 'bg-[#141516] text-ink font-medium' : 'text-ink-tertiary hover:text-ink-subtle'
+                    mode === 'webcam' ? 'bg-[#111111] text-ink font-medium' : 'text-ink-tertiary hover:text-ink-subtle'
                   }`}
                 >
                   Webcam
@@ -890,7 +890,7 @@ export default function TestPage() {
                 <button 
                   onClick={() => { stopWebcam(); setMode('group'); setResults(null); setError(''); }}
                   className={`h-7 px-3 text-caption rounded-md transition-all ${
-                    mode === 'group' ? 'bg-[#141516] text-ink font-medium' : 'text-ink-tertiary hover:text-ink-subtle'
+                    mode === 'group' ? 'bg-[#111111] text-ink font-medium' : 'text-ink-tertiary hover:text-ink-subtle'
                   }`}
                 >
                   Group
@@ -914,7 +914,7 @@ export default function TestPage() {
                 }
               }}
               className={`flex-1 flex flex-col justify-center items-center bg-[#010102]/30 rounded-lg overflow-hidden relative min-h-[350px] transition-colors border-2 ${
-                isDragActive ? 'border-dashed border-emerald-500 bg-emerald-500/5' : 'border-solid border-[#23252A]'
+                isDragActive ? 'border-dashed border-emerald-500 bg-emerald-500/5' : 'border-solid border-[#262626]'
               }`}
             >
                 {mode === 'webcam' ? (
@@ -922,7 +922,7 @@ export default function TestPage() {
                     {webcamError ? (
                        <div className="p-6 max-w-lg text-center mx-auto">
                           {webcamError === 'INSECURE_ORIGIN' ? (
-                            <div className="bg-[#141516] border border-emerald-500/30 rounded-xl p-5 text-left shadow-2xl max-w-md mx-auto">
+                            <div className="bg-[#111111] border border-emerald-500/30 rounded-xl p-5 text-left shadow-2xl max-w-md mx-auto">
                               <div className="flex items-center gap-2.5 mb-3 text-emerald-400 font-medium">
                                 <ShieldAlert className="w-5 h-5 shrink-0" />
                                 <span className="text-sm">Secure HTTPS Origin Required</span>
@@ -982,7 +982,7 @@ export default function TestPage() {
                               <button
                                 type="button"
                                 onClick={toggleCameraFacingMode}
-                                className="absolute top-3 right-3 z-20 px-2.5 py-1 rounded-md text-[11px] font-medium bg-black/80 hover:bg-black text-white border border-[#23252A] hover:border-emerald-500/40 shadow-lg flex items-center gap-1.5 transition-all"
+                                className="absolute top-3 right-3 z-20 px-2.5 py-1 rounded-md text-[11px] font-medium bg-black/80 hover:bg-black text-white border border-[#262626] hover:border-emerald-500/40 shadow-lg flex items-center gap-1.5 transition-all"
                                 title="Switch Camera (Front / Back)"
                               >
                                 <RotateCw className="w-3.5 h-3.5 text-emerald-400" />
@@ -1041,7 +1041,7 @@ export default function TestPage() {
                      <div className="relative w-full h-full flex flex-col items-center justify-center p-2">
                          <button 
                             onClick={() => { setFile(null); setResults(null); }}
-                            className="absolute top-2 right-2 z-10 h-7 w-7 rounded-full bg-[#010102]/80 border border-[#23252A] text-ink-subtle hover:text-ink flex items-center justify-center"
+                            className="absolute top-2 right-2 z-10 h-7 w-7 rounded-full bg-[#010102]/80 border border-[#262626] text-ink-subtle hover:text-ink flex items-center justify-center"
                          >
                            <X className="w-3.5 h-3.5" />
                          </button>
@@ -1199,8 +1199,8 @@ export default function TestPage() {
         </div>
 
         {/* Results Block */}
-        <div className="card-linear p-0 overflow-hidden flex flex-col bg-[#0F1011] border-[#23252A]">
-          <div className="py-3 px-4 sm:py-4 sm:px-6 border-b border-[#23252A] bg-[#0F1011]">
+        <div className="card-linear p-0 overflow-hidden flex flex-col bg-[#111111] border-[#262626]">
+          <div className="py-3 px-4 sm:py-4 sm:px-6 border-b border-[#262626] bg-[#111111]">
             <h3 className="text-body font-medium text-ink">
               {mode === 'group' ? 'Group Recognition Results' : 'Telemetry & Results'}
             </h3>
@@ -1209,7 +1209,7 @@ export default function TestPage() {
 
             {/* Group Photo Summary Banner */}
             {mode === 'group' && results?.faces && results.faces.length > 0 && (
-              <div className="mb-4 p-4 bg-[#010102]/60 rounded-lg border border-[#23252A]">
+              <div className="mb-4 p-4 bg-[#010102]/60 rounded-lg border border-[#262626]">
                 <div className="flex gap-4 flex-wrap">
                   <div className="text-center flex-1 min-w-[80px]">
                     <div className="text-2xl font-bold text-emerald-400">{results.faces.length}</div>
@@ -1240,7 +1240,7 @@ export default function TestPage() {
             )}
             
             {/* Active Model Status Toolbar (Strictly only show enabled models) */}
-            <div className="flex gap-2 p-2.5 sm:p-3 bg-[#010102]/60 rounded-xl border border-[#23252A] mb-4 sm:mb-6 items-center flex-wrap">
+            <div className="flex gap-2 p-2.5 sm:p-3 bg-[#010102]/60 rounded-xl border border-[#262626] mb-4 sm:mb-6 items-center flex-wrap">
                 <span className="text-[11px] font-mono text-ink-tertiary uppercase tracking-wider mr-1">Active Model Engine:</span>
                 
                 {enableFacenet512 && (
@@ -1268,9 +1268,9 @@ export default function TestPage() {
               {loading ? (
                  <div className="space-y-4">
                     <div className="w-48 h-4.5 shimmer mb-4" />
-                    <div className="bg-[#010102]/30 border border-[#23252A] rounded-lg p-5 space-y-4">
+                    <div className="bg-[#010102]/30 border border-[#262626] rounded-lg p-5 space-y-4">
                        <div className="w-20 h-4 shimmer" />
-                       <div className="w-full h-24 border border-[#23252A] rounded-md bg-[#0F1011] p-4 space-y-2">
+                       <div className="w-full h-24 border border-[#262626] rounded-md bg-[#111111] p-4 space-y-2">
                           <div className="w-24 h-3 shimmer" />
                           <div className="w-40 h-6 shimmer" />
                        </div>
@@ -1306,7 +1306,7 @@ export default function TestPage() {
                          const flashClass = isConfirmed ? 'confirmed-flash' : 'error-flash';
 
                          return (
-                          <div className={`bg-[#010102]/30 border border-[#23252A] rounded-lg p-5 relative overflow-hidden ${flashClass}`} key={i}>
+                          <div className={`bg-[#010102]/30 border border-[#262626] rounded-lg p-5 relative overflow-hidden ${flashClass}`} key={i}>
                              <div className={`absolute top-0 left-0 w-1 h-full ${isConfirmed ? 'bg-[#27A644]' : (spoofed ? 'bg-[#FBBF24]' : 'bg-[#F87171]')}`} />
                              
                              <h3 className="m-0 mb-4 text-caption font-semibold text-ink-subtle font-mono tracking-wider">TARGET {i + 1}</h3>
@@ -1328,7 +1328,7 @@ export default function TestPage() {
                                  </div>
                                </div>
 
-                                 <div className="flex justify-between items-center mt-4 pt-4 border-t border-[#23252A]/50">
+                                 <div className="flex justify-between items-center mt-4 pt-4 border-t border-[#262626]/50">
                                    <div className="text-[10px] text-ink-subtle font-mono tracking-wider uppercase">
                                      MTHD: {face.ensemble?.method === 'no_valid_models' ? 'SINGLE_MODEL' : (face.ensemble?.method || 'SINGLE_MODEL').toUpperCase()} {showConfidence && `| CONF: ${(displayConf * 100).toFixed(1)}%`}
                                    </div>
@@ -1343,7 +1343,7 @@ export default function TestPage() {
                                  </div>
                              </div>
                             {enableFacenet512 && face.predictions?.facenet512 && face.predictions.facenet512.label !== 'Disabled' && (
-                              <div className={`flex flex-col gap-2 p-3 bg-[#0F1011] rounded-lg border ${face.predictions?.facenet512?.confidence_level === 'confirmed' ? 'border-emerald-500/30' : 'border-[#23252A]'}`}>
+                              <div className={`flex flex-col gap-2 p-3 bg-[#111111] rounded-lg border ${face.predictions?.facenet512?.confidence_level === 'confirmed' ? 'border-emerald-500/30' : 'border-[#262626]'}`}>
                                   <div className="flex justify-between text-[11px] font-mono">
                                      <span className="text-ink-tertiary">Facenet512 (Primary)</span>
                                      <span className={face.predictions?.facenet512?.confidence_level === 'confirmed' ? 'text-emerald-400 font-semibold' : 'text-red-400/70'}>{formatPersonName(face.predictions?.facenet512?.label)} {showConfidence && `(${(face.predictions?.facenet512?.confidence * 100).toFixed(1)}%)`}</span>
@@ -1352,7 +1352,7 @@ export default function TestPage() {
                             )}
 
                             {enableInsightFace && face.predictions?.insightface && face.predictions.insightface.label !== 'Disabled' && (
-                              <div className={`flex flex-col gap-2 p-3 bg-[#0F1011] rounded-lg border ${face.predictions?.insightface?.confidence_level === 'confirmed' ? 'border-emerald-500/30' : 'border-[#23252A]'}`}>
+                              <div className={`flex flex-col gap-2 p-3 bg-[#111111] rounded-lg border ${face.predictions?.insightface?.confidence_level === 'confirmed' ? 'border-emerald-500/30' : 'border-[#262626]'}`}>
                                   <div className="flex justify-between text-[11px] font-mono">
                                      <span className="text-ink-tertiary">InsightFace (Secondary)</span>
                                      <span className={face.predictions?.insightface?.confidence_level === 'confirmed' ? 'text-emerald-400 font-semibold' : 'text-red-400/70'}>{formatPersonName(face.predictions?.insightface?.label)} {showConfidence && `(${(face.predictions?.insightface?.confidence * 100).toFixed(1)}%)`}</span>

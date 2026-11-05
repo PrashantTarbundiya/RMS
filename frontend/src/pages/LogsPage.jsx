@@ -92,7 +92,7 @@ export default function LogsPage() {
       case 'Running':
         return <span className="inline-flex px-2 py-0.5 rounded font-mono text-[9px] font-semibold border uppercase tracking-wider bg-indigo-500/10 text-indigo-400 border-indigo-500/20 animate-pulse">Running</span>;
       case 'Pending':
-        return <span className="inline-flex px-2 py-0.5 rounded font-mono text-[9px] font-semibold border uppercase tracking-wider bg-[#141516] text-ink-muted border-[#23252A]">Pending</span>;
+        return <span className="inline-flex px-2 py-0.5 rounded font-mono text-[9px] font-semibold border uppercase tracking-wider bg-[#111111] text-ink-muted border-[#262626]">Pending</span>;
       case 'Failed':
         return <span className="inline-flex px-2 py-0.5 rounded font-mono text-[9px] font-semibold border uppercase tracking-wider bg-rose-500/10 text-rose-400 border-rose-500/20">Failed</span>;
       default:
@@ -176,10 +176,10 @@ export default function LogsPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left Side: Job Queue List */}
         <div className="lg:col-span-1 space-y-4">
-          <div className="flex items-center justify-between border-b border-[#23252A] pb-3">
+          <div className="flex items-center justify-between border-b border-[#262626] pb-3">
             <h3 className="m-0 text-body font-semibold text-ink flex items-center gap-2">
               <ClipboardList className="w-4 h-4 text-ink-tertiary" /> Job History
-              <span className="text-[11px] font-mono text-ink-muted bg-[#141516] px-2 py-0.5 rounded-full border border-[#23252A]">
+              <span className="text-[11px] font-mono text-ink-muted bg-[#111111] px-2 py-0.5 rounded-full border border-[#262626]">
                 {jobs.length}
               </span>
             </h3>
@@ -197,8 +197,8 @@ export default function LogsPage() {
                   onClick={() => setSelectedJobId(job.id)}
                   className={`p-3.5 rounded-xl border transition-all cursor-pointer flex items-center justify-between ${
                     (selectedJobId === job.id || (!selectedJobId && selectedJob?.id === job.id))
-                      ? 'bg-[#141516] border-[#34D399]/50 shadow-lg shadow-[#34D399]/5'
-                      : 'bg-[#0F1011] border-[#23252A] hover:bg-[#141516]/60 hover:border-[#2E3138]'
+                      ? 'bg-[#111111] border-[#34D399]/50 shadow-lg shadow-[#34D399]/5'
+                      : 'bg-[#111111] border-[#262626] hover:bg-[#111111]/60 hover:border-[#333333]'
                   }`}
                 >
                   <div className="flex items-center gap-3 min-w-0">
@@ -221,13 +221,13 @@ export default function LogsPage() {
 
         {/* Right Side: Terminal Log Box */}
         <div className="lg:col-span-2 space-y-4">
-          <div className="flex items-center justify-between border-b border-[#23252A] pb-3">
+          <div className="flex items-center justify-between border-b border-[#262626] pb-3">
             <div className="flex items-center gap-2 flex-wrap">
               <h3 className="m-0 text-body font-semibold text-ink flex items-center gap-2">
                 <TerminalIcon className="w-4 h-4 text-ink-tertiary" /> Terminal Console
               </h3>
               {selectedJob && (
-                <span className="text-[11px] font-mono text-ink-muted bg-black/60 px-2.5 py-0.5 rounded-md border border-[#23252A]">
+                <span className="text-[11px] font-mono text-ink-muted bg-black/60 px-2.5 py-0.5 rounded-md border border-[#262626]">
                   Target: <strong className="text-ink">{formatPersonName(selectedJob.person_name)}</strong> ({selectedJob.id})
                 </span>
               )}
@@ -238,14 +238,15 @@ export default function LogsPage() {
           </div>
 
           {/* Premium Search & Action Toolbar */}
-          <div className="p-2.5 bg-[#0F1011] border border-[#23252A] rounded-xl flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
+          <div className="p-2.5 bg-[#111111] border border-[#262626] rounded-xl flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
             <div className="flex items-center gap-2 flex-1 min-w-0 w-full sm:w-auto">
-              <div className="flex items-center gap-2 bg-[#010102] border border-[#23252A] rounded-lg h-9 px-3 w-full focus-within:border-[#34D399]/50 transition-colors">
-                <Search className="w-3.5 h-3.5 text-ink-tertiary shrink-0" />
+              <div className="relative flex items-center w-full">
+                <Search className="w-4 h-4 text-ink-tertiary absolute left-3 pointer-events-none z-10" />
                 <input
                   type="text"
                   placeholder="Filter logs by keyword..."
-                  className="bg-transparent border-none text-ink text-[12px] w-full focus:outline-none p-0 placeholder:text-ink-tertiary font-mono"
+                  style={{ paddingLeft: '38px', paddingRight: '12px' }}
+                  className="bg-[#010102] border border-[#262626] rounded-lg h-9 text-ink text-[12px] w-full focus:outline-none focus:border-[#34D399]/50 placeholder:text-ink-tertiary font-mono transition-colors"
                   value={logSearch}
                   onChange={e => { setLogSearch(e.target.value); updateParam('q', e.target.value); }}
                 />
@@ -257,7 +258,7 @@ export default function LogsPage() {
                 <select
                   value={logFilter}
                   onChange={e => { setLogFilter(e.target.value); updateParam('level', e.target.value, 'all'); }}
-                  className="h-9 pl-3 pr-8 text-[12px] font-mono text-ink bg-[#010102] border border-[#23252A] rounded-lg focus:outline-none focus:border-[#34D399]/50 cursor-pointer appearance-none"
+                  className="h-9 pl-3 pr-8 text-[12px] font-mono text-ink bg-[#010102] border border-[#262626] rounded-lg focus:outline-none focus:border-[#34D399]/50 cursor-pointer appearance-none"
                 >
                   <option value="all">All Levels</option>
                   <option value="error">Errors Only</option>
@@ -277,7 +278,7 @@ export default function LogsPage() {
                 className={`h-9 px-3 rounded-lg border text-[11px] font-mono flex items-center gap-1.5 transition-colors cursor-pointer ${
                   autoScroll
                     ? 'bg-[#34D399]/10 border-[#34D399]/30 text-[#34D399]'
-                    : 'bg-[#010102] border-[#23252A] text-ink-muted hover:text-ink'
+                    : 'bg-[#010102] border-[#262626] text-ink-muted hover:text-ink'
                 }`}
                 title="Toggle automated scrolling to bottom"
               >
@@ -300,7 +301,7 @@ export default function LogsPage() {
                 type="button"
                 onClick={clearLiveLogs}
                 disabled={liveLogs.length === 0}
-                className="h-9 px-3 rounded-lg border border-[#23252A] bg-[#010102] hover:bg-rose-500/10 hover:border-rose-500/30 hover:text-rose-400 text-ink-muted text-[12px] flex items-center gap-1.5 transition-colors disabled:opacity-30 disabled:pointer-events-none"
+                className="h-9 px-3 rounded-lg border border-[#262626] bg-[#010102] hover:bg-rose-500/10 hover:border-rose-500/30 hover:text-rose-400 text-ink-muted text-[12px] flex items-center gap-1.5 transition-colors disabled:opacity-30 disabled:pointer-events-none"
                 title="Clear current stream buffer"
               >
                 <Trash2 size={14} />
@@ -309,7 +310,7 @@ export default function LogsPage() {
             </div>
           </div>
 
-          <div ref={terminalContainerRef} className="bg-black/60 rounded-xl p-3.5 sm:p-5 font-mono text-[10px] sm:text-[11px] leading-relaxed text-ink-subtle h-[380px] sm:h-[500px] overflow-y-auto border border-[#23252A]/60 shadow-inner">
+          <div ref={terminalContainerRef} className="bg-black/60 rounded-xl p-3.5 sm:p-5 font-mono text-[10px] sm:text-[11px] leading-relaxed text-ink-subtle h-[380px] sm:h-[500px] overflow-y-auto border border-[#262626]/60 shadow-inner">
             {filteredLogs.length === 0 ? (
               <EmptyState
                 icon={TerminalIcon}

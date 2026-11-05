@@ -147,13 +147,14 @@ export default function AuditLogsPage() {
       <div className="p-3 flex flex-wrap items-center gap-2.5 bg-card border border-border rounded-xl shadow-sm">
         {/* Search Input - Clean Single Neutral Element */}
         <div className="relative flex items-center flex-1 min-w-[220px]">
-          <Search size={14} className="absolute left-3 text-muted-foreground pointer-events-none" />
+          <Search size={14} className="absolute left-3 text-muted-foreground pointer-events-none z-10" />
           <input
             type="text"
             placeholder="Search audit trail by actor, action, or details..."
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
-            className="w-full h-9 pl-9 pr-3 rounded-lg bg-secondary/60 border border-border text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 transition-all"
+            style={{ paddingLeft: '36px' }}
+            className="w-full h-9 pr-3 rounded-lg bg-secondary/60 border border-border text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 transition-all"
           />
         </div>
 
@@ -187,9 +188,9 @@ export default function AuditLogsPage() {
               setDateStart(val > maxDate ? maxDate : val);
               setPage(1);
             }}
-            className="h-9 px-2.5 rounded-lg bg-secondary/60 border border-border text-xs text-foreground font-mono focus:border-emerald-500 focus:outline-none transition-colors"
+            className="h-9 px-2.5 rounded-lg bg-secondary/60 border border-border text-xs text-foreground font-mono focus:border-emerald-500 focus:outline-none transition-colors min-w-[145px]"
           />
-          <span className="text-xs text-muted-foreground font-medium">to</span>
+          <span className="text-xs text-muted-foreground font-medium shrink-0">to</span>
           <input 
             type="date" 
             max={new Date().toISOString().split('T')[0]}
@@ -200,7 +201,7 @@ export default function AuditLogsPage() {
               setDateEnd(val > maxDate ? maxDate : val);
               setPage(1);
             }}
-            className="h-9 px-2.5 rounded-lg bg-secondary/60 border border-border text-xs text-foreground font-mono focus:border-emerald-500 focus:outline-none transition-colors"
+            className="h-9 px-2.5 rounded-lg bg-secondary/60 border border-border text-xs text-foreground font-mono focus:border-emerald-500 focus:outline-none transition-colors min-w-[145px]"
           />
         </div>
 
@@ -210,15 +211,6 @@ export default function AuditLogsPage() {
           className="h-9 px-3 rounded-lg bg-secondary/60 border border-border text-xs font-semibold text-foreground hover:bg-secondary hover:border-border transition-colors flex items-center gap-1.5 cursor-pointer shadow-sm"
         >
           {sortOrder === 'desc' ? '↓ Newest' : '↑ Oldest'}
-        </button>
-
-        {/* Refresh */}
-        <button
-          onClick={fetchLogs}
-          className="h-9 w-9 rounded-lg bg-secondary/60 border border-border text-muted-foreground hover:text-foreground hover:bg-secondary flex items-center justify-center transition-colors cursor-pointer shadow-sm"
-          aria-label="Refresh audit logs"
-        >
-          <RefreshCw size={15} />
         </button>
       </div>
 
@@ -499,7 +491,7 @@ export default function AuditLogsPage() {
                 className={`min-w-[36px] h-9 rounded-lg text-caption font-medium transition-all cursor-pointer ${
                   p === page 
                     ? 'bg-emerald-600 text-white border border-emerald-500' 
-                    : 'bg-secondary text-ink-subtle border border-border hover:border-slate-400 dark:hover:border-slate-600'
+                    : 'bg-secondary text-ink-subtle border border-border hover:border-neutral-500'
                 }`}
               >
                 {p}

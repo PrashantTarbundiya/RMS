@@ -97,9 +97,9 @@ export default function LoginPage() {
   const currentTestimonial = SECURITY_TESTIMONIALS[activeTestimonial];
 
   return (
-    <div className="min-h-screen w-full bg-[#080B11] text-slate-100 flex flex-col lg:flex-row relative overflow-x-hidden">
+    <div className="min-h-screen w-full bg-[#0A0A0A] text-neutral-100 flex flex-col lg:flex-row relative overflow-x-hidden">
       {/* LEFT COLUMN: LOGIN FORM */}
-      <div className="w-full lg:w-1/2 flex flex-col justify-between p-6 sm:p-10 lg:p-14 z-10 border-b lg:border-b-0 lg:border-r border-[#1B2232]">
+      <div className="w-full lg:w-1/2 flex flex-col justify-between p-6 sm:p-10 lg:p-14 z-10 border-b lg:border-b-0 lg:border-r border-[#262626]">
         <div className="w-full max-w-md mx-auto">
           {/* Brand Header */}
           <div className="flex items-center justify-between mb-8">
@@ -114,13 +114,13 @@ export default function LoginPage() {
                     Attendance
                   </span>
                 </div>
-                <span className="text-[9px] tracking-wider text-slate-500 font-mono uppercase">
+                <span className="text-[9px] tracking-wider text-neutral-500 font-mono uppercase">
                   FACE RECOGNITION ATTENDANCE
                 </span>
               </div>
             </Link>
 
-            <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-[#111726] border border-[#222E4A] text-slate-300">
+            <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-[#111111] border border-[#262626] text-neutral-300">
               Secure Sign In
             </span>
           </div>
@@ -130,7 +130,7 @@ export default function LoginPage() {
             <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
               Sign in to your account
             </h1>
-            <p className="text-xs sm:text-sm text-slate-400 mt-1.5">
+            <p className="text-xs sm:text-sm text-neutral-400 mt-1.5">
               Enter your work email and password to open the attendance console.
             </p>
           </div>
@@ -152,7 +152,7 @@ export default function LoginPage() {
             onClick={() => {
               setError('Google Workspace sign-in requires SAML configuration inside organization settings.');
             }}
-            className="w-full h-11 flex items-center justify-center gap-3 bg-[#0F1422] hover:bg-[#161D2E] border border-[#222A3C] hover:border-[#2F3A52] rounded-xl text-xs sm:text-sm font-medium text-slate-200 transition-all cursor-pointer shadow-sm"
+            className="w-full h-11 flex items-center justify-center gap-3 bg-[#171717] hover:bg-[#262626] border border-[#262626] hover:border-[#404040] rounded-xl text-xs sm:text-sm font-medium text-neutral-200 transition-all cursor-pointer shadow-sm"
           >
             <svg className="w-4 h-4" viewBox="0 0 24 24">
               <path
@@ -177,22 +177,22 @@ export default function LoginPage() {
 
           {/* Divider */}
           <div className="flex items-center my-5">
-            <div className="flex-1 border-t border-[#1C2333]"></div>
-            <span className="px-3 text-[10px] font-mono tracking-wider text-slate-500 uppercase">
+            <div className="flex-1 border-t border-[#262626]"></div>
+            <span className="px-3 text-[10px] font-mono tracking-wider text-neutral-500 uppercase">
               OR WITH EMAIL
             </span>
-            <div className="flex-1 border-t border-[#1C2333]"></div>
+            <div className="flex-1 border-t border-[#262626]"></div>
           </div>
 
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Email Field */}
             <div>
-              <label htmlFor="login-email" className="block text-xs font-medium text-slate-300 mb-1.5">
+              <label htmlFor="login-email" className="block text-xs font-medium text-neutral-300 mb-1.5">
                 Work Email
               </label>
               <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
+                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-neutral-500">
                   <Mail className="w-4 h-4" />
                 </div>
                 <input
@@ -201,7 +201,7 @@ export default function LoginPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="name@company.com"
-                  className="w-full h-11 pl-10 pr-4 bg-[#0E1320]/80 border border-[#20283C] hover:border-[#2C3854] focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 rounded-xl text-xs sm:text-sm text-white placeholder-slate-500 transition-colors outline-none"
+                  className="w-full h-11 pl-10 pr-4 bg-[#171717] border border-[#262626] hover:border-[#404040] focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 rounded-xl text-xs sm:text-sm text-white placeholder-neutral-500 transition-colors outline-none"
                   required
                 />
               </div>
@@ -210,12 +210,12 @@ export default function LoginPage() {
             {/* Password Field */}
             <div>
               <div className="flex items-center justify-between mb-1.5">
-                <label htmlFor="login-password" className="block text-xs font-medium text-slate-300">
+                <label htmlFor="login-password" className="block text-xs font-medium text-neutral-300">
                   Password
                 </label>
               </div>
               <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
+                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-neutral-500">
                   <Lock className="w-4 h-4" />
                 </div>
                 <input
@@ -224,13 +224,13 @@ export default function LoginPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full h-11 pl-10 pr-10 bg-[#0E1320]/80 border border-[#20283C] hover:border-[#2C3854] focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 rounded-xl text-xs sm:text-sm text-white placeholder-slate-500 transition-colors outline-none"
+                  className="w-full h-11 pl-10 pr-10 bg-[#171717] border border-[#262626] hover:border-[#404040] focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 rounded-xl text-xs sm:text-sm text-white placeholder-neutral-500 transition-colors outline-none"
                   required
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-500 hover:text-slate-300"
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-neutral-500 hover:text-neutral-300"
                 >
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
@@ -239,12 +239,12 @@ export default function LoginPage() {
 
             {/* Remember Me */}
             <div className="flex items-center justify-between text-xs pt-1">
-              <label className="flex items-center gap-2 cursor-pointer text-slate-400 hover:text-slate-300 select-none">
+              <label className="flex items-center gap-2 cursor-pointer text-neutral-400 hover:text-neutral-300 select-none">
                 <input
                   type="checkbox"
                   checked={rememberMe}
                   onChange={(e) => setRememberMe(e.target.checked)}
-                  className="rounded border-slate-700 bg-slate-900 text-emerald-500 focus:ring-0 accent-emerald-500 cursor-pointer"
+                  className="rounded border-neutral-700 bg-neutral-900 text-emerald-500 focus:ring-0 accent-emerald-500 cursor-pointer"
                 />
                 <span>Remember this computer</span>
               </label>
@@ -254,7 +254,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full h-11 mt-2 inline-flex items-center justify-center gap-2 rounded-xl text-xs sm:text-sm font-semibold bg-emerald-400 hover:bg-emerald-300 active:scale-98 text-slate-950 shadow-lg shadow-emerald-500/20 transition-all duration-150 cursor-pointer disabled:opacity-50"
+              className="w-full h-11 mt-2 inline-flex items-center justify-center gap-2 rounded-xl text-xs sm:text-sm font-semibold bg-emerald-400 hover:bg-emerald-300 active:scale-98 text-black shadow-lg shadow-emerald-500/20 transition-all duration-150 cursor-pointer disabled:opacity-50"
             >
               {loading ? (
                 <span>Signing in...</span>
@@ -268,7 +268,7 @@ export default function LoginPage() {
           </form>
 
           {/* Bottom link to Register */}
-          <div className="mt-6 text-center text-xs text-slate-400">
+          <div className="mt-6 text-center text-xs text-neutral-400">
             Don't have an account?{' '}
             <Link to="/register" className="text-emerald-400 hover:text-emerald-300 font-semibold transition-colors">
               Create one free
@@ -276,8 +276,8 @@ export default function LoginPage() {
           </div>
 
           {/* Legal policy note */}
-          <div className="mt-6 pt-5 border-t border-[#161D2B] text-center">
-            <p className="text-[11px] text-slate-500 flex items-center justify-center gap-1.5">
+          <div className="mt-6 pt-5 border-t border-[#262626] text-center">
+            <p className="text-[11px] text-neutral-500 flex items-center justify-center gap-1.5">
               <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
               <span>AuraPass runs on your private local server</span>
             </p>
@@ -286,12 +286,12 @@ export default function LoginPage() {
       </div>
 
       {/* RIGHT COLUMN: FLOATING TESTIMONIAL CARD */}
-      <div className="w-full lg:w-1/2 bg-[#06080E] flex flex-col justify-center items-center p-6 sm:p-12 relative overflow-hidden">
+      <div className="w-full lg:w-1/2 bg-[#000000] flex flex-col justify-center items-center p-6 sm:p-12 relative overflow-hidden">
         {/* Soft ambient backlight */}
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[420px] h-[420px] bg-emerald-500/5 rounded-full blur-3xl pointer-events-none" />
 
         {/* Floating Testimonial Card */}
-        <div className="relative z-10 w-full max-w-md bg-[#0D121D]/90 backdrop-blur-xl border border-[#1E2638] rounded-2xl p-6 sm:p-7 shadow-2xl shadow-black/80">
+        <div className="relative z-10 w-full max-w-md bg-[#111111] backdrop-blur-xl border border-[#262626] rounded-2xl p-6 sm:p-7 shadow-2xl shadow-black/80">
           {/* Header of card: Stars + Verified User */}
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
@@ -300,18 +300,18 @@ export default function LoginPage() {
                   <Star key={i} className="w-3.5 h-3.5 fill-amber-400" />
                 ))}
               </div>
-              <span className="text-xs font-semibold text-slate-300">5.0 Verified User</span>
+              <span className="text-xs font-semibold text-neutral-300">5.0 Verified User</span>
             </div>
-            <span className="text-2xl font-serif text-slate-600 select-none">”</span>
+            <span className="text-2xl font-serif text-neutral-600 select-none">”</span>
           </div>
 
           {/* Testimonial Quote */}
-          <blockquote className="text-xs sm:text-sm text-slate-200 leading-relaxed min-h-[72px] mb-6">
+          <blockquote className="text-xs sm:text-sm text-neutral-200 leading-relaxed min-h-[72px] mb-6">
             "{currentTestimonial.quote}"
           </blockquote>
 
           {/* Author Details + Controls */}
-          <div className="flex items-center justify-between pt-4 border-t border-[#1C2538]">
+          <div className="flex items-center justify-between pt-4 border-t border-[#262626]">
             <div className="flex items-center gap-3">
               <div
                 className={`w-9 h-9 rounded-full ${currentTestimonial.badgeColor} flex items-center justify-center text-xs font-bold text-white shadow-md`}
@@ -320,7 +320,7 @@ export default function LoginPage() {
               </div>
               <div>
                 <p className="text-xs font-bold text-white leading-tight">{currentTestimonial.author}</p>
-                <p className="text-[11px] text-slate-400 mt-0.5">
+                <p className="text-[11px] text-neutral-400 mt-0.5">
                   {currentTestimonial.role} &bull; {currentTestimonial.org}
                 </p>
               </div>
@@ -335,7 +335,7 @@ export default function LoginPage() {
                     type="button"
                     onClick={() => setActiveTestimonial(idx)}
                     className={`h-1.5 transition-all rounded-full cursor-pointer ${
-                      activeTestimonial === idx ? 'w-5 bg-emerald-400' : 'w-1.5 bg-slate-700 hover:bg-slate-600'
+                      activeTestimonial === idx ? 'w-5 bg-emerald-400' : 'w-1.5 bg-neutral-700 hover:bg-neutral-600'
                     }`}
                     aria-label={`Go to slide ${idx + 1}`}
                   />
@@ -345,7 +345,7 @@ export default function LoginPage() {
               <button
                 type="button"
                 onClick={handlePrevTestimonial}
-                className="w-7 h-7 rounded-full bg-[#151C2C] hover:bg-[#1E283E] flex items-center justify-center text-slate-300 transition-colors cursor-pointer"
+                className="w-7 h-7 rounded-full bg-[#171717] hover:bg-[#262626] flex items-center justify-center text-neutral-300 transition-colors cursor-pointer"
                 aria-label="Previous testimonial"
               >
                 <ChevronLeft className="w-3.5 h-3.5" />
@@ -353,7 +353,7 @@ export default function LoginPage() {
               <button
                 type="button"
                 onClick={handleNextTestimonial}
-                className="w-7 h-7 rounded-full bg-[#151C2C] hover:bg-[#1E283E] flex items-center justify-center text-slate-300 transition-colors cursor-pointer"
+                className="w-7 h-7 rounded-full bg-[#171717] hover:bg-[#262626] flex items-center justify-center text-neutral-300 transition-colors cursor-pointer"
                 aria-label="Next testimonial"
               >
                 <ChevronRight className="w-3.5 h-3.5" />
@@ -364,20 +364,20 @@ export default function LoginPage() {
 
         {/* 3 Simple Trust Highlights */}
         <div className="mt-8 grid grid-cols-3 gap-3 w-full max-w-md relative z-10">
-          <div className="p-3 rounded-xl bg-[#0C101A] border border-[#1B2336] text-center">
+          <div className="p-3 rounded-xl bg-[#111111] border border-[#262626] text-center">
             <Server className="w-4 h-4 text-emerald-400 mx-auto mb-1.5" />
             <p className="text-[11px] font-bold text-white">Runs Locally</p>
-            <p className="text-[10px] text-slate-400 mt-0.5">No cloud needed</p>
+            <p className="text-[10px] text-neutral-400 mt-0.5">No cloud needed</p>
           </div>
-          <div className="p-3 rounded-xl bg-[#0C101A] border border-[#1B2336] text-center">
-            <Zap className="w-4 h-4 text-blue-400 mx-auto mb-1.5" />
+          <div className="p-3 rounded-xl bg-[#111111] border border-[#262626] text-center">
+            <Zap className="w-4 h-4 text-emerald-400 mx-auto mb-1.5" />
             <p className="text-[11px] font-bold text-white">&lt; 1 Second</p>
-            <p className="text-[10px] text-slate-400 mt-0.5">Quick check-in</p>
+            <p className="text-[10px] text-neutral-400 mt-0.5">Quick check-in</p>
           </div>
-          <div className="p-3 rounded-xl bg-[#0C101A] border border-[#1B2336] text-center">
+          <div className="p-3 rounded-xl bg-[#111111] border border-[#262626] text-center">
             <Shield className="w-4 h-4 text-emerald-400 mx-auto mb-1.5" />
             <p className="text-[11px] font-bold text-white">Privacy First</p>
-            <p className="text-[10px] text-slate-400 mt-0.5">Data in your office</p>
+            <p className="text-[10px] text-neutral-400 mt-0.5">Data in your office</p>
           </div>
         </div>
       </div>

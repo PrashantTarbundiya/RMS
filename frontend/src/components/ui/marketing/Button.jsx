@@ -3,15 +3,14 @@ import { Link } from 'react-router-dom';
 
 /**
  * Precision Button Component for AuraPass Enterprise Public surfaces.
- * Strictly adheres to design direction:
- * - primary: solid emerald (#3DDC97), dark text (#06090B), weight 500/600
- * - secondary: transparent, hairline border (rgba(255,255,255,0.08)), text #F3F6F5
- * - ghost: transparent, no border, text #9AA7A3 hover #F3F6F5
- * Max two buttons side by side.
+ * Strictly adheres to Apple HIG tactile feedback and Emil Kowalski motion rules:
+ * - active:scale-[0.97] on pointer-down
+ * - compositor-only property transitions (no transition-all)
+ * - dual-theme light/dark contrast compliance
  */
 export default function Button({
   children,
-  variant = 'primary', // 'primary' | 'secondary' | 'ghost'
+  variant = 'primary', // 'primary' | 'secondary' | 'glass' | 'ghost' | 'outline'
   size = 'md',        // 'sm' | 'md' | 'lg'
   to,
   href,
@@ -23,27 +22,29 @@ export default function Button({
   disabled = false,
   ...rest
 }) {
-  const baseStyles = 'inline-flex items-center justify-center font-medium transition-all duration-200 select-none cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3DDC97]/40';
+  const baseStyles = 'btn-tactile inline-flex items-center justify-center font-semibold select-none cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50';
 
   const variants = {
-    primary: 'bg-[#3DDC97] text-[#06090B] font-semibold hover:bg-[#5FE8AD] shadow-[0_0_20px_rgba(61,220,151,0.22)] active:translate-y-px',
-    secondary: 'bg-transparent text-[#F3F6F5] border border-white/10 hover:border-white/20 hover:bg-white/[0.03] active:translate-y-px',
-    ghost: 'bg-transparent text-[#9AA7A3] hover:text-[#F3F6F5] hover:bg-white/[0.02]',
+    primary: 'btn-primary-emerald',
+    secondary: 'btn-secondary-surface',
+    glass: 'btn-glass-subtle',
+    outline: 'border border-border bg-transparent text-foreground hover:bg-secondary',
+    ghost: 'bg-transparent text-muted-foreground hover:text-foreground hover:bg-secondary/60',
   };
 
   const sizes = {
-    sm: 'text-xs px-3 py-1.5 rounded-lg gap-1.5 h-8',
-    md: 'text-sm px-4 py-2 rounded-xl gap-2 h-10',
-    lg: 'text-base px-6 py-3 rounded-xl gap-2.5 h-12',
+    sm: 'text-xs px-3 py-1.5 rounded-lg gap-1.5 min-h-[36px]',
+    md: 'text-xs sm:text-sm px-4 py-2 rounded-xl gap-2 min-h-[44px] sm:min-h-[40px]',
+    lg: 'text-sm sm:text-base px-6 py-2.5 rounded-xl gap-2.5 min-h-[48px]',
   };
 
   const combinedClass = `${baseStyles} ${variants[variant] || variants.primary} ${sizes[size] || sizes.md} ${className}`;
 
   const content = (
     <>
-      {Icon && <Icon className="w-4 h-4 shrink-0 stroke-[1.5]" />}
+      {Icon && <Icon className="w-4 h-4 shrink-0 stroke-[2]" />}
       <span>{children}</span>
-      {IconRight && <IconRight className="w-4 h-4 shrink-0 stroke-[1.5]" />}
+      {IconRight && <IconRight className="w-4 h-4 shrink-0 stroke-[2]" />}
     </>
   );
 
@@ -75,4 +76,3 @@ export default function Button({
     </button>
   );
 }
-

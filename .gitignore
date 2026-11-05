@@ -83,5 +83,10 @@ backend/tests/data/
 # Playwright artifacts
 .playwright-mcp/
 
+# Personal & resume documents
+SDE_RESUME.pdf
+*.tex
+*.pdf
+
 pixaai.zip
 pixaai_extracted/

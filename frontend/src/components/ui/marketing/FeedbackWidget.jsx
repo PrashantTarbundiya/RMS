@@ -18,13 +18,13 @@ export default function FeedbackWidget({ pageId }) {
   }
 
   return (
-    <div className="py-4 px-5 rounded-xl border border-white/[0.08] bg-[#0B0F19] flex items-center justify-between text-xs text-slate-400">
+    <div className="py-4 px-5 rounded-xl border border-border bg-card flex items-center justify-between text-xs text-muted-foreground">
       <span>Was this article helpful?</span>
       <div className="flex items-center gap-2">
         <button
           type="button"
           onClick={() => handleFeedback(true)}
-          className="p-1.5 rounded-lg border border-white/[0.08] bg-[#141B2E] text-slate-300 hover:text-white hover:border-emerald-500/40 transition-colors"
+          className="p-1.5 rounded-lg border border-border bg-secondary text-foreground hover:border-emerald-500/40 transition-colors"
           title="Yes, helpful"
         >
           <ThumbsUp className="w-3.5 h-3.5" />
@@ -32,7 +32,7 @@ export default function FeedbackWidget({ pageId }) {
         <button
           type="button"
           onClick={() => handleFeedback(false)}
-          className="p-1.5 rounded-lg border border-white/[0.08] bg-[#141B2E] text-slate-300 hover:text-white hover:border-rose-500/40 transition-colors"
+          className="p-1.5 rounded-lg border border-border bg-secondary text-foreground hover:border-rose-500/40 transition-colors"
           title="Not helpful"
         >
           <ThumbsDown className="w-3.5 h-3.5" />

@@ -1,5 +1,10 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
+import PublicHeader from '../components/layout/PublicHeader';
+import PublicFooter from '../components/layout/PublicFooter';
+import Button from '../components/ui/marketing/Button';
+import Badge from '../components/ui/marketing/Badge';
+import GlassCard from '../components/ui/marketing/GlassCard';
 import {
   LifeBuoy,
   Search,
@@ -14,12 +19,13 @@ import {
   Send,
   Check,
   Scan,
-  X
+  X,
+  FileSpreadsheet,
+  Headphones,
+  Mail,
+  Phone,
+  HardDrive
 } from 'lucide-react';
-import Button from '../components/ui/marketing/Button';
-import Eyebrow from '../components/ui/marketing/Eyebrow';
-import Container from '../components/ui/marketing/Container';
-import Section from '../components/ui/marketing/Section';
 
 export default function SupportPage() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -63,14 +69,13 @@ export default function SupportPage() {
     }
 
     setTicketLoading(true);
-    // Simulate enterprise ticket dispatch
     setTimeout(() => {
       setTicketLoading(false);
       setTicketSubmitted(true);
-    }, 800);
+    }, 600);
   };
 
-  // Category Cards
+  // Technical Gateways
   const CATEGORIES = [
     {
       id: 'camera',
@@ -122,7 +127,7 @@ export default function SupportPage() {
     }
   ];
 
-  // Popular Technical Runbooks
+  // Popular Runbooks
   const POPULAR_ARTICLES = [
     {
       title: 'Troubleshooting RTSP packet loss and dropped frames over managed PoE switches',
@@ -146,7 +151,7 @@ export default function SupportPage() {
       title: 'Automating daily PostgreSQL biometric hash backups without cloud egress',
       category: 'Database & Security',
       readTime: '5 min read',
-      link: '/docs?page=sovereignty-spec'
+      link: '/docs?page=database-backup'
     },
     {
       title: 'Configuring shift grace periods and deterministic punch reconciliation',
@@ -162,365 +167,289 @@ export default function SupportPage() {
     }
   ];
 
+  const filteredArticles = POPULAR_ARTICLES.filter((a) =>
+    a.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    a.category.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   return (
-    <div className="min-h-screen bg-[#06090B] text-[#9AA7A3] font-sans selection:bg-[#3DDC97]/20 selection:text-[#3DDC97]">
-      
-      {/* 1. TOP HEADER */}
-      <header className="sticky top-0 z-40 bg-[#06090B]/95 border-b border-white/[0.08] backdrop-blur-md">
-        <Container className="py-3.5 flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-2 text-[#F3F6F5] font-semibold text-sm">
-            <span className="w-6 h-6 rounded-md bg-[#0B1013] border border-white/10 flex items-center justify-center text-[#3DDC97]">
-              <Scan className="w-3.5 h-3.5 stroke-[1.5]" />
-            </span>
-            <span>AuraPass</span>
-            <span className="text-xs font-mono text-[#3DDC97] px-1.5 py-0.2 rounded bg-[#3DDC97]/10 border border-[#3DDC97]/20">
-              SUPPORT
-            </span>
-          </Link>
+    <div className="min-h-screen public-surface flex flex-col font-sans transition-colors duration-200">
+      {/* Unified Public Header */}
+      <PublicHeader />
 
-          <div className="flex items-center gap-4 text-xs font-medium">
-            <Link to="/docs" className="text-[#9AA7A3] hover:text-white transition-colors">
-              Documentation
-            </Link>
-            <Link to="/" className="text-[#3DDC97] hover:text-[#5FE8AD] transition-colors">
-              ← System Overview
-            </Link>
-          </div>
-        </Container>
-      </header>
+      <main className="flex-1">
+        {/* ─── Hero Section with Knowledge Search ─── */}
+        <section className="pt-16 pb-16 border-b border-border bg-secondary/30 relative overflow-hidden">
+          <div className="max-w-4xl mx-auto px-4 sm:px-6 text-center space-y-4">
+            <Badge variant="emerald" dot>
+              Engineering Support & Diagnostics
+            </Badge>
 
-      {/* 2. HERO SEARCH SECTION */}
-      <section className="pt-16 pb-14 border-b border-white/[0.08] relative overflow-hidden">
-        <Container className="text-center max-w-3xl space-y-4">
-          <Eyebrow variant="emerald">Help Center & Engineering Knowledge Base</Eyebrow>
-          <h1 className="text-3xl sm:text-5xl font-semibold text-[#F3F6F5] tracking-tight leading-[1.1] text-balance">
-            Hardware-grade resolution for enterprise deployments.
-          </h1>
-          <p className="text-sm sm:text-base text-[#9AA7A3] max-w-xl mx-auto leading-relaxed">
-            Diagnostic guides, dry-contact relay wiring specifications, camera RTSP ingestion matrices, and priority escalation for on-premise nodes.
-          </p>
+            <h1 className="text-3xl sm:text-5xl font-extrabold tracking-tight text-foreground leading-[1.1] text-balance">
+              Hardware-grade resolution for enterprise deployments.
+            </h1>
 
-          {/* Large Search Input */}
-          <div className="pt-4 max-w-xl mx-auto">
-            <div className="relative">
-              <Search className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-[#66726E]" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search help articles, camera setup, or error codes..."
-                className="w-full h-12 pl-11 pr-4 rounded-xl bg-[#0B1013] border border-white/10 text-sm text-[#F3F6F5] placeholder-[#66726E] focus:outline-none focus:border-[#3DDC97]/40 shadow-sm"
-              />
-            </div>
+            <p className="text-sm sm:text-base text-muted-foreground max-w-xl mx-auto leading-relaxed">
+              Diagnostic guides, dry-contact relay wiring specifications, camera RTSP ingestion matrices, and priority incident escalation for on-premise nodes.
+            </p>
 
-            {/* Quick Suggestion Pills */}
-            <div className="flex flex-wrap items-center justify-center gap-2 pt-3 text-[11px] font-mono text-[#66726E]">
-              <span>Quick filters:</span>
-              <button
-                type="button"
-                onClick={() => setSearchQuery('RTSP stream drops')}
-                className="hover:text-[#F3F6F5] underline underline-offset-2"
-              >
-                RTSP stream drops
-              </button>
-              <span>•</span>
-              <button
-                type="button"
-                onClick={() => setSearchQuery('Turnstile relay wiring')}
-                className="hover:text-[#F3F6F5] underline underline-offset-2"
-              >
-                Turnstile relay wiring
-              </button>
-              <span>•</span>
-              <button
-                type="button"
-                onClick={() => setSearchQuery('3-shot enrollment')}
-                className="hover:text-[#F3F6F5] underline underline-offset-2"
-              >
-                3-shot enrollment
-              </button>
-              <span>•</span>
-              <button
-                type="button"
-                onClick={() => setSearchQuery('Grace period')}
-                className="hover:text-[#F3F6F5] underline underline-offset-2"
-              >
-                Grace period
-              </button>
+            {/* Interactive Search Bar */}
+            <div className="max-w-lg mx-auto pt-4">
+              <div className="relative">
+                <Search className="w-4 h-4 text-muted-foreground absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search error messages, RTSP URLs, or relay wiring..."
+                  className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-card border border-border text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-emerald-500/50 shadow-sm"
+                />
+              </div>
             </div>
           </div>
-        </Container>
-      </section>
+        </section>
 
-      {/* 3. SUBSYSTEM CATEGORY CARDS */}
-      <Section hairline={false}>
-        <Container>
-          <div className="text-center max-w-xl mx-auto mb-12 space-y-2">
-            <Eyebrow variant="neutral">Four System Pillars</Eyebrow>
-            <h2 className="text-2xl sm:text-3xl font-semibold text-[#F3F6F5] tracking-tight">
-              Explore by Technical Subsystem
-            </h2>
-          </div>
+        {/* ─── 4 Technical Knowledge Gateways ─── */}
+        <section className="py-16 border-b border-border">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6">
+            <div className="text-center max-w-xl mx-auto mb-12">
+              <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">
+                Deployment Gateways
+              </span>
+              <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground mt-1 mb-2">
+                Knowledge Base & Operational Runbooks
+              </h2>
+            </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {CATEGORIES.map((cat) => {
-              const Icon = cat.icon;
-              return (
-                <div
-                  key={cat.id}
-                  className="p-6 sm:p-7 rounded-2xl border border-white/[0.08] bg-[#0B1013] flex flex-col justify-between space-y-5 hover:border-white/20 transition-colors"
-                >
-                  <div className="space-y-4">
-                    <div className="w-10 h-10 rounded-xl bg-[#06090B] border border-white/10 flex items-center justify-center text-[#3DDC97]">
-                      <Icon className="w-5 h-5 stroke-[1.5]" />
-                    </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {CATEGORIES.map((cat) => {
+                const Icon = cat.icon;
+                return (
+                  <GlassCard
+                    key={cat.id}
+                    variant="default"
+                    className="p-6 flex flex-col justify-between"
+                  >
                     <div>
-                      <h3 className="text-lg font-semibold text-[#F3F6F5] tracking-tight">
-                        {cat.title}
-                      </h3>
-                      <ul className="mt-3 space-y-2 text-xs text-[#9AA7A3]">
-                        {cat.topics.map((topic, i) => (
-                          <li key={i} className="flex items-center gap-2">
-                            <span className="w-1 h-1 rounded-full bg-[#3DDC97]" />
-                            <span>{topic}</span>
+                      <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mb-4">
+                        <Icon size={20} />
+                      </div>
+                      <h3 className="font-bold text-base text-foreground mb-3">{cat.title}</h3>
+                      <ul className="space-y-2 text-xs text-muted-foreground mb-6">
+                        {cat.topics.map((t, idx) => (
+                          <li key={idx} className="flex items-center gap-1.5">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500/60 shrink-0" />
+                            <span>{t}</span>
                           </li>
                         ))}
                       </ul>
                     </div>
+
+                    <Link
+                      to={cat.link}
+                      className="pt-3 border-t border-border flex items-center justify-between text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:underline"
+                    >
+                      <span>Explore Runbooks</span>
+                      <ArrowRight size={13} />
+                    </Link>
+                  </GlassCard>
+                );
+              })}
+            </div>
+          </div>
+        </section>
+
+        {/* ─── Popular Runbooks & Articles ─── */}
+        <section className="py-16 bg-secondary/30 border-b border-border">
+          <div className="max-w-5xl mx-auto px-4 sm:px-6">
+            <div className="flex items-center justify-between mb-8">
+              <div>
+                <h2 className="text-xl sm:text-2xl font-bold text-foreground">Frequently Consulted Technical Guides</h2>
+                <p className="text-xs text-muted-foreground mt-0.5">Step-by-step resolution for common facility questions.</p>
+              </div>
+              <Link to="/docs" className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:underline flex items-center gap-1">
+                View All Documentation <ArrowRight size={12} />
+              </Link>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {filteredArticles.map((art, idx) => (
+                <Link
+                  key={idx}
+                  to={art.link}
+                  className="p-4 rounded-xl bg-card border border-border hover:border-emerald-500/40 transition-colors flex flex-col justify-between gap-2 shadow-sm"
+                >
+                  <div className="text-sm font-semibold text-foreground hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors">
+                    {art.title}
                   </div>
-
-                  <Link
-                    to={cat.link}
-                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#3DDC97] hover:text-[#5FE8AD] transition-colors pt-2 border-t border-white/[0.06]"
-                  >
-                    <span>Browse technical documentation</span>
-                    <ArrowRight className="w-3.5 h-3.5" />
-                  </Link>
-                </div>
-              );
-            })}
-          </div>
-        </Container>
-      </Section>
-
-      {/* 4. POPULAR TECHNICAL ARTICLES */}
-      <Section className="border-t border-white/[0.08]">
-        <Container>
-          <div className="text-center max-w-xl mx-auto mb-12 space-y-2">
-            <Eyebrow variant="neutral">Verified Runbooks</Eyebrow>
-            <h2 className="text-2xl sm:text-3xl font-semibold text-[#F3F6F5] tracking-tight">
-              Popular Engineering Articles
-            </h2>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {POPULAR_ARTICLES.map((art, idx) => (
-              <Link
-                key={idx}
-                to={art.link}
-                className="p-4 sm:p-5 rounded-xl border border-white/[0.08] bg-[#0B1013] hover:border-white/20 transition-colors flex items-start justify-between gap-4 group"
-              >
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2 font-mono text-[11px] text-[#66726E]">
-                    <span>{art.category}</span>
-                    <span>•</span>
+                  <div className="flex items-center justify-between text-xs text-muted-foreground pt-2 border-t border-border/50">
+                    <span className="font-mono text-[11px] text-emerald-600 dark:text-emerald-400">{art.category}</span>
                     <span>{art.readTime}</span>
                   </div>
-                  <h4 className="text-sm font-semibold text-[#F3F6F5] group-hover:text-[#3DDC97] transition-colors">
-                    {art.title}
-                  </h4>
-                </div>
-                <ArrowRight className="w-4 h-4 text-[#66726E] group-hover:text-[#3DDC97] shrink-0 mt-1 transition-colors" />
-              </Link>
-            ))}
+                </Link>
+              ))}
+            </div>
           </div>
-        </Container>
-      </Section>
+        </section>
 
-      {/* 5. ENTERPRISE ENGINEERING SUPPORT TICKET FORM */}
-      <Section className="border-t border-white/[0.08]">
-        <Container size="narrow">
-          <div className="text-center max-w-xl mx-auto mb-10 space-y-2">
-            <Eyebrow variant="emerald">Priority Engineering Escalation</Eyebrow>
-            <h2 className="text-2xl sm:text-3xl font-semibold text-[#F3F6F5] tracking-tight">
-              Open a Support Ticket
-            </h2>
-            <p className="text-xs text-[#9AA7A3] leading-relaxed">
-              Air-gapped on-premise emergency SLA: 2 hours for Business and Enterprise tiers. Handled by systems engineers.
-            </p>
-          </div>
-
-          <div className="p-6 sm:p-8 rounded-2xl border border-white/10 bg-[#0B1013] shadow-xl">
-            {ticketSubmitted ? (
-              <div className="py-10 text-center space-y-3">
-                <div className="w-12 h-12 rounded-full bg-[#3DDC97]/10 border border-[#3DDC97]/30 text-[#3DDC97] flex items-center justify-center mx-auto">
-                  <Check className="w-6 h-6 stroke-[2]" />
-                </div>
-                <h3 className="text-lg font-semibold text-[#F3F6F5]">
-                  Support Ticket Dispatched Successfully
-                </h3>
-                <p className="text-xs text-[#9AA7A3] max-w-md mx-auto leading-relaxed">
-                  Ticket reference <span className="font-mono text-[#3DDC97]">#TKT-2026-0842</span> has been routed to our on-premise deployment engineering group. You will receive an encrypted acknowledgment at your corporate email address within the SLA window.
+        {/* ─── Enterprise Ticket Submission Form ─── */}
+        <section className="py-20">
+          <div className="max-w-3xl mx-auto px-4 sm:px-6">
+            <GlassCard variant="elevated" className="p-6 sm:p-10 border-border/80">
+              <div className="text-center max-w-xl mx-auto mb-8">
+                <Badge variant="zinc" className="mb-2">Direct Engineer Escalation</Badge>
+                <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
+                  Open an Engineering Support Case
+                </h2>
+                <p className="text-xs sm:text-sm text-muted-foreground mt-1">
+                  Connect directly with specialized on-premise deployment engineers.
                 </p>
-                <div className="pt-4">
+              </div>
+
+              {ticketSubmitted ? (
+                <div className="text-center py-8 space-y-4">
+                  <div className="w-14 h-14 rounded-full bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mx-auto">
+                    <CheckCircle2 size={32} />
+                  </div>
+                  <h3 className="text-xl font-bold text-foreground">Support Case #AP-8492 Dispatched</h3>
+                  <p className="text-xs sm:text-sm text-muted-foreground max-w-md mx-auto leading-relaxed">
+                    An engineer has been assigned to your ticket. You will receive an email update at <strong className="text-foreground">{formData.email}</strong> within 1 hour for critical issues.
+                  </p>
                   <Button
+                    variant="outline"
+                    size="sm"
                     onClick={() => {
                       setTicketSubmitted(false);
-                      setFormData({
-                        name: '',
-                        email: '',
-                        organization: '',
-                        hardwareModel: '',
-                        priority: 'medium',
-                        description: '',
-                      });
+                      setFormData({ name: '', email: '', organization: '', hardwareModel: '', priority: 'medium', description: '' });
                     }}
-                    variant="secondary"
-                    size="sm"
                   >
-                    Submit another inquiry
+                    Submit Another Inquiry
                   </Button>
                 </div>
-              </div>
-            ) : (
-              <form onSubmit={handleFormSubmit} className="space-y-4 text-xs font-sans">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-[#F3F6F5] font-medium mb-1.5">
-                      Full Name *
-                    </label>
-                    <input
-                      type="text"
-                      name="name"
-                      value={formData.name}
-                      onChange={handleInputChange}
-                      placeholder="e.g. Vikram Singhania"
-                      className="w-full h-10 px-3 rounded-lg bg-[#06090B] border border-white/10 text-xs text-[#F3F6F5] placeholder-[#66726E] focus:outline-none focus:border-[#3DDC97]/40"
-                    />
-                    {formErrors.name && (
-                      <p className="text-[#FF6B6B] text-[11px] mt-1">{formErrors.name}</p>
-                    )}
+              ) : (
+                <form onSubmit={handleFormSubmit} className="space-y-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-semibold text-foreground mb-1.5">
+                        Your Full Name *
+                      </label>
+                      <input
+                        type="text"
+                        name="name"
+                        value={formData.name}
+                        onChange={handleInputChange}
+                        placeholder="e.g. Rajesh Patel"
+                        className={`w-full px-3.5 py-2 rounded-xl bg-secondary/50 border text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-emerald-500/50 ${
+                          formErrors.name ? 'border-red-500' : 'border-border'
+                        }`}
+                      />
+                      {formErrors.name && <p className="text-[11px] text-red-500 mt-1">{formErrors.name}</p>}
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-foreground mb-1.5">
+                        Corporate Email *
+                      </label>
+                      <input
+                        type="email"
+                        name="email"
+                        value={formData.email}
+                        onChange={handleInputChange}
+                        placeholder="rajesh@company.com"
+                        className={`w-full px-3.5 py-2 rounded-xl bg-secondary/50 border text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-emerald-500/50 ${
+                          formErrors.email ? 'border-red-500' : 'border-border'
+                        }`}
+                      />
+                      {formErrors.email && <p className="text-[11px] text-red-500 mt-1">{formErrors.email}</p>}
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-semibold text-foreground mb-1.5">
+                        Organization Name *
+                      </label>
+                      <input
+                        type="text"
+                        name="organization"
+                        value={formData.organization}
+                        onChange={handleInputChange}
+                        placeholder="Acme Industrial Ltd."
+                        className={`w-full px-3.5 py-2 rounded-xl bg-secondary/50 border text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-emerald-500/50 ${
+                          formErrors.organization ? 'border-red-500' : 'border-border'
+                        }`}
+                      />
+                      {formErrors.organization && <p className="text-[11px] text-red-500 mt-1">{formErrors.organization}</p>}
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-foreground mb-1.5">
+                        Camera / Gateway Model
+                      </label>
+                      <input
+                        type="text"
+                        name="hardwareModel"
+                        value={formData.hardwareModel}
+                        onChange={handleInputChange}
+                        placeholder="e.g. Hikvision DS-2CD / iPad 10th Gen"
+                        className="w-full px-3.5 py-2 rounded-xl bg-secondary/50 border border-border text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
+                      />
+                    </div>
                   </div>
 
                   <div>
-                    <label className="block text-[#F3F6F5] font-medium mb-1.5">
-                      Corporate Work Email *
+                    <label className="block text-xs font-semibold text-foreground mb-1.5">
+                      Issue Severity Level
                     </label>
-                    <input
-                      type="email"
-                      name="email"
-                      value={formData.email}
+                    <select
+                      name="priority"
+                      value={formData.priority}
                       onChange={handleInputChange}
-                      placeholder="vikram@enterprise.com"
-                      className="w-full h-10 px-3 rounded-lg bg-[#06090B] border border-white/10 text-xs text-[#F3F6F5] placeholder-[#66726E] focus:outline-none focus:border-[#3DDC97]/40"
-                    />
-                    {formErrors.email && (
-                      <p className="text-[#FF6B6B] text-[11px] mt-1">{formErrors.email}</p>
-                    )}
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-[#F3F6F5] font-medium mb-1.5">
-                      Organization / Facility Name *
-                    </label>
-                    <input
-                      type="text"
-                      name="organization"
-                      value={formData.organization}
-                      onChange={handleInputChange}
-                      placeholder="e.g. Acme Industrial Plant 02"
-                      className="w-full h-10 px-3 rounded-lg bg-[#06090B] border border-white/10 text-xs text-[#F3F6F5] placeholder-[#66726E] focus:outline-none focus:border-[#3DDC97]/40"
-                    />
-                    {formErrors.organization && (
-                      <p className="text-[#FF6B6B] text-[11px] mt-1">{formErrors.organization}</p>
-                    )}
+                      className="w-full px-3.5 py-2 rounded-xl bg-secondary/50 border border-border text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-emerald-500/50 cursor-pointer"
+                    >
+                      <option value="low">Low — General inquiry or configuration advice</option>
+                      <option value="medium">Medium — Non-critical camera stream delay</option>
+                      <option value="high">High — Multi-employee recognition failures</option>
+                      <option value="critical">Critical — Production entrance turnstile offline</option>
+                    </select>
                   </div>
 
                   <div>
-                    <label className="block text-[#F3F6F5] font-medium mb-1.5">
-                      Camera or Hardware Model
+                    <label className="block text-xs font-semibold text-foreground mb-1.5">
+                      Problem Description & Error Logs *
                     </label>
-                    <input
-                      type="text"
-                      name="hardwareModel"
-                      value={formData.hardwareModel}
+                    <textarea
+                      name="description"
+                      rows={4}
+                      value={formData.description}
                       onChange={handleInputChange}
-                      placeholder="e.g. Hikvision DS-2CD / Logitech BRIO"
-                      className="w-full h-10 px-3 rounded-lg bg-[#06090B] border border-white/10 text-xs text-[#F3F6F5] placeholder-[#66726E] focus:outline-none focus:border-[#3DDC97]/40"
+                      placeholder="Describe the issue, include RTSP stream parameters, and any error messages from the live logs..."
+                      className={`w-full px-3.5 py-2 rounded-xl bg-secondary/50 border text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-emerald-500/50 ${
+                        formErrors.description ? 'border-red-500' : 'border-border'
+                      }`}
                     />
+                    {formErrors.description && <p className="text-[11px] text-red-500 mt-1">{formErrors.description}</p>}
                   </div>
-                </div>
 
-                <div>
-                  <label className="block text-[#F3F6F5] font-medium mb-1.5">
-                    Priority Level
-                  </label>
-                  <select
-                    name="priority"
-                    value={formData.priority}
-                    onChange={handleInputChange}
-                    className="w-full h-10 px-3 rounded-lg bg-[#06090B] border border-white/10 text-xs text-[#F3F6F5] focus:outline-none focus:border-[#3DDC97]/40"
-                  >
-                    <option value="low">Low — General inquiry or licensing question</option>
-                    <option value="medium">Medium — Configuration assistance</option>
-                    <option value="high">High — RTSP or biometric degradation</option>
-                    <option value="urgent">Urgent — Turnstile relay or perimeter lockout</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-[#F3F6F5] font-medium mb-1.5">
-                    Issue Description & Diagnostic Logs *
-                  </label>
-                  <textarea
-                    rows={4}
-                    name="description"
-                    value={formData.description}
-                    onChange={handleInputChange}
-                    placeholder="Describe the incident, error messages, and network subnet topology..."
-                    className="w-full p-3 rounded-lg bg-[#06090B] border border-white/10 text-xs text-[#F3F6F5] placeholder-[#66726E] focus:outline-none focus:border-[#3DDC97]/40 font-mono"
-                  />
-                  {formErrors.description && (
-                    <p className="text-[#FF6B6B] text-[11px] mt-1">{formErrors.description}</p>
-                  )}
-                </div>
-
-                <div className="pt-2 flex items-center justify-between">
-                  <p className="text-[11px] font-mono text-[#66726E]">
-                    Zero raw imagery or video frames uploaded with inquiry.
-                  </p>
                   <Button
                     type="submit"
                     variant="primary"
-                    size="md"
+                    size="lg"
                     disabled={ticketLoading}
+                    icon={Send}
+                    className="w-full mt-2"
                   >
-                    {ticketLoading ? 'Dispatching...' : 'Submit Support Ticket'}
+                    {ticketLoading ? 'Dispatching Case...' : 'Submit Engineering Case'}
                   </Button>
-                </div>
-              </form>
-            )}
+                </form>
+              )}
+            </GlassCard>
           </div>
-        </Container>
-      </Section>
+        </section>
+      </main>
 
-      {/* 6. MINIMAL FOOTER */}
-      <footer className="border-t border-white/[0.08] bg-[#06090B] py-10 text-xs text-[#66726E]">
-        <Container className="flex flex-col sm:flex-row justify-between items-center gap-4">
-          <div className="flex items-center gap-2 text-white">
-            <Scan className="w-4 h-4 text-[#3DDC97] stroke-[1.5]" />
-            <span>AuraPass Enterprise Support</span>
-          </div>
-          <div className="flex items-center gap-4">
-            <Link to="/docs" className="hover:text-white transition-colors">Documentation</Link>
-            <Link to="/privacy-policy" className="hover:text-white transition-colors">Legal & Privacy</Link>
-            <Link to="/" className="text-[#3DDC97] hover:underline">System Overview</Link>
-          </div>
-        </Container>
-      </footer>
-
+      {/* Unified Public Footer */}
+      <PublicFooter />
     </div>
   );
 }

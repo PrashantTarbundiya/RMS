@@ -3,7 +3,6 @@ import { NavLink, Link, useLocation, useNavigate } from 'react-router-dom';
 import { Activity, Box, Video, Home, Upload, ClipboardList, Radio, Settings, LogOut, Users, User, Menu, X, Terminal, Shield, Monitor, BarChart3, Play, Camera, Download, Building2, Sun, Moon } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { usePwa } from '../context/PwaContext';
-import { useTheme } from '../context/ThemeContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import { API_BASE } from '../config';
 
@@ -20,7 +19,6 @@ function hasRole(userRole, minRole) {
 export function Navbar() {
   const { user, logout, updateOnboardingState, apiClient } = useAuth();
   const { isInstallable, isInstalled, installApp } = usePwa();
-  const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const [isCollapsed, setIsCollapsed] = useState(() => {
     return localStorage.getItem('sidebar-collapsed') === 'true';
@@ -105,30 +103,40 @@ export function Navbar() {
 
   return (
     <>
-      {/* Mobile Top Header (Visible only on mobile/small screens) */}
+      {/* Mobile Top Header (Visible only on mobile/small screens - Hamburger strictly on top left) */}
       <header className="mobile-header md:hidden">
-        <div className="flex items-center justify-between w-full px-4 h-14 bg-white/95 dark:bg-[#0F1011]/95 border-b border-slate-200 dark:border-[#23252A] fixed top-0 left-0 right-0 z-40">
-          <Link to="/" className="brand flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg border border-border flex items-center justify-center bg-[#010102] shrink-0">
-              <span className="font-mono text-primary font-bold text-xs">A</span>
-            </div>
-            <div className="flex flex-col">
-              <span className="text-ink font-semibold tracking-tight text-xs font-display">AuraPass™</span>
-              {user?.org_name && (
-                <span className="text-[10px] text-ink-subtle font-mono truncate max-w-[150px] leading-tight">
-                  {user.org_name}
-                </span>
-              )}
-            </div>
-          </Link>
-          <button 
-            type="button"
-            onClick={() => setIsMobileOpen(prev => !prev)}
-            aria-label={isMobileOpen ? "Close menu" : "Open menu"}
-            className="text-ink-subtle hover:text-ink p-2 rounded-lg hover:bg-surface-2 transition-colors cursor-pointer"
+        <div className="flex items-center justify-between w-full px-3 h-14 bg-[#0A0A0A]/95 border-b border-[#262626] fixed top-0 left-0 right-0 z-40">
+          <div className="flex items-center gap-2">
+            <button 
+              type="button"
+              onClick={() => setIsMobileOpen(prev => !prev)}
+              aria-label={isMobileOpen ? "Close navigation menu" : "Open navigation menu"}
+              className="text-ink-subtle hover:text-ink p-2 rounded-lg hover:bg-surface-2 transition-colors cursor-pointer"
+            >
+              {isMobileOpen ? <X size={20} /> : <Menu size={20} />}
+            </button>
+            <Link to="/" className="brand flex items-center gap-2">
+              <div className="w-7 h-7 rounded-lg border border-border flex items-center justify-center bg-[#010102] shrink-0">
+                <span className="font-mono text-primary font-bold text-xs">A</span>
+              </div>
+              <div className="flex flex-col">
+                <span className="text-ink font-semibold tracking-tight text-xs font-display">AuraPass™</span>
+                {user?.org_name && (
+                  <span className="text-[10px] text-ink-subtle font-mono truncate max-w-[150px] leading-tight">
+                    {user.org_name}
+                  </span>
+                )}
+              </div>
+            </Link>
+          </div>
+          <Link
+            to="/profile"
+            className="text-ink-subtle hover:text-ink p-2 rounded-lg hover:bg-surface-2 transition-colors"
+            title="Profile"
+            aria-label="User Profile"
           >
-            {isMobileOpen ? <X size={20} /> : <Menu size={20} />}
-          </button>
+            <User size={18} />
+          </Link>
         </div>
         {/* Spacer to push page content down */}
         <div className="h-14 w-full" />
@@ -153,10 +161,10 @@ export function Navbar() {
               animate={{ x: 0 }}
               exit={{ x: '-100%' }}
               transition={{ type: 'spring', damping: 25, stiffness: 220 }}
-              className="relative w-4/5 max-w-xs bg-white dark:bg-[#0F1011] h-full border-r border-slate-200 dark:border-[#23252A] flex flex-col z-10 p-5 shadow-2xl"
+              className="relative w-4/5 max-w-xs bg-[#111111] h-full border-r border-[#262626] flex flex-col z-10 p-5 shadow-2xl"
             >
               {/* Drawer Header */}
-              <div className="flex items-center justify-between pb-4 border-b border-slate-200 dark:border-[#23252A] mb-4">
+              <div className="flex items-center justify-between pb-4 border-b border-[#262626] mb-4">
                 <div className="flex items-center gap-2">
                   <div className="w-8 h-8 rounded-md border border-border flex items-center justify-center bg-[#010102]">
                     <span className="font-mono text-primary font-bold text-sm">A</span>
@@ -191,7 +199,7 @@ export function Navbar() {
               </div>
 
               {/* Sign Out & PWA Action */}
-              <div className="pt-4 border-t border-[#23252A] mt-auto flex flex-col gap-2">
+              <div className="pt-4 border-t border-[#262626] mt-auto flex flex-col gap-2">
                 {isInstallable && !isInstalled && (
                   <button 
                     onClick={() => { installApp(); setIsMobileOpen(false); }} 
@@ -202,14 +210,6 @@ export function Navbar() {
                     <span>Install App (PWA)</span>
                   </button>
                 )}
-                                <button
-                  type="button"
-                  onClick={toggleTheme}
-                  className="logout-btn w-full text-left cursor-pointer"
-                >
-                  {theme === 'dark' ? <Sun size={17} className="text-amber-400" /> : <Moon size={17} className="text-slate-600" />}
-                  <span>{theme === 'dark' ? 'Light Mode' : 'Dark Mode'}</span>
-                </button>
                 {hasRole(userRole, 'org_admin') && (
                   <button 
                     type="button"
@@ -298,15 +298,6 @@ export function Navbar() {
               {!isCollapsed && <span>Install App</span>}
             </button>
           )}
-                    <button
-            type="button"
-            onClick={toggleTheme}
-            className={`logout-btn ${isCollapsed ? 'justify-center' : ''}`}
-            title={theme === 'dark' ? "Switch to Light Mode" : "Switch to Dark Mode"}
-          >
-            {theme === 'dark' ? <Sun size={17} className="text-amber-400" /> : <Moon size={17} className="text-slate-600" />}
-            {!isCollapsed && <span>{theme === 'dark' ? 'Light Mode' : 'Dark Mode'}</span>}
-          </button>
           {hasRole(userRole, 'org_admin') && (
             <button 
               type="button"
@@ -334,8 +325,8 @@ export function Navbar() {
 
           @media (min-width: 768px) {
             .ui-sidebar {
-              background: var(--sidebar-bg, #FFFFFF) !important;
-              border-right: 1px solid var(--sidebar-border, #E5E7EB) !important;
+              background: var(--sidebar-bg, #0A0A0A) !important;
+              border-right: 1px solid var(--sidebar-border, #262626) !important;
               box-shadow: inset -1px 0 0 0 rgba(0, 0, 0, 0.04) !important;
               display: flex !important;
               flex-direction: column;
@@ -353,7 +344,7 @@ export function Navbar() {
 
           .sidebar-header {
             padding: 12px 14px;
-            border-bottom: 1px solid var(--sidebar-border, #E5E7EB);
+            border-bottom: 1px solid var(--sidebar-border, #262626);
             display: flex;
             align-items: center;
           }
@@ -439,7 +430,7 @@ export function Navbar() {
 
           .sidebar-footer {
             padding: 10px 12px;
-            border-top: 1px solid var(--sidebar-border, #E5E7EB);
+            border-top: 1px solid var(--sidebar-border, #262626);
             display: flex;
             flex-direction: column;
             gap: 6px;
@@ -469,7 +460,7 @@ export function Navbar() {
       </nav>
 
       {/* Mobile Bottom Navigation Bar (Mobile-First Thumb Friendly) */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-white/95 dark:bg-[#0F1011]/95 border-t border-slate-200 dark:border-[#23252A] z-40 flex items-center justify-around px-1 shadow-2xl safe-area-bottom">
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-[#0A0A0A]/95 border-t border-[#262626] z-40 flex items-center justify-around px-1 shadow-2xl safe-area-bottom">
         <NavLink 
           to="/dashboard" 
           className={({ isActive }) => `flex-1 min-w-0 max-w-[68px] flex flex-col items-center justify-center gap-1 py-1 px-0.5 text-xs font-medium transition-colors ${isActive ? 'text-emerald-400 font-semibold' : 'text-ink-subtle hover:text-ink'}`}
@@ -502,14 +493,13 @@ export function Navbar() {
           <span className="text-[10px] truncate max-w-full text-center">Cameras</span>
         </NavLink>
 
-        <button 
-          type="button"
-          onClick={() => setIsMobileOpen(true)}
-          className="flex-1 min-w-0 max-w-[68px] flex flex-col items-center justify-center gap-1 py-1 px-0.5 text-xs font-medium text-ink-subtle hover:text-ink transition-colors cursor-pointer"
+        <NavLink 
+          to="/profile" 
+          className={({ isActive }) => `flex-1 min-w-0 max-w-[68px] flex flex-col items-center justify-center gap-1 py-1 px-0.5 text-xs font-medium transition-colors ${isActive ? 'text-emerald-400 font-semibold' : 'text-ink-subtle hover:text-ink'}`}
         >
-          <Menu size={18} className="shrink-0" />
-          <span className="text-[10px] truncate max-w-full text-center">Menu</span>
-        </button>
+          <User size={18} className="shrink-0" />
+          <span className="text-[10px] truncate max-w-full text-center">Profile</span>
+        </NavLink>
       </nav>
     </>
   );

@@ -77,7 +77,7 @@ function StatCard({ label, value, sub, icon: Icon, color = '#10B981' }) {
 
   return (
 
-    <div className="card-linear p-4 flex items-center gap-4 bg-[#0F1011] border-[#23252A]">
+    <div className="card-linear p-4 flex items-center gap-4 bg-[#111111] border-[#262626]">
 
       <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: `${color}15` }}>
 
@@ -115,7 +115,7 @@ function HeatmapGrid({ data }) {
 
   return (
 
-    <div className="card-linear p-5 bg-[#0F1011] border-[#23252A]">
+    <div className="card-linear p-5 bg-[#111111] border-[#262626]">
 
       <h3 className="text-body font-medium text-ink mb-4 flex items-center gap-2">
 
@@ -245,7 +245,7 @@ function DepartmentTable({ data, deptConfigs }) {
 
   return (
 
-    <div className="card-linear p-5 bg-[#0F1011] border-[#23252A]">
+    <div className="card-linear p-5 bg-[#111111] border-[#262626]">
 
       <div className="flex items-center justify-between mb-4">
 
@@ -261,7 +261,7 @@ function DepartmentTable({ data, deptConfigs }) {
 
           to="/departments?tab=schedules"
 
-          className="button-secondary text-caption h-7 px-2.5 flex items-center gap-1.5 border-[#23252A] hover:border-emerald-500/50"
+          className="button-secondary text-caption h-7 px-2.5 flex items-center gap-1.5 border-[#262626] hover:border-emerald-500/50"
 
         >
 
@@ -277,7 +277,7 @@ function DepartmentTable({ data, deptConfigs }) {
 
       {!hasRows ? (
 
-        <div className="py-8 text-center text-ink-subtle text-caption border border-dashed border-[#23252A] rounded-lg">
+        <div className="py-8 text-center text-ink-subtle text-caption border border-dashed border-[#262626] rounded-lg">
 
           No department attendance activity recorded yet.
 
@@ -291,7 +291,7 @@ function DepartmentTable({ data, deptConfigs }) {
 
           <thead>
 
-            <tr className="border-b border-[#23252A] text-ink-subtle">
+            <tr className="border-b border-[#262626] text-ink-subtle">
 
               <th className="text-left py-2 pr-3 font-medium">Department</th>
 
@@ -325,7 +325,7 @@ function DepartmentTable({ data, deptConfigs }) {
 
               return (
 
-                <tr key={i} className="border-b border-[#23252A]/50 hover:bg-[#23252A]/20">
+                <tr key={i} className="border-b border-[#262626]/50 hover:bg-[#171717]">
 
                   <td className="py-2.5 pr-3">
 
@@ -417,7 +417,7 @@ function LateArrivalsPanel({ data }) {
 
   return (
 
-    <div className="card-linear p-5 bg-[#0F1011] border-[#23252A]">
+    <div className="card-linear p-5 bg-[#111111] border-[#262626]">
 
       <h3 className="text-body font-medium text-ink mb-4 flex items-center gap-2">
 
@@ -511,7 +511,7 @@ function LateArrivalsPanel({ data }) {
 
             {data.top_late_employees.slice(0, 5).map((emp, i) => (
 
-              <div key={i} className="flex items-center justify-between py-1.5 px-3 bg-[#010102]/40 rounded-md">
+              <div key={i} className="flex items-center justify-between py-1.5 px-3 bg-[#171717] rounded-md">
 
                 <span className="text-caption text-ink">{emp.name}</span>
 
@@ -757,13 +757,9 @@ export default function AnalyticsPage() {
 
         <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
 
-          <Link to="/departments?tab=schedules" className="button-secondary flex-1 sm:flex-none flex items-center justify-center gap-1.5 text-caption h-8 px-3 border-[#23252A] hover:border-emerald-500/50"><Building2 size={13} className="text-emerald-400" /> Departments</Link>
+          <Link to="/departments?tab=schedules" className="button-secondary flex-1 sm:flex-none flex items-center justify-center gap-1.5 text-caption h-8 px-3 border-[#262626] hover:border-emerald-500/50"><Building2 size={13} className="text-emerald-400" /> Departments</Link>
 
-          <button onClick={fetchAll} className="button-secondary flex items-center justify-center gap-1.5 text-caption h-8 px-3">
 
-            <RefreshCw size={13} /> Refresh
-
-          </button>
 
           <button onClick={exportReport} className="button-secondary flex items-center justify-center gap-1.5 text-caption h-8 px-3">
 
@@ -794,7 +790,7 @@ export default function AnalyticsPage() {
 
       {/* Filters */}
 
-      <div className="card-linear p-3.5 sm:p-4 bg-[#0F1011] border-[#23252A] grid grid-cols-1 sm:grid-cols-2 lg:flex lg:flex-wrap items-end gap-3 sm:gap-4">
+      <div className="card-linear p-3.5 sm:p-4 bg-[#111111] border-[#262626] grid grid-cols-1 sm:grid-cols-2 lg:flex lg:flex-wrap items-end gap-3 sm:gap-4">
 
         <div className="w-full sm:w-auto">
 
@@ -856,7 +852,7 @@ export default function AnalyticsPage() {
 
             onChange={e => updateFilters(dateRange.start, dateRange.end, e.target.value)}
 
-            className="h-8 px-3 rounded-md bg-[#010102] border border-[#23252A] text-caption text-ink focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none accent-emerald-500 w-full"
+            className="h-8 px-3 rounded-md bg-[#171717] border border-[#262626] text-caption text-ink focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none accent-emerald-500 w-full"
 
           />
 
@@ -876,9 +872,9 @@ export default function AnalyticsPage() {
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
-            <div className="card-linear p-6 bg-[#0F1011] border-[#23252A] h-[200px] shimmer rounded-lg" />
+            <div className="card-linear p-6 bg-[#111111] border-[#262626] h-[200px] shimmer rounded-lg" />
 
-            <div className="card-linear p-6 bg-[#0F1011] border-[#23252A] h-[200px] shimmer rounded-lg" />
+            <div className="card-linear p-6 bg-[#111111] border-[#262626] h-[200px] shimmer rounded-lg" />
 
           </div>
 

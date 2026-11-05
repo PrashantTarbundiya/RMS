@@ -224,7 +224,7 @@ export default function DepartmentsPage() {
 
       {/* KPI Overview Cards - High Density on Mobile (ISO 9241-110) */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
-        <div className="card-linear p-2.5 sm:p-3.5 bg-white dark:bg-[#0F1011] border border-slate-200 dark:border-[#23252A] rounded-xl flex items-center justify-between gap-2 shadow-sm">
+        <div className="card-linear p-2.5 sm:p-3.5 bg-[#111111] border border-[#262626] rounded-xl flex items-center justify-between gap-2 shadow-sm">
           <div className="min-w-0">
             <div className="text-[10px] sm:text-[11px] text-ink-subtle uppercase tracking-wider font-medium truncate">Total Depts</div>
             <div className="stat-number text-base sm:text-xl text-ink mt-0.5">{departments.length}</div>
@@ -234,7 +234,7 @@ export default function DepartmentsPage() {
           </div>
         </div>
 
-        <div className="card-linear p-2.5 sm:p-3.5 bg-white dark:bg-[#0F1011] border border-slate-200 dark:border-[#23252A] rounded-xl flex items-center justify-between gap-2 shadow-sm">
+        <div className="card-linear p-2.5 sm:p-3.5 bg-[#111111] border border-[#262626] rounded-xl flex items-center justify-between gap-2 shadow-sm">
           <div className="min-w-0">
             <div className="text-[10px] sm:text-[11px] text-ink-subtle uppercase tracking-wider font-medium truncate">Active Staff</div>
             <div className="stat-number text-base sm:text-xl text-ink mt-0.5">{totalEmployeesCount}</div>
@@ -244,7 +244,7 @@ export default function DepartmentsPage() {
           </div>
         </div>
 
-        <div className="card-linear p-2.5 sm:p-3.5 bg-white dark:bg-[#0F1011] border border-slate-200 dark:border-[#23252A] rounded-xl flex items-center justify-between gap-2 shadow-sm">
+        <div className="card-linear p-2.5 sm:p-3.5 bg-[#111111] border border-[#262626] rounded-xl flex items-center justify-between gap-2 shadow-sm">
           <div className="min-w-0">
             <div className="text-[10px] sm:text-[11px] text-ink-subtle uppercase tracking-wider font-medium">
               <span className="sm:hidden">Shifts</span>
@@ -257,7 +257,7 @@ export default function DepartmentsPage() {
           </div>
         </div>
 
-        <div className="card-linear p-2.5 sm:p-3.5 bg-white dark:bg-[#0F1011] border border-slate-200 dark:border-[#23252A] rounded-xl flex items-center justify-between gap-2 shadow-sm">
+        <div className="card-linear p-2.5 sm:p-3.5 bg-[#111111] border border-[#262626] rounded-xl flex items-center justify-between gap-2 shadow-sm">
           <div className="min-w-0">
             <div className="text-[10px] sm:text-[11px] text-ink-subtle uppercase tracking-wider font-medium">
               <span className="sm:hidden">Grace</span>
@@ -265,7 +265,7 @@ export default function DepartmentsPage() {
             </div>
             <div className="text-base sm:text-xl font-bold font-mono text-emerald-400 mt-0.5 flex items-baseline gap-1.5">
               <span>{avgGrace}</span>
-              <span className="text-[11px] sm:text-xs font-sans font-medium text-slate-500 dark:text-ink-subtle">min buffer</span>
+              <span className="text-[11px] sm:text-xs font-sans font-medium text-neutral-400">min buffer</span>
             </div>
           </div>
           <div className="w-7 h-7 sm:w-9 sm:h-9 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 shrink-0">
@@ -298,8 +298,8 @@ export default function DepartmentsPage() {
       {activeTab === 'schedules' && (
         <div className="space-y-4">
           {/* Subheader Toolbar: Synchronized height and padding to eliminate layout shift */}
-          <div className="card-linear px-4 py-3 bg-white dark:bg-[#0F1011] border border-slate-200 dark:border-[#23252A] rounded-xl flex flex-wrap items-center justify-between gap-3 min-h-[50px] shadow-sm">
-            <div className="flex items-center gap-2 text-xs text-slate-600 dark:text-ink-subtle">
+          <div className="card-linear px-4 py-3 bg-[#111111] border border-[#262626] rounded-xl flex flex-wrap items-center justify-between gap-3 min-h-[50px] shadow-sm">
+            <div className="flex items-center gap-2 text-xs text-neutral-400">
               <ShieldCheck size={16} className="text-emerald-500 shrink-0" />
               <span><strong>Shift Policy:</strong> Grace period minutes are added to start time before tardiness is flagged. Individual departments can customize below.</span>
             </div>
@@ -341,7 +341,7 @@ export default function DepartmentsPage() {
                 placeholder="Search staff by name or code..."
                 value={searchQuery}
                 onChange={(e) => updateParams({ q: e.target.value })}
-                className="w-full h-8 pl-8 pr-3 text-xs rounded-md bg-[#010102] border border-[#23252A] text-ink focus:border-emerald-500 focus:outline-none"
+                className="w-full h-8 pl-8 pr-3 text-xs rounded-md bg-[#010102] border border-[#262626] text-ink focus:border-emerald-500 focus:outline-none"
               />
             </div>
 
@@ -351,7 +351,7 @@ export default function DepartmentsPage() {
               <select
                 value={deptFilter}
                 onChange={(e) => updateParams({ dept: e.target.value })}
-                className="h-8 px-2.5 text-xs rounded-md bg-[#010102] border border-[#23252A] text-ink focus:border-emerald-500 focus:outline-none"
+                className="h-8 px-2.5 text-xs rounded-md bg-[#010102] border border-[#262626] text-ink focus:border-emerald-500 focus:outline-none"
               >
                 <option value="all">All Departments ({employees.length})</option>
                 {STANDARD_DEPARTMENTS.map((d) => (
@@ -362,10 +362,10 @@ export default function DepartmentsPage() {
           </div>
 
           {/* Staff Table */}
-          <div className="border border-[#23252A] rounded-xl overflow-hidden bg-[#0A0B0D]">
+          <div className="border border-[#262626] rounded-xl overflow-hidden bg-[#0A0B0D]">
             <table className="w-full text-xs">
               <thead>
-                <tr className="border-b border-[#23252A] bg-[#141517] text-ink-subtle">
+                <tr className="border-b border-[#262626] bg-[#141517] text-ink-subtle">
                   <th className="text-left py-3 px-4 font-medium">Employee Name</th>
                   <th className="text-left py-3 px-3 font-medium">Current Department</th>
                   <th className="text-left py-3 px-3 font-medium">Reassign Department</th>
@@ -373,7 +373,7 @@ export default function DepartmentsPage() {
                   <th className="text-right py-3 px-4 font-medium">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#23252A]/50">
+              <tbody className="divide-y divide-[#262626]/50">
                 {filteredEmployees.length === 0 ? (
                   <tr>
                     <td colSpan={5} className="py-10 text-center text-ink-tertiary">
@@ -390,7 +390,7 @@ export default function DepartmentsPage() {
                         )}
                       </td>
                       <td className="py-3 px-3">
-                        <span className="px-2.5 py-0.5 rounded text-[11px] bg-[#23252A] text-ink border border-[#2e3138]">
+                        <span className="px-2.5 py-0.5 rounded text-[11px] bg-[#262626] text-ink border border-[#2e3138]">
                           {emp.department || 'General'}
                         </span>
                       </td>
@@ -399,7 +399,7 @@ export default function DepartmentsPage() {
                           value={emp.department || 'General'}
                           disabled={reassigningId === emp.id}
                           onChange={(e) => handleReassignEmployee(emp.id, emp.name, e.target.value)}
-                          className="h-7 px-2 text-xs rounded bg-[#101012] border border-[#23252A] text-ink focus:border-emerald-500 focus:outline-none"
+                          className="h-7 px-2 text-xs rounded bg-[#101012] border border-[#262626] text-ink focus:border-emerald-500 focus:outline-none"
                         >
                           {STANDARD_DEPARTMENTS.map((d) => (
                             <option key={d} value={d}>{d}</option>
@@ -452,9 +452,9 @@ export default function DepartmentsPage() {
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="w-full max-w-md bg-[#0F1011]/90 backdrop-blur-2xl border border-white/10 rounded-2xl shadow-[0_20px_60px_rgba(0,0,0,0.7)] overflow-hidden"
+              className="w-full max-w-md bg-[#111111]/90 backdrop-blur-2xl border border-white/10 rounded-2xl shadow-[0_20px_60px_rgba(0,0,0,0.7)] overflow-hidden"
             >
-              <div className="flex items-center justify-between p-5 border-b border-[#23252A]">
+              <div className="flex items-center justify-between p-5 border-b border-[#262626]">
                 <div className="flex items-center gap-2.5">
                   <div className="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
                     <Edit2 size={16} />
@@ -480,7 +480,7 @@ export default function DepartmentsPage() {
                     required
                     value={editName}
                     onChange={(e) => setEditName(e.target.value)}
-                    className="w-full h-9 px-3 text-xs bg-[#090A0C] border border-[#23252A] rounded-lg text-ink focus:border-emerald-500 focus:outline-none transition-colors"
+                    className="w-full h-9 px-3 text-xs bg-[#090A0C] border border-[#262626] rounded-lg text-ink focus:border-emerald-500 focus:outline-none transition-colors"
                     placeholder="e.g. John Doe"
                   />
                 </div>
@@ -491,7 +491,7 @@ export default function DepartmentsPage() {
                     type="text"
                     value={editCode}
                     onChange={(e) => setEditCode(e.target.value)}
-                    className="w-full h-9 px-3 text-xs bg-[#090A0C] border border-[#23252A] rounded-lg text-ink font-mono focus:border-emerald-500 focus:outline-none transition-colors"
+                    className="w-full h-9 px-3 text-xs bg-[#090A0C] border border-[#262626] rounded-lg text-ink font-mono focus:border-emerald-500 focus:outline-none transition-colors"
                     placeholder="e.g. EMP-1042"
                   />
                 </div>
@@ -502,10 +502,10 @@ export default function DepartmentsPage() {
                     <select
                       value={editDept}
                       onChange={(e) => setEditDept(e.target.value)}
-                      className="w-full h-9 px-3 text-xs bg-[#090A0C] border border-[#23252A] rounded-lg text-ink focus:border-emerald-500 focus:outline-none transition-colors"
+                      className="w-full h-9 px-3 text-xs bg-[#090A0C] border border-[#262626] rounded-lg text-ink focus:border-emerald-500 focus:outline-none transition-colors"
                     >
                       {STANDARD_DEPARTMENTS.map((d) => (
-                        <option key={d} value={d} className="bg-[#141516] text-white">{d}</option>
+                        <option key={d} value={d} className="bg-[#171717] text-white">{d}</option>
                       ))}
                     </select>
                   </div>
@@ -515,15 +515,15 @@ export default function DepartmentsPage() {
                     <select
                       value={editStatus}
                       onChange={(e) => setEditStatus(e.target.value)}
-                      className="w-full h-9 px-3 text-xs bg-[#090A0C] border border-[#23252A] rounded-lg text-ink focus:border-emerald-500 focus:outline-none transition-colors"
+                      className="w-full h-9 px-3 text-xs bg-[#090A0C] border border-[#262626] rounded-lg text-ink focus:border-emerald-500 focus:outline-none transition-colors"
                     >
-                      <option value="active" className="bg-[#141516] text-white">Active</option>
-                      <option value="inactive" className="bg-[#141516] text-white">Inactive</option>
+                      <option value="active" className="bg-[#171717] text-white">Active</option>
+                      <option value="inactive" className="bg-[#171717] text-white">Inactive</option>
                     </select>
                   </div>
                 </div>
 
-                <div className="pt-4 border-t border-[#23252A] flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div className="pt-4 border-t border-[#262626] flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-3">
                   <Link
                     to={`/persons/edit/${encodeURIComponent(editingEmp.name)}`}
                     className="text-xs text-emerald-400 hover:text-emerald-300 flex items-center gap-1.5 font-medium transition-colors py-1"
@@ -580,40 +580,40 @@ function DepartmentScheduleCard({ dept, onSave, isSaving }) {
   };
 
   return (
-    <div className="p-4 bg-white dark:bg-[#0F1011] border border-slate-200 dark:border-[#23252A] rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:border-slate-300 dark:hover:border-[#30333C] transition-colors shadow-sm">
+    <div className="p-4 bg-[#111111] border border-[#262626] rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:border-[#404040] transition-colors shadow-sm">
       <div className="min-w-0">
-        <div className="font-semibold text-slate-900 dark:text-ink text-sm flex items-center gap-2">
+        <div className="font-semibold text-[#FAFAFA] text-sm flex items-center gap-2">
           <span>{dept.name}</span>
-          <span className="text-[11px] text-slate-500 dark:text-ink-tertiary font-mono">({dept.total_employees || 0} employees)</span>
+          <span className="text-[11px] text-neutral-500 font-mono">({dept.total_employees || 0} employees)</span>
         </div>
-        <div className="text-caption text-slate-500 dark:text-ink-subtle mt-0.5">
+        <div className="text-caption text-neutral-400 mt-0.5">
           Today's Attendance: <span className="font-mono text-emerald-600 dark:text-emerald-400 font-semibold">{dept.present_today || 0} present</span>
         </div>
       </div>
 
       <div className="grid grid-cols-2 sm:flex sm:items-center gap-2.5 sm:gap-3 text-xs w-full sm:w-auto">
         <div className="flex items-center gap-2">
-          <span className="text-xs font-medium text-slate-500 dark:text-ink-subtle w-9 sm:w-auto shrink-0">Start</span>
+          <span className="text-xs font-medium text-neutral-400 w-9 sm:w-auto shrink-0">Start</span>
           <input
             type="time"
             value={start}
             onChange={(e) => handleChange('start', e.target.value)}
-            className="h-10 px-3.5 py-2 w-36 rounded-xl bg-slate-50 dark:bg-[#141518] border border-slate-300 dark:border-[#2B2F38] text-slate-900 dark:text-zinc-100 font-mono text-xs focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 focus:outline-none transition-all shadow-inner"
+            className="h-10 px-3.5 py-2 w-36 rounded-xl bg-[#171717] border border-[#262626] text-[#FAFAFA] font-mono text-xs focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 focus:outline-none transition-all shadow-inner"
           />
         </div>
 
         <div className="flex items-center gap-2">
-          <span className="text-xs font-medium text-slate-500 dark:text-ink-subtle w-9 sm:w-auto shrink-0">End</span>
+          <span className="text-xs font-medium text-neutral-400 w-9 sm:w-auto shrink-0">End</span>
           <input
             type="time"
             value={end}
             onChange={(e) => handleChange('end', e.target.value)}
-            className="h-10 px-3.5 py-2 w-36 rounded-xl bg-slate-50 dark:bg-[#141518] border border-slate-300 dark:border-[#2B2F38] text-slate-900 dark:text-zinc-100 font-mono text-xs focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 focus:outline-none transition-all shadow-inner"
+            className="h-10 px-3.5 py-2 w-36 rounded-xl bg-[#171717] border border-[#262626] text-[#FAFAFA] font-mono text-xs focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 focus:outline-none transition-all shadow-inner"
           />
         </div>
 
         <div className="flex items-center gap-2">
-          <span className="text-xs font-medium text-slate-500 dark:text-ink-subtle w-9 sm:w-auto shrink-0">Grace</span>
+          <span className="text-xs font-medium text-neutral-400 w-9 sm:w-auto shrink-0">Grace</span>
           <div className="flex items-center gap-1.5 w-full sm:w-auto">
             <input
               type="number"
@@ -621,9 +621,9 @@ function DepartmentScheduleCard({ dept, onSave, isSaving }) {
               max="120"
               value={grace}
               onChange={(e) => handleChange('grace', e.target.value)}
-              className="h-10 w-20 px-3 py-2 rounded-xl bg-slate-50 dark:bg-[#141518] border border-slate-300 dark:border-[#2B2F38] text-slate-900 dark:text-zinc-100 font-mono text-xs text-center focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 focus:outline-none transition-all shadow-inner"
+              className="h-10 w-20 px-3 py-2 rounded-xl bg-[#171717] border border-[#262626] text-[#FAFAFA] font-mono text-xs text-center focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 focus:outline-none transition-all shadow-inner"
             />
-            <span className="text-xs text-slate-500 dark:text-ink-tertiary font-mono">min</span>
+            <span className="text-xs text-neutral-500 font-mono">min</span>
           </div>
         </div>
 
@@ -633,7 +633,7 @@ function DepartmentScheduleCard({ dept, onSave, isSaving }) {
           className={`h-10 min-w-[96px] px-4 rounded-xl text-xs flex items-center justify-center gap-1.5 transition-all col-span-2 sm:col-span-1 shrink-0 font-medium ${
             changed
               ? 'bg-emerald-600 text-white hover:bg-emerald-500 font-bold shadow-md shadow-emerald-500/20 ring-1 ring-emerald-400/40'
-              : 'bg-slate-100 dark:bg-[#181A1F] border border-slate-200 dark:border-[#2B2F38] text-slate-600 dark:text-ink-subtle hover:text-slate-900 dark:hover:text-ink hover:border-slate-300 dark:hover:border-[#3E434F]'
+              : 'bg-[#171717] border border-[#262626] text-neutral-400 hover:text-[#FAFAFA] dark:hover:text-ink hover:border-[#404040]'
           }`}
         >
           {isSaving ? <RefreshCw size={13} className="animate-spin" /> : <Save size={13} />}

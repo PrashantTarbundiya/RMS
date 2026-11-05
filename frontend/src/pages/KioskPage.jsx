@@ -76,13 +76,14 @@ export default function KioskPage() {
 
   // Trigger Mode: 'tap' (Tap to Punch on demand) | 'auto' (Continuous Auto-Scan)
   const [triggerMode, setTriggerMode] = useState(() => {
-    return localStorage.getItem('rms_kiosk_trigger_mode') || 'tap';
+    return localStorage.getItem('rms_kiosk_trigger_mode') || 'auto';
   });
   const triggerModeRef = useRef(triggerMode);
   useEffect(() => {
     triggerModeRef.current = triggerMode;
     localStorage.setItem('rms_kiosk_trigger_mode', triggerMode);
   }, [triggerMode]);
+
   const [isManualCapturing, setIsManualCapturing] = useState(false);
 
   // Current Attendance Result for overlay
@@ -123,6 +124,25 @@ export default function KioskPage() {
       sendFrameRef.current?.();
     }, delay);
   }, []);
+
+  // Synchronous status updater keeping ref and state in lockstep
+  const updateStatus = useCallback((newStatus) => {
+    statusRef.current = newStatus;
+    setStatus(newStatus);
+  }, []);
+
+  const handleSetTriggerMode = useCallback((newMode) => {
+    setTriggerMode(newMode);
+    triggerModeRef.current = newMode;
+    localStorage.setItem('rms_kiosk_trigger_mode', newMode);
+    if (newMode === 'auto') {
+      updateStatus(STATUS.SCANNING);
+      isRequestInFlightRef.current = false;
+      scheduleNextCapture(100);
+    } else {
+      if (liveLoopRef.current) clearTimeout(liveLoopRef.current);
+    }
+  }, [scheduleNextCapture, updateStatus]);
 
   // ─── Clock ─────────────────────────────────────────────────────
   useEffect(() => {
@@ -208,7 +228,7 @@ export default function KioskPage() {
     if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
     if (statusRef.current === STATUS.IDLE) return;
     idleTimerRef.current = setTimeout(() => {
-      setStatus(STATUS.IDLE);
+      updateStatus(STATUS.IDLE);
       setRecognizedName('');
       setConfidence(0);
       setLiveness(null);
@@ -285,7 +305,7 @@ export default function KioskPage() {
     if (!data?.faces || data.faces.length === 0) {
       // No face detected - go to scanning (waiting)
       if (statusRef.current !== STATUS.GRANTED && statusRef.current !== STATUS.DENIED && statusRef.current !== STATUS.SPOOF) {
-        setStatus(STATUS.SCANNING);
+        updateStatus(STATUS.SCANNING);
       }
       return;
     }
@@ -309,7 +329,7 @@ export default function KioskPage() {
 
     // SPOOF DETECTED
     if (ensemble.method === 'liveness_rejection' || ensemble.label === 'SPOOF DETECTED') {
-      setStatus(STATUS.SPOOF);
+      updateStatus(STATUS.SPOOF);
       setRecognizedName('Spoof Detected');
       setConfidence(0);
       setConsecutiveUnknowns(0);
@@ -317,7 +337,7 @@ export default function KioskPage() {
       // Auto-reset after display
       if (resultTimerRef.current) clearTimeout(resultTimerRef.current);
       resultTimerRef.current = setTimeout(() => {
-        setStatus(STATUS.SCANNING);
+        updateStatus(STATUS.SCANNING);
         setRecognizedName('');
         setAttendanceEvent(null);
         isRequestInFlightRef.current = false;
@@ -337,7 +357,7 @@ export default function KioskPage() {
     // Rule 0: Intentional Tap-to-Punch Mode (Single Tap Immediate Verification)
     if (triggerModeRef.current === 'tap' && currentCandidate && confScore >= targetThresh) {
       candidateBufferRef.current = { candidate: null, hits: 0, firstSeen: 0 };
-      setStatus(STATUS.GRANTED);
+      updateStatus(STATUS.GRANTED);
       setRecognizedName(cleanName);
       setConfidence(confScore);
       setConsecutiveUnknowns(0);
@@ -345,7 +365,7 @@ export default function KioskPage() {
 
       if (resultTimerRef.current) clearTimeout(resultTimerRef.current);
       resultTimerRef.current = setTimeout(() => {
-        setStatus(STATUS.IDLE);
+        updateStatus(STATUS.IDLE);
         setRecognizedName('');
         setConfidence(0);
         setAttendanceEvent(null);
@@ -357,7 +377,7 @@ export default function KioskPage() {
     // Rule 1: Ultra-high confidence (>= 90%) → Instant Confirmed Access
     if (currentCandidate && confScore >= 90) {
       candidateBufferRef.current = { candidate: null, hits: 0, firstSeen: 0 };
-      setStatus(STATUS.GRANTED);
+      updateStatus(STATUS.GRANTED);
       setRecognizedName(cleanName);
       setConfidence(confScore);
       setConsecutiveUnknowns(0);
@@ -365,7 +385,7 @@ export default function KioskPage() {
 
       if (resultTimerRef.current) clearTimeout(resultTimerRef.current);
       resultTimerRef.current = setTimeout(() => {
-        setStatus(STATUS.SCANNING);
+        updateStatus(STATUS.SCANNING);
         setRecognizedName('');
         setConfidence(0);
         setAttendanceEvent(null);
@@ -384,7 +404,7 @@ export default function KioskPage() {
         prev.hits += 1;
         if (prev.hits >= 2) {
           candidateBufferRef.current = { candidate: null, hits: 0, firstSeen: 0 };
-          setStatus(STATUS.GRANTED);
+          updateStatus(STATUS.GRANTED);
           setRecognizedName(cleanName);
           setConfidence(confScore);
           setConsecutiveUnknowns(0);
@@ -392,7 +412,7 @@ export default function KioskPage() {
 
           if (resultTimerRef.current) clearTimeout(resultTimerRef.current);
           resultTimerRef.current = setTimeout(() => {
-            setStatus(STATUS.SCANNING);
+            updateStatus(STATUS.SCANNING);
             setRecognizedName('');
             setConfidence(0);
             setAttendanceEvent(null);
@@ -406,7 +426,7 @@ export default function KioskPage() {
       }
 
       // Verifying state: hold steady and immediately capture next frame for consensus check
-      setStatus(STATUS.VERIFYING);
+      updateStatus(STATUS.VERIFYING);
       setRecognizedName(cleanName);
       setConfidence(confScore);
       isRequestInFlightRef.current = false;
@@ -421,7 +441,7 @@ export default function KioskPage() {
 
     // Only commit to Access Denied if unknown persists for 2+ consecutive frames
     if (newCount >= 2) {
-      setStatus(STATUS.DENIED);
+      updateStatus(STATUS.DENIED);
       setRecognizedName('Unrecognized');
       setConfidence(0);
       // Only log once per unknown burst to prevent log storms
@@ -441,7 +461,7 @@ export default function KioskPage() {
 
       if (resultTimerRef.current) clearTimeout(resultTimerRef.current);
       resultTimerRef.current = setTimeout(() => {
-        setStatus(STATUS.SCANNING);
+        updateStatus(STATUS.SCANNING);
         setRecognizedName('');
         isRequestInFlightRef.current = false;
         scheduleNextCapture(100);
@@ -449,7 +469,7 @@ export default function KioskPage() {
     } else {
       // 1st transient drop: keep scanning and re-poll quickly
       if (statusRef.current !== STATUS.VERIFYING) {
-        setStatus(STATUS.SCANNING);
+        updateStatus(STATUS.SCANNING);
       }
       isRequestInFlightRef.current = false;
       scheduleNextCapture(80);
@@ -493,10 +513,20 @@ export default function KioskPage() {
 
   // ─── Live Frame Capture & Send ─────────────────────────────────
   const sendFrame = useCallback(async () => {
-    if (!videoRef.current || !webcamReady || isRequestInFlightRef.current || isPausedRef.current) return;
+    if (!videoRef.current || !webcamReady || isRequestInFlightRef.current || isPausedRef.current) {
+      if (triggerModeRef.current === 'auto' && !isRequestInFlightRef.current && !isPausedRef.current) {
+        scheduleNextCapture(250);
+      }
+      return;
+    }
     // Don't send frames during access granted/denied/spoof cooldown display
     if (statusRef.current === STATUS.GRANTED || statusRef.current === STATUS.DENIED || statusRef.current === STATUS.SPOOF) return;
-    if (!videoRef.current.videoWidth || !videoRef.current.videoHeight || videoRef.current.readyState < 2) return;
+    if (!videoRef.current.videoWidth || !videoRef.current.videoHeight || videoRef.current.readyState < 2) {
+      if (triggerModeRef.current === 'auto') {
+        scheduleNextCapture(250);
+      }
+      return;
+    }
 
     isRequestInFlightRef.current = true;
 
@@ -514,7 +544,7 @@ export default function KioskPage() {
 
     // Switch to scanning state on first frame
     if (statusRef.current === STATUS.IDLE) {
-      setStatus(STATUS.SCANNING);
+      updateStatus(STATUS.SCANNING);
     }
 
     try {
@@ -587,7 +617,7 @@ export default function KioskPage() {
   const handleManualPunch = useCallback(async () => {
     if (!webcamReady || isRequestInFlightRef.current || isManualCapturing) return;
     setIsManualCapturing(true);
-    setStatus(STATUS.SCANNING);
+    updateStatus(STATUS.SCANNING);
     try {
       await sendFrameRef.current?.();
     } catch (err) {
@@ -602,13 +632,31 @@ export default function KioskPage() {
       if (liveLoopRef.current) { clearTimeout(liveLoopRef.current); liveLoopRef.current = null; }
       return;
     }
+    // If auto mode active on camera ready, immediately engage SCANNING
+    if (statusRef.current === STATUS.IDLE) {
+      updateStatus(STATUS.SCANNING);
+    }
     // Kick off first frame in auto mode
     scheduleNextCapture(250);
     return () => {
       if (liveLoopRef.current) { clearTimeout(liveLoopRef.current); liveLoopRef.current = null; }
       if (inFlightTimerRef.current) { clearTimeout(inFlightTimerRef.current); inFlightTimerRef.current = null; }
     };
-  }, [webcamReady, isPaused, triggerMode, scheduleNextCapture]);
+  }, [webcamReady, isPaused, triggerMode, scheduleNextCapture, updateStatus]);
+
+  // Resilient heartbeat watchdog: guarantees continuous scanning never stalls
+  useEffect(() => {
+    if (triggerMode !== 'auto' || !webcamReady || isPaused) return;
+    const heartbeat = setInterval(() => {
+      const isCooldown = statusRef.current === STATUS.GRANTED || 
+                         statusRef.current === STATUS.DENIED || 
+                         statusRef.current === STATUS.SPOOF;
+      if (!isCooldown && !isRequestInFlightRef.current && videoRef.current && videoRef.current.readyState >= 2) {
+        sendFrameRef.current?.();
+      }
+    }, 2000);
+    return () => clearInterval(heartbeat);
+  }, [triggerMode, webcamReady, isPaused]);
 
   // ─── Fullscreen Toggle ─────────────────────────────────────────
   const toggleFullscreen = useCallback(() => {
@@ -727,7 +775,7 @@ export default function KioskPage() {
           </div>
           {/* Desktop Controls (Preserved for screens >= 768px) */}
           <div className="hidden md:flex items-center gap-2">
-            <div className="flex items-center gap-1.5 bg-[#0F1011] border border-[#23252A] rounded-lg px-2.5 py-1 text-xs">
+            <div className="flex items-center gap-1.5 bg-[#111111] border border-[#262626] rounded-lg px-2.5 py-1 text-xs">
               <span className="text-ink-tertiary font-mono text-[11px]">Threshold:</span>
               <select 
                 value={kioskThreshold} 
@@ -738,25 +786,25 @@ export default function KioskPage() {
                 }}
                 className="bg-transparent text-ink font-mono text-xs focus:outline-none cursor-pointer"
               >
-                <option value="55" className="bg-[#141516] text-white">55% (High Lenience)</option>
-                <option value="60" className="bg-[#141516] text-white">60% (Relaxed)</option>
-                <option value="65" className="bg-[#141516] text-white">65%</option>
-                <option value="70" className="bg-[#141516] text-white">70% (Standard / Default)</option>
-                <option value="75" className="bg-[#141516] text-white">75% (Balanced)</option>
-                <option value="80" className="bg-[#141516] text-white">80% (Strict)</option>
-                <option value="85" className="bg-[#141516] text-white">85% (Very Strict)</option>
+                <option value="55" className="bg-[#171717] text-white">55% (High Lenience)</option>
+                <option value="60" className="bg-[#171717] text-white">60% (Relaxed)</option>
+                <option value="65" className="bg-[#171717] text-white">65%</option>
+                <option value="70" className="bg-[#171717] text-white">70% (Standard / Default)</option>
+                <option value="75" className="bg-[#171717] text-white">75% (Balanced)</option>
+                <option value="80" className="bg-[#171717] text-white">80% (Strict)</option>
+                <option value="85" className="bg-[#171717] text-white">85% (Very Strict)</option>
               </select>
             </div>
-            <div className="flex items-center gap-1.5 bg-[#0F1011] border border-[#23252A] rounded-lg px-2.5 py-1 text-xs">
+            <div className="flex items-center gap-1.5 bg-[#111111] border border-[#262626] rounded-lg px-2.5 py-1 text-xs">
               <span className="text-ink-tertiary font-mono text-[11px]">Mode:</span>
               <select 
                 value={kioskDirection} 
                 onChange={(e) => setKioskDirection(e.target.value)}
                 className="bg-transparent text-ink font-mono text-xs focus:outline-none cursor-pointer"
               >
-                <option value="auto" className="bg-[#141516] text-white">Smart Auto (In/Out)</option>
-                <option value="in" className="bg-[#141516] text-white">Entrance (Check-In)</option>
-                <option value="out" className="bg-[#141516] text-white">Exit (Check-Out)</option>
+                <option value="auto" className="bg-[#171717] text-white">Smart Auto (In/Out)</option>
+                <option value="in" className="bg-[#171717] text-white">Entrance (Check-In)</option>
+                <option value="out" className="bg-[#171717] text-white">Exit (Check-Out)</option>
               </select>
             </div>
           </div>
@@ -818,7 +866,7 @@ export default function KioskPage() {
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
-            className="md:hidden bg-[#0F1011] border-b border-[#23252A] p-3 flex flex-col gap-2.5 z-20"
+            className="md:hidden bg-[#111111] border-b border-[#262626] p-3 flex flex-col gap-2.5 z-20"
           >
             <div className="flex items-center justify-between gap-2">
               <span className="text-xs text-ink-subtle font-mono">Recognition Threshold:</span>
@@ -829,7 +877,7 @@ export default function KioskPage() {
                   setKioskThreshold(val);
                   localStorage.setItem('rms_kiosk_threshold', val.toString());
                 }}
-                className="bg-[#141516] border border-[#23252A] rounded-md px-2 py-1 text-ink font-mono text-xs focus:outline-none"
+                className="bg-[#171717] border border-[#262626] rounded-md px-2 py-1 text-ink font-mono text-xs focus:outline-none"
               >
                 <option value="55">55% (High Lenience)</option>
                 <option value="60">60% (Relaxed)</option>
@@ -840,7 +888,7 @@ export default function KioskPage() {
                 <option value="85">85% (Very Strict)</option>
               </select>
             </div>
-            <div className="flex items-center justify-between gap-2 py-1 border-t border-[#23252A]/50">
+            <div className="flex items-center justify-between gap-2 py-1 border-t border-[#262626]/50">
               <span className="text-xs text-ink-subtle font-mono">Show Confidence Metric:</span>
               <button
                 type="button"
@@ -852,7 +900,7 @@ export default function KioskPage() {
                 className={`text-xs px-2.5 py-1 rounded font-mono border transition-colors ${
                   showConfidence 
                     ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40' 
-                    : 'bg-[#141516] text-ink-tertiary border-[#23252A]'
+                    : 'bg-[#171717] text-ink-tertiary border-[#262626]'
                 }`}
               >
                 {showConfidence ? 'ON' : 'OFF (Default)'}
@@ -863,7 +911,7 @@ export default function KioskPage() {
               <select 
                 value={kioskDirection} 
                 onChange={(e) => setKioskDirection(e.target.value)}
-                className="bg-[#141516] border border-[#23252A] rounded-md px-2 py-1 text-ink font-mono text-xs focus:outline-none"
+                className="bg-[#171717] border border-[#262626] rounded-md px-2 py-1 text-ink font-mono text-xs focus:outline-none"
               >
                 <option value="auto">Smart Auto (In/Out)</option>
                 <option value="in">Entrance (Check-In)</option>
@@ -893,7 +941,7 @@ export default function KioskPage() {
                 initial={{ opacity: 0, y: -12, scale: 0.95 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: -12, scale: 0.95 }}
-                className="absolute top-4 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-full border border-amber-500/35 bg-[#0F1011]/90 backdrop-blur-xl text-amber-300 text-xs font-medium flex items-center gap-2 shadow-2xl"
+                className="absolute top-4 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-full border border-amber-500/35 bg-[#111111]/90 backdrop-blur-xl text-amber-300 text-xs font-medium flex items-center gap-2 shadow-2xl"
               >
                 <AlertTriangle size={14} className="text-amber-400 shrink-0" />
                 <span>{qualityWarning}</span>
@@ -1135,17 +1183,17 @@ export default function KioskPage() {
                 )}
               </button>
             ) : (
-              <div className="w-full py-2.5 px-4 rounded-xl bg-[#0F1011]/90 border border-emerald-500/30 text-center flex items-center justify-center gap-2 text-xs text-emerald-400 font-mono">
+              <div className="w-full py-2.5 px-4 rounded-xl bg-[#111111]/90 border border-emerald-500/30 text-center flex items-center justify-center gap-2 text-xs text-emerald-400 font-mono">
                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
                 <span>Continuous Auto-Scan Active · Step Forward</span>
               </div>
             )}
 
             {/* Segmented Mode Selector */}
-            <div className="flex items-center gap-1 p-1 bg-[#0F1011] border border-[#23252A] rounded-lg text-xs">
+            <div className="flex items-center gap-1 p-1 bg-[#111111] border border-[#262626] rounded-lg text-xs">
               <button
                 type="button"
-                onClick={() => setTriggerMode('tap')}
+                onClick={() => handleSetTriggerMode('tap')}
                 className={`px-3 py-1 rounded-md font-medium transition-colors ${
                   triggerMode === 'tap'
                     ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
@@ -1156,7 +1204,7 @@ export default function KioskPage() {
               </button>
               <button
                 type="button"
-                onClick={() => setTriggerMode('auto')}
+                onClick={() => handleSetTriggerMode('auto')}
                 className={`px-3 py-1 rounded-md font-medium transition-colors ${
                   triggerMode === 'auto'
                     ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
@@ -1220,7 +1268,7 @@ export default function KioskPage() {
                   const logTime = log.time instanceof Date ? log.time : new Date(log.time || Date.now());
                   const isCheckOut = log.event_type === 'check_out';
                   return (
-                    <li key={i} className="flex items-center justify-between py-1.5 pr-2.5 border-b border-[#23252A]/40 last:border-b-0">
+                    <li key={i} className="flex items-center justify-between py-1.5 pr-2.5 border-b border-[#262626]/40 last:border-b-0">
                       <div className="flex items-center gap-2 min-w-0 pr-2">
                         <span className={`w-2 h-2 rounded-full shrink-0 ${
                           !log.granted ? 'bg-red-500' : (isCheckOut ? 'bg-teal-400' : 'bg-emerald-400')

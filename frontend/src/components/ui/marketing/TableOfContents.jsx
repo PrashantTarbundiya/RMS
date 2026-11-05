@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 
 /**
  * Table of Contents Rail with Scroll-Spy
+ * Dual-theme light/dark contrast compliant.
  */
 export default function TableOfContents({
   headings = [],
@@ -36,10 +37,10 @@ export default function TableOfContents({
 
   return (
     <nav className={`text-xs space-y-3 ${className}`} aria-label="Table of contents">
-      <p className="font-mono text-[11px] font-semibold text-[#F3F6F5] uppercase tracking-wider">
+      <p className="font-mono text-[11px] font-semibold text-foreground uppercase tracking-wider">
         On this page
       </p>
-      <ul className="space-y-2 border-l border-white/[0.08] pl-3">
+      <ul className="space-y-2 border-l border-border pl-3">
         {headings.map(({ id, text, level }) => {
           const isActive = activeId === id;
           return (
@@ -48,8 +49,8 @@ export default function TableOfContents({
                 href={`#${id}`}
                 className={`block transition-colors py-0.5 leading-snug ${
                   isActive
-                    ? 'text-[#3DDC97] font-medium -ml-[13px] border-l-2 border-[#3DDC97] pl-[11px]'
-                    : 'text-[#9AA7A3] hover:text-[#F3F6F5]'
+                    ? 'text-emerald-600 dark:text-emerald-400 font-semibold -ml-[13px] border-l-2 border-emerald-500 pl-[11px]'
+                    : 'text-muted-foreground hover:text-foreground'
                 }`}
               >
                 {text}

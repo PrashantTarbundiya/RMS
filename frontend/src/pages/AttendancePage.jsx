@@ -610,15 +610,15 @@ export default function AttendancePage() {
 
           <td style="padding:7px 10px;font-size:11px;color:#6B7280;font-family:monospace;text-align:center;">${idx + 1}</td>
 
-          <td style="padding:7px 10px;font-size:11px;color:#111827;font-family:monospace;white-space:nowrap;">${timeStr}</td>
+          <td style="padding:7px 10px;font-size:11px;color:#000000;font-family:monospace;white-space:nowrap;">${timeStr}</td>
 
-          <td style="padding:7px 10px;font-size:11px;font-weight:600;color:#111827;">${record.label || 'Unknown'}</td>
+          <td style="padding:7px 10px;font-size:11px;font-weight:600;color:#000000;">${record.label || 'Unknown'}</td>
 
           <td style="padding:7px 10px;font-size:11px;color:#374151;">${record.department || 'General'}</td>
 
           <td style="padding:7px 10px;font-size:11px;color:#4B5563;">${record.camera_name || 'Lane 01 (RTSP)'}</td>
 
-          <td style="padding:7px 10px;font-size:11px;font-family:monospace;color:#111827;text-align:right;">${confPercent}</td>
+          <td style="padding:7px 10px;font-size:11px;font-family:monospace;color:#000000;text-align:right;">${confPercent}</td>
 
           <td style="padding:7px 10px;font-size:11px;text-align:center;">${statusBadge}</td>
 
@@ -644,7 +644,7 @@ export default function AttendancePage() {
 
     @page { size: A4 landscape; margin: 10mm; }
 
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color: #111827; margin: 0; padding: 16px; background: #fff; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color: #000000; margin: 0; padding: 16px; background: #fff; }
 
     .header-box { border-bottom: 2px solid #10B981; padding-bottom: 12px; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: flex-start; }
 
@@ -660,7 +660,7 @@ export default function AttendancePage() {
 
     .kpi-label { font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #6B7280; }
 
-    .kpi-value { font-size: 16px; font-weight: 800; color: #111827; margin-top: 2px; font-family: monospace; }
+    .kpi-value { font-size: 16px; font-weight: 800; color: #000000; margin-top: 2px; font-family: monospace; }
 
     table { width: 100%; border-collapse: collapse; border: 1px solid #E5E7EB; margin-bottom: 16px; }
 
@@ -930,11 +930,7 @@ export default function AttendancePage() {
 
           </button>
 
-          <button className="button-secondary flex items-center gap-2 h-9 text-caption" onClick={() => { setIsLoading(true); fetchHistory(); }}>
 
-            <RefreshCw size={14} /> Refresh
-
-          </button>
 
         </div>
 
@@ -1228,7 +1224,7 @@ export default function AttendancePage() {
 
             className={`px-2.5 py-1 rounded-md text-xs font-medium transition-all ${
 
-              !dateFilter ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30' : 'bg-secondary border border-border hover:border-slate-400 dark:hover:border-slate-600 text-foreground'
+              !dateFilter ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30' : 'bg-secondary border border-border hover:border-neutral-500 text-foreground'
 
             }`}
 
@@ -1248,7 +1244,7 @@ export default function AttendancePage() {
 
                 ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
 
-                : 'bg-secondary border border-border hover:border-slate-400 dark:hover:border-slate-600 text-foreground'
+                : 'bg-secondary border border-border hover:border-neutral-500 text-foreground'
 
             }`}
 
@@ -1268,7 +1264,7 @@ export default function AttendancePage() {
 
                 ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
 
-                : 'bg-secondary border border-border hover:border-slate-400 dark:hover:border-slate-600 text-foreground'
+                : 'bg-secondary border border-border hover:border-neutral-500 text-foreground'
 
             }`}
 
@@ -1288,7 +1284,7 @@ export default function AttendancePage() {
 
                 ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
 
-                : 'bg-secondary border border-border hover:border-slate-400 dark:hover:border-slate-600 text-foreground'
+                : 'bg-secondary border border-border hover:border-neutral-500 text-foreground'
 
             }`}
 

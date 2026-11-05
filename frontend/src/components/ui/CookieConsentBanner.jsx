@@ -40,14 +40,14 @@ export default function CookieConsentBanner() {
     <div
       role="region"
       aria-label="Cookie and Privacy Notice"
-      className="fixed bottom-0 left-0 right-0 z-[10002] px-4 py-3 bg-[#0A0D14]/95 backdrop-blur-md border-t border-[#1C2333] shadow-2xl transition-all duration-300 animate-in fade-in slide-in-from-bottom-2"
+      className="fixed bottom-0 left-0 right-0 z-[10002] px-4 py-3 bg-[#111111]/95 backdrop-blur-md border-t border-[#262626] shadow-2xl transition-all duration-300 animate-in fade-in slide-in-from-bottom-2"
     >
-      <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-start md:items-center justify-between gap-3 text-xs sm:text-sm text-slate-300">
+      <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-start md:items-center justify-between gap-3 text-xs sm:text-sm text-neutral-300">
         <div className="flex items-center gap-3 flex-1 min-w-0">
           <div className="p-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 shrink-0">
             <Cookie className="w-4 h-4" />
           </div>
-          <p className="leading-relaxed text-slate-300 text-xs sm:text-[13px]">
+          <p className="leading-relaxed text-neutral-300 text-xs sm:text-[13px]">
             We use essential cookies to keep your session secure and remember your settings. All employee and face attendance records stay on your local network and are never shared.{' '}
             <Link
               to="/privacy-policy"
@@ -58,7 +58,7 @@ export default function CookieConsentBanner() {
             {' '}&bull;{' '}
             <Link
               to="/terms"
-              className="text-slate-400 hover:text-slate-200 underline underline-offset-2 transition-colors"
+              className="text-neutral-400 hover:text-neutral-200 underline underline-offset-2 transition-colors"
             >
               Terms
             </Link>
@@ -69,14 +69,14 @@ export default function CookieConsentBanner() {
           <button
             type="button"
             onClick={() => handleDecision(false)}
-            className="px-4 py-1.5 text-xs font-medium text-slate-400 hover:text-white bg-[#131722] hover:bg-[#1A2030] border border-[#232B3E] rounded-full transition-colors min-h-[36px] cursor-pointer"
+            className="px-4 py-1.5 text-xs font-medium text-neutral-400 hover:text-white bg-[#171717] hover:bg-[#262626] border border-[#262626] rounded-full transition-colors min-h-[36px] cursor-pointer"
           >
             Decline
           </button>
           <button
             type="button"
             onClick={() => handleDecision(true)}
-            className="px-5 py-1.5 text-xs font-semibold text-slate-950 bg-emerald-400 hover:bg-emerald-300 active:scale-98 rounded-full shadow-md shadow-emerald-500/20 transition-all min-h-[36px] cursor-pointer"
+            className="px-5 py-1.5 text-xs font-semibold text-neutral-950 bg-emerald-400 hover:bg-emerald-300 active:scale-98 rounded-full shadow-md shadow-emerald-500/20 transition-all min-h-[36px] cursor-pointer"
           >
             Accept
           </button>

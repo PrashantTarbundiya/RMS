@@ -759,7 +759,7 @@ export default function OnboardingWizard() {
 
         /* ═══ Welcome / Completion Modal ═══ */
         .onb-welcome-modal {
-          background: #0D121D; border: 1px solid #1E2638; border: 1px solid #23252A;
+          background: #0D121D; border: 1px solid #1E2638; border: 1px solid #262626;
           border-radius: 12px; max-width: 440px; width: 100%;
           padding: 32px; text-align: center;
           box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
@@ -779,7 +779,7 @@ export default function OnboardingWizard() {
         .onb-welcome-step-item {
           display: flex; align-items: center; gap: 10px;
           font-size: 13px; color: #E2E8F0; font-weight: 500;
-          background: #16181B; border: 1px solid #23252A;
+          background: #16181B; border: 1px solid #262626;
           padding: 8px 12px; border-radius: 8px;
         }
         .onb-ws-dot {
@@ -803,7 +803,7 @@ export default function OnboardingWizard() {
         .onb-complete-checklist {
           display: flex; flex-direction: column; gap: 8px;
           width: 100%; padding: 14px; border-radius: 8px;
-          background: #16181B; border: 1px solid #23252A; text-align: left;
+          background: #16181B; border: 1px solid #262626; text-align: left;
         }
         .onb-complete-item {
           display: flex; align-items: center; gap: 8px;
@@ -813,7 +813,7 @@ export default function OnboardingWizard() {
         /* ═══ Stepper Bar ═══ */
         .onb-stepper-bar {
           position: fixed; top: 0; left: 0; right: 0; z-index: 99995;
-          background: #090D16; border-bottom: 1px solid #1E2638;
+          background: #111111; border-bottom: 1px solid #262626;
           border-bottom: 1px solid rgba(16, 185, 129, 0.25);
           padding: 0 20px;
           pointer-events: all;

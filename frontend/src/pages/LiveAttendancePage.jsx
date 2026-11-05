@@ -120,7 +120,7 @@ export default function LiveAttendancePage() {
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 bg-[#0F1011] border border-[#23252A] rounded-lg px-3 py-1 text-[11px] font-mono text-ink-tertiary">
+          <div className="flex items-center gap-2 bg-[#111111] border border-[#262626] rounded-lg px-3 py-1 text-[11px] font-mono text-ink-tertiary">
             <Clock size={12} className="text-ink-subtle" />
             <span>Next sync in: <strong className="text-ink font-semibold">{countdown}s</strong></span>
           </div>
@@ -137,7 +137,7 @@ export default function LiveAttendancePage() {
       {/* Summary Stats Bar */}
       {!isLoading && !error && (
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div className="p-4 bg-[#0F1011] border border-[#23252A] rounded-xl flex items-center justify-between">
+          <div className="p-4 bg-[#111111] border border-[#262626] rounded-xl flex items-center justify-between">
             <div>
               <div className="text-caption text-ink-muted">Personnel On-Site</div>
               <div className="text-2xl font-bold font-display text-ink mt-0.5">{liveData.length}</div>
@@ -147,7 +147,7 @@ export default function LiveAttendancePage() {
             </div>
           </div>
 
-          <div className="p-4 bg-[#0F1011] border border-[#23252A] rounded-xl flex items-center justify-between">
+          <div className="p-4 bg-[#111111] border border-[#262626] rounded-xl flex items-center justify-between">
             <div>
               <div className="text-caption text-ink-muted">Security Status</div>
               <div className="text-sm font-semibold text-emerald-400 mt-1 flex items-center gap-1.5 font-mono">
@@ -159,7 +159,7 @@ export default function LiveAttendancePage() {
             </div>
           </div>
 
-          <div className="p-4 bg-[#0F1011] border border-[#23252A] rounded-xl flex items-center justify-between">
+          <div className="p-4 bg-[#111111] border border-[#262626] rounded-xl flex items-center justify-between">
             <div>
               <div className="text-caption text-ink-muted">Telemetry Heartbeat</div>
               <div className="text-xs font-mono text-ink-subtle mt-1">
@@ -188,7 +188,7 @@ export default function LiveAttendancePage() {
           </button>
         </div>
       ) : liveData.length === 0 ? (
-        <div className="card-linear p-0 bg-[#0F1011] border-[#23252A] rounded-xl">
+        <div className="card-linear p-0 bg-[#111111] border-[#262626] rounded-xl">
           <EmptyState
             icon={User}
             title="No personnel currently on site"
@@ -210,13 +210,13 @@ export default function LiveAttendancePage() {
                   animate="visible"
                   exit="exit"
                 >
-                  <div className={`relative overflow-hidden card-linear p-5 rounded-xl hover:bg-[#141516]/80 transition-all ${isRecent ? 'ring-1 ring-emerald-500/50 shadow-lg shadow-emerald-500/5' : ''}`}>
+                  <div className={`relative overflow-hidden card-linear p-5 rounded-xl hover:bg-[#171717]/80 transition-all ${isRecent ? 'ring-1 ring-emerald-500/50 shadow-lg shadow-emerald-500/5' : ''}`}>
                     {isRecent && (
                       <div className="absolute top-0 inset-x-0 h-[2px] bg-gradient-to-r from-transparent via-emerald-400 to-transparent opacity-80" />
                     )}
                     <div className="flex items-start justify-between mb-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-11 h-11 rounded-full bg-[#141516] flex items-center justify-center font-mono font-semibold text-ink-subtle border border-[#23252A] shadow-md">
+                        <div className="w-11 h-11 rounded-full bg-[#171717] flex items-center justify-center font-mono font-semibold text-ink-subtle border border-[#262626] shadow-md">
                           {getInitials(person.label)}
                         </div>
                         <div>
@@ -233,7 +233,7 @@ export default function LiveAttendancePage() {
                       </span>
                     </div>
 
-                    <div className="pt-3 mt-3 border-t border-[#23252A]/60 grid grid-cols-2 gap-2 text-xs">
+                    <div className="pt-3 mt-3 border-t border-[#262626]/60 grid grid-cols-2 gap-2 text-xs">
                       <div>
                         <div className="text-ink-tertiary mb-0.5 uppercase tracking-wider text-[10px] font-mono">Confidence</div>
                         <div className="text-emerald-400 font-mono font-medium">

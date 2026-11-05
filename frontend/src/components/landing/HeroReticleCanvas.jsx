@@ -15,8 +15,8 @@ export default function HeroReticleCanvas() {
       >
         <defs>
           <pattern id="static-tech-grid" width="60" height="60" patternUnits="userSpaceOnUse">
-            <line x1="60" y1="0" x2="60" y2="60" stroke="#1E293B" strokeWidth="0.75" />
-            <line x1="0" y1="60" x2="60" y2="60" stroke="#1E293B" strokeWidth="0.75" />
+            <line x1="60" y1="0" x2="60" y2="60" stroke="#262626" strokeWidth="0.75" />
+            <line x1="0" y1="60" x2="60" y2="60" stroke="#262626" strokeWidth="0.75" />
           </pattern>
           <radialGradient id="fade-mask" cx="50%" cy="40%" r="55%">
             <stop offset="0%" stopColor="white" stopOpacity="0.8" />

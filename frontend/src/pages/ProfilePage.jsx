@@ -451,7 +451,7 @@ export default function ProfilePage() {
 
             <div className="relative">
 
-              <div className="w-18 h-18 sm:w-20 sm:h-20 rounded-2xl bg-gradient-to-tr from-[#1E293B] to-[#0F172A] border-2 border-[#059669]/40 flex items-center justify-center text-emerald-400 font-bold font-mono text-2xl shadow-xl shadow-emerald-950/20">
+              <div className="w-18 h-18 sm:w-20 sm:h-20 rounded-2xl bg-gradient-to-tr from-[#1c1c1c] to-[#111111] border-2 border-[#059669]/40 flex items-center justify-center text-emerald-400 font-bold font-mono text-2xl shadow-xl shadow-emerald-950/20">
 
                 {initials}
 
@@ -1354,7 +1354,7 @@ export default function ProfilePage() {
 
                   className={`relative w-11 h-6 rounded-full transition-colors cursor-pointer shrink-0 ml-4 ${
 
-                    notifPrefs?.[item.key] ? 'bg-emerald-600' : 'bg-slate-300 dark:bg-slate-700'
+                    notifPrefs?.[item.key] ? 'bg-emerald-600' : 'bg-neutral-700'
 
                   }`}
 
@@ -1432,7 +1432,7 @@ export default function ProfilePage() {
 
                       className={`relative w-11 h-6 rounded-full transition-colors cursor-pointer shrink-0 ml-4 ${
 
-                        notifPrefs?.[item.key] ? 'bg-emerald-600' : 'bg-slate-300 dark:bg-slate-700'
+                        notifPrefs?.[item.key] ? 'bg-emerald-600' : 'bg-neutral-700'
 
                       }`}
 

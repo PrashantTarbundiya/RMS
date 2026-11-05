@@ -589,8 +589,8 @@ export default function UploadPage() {
         style={{ transform: 'none' }}
         className={`p-4 rounded-xl border transition-all duration-200 relative ${
           isActive 
-            ? 'border-[#34D399] bg-[#141516] shadow-lg shadow-[#34D399]/10' 
-            : 'border-[#23252A] bg-[#191A1B] hover:border-[#34343A]'
+            ? 'border-[#34D399] bg-[#111111] shadow-lg shadow-[#34D399]/10' 
+            : 'border-[#262626] bg-[#171717] hover:border-[#404040]'
         } ${dragActiveField === field ? 'border-dashed border-[#34D399] bg-[#10B981]/10' : ''}`}
       >
         <div className="flex items-center justify-between mb-3">
@@ -598,14 +598,14 @@ export default function UploadPage() {
             <span className="text-caption font-semibold text-ink tracking-wide">{label}</span>
             {isActive && <span className="w-1.5 h-1.5 rounded-full bg-[#34D399] animate-pulse" />}
           </div>
-          <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-[#101012] border border-[#23252A] text-ink-subtle">
+          <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-[#171717] border border-[#262626] text-ink-subtle">
             {totalFieldPhotos}
           </span>
         </div>
 
         <div className="relative group">
           <label className={`flex flex-col items-center justify-center w-full h-24 border-2 border-dashed rounded-lg transition-colors cursor-pointer ${
-            dragActiveField === field ? 'border-[#34D399] bg-[#10B981]/10' : 'border-[#23252A] hover:bg-[#141516] hover:border-[#34343A]'
+            dragActiveField === field ? 'border-[#34D399] bg-[#10B981]/10' : 'border-[#262626] hover:bg-[#111111] hover:border-[#404040]'
           }`}>
             <div className="flex flex-col items-center justify-center pt-4 pb-5 text-center">
               <UploadCloud className={`w-6 h-6 mb-1 ${dragActiveField === field ? 'text-[#34D399] animate-pulse' : 'text-ink-tertiary group-hover:text-ink-subtle'}`} />
@@ -618,7 +618,7 @@ export default function UploadPage() {
         </div>
 
         {totalFieldPhotos > 0 && (
-          <div className="mt-2 flex flex-wrap gap-2 max-h-48 overflow-y-auto pt-2 border-t border-[#23252A]">
+          <div className="mt-2 flex flex-wrap gap-2 max-h-48 overflow-y-auto pt-2 border-t border-[#262626]">
             {fieldExistingPhotos.map((photo, idx) => (
               <div 
                 key={`exist-${idx}`} 
@@ -655,7 +655,7 @@ export default function UploadPage() {
                   e.dataTransfer.setData('sourceField', field);
                   e.dataTransfer.setData('sourceIndex', idx.toString());
                 }}
-                className="relative group w-12 h-12 rounded-md overflow-hidden border border-[#23252A] cursor-grab active:cursor-grabbing shrink-0"
+                className="relative group w-12 h-12 rounded-md overflow-hidden border border-[#262626] cursor-grab active:cursor-grabbing shrink-0"
               >
                 <img src={URL.createObjectURL(file)} alt="preview" className="w-full h-full object-cover" />
                 <span className="absolute top-0 left-0 bg-[#10B981]/10 text-[#34D399] border border-[#10B981]/20 text-[7px] py-0 px-1 rounded-none uppercase font-mono tracking-widest font-extrabold scale-75 origin-top-left">New</span>
@@ -784,18 +784,18 @@ export default function UploadPage() {
                     onFocus={() => setShowDropdown(true)}
                     onBlur={() => setTimeout(() => setShowDropdown(false), 200)}
                     placeholder="e.g. John_Doe, Vatsal_Vadgama"
-                    className="input-linear w-full bg-[#101012] border border-[#23252A] text-ink placeholder:text-ink-tertiary focus:border-[#10B981] focus:outline-none"
+                    className="input-linear w-full bg-[#171717] border border-[#262626] text-ink placeholder:text-ink-tertiary focus:border-[#10B981] focus:outline-none"
                   />
                   {showDropdown && searchQuery && (
-                    <div className="absolute z-20 left-0 right-0 mt-1 bg-[#191A1B] border border-[#23252A] rounded-lg shadow-xl max-h-48 overflow-y-auto">
+                    <div className="absolute z-20 left-0 right-0 mt-1 bg-[#171717] border border-[#262626] rounded-lg shadow-xl max-h-48 overflow-y-auto">
                       {(Array.isArray(existingPersons) ? existingPersons : []).filter(p => typeof p === 'string' && p.toLowerCase().includes((searchQuery || '').toLowerCase())).map((name, i) => (
                         <div
                           key={i}
                           onClick={() => { setPersonName(name); setSearchQuery(name); setShowDropdown(false); }}
-                          className="px-4 py-2 hover:bg-[#23252A] cursor-pointer text-sm text-ink flex items-center justify-between"
+                          className="px-4 py-2 hover:bg-[#262626] cursor-pointer text-sm text-ink flex items-center justify-between"
                         >
                           <span>{name}</span>
-                          <span className="text-[10px] text-ink-subtle bg-[#101012] px-1.5 py-0.5 rounded">Existing</span>
+                          <span className="text-[10px] text-ink-subtle bg-[#171717] px-1.5 py-0.5 rounded">Existing</span>
                         </div>
                       ))}
                     </div>
@@ -813,7 +813,7 @@ export default function UploadPage() {
                 <select
                   value={department}
                   onChange={(e) => setDepartment(e.target.value)}
-                  className="input-linear w-full bg-[#101012] border border-[#23252A] text-ink text-sm rounded-lg h-10 px-3 focus:border-[#10B981] focus:outline-none"
+                  className="input-linear w-full bg-[#171717] border border-[#262626] text-ink text-sm rounded-lg h-10 px-3 focus:border-[#10B981] focus:outline-none"
                 >
                   <option value="Engineering">Engineering</option>
                   <option value="AI Research">AI Research</option>
@@ -829,7 +829,7 @@ export default function UploadPage() {
               <div className="space-y-2">
                 <div className="flex justify-between items-center">
                   <label className="text-body font-medium text-ink">Epochs</label>
-                  <span className="font-mono text-ink bg-[#141516] px-2.5 py-0.5 rounded border border-[#23252A] text-xs">{epochs}</span>
+                  <span className="font-mono text-ink bg-[#111111] px-2.5 py-0.5 rounded border border-[#262626] text-xs">{epochs}</span>
                 </div>
                 <input
                   type="range"
@@ -837,14 +837,14 @@ export default function UploadPage() {
                   max="50"
                   value={epochs}
                   onChange={(e) => setEpochs(parseInt(e.target.value, 10))}
-                  className="w-full h-1.5 bg-[#23252A] rounded-lg appearance-none cursor-pointer accent-[#10B981]"
+                  className="w-full h-1.5 bg-[#262626] rounded-lg appearance-none cursor-pointer accent-[#10B981]"
                 />
                 <p className="text-[11px] text-ink-tertiary">15 epochs recommended for optimal balance.</p>
               </div>
             </div>
 
             {/* Camera Toggle */}
-            <div className="flex items-center justify-between pt-4 border-t border-[#23252A]">
+            <div className="flex items-center justify-between pt-4 border-t border-[#262626]">
               <span className="text-sm font-medium text-ink">Capture via Camera</span>
               <button type="button" onClick={showWebcam ? stopWebcam : () => startWebcam()} className="button-secondary flex items-center gap-2">
                 <Video className="w-4 h-4" />
@@ -853,13 +853,13 @@ export default function UploadPage() {
             </div>
 
             {showWebcam && (
-              <div className="bg-black rounded-xl overflow-hidden border border-[#23252A] relative">
+              <div className="bg-black rounded-xl overflow-hidden border border-[#262626] relative">
                 <video ref={videoRef} autoPlay playsInline muted className="w-full h-auto max-h-[360px] object-cover" />
                 <div className="absolute bottom-4 left-0 right-0 flex items-center justify-center gap-3">
                   <button type="button" onClick={captureWebcam} className="bg-white text-black rounded-full h-12 w-12 shadow-lg hover:scale-105 transition-transform flex items-center justify-center p-0">
                     <Camera className="w-5 h-5 text-black" />
                   </button>
-                  <button type="button" onClick={toggleCameraFacingMode} className="bg-black/80 text-white rounded-full h-10 px-3.5 border border-[#23252A] shadow-lg hover:border-emerald-500/50 transition-colors flex items-center gap-1.5 text-xs">
+                  <button type="button" onClick={toggleCameraFacingMode} className="bg-black/80 text-white rounded-full h-10 px-3.5 border border-[#262626] shadow-lg hover:border-emerald-500/50 transition-colors flex items-center gap-1.5 text-xs">
                     <RotateCw className="w-3.5 h-3.5 text-emerald-400" />
                     <span>Flip ({facingMode === 'user' ? 'Front' : 'Back'})</span>
                   </button>
@@ -880,7 +880,7 @@ export default function UploadPage() {
                 if (e.dataTransfer.files?.length > 0) handleAutoFiles(e.dataTransfer.files);
               }}
               className={`p-8 border-2 border-dashed rounded-xl text-center transition-all cursor-pointer ${
-                autoDragActive ? 'border-[#10B981] bg-[#10B981]/10 scale-[1.01]' : 'border-[#23252A] hover:border-[#3E424A] bg-[#141516]/60'
+                autoDragActive ? 'border-[#10B981] bg-[#10B981]/10 scale-[1.01]' : 'border-[#262626] hover:border-[#3E424A] bg-[#111111]/60'
               }`}
             >
               <label className="cursor-pointer block">
@@ -919,9 +919,9 @@ export default function UploadPage() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3 max-h-72 overflow-y-auto p-2 bg-[#121314] rounded-xl border border-[#23252A]">
+                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3 max-h-72 overflow-y-auto p-2 bg-[#121314] rounded-xl border border-[#262626]">
                   {autoPhotos.map((p) => (
-                    <div key={p.id} className="relative group rounded-lg overflow-hidden border border-[#23252A] bg-black aspect-square">
+                    <div key={p.id} className="relative group rounded-lg overflow-hidden border border-[#262626] bg-black aspect-square">
                       <img src={p.url} alt="subject" className="w-full h-full object-cover" />
                       
                       {/* Angle Badge (clickable to toggle) */}
@@ -949,7 +949,7 @@ export default function UploadPage() {
             )}
 
             {/* Submit */}
-            <div className="pt-4 border-t border-[#23252A] flex items-center justify-between">
+            <div className="pt-4 border-t border-[#262626] flex items-center justify-between">
               <span className="text-caption text-ink-subtle">
                 Total Photos: <span className="font-mono text-ink font-bold">{autoPhotos.length}</span>
               </span>
@@ -979,7 +979,7 @@ export default function UploadPage() {
           <form onSubmit={handleZipSubmit} className="space-y-6">
             
             {/* Explainer card */}
-            <div className="p-4 rounded-xl bg-[#141516] border border-[#23252A] space-y-2">
+            <div className="p-4 rounded-xl bg-[#111111] border border-[#262626] space-y-2">
               <div className="flex items-center gap-2 text-sm font-semibold text-ink">
                 <Archive className="w-4 h-4 text-[#34D399]" />
                 <span>Multi-Personnel ZIP Batch Upload</span>
@@ -994,7 +994,7 @@ export default function UploadPage() {
             {/* ZIP Drag & Drop zone */}
             <div
               onClick={() => zipInputRef.current?.click()}
-              className="p-8 border-2 border-dashed border-[#23252A] hover:border-[#34D399] rounded-xl text-center bg-[#141516]/60 cursor-pointer transition-all"
+              className="p-8 border-2 border-dashed border-[#262626] hover:border-[#34D399] rounded-xl text-center bg-[#111111]/60 cursor-pointer transition-all"
             >
               <input
                 ref={zipInputRef}
@@ -1023,7 +1023,7 @@ export default function UploadPage() {
             <div className="space-y-2">
               <div className="flex justify-between items-center">
                 <label className="text-body font-medium text-ink">Training Epochs for Bulk Batch</label>
-                <span className="font-mono text-ink bg-[#141516] px-2.5 py-0.5 rounded border border-[#23252A] text-xs">{epochs}</span>
+                <span className="font-mono text-ink bg-[#111111] px-2.5 py-0.5 rounded border border-[#262626] text-xs">{epochs}</span>
               </div>
               <input
                 type="range"
@@ -1031,7 +1031,7 @@ export default function UploadPage() {
                 max="50"
                 value={epochs}
                 onChange={(e) => setEpochs(parseInt(e.target.value, 10))}
-                className="w-full h-1.5 bg-[#23252A] rounded-lg appearance-none cursor-pointer accent-[#10B981]"
+                className="w-full h-1.5 bg-[#262626] rounded-lg appearance-none cursor-pointer accent-[#10B981]"
               />
             </div>
 
@@ -1042,7 +1042,7 @@ export default function UploadPage() {
                   <span>Uploading & extracting archive...</span>
                   <span className="font-mono">{zipProgress}%</span>
                 </div>
-                <div className="w-full h-2 bg-[#23252A] rounded-full overflow-hidden">
+                <div className="w-full h-2 bg-[#262626] rounded-full overflow-hidden">
                   <div className="h-full bg-[#10B981] transition-all duration-300" style={{ width: `${zipProgress}%` }} />
                 </div>
               </div>
@@ -1050,7 +1050,7 @@ export default function UploadPage() {
 
             {/* Results display */}
             {zipResult && (
-              <div className="p-4 rounded-xl bg-[#121314] border border-[#23252A] space-y-3">
+              <div className="p-4 rounded-xl bg-[#121314] border border-[#262626] space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-semibold text-ink">Enrollment Summary</span>
                   <div className="flex gap-2 text-xs">
@@ -1065,7 +1065,7 @@ export default function UploadPage() {
                   </div>
                 </div>
 
-                <div className="max-h-48 overflow-y-auto divide-y divide-[#23252A]">
+                <div className="max-h-48 overflow-y-auto divide-y divide-[#262626]">
                   {zipResult.successes?.map((s, i) => (
                     <div key={i} className="py-2 flex items-center justify-between text-xs">
                       <span className="font-mono text-ink">{s.name || s}</span>
@@ -1084,7 +1084,7 @@ export default function UploadPage() {
               </div>
             )}
 
-            <div className="pt-4 border-t border-[#23252A] flex justify-end">
+            <div className="pt-4 border-t border-[#262626] flex justify-end">
               <button
                 type="submit"
                 disabled={isZipSubmitting || !zipFile}
@@ -1107,7 +1107,7 @@ export default function UploadPage() {
       {/* ────────────────────────────────────────────────────────────────────────── */}
       {uploadMethod === 'bulk_folder' && (
         <div className="card-linear space-y-6">
-          <div className="p-4 rounded-xl bg-[#141516] border border-[#23252A] space-y-2">
+          <div className="p-4 rounded-xl bg-[#111111] border border-[#262626] space-y-2">
             <div className="flex items-center gap-2 text-sm font-semibold text-ink">
               <Folder className="w-4 h-4 text-emerald-400" />
               <span>Direct Multi-Personnel Directory Picker</span>
@@ -1119,7 +1119,7 @@ export default function UploadPage() {
 
           <div
             onClick={() => folderInputRef.current?.click()}
-            className="p-8 border-2 border-dashed border-[#23252A] hover:border-emerald-400 rounded-xl text-center bg-[#141516]/60 cursor-pointer transition-all"
+            className="p-8 border-2 border-dashed border-[#262626] hover:border-emerald-400 rounded-xl text-center bg-[#111111]/60 cursor-pointer transition-all"
           >
             <input
               ref={folderInputRef}
@@ -1147,12 +1147,12 @@ export default function UploadPage() {
               </div>
 
               {isFolderSubmitting && (
-                <div className="space-y-2 p-3 bg-[#101012] border border-[#23252A] rounded-xl">
+                <div className="space-y-2 p-3 bg-[#171717] border border-[#262626] rounded-xl">
                   <div className="flex justify-between text-xs text-ink">
                     <span>Enrolling {folderProgress.currentName}...</span>
                     <span className="font-mono">{folderProgress.current} / {folderProgress.total}</span>
                   </div>
-                  <div className="w-full h-2 bg-[#23252A] rounded-full overflow-hidden">
+                  <div className="w-full h-2 bg-[#262626] rounded-full overflow-hidden">
                     <div 
                       className="h-full bg-emerald-500 transition-all duration-300" 
                       style={{ width: `${(folderProgress.current / folderProgress.total) * 100}%` }} 
@@ -1161,19 +1161,19 @@ export default function UploadPage() {
                 </div>
               )}
 
-              <div className="border border-[#23252A] rounded-xl overflow-hidden divide-y divide-[#23252A] max-h-80 overflow-y-auto bg-[#101012]">
+              <div className="border border-[#262626] rounded-xl overflow-hidden divide-y divide-[#262626] max-h-80 overflow-y-auto bg-[#171717]">
                 {folderPersons.map((person, idx) => (
-                  <div key={idx} className="p-3 flex items-center justify-between gap-4 hover:bg-[#141516]">
+                  <div key={idx} className="p-3 flex items-center justify-between gap-4 hover:bg-[#111111]">
                     <div className="flex items-center gap-3">
                       <input
                         type="checkbox"
                         checked={person.selected}
                         onChange={() => toggleFolderPerson(idx)}
                         disabled={isFolderSubmitting}
-                        className="rounded border-[#23252A] text-[#10B981] focus:ring-0"
+                        className="rounded border-[#262626] text-[#10B981] focus:ring-0"
                       />
                       {person.previewUrl && (
-                        <img src={person.previewUrl} alt={person.name} className="w-10 h-10 rounded-md object-cover border border-[#23252A]" />
+                        <img src={person.previewUrl} alt={person.name} className="w-10 h-10 rounded-md object-cover border border-[#262626]" />
                       )}
                       <input
                         type="text"
@@ -1242,18 +1242,18 @@ export default function UploadPage() {
                     onFocus={() => setShowDropdown(true)}
                     onBlur={() => setTimeout(() => setShowDropdown(false), 200)}
                     placeholder="e.g. John_Doe, Vatsal_Vadgama"
-                    className="input-linear w-full bg-[#101012] border border-[#23252A] text-ink placeholder:text-ink-tertiary focus:border-[#10B981] focus:outline-none"
+                    className="input-linear w-full bg-[#171717] border border-[#262626] text-ink placeholder:text-ink-tertiary focus:border-[#10B981] focus:outline-none"
                   />
                   {showDropdown && searchQuery && (
-                    <div className="absolute z-20 left-0 right-0 mt-1 bg-[#191A1B] border border-[#23252A] rounded-lg shadow-xl max-h-48 overflow-y-auto">
+                    <div className="absolute z-20 left-0 right-0 mt-1 bg-[#171717] border border-[#262626] rounded-lg shadow-xl max-h-48 overflow-y-auto">
                       {(Array.isArray(existingPersons) ? existingPersons : []).filter(p => typeof p === 'string' && p.toLowerCase().includes((searchQuery || '').toLowerCase())).map((name, i) => (
                         <div
                           key={i}
                           onClick={() => { setPersonName(name); setSearchQuery(name); setShowDropdown(false); }}
-                          className="px-4 py-2 hover:bg-[#23252A] cursor-pointer text-sm text-ink flex items-center justify-between"
+                          className="px-4 py-2 hover:bg-[#262626] cursor-pointer text-sm text-ink flex items-center justify-between"
                         >
                           <span>{name}</span>
-                          <span className="text-[10px] text-ink-subtle bg-[#101012] px-1.5 py-0.5 rounded">Existing</span>
+                          <span className="text-[10px] text-ink-subtle bg-[#171717] px-1.5 py-0.5 rounded">Existing</span>
                         </div>
                       ))}
                     </div>
@@ -1270,7 +1270,7 @@ export default function UploadPage() {
                 <select
                   value={department}
                   onChange={(e) => setDepartment(e.target.value)}
-                  className="input-linear w-full bg-[#101012] border border-[#23252A] text-ink text-sm rounded-lg h-10 px-3 focus:border-[#10B981] focus:outline-none"
+                  className="input-linear w-full bg-[#171717] border border-[#262626] text-ink text-sm rounded-lg h-10 px-3 focus:border-[#10B981] focus:outline-none"
                 >
                   <option value="Engineering">Engineering</option>
                   <option value="AI Research">AI Research</option>
@@ -1285,7 +1285,7 @@ export default function UploadPage() {
               <div className="space-y-2">
                 <div className="flex justify-between items-center">
                   <label className="text-body font-medium text-ink">Training Epochs</label>
-                  <span className="font-mono text-ink bg-[#141516] px-3 py-1 rounded-md border border-[#23252A] text-sm w-12 text-center">{epochs}</span>
+                  <span className="font-mono text-ink bg-[#111111] px-3 py-1 rounded-md border border-[#262626] text-sm w-12 text-center">{epochs}</span>
                 </div>
                 <input
                   type="range"
@@ -1293,13 +1293,13 @@ export default function UploadPage() {
                   max="50"
                   value={epochs}
                   onChange={(e) => setEpochs(parseInt(e.target.value, 10))}
-                  className="w-full h-2 bg-[#23252A] rounded-lg appearance-none cursor-pointer accent-[#10B981]"
+                  className="w-full h-2 bg-[#262626] rounded-lg appearance-none cursor-pointer accent-[#10B981]"
                 />
                 <p className="text-[11px] text-ink-tertiary">Higher epochs = better accuracy but slower training.</p>
               </div>
             </div>
 
-            <div className="space-y-4 pt-4 border-t border-[#23252A]">
+            <div className="space-y-4 pt-4 border-t border-[#262626]">
               <div className="flex items-center justify-between">
                 <label className="text-body font-medium text-ink">Capture Options</label>
                 <button type="button" onClick={showWebcam ? stopWebcam : () => startWebcam()} className="button-secondary flex items-center gap-2">
@@ -1309,13 +1309,13 @@ export default function UploadPage() {
               </div>
 
               {showWebcam && (
-                <div className="bg-black rounded-lg overflow-hidden border border-[#23252A] shadow-2xl relative">
+                <div className="bg-black rounded-lg overflow-hidden border border-[#262626] shadow-2xl relative">
                   <video ref={videoRef} autoPlay playsInline muted className="w-full h-auto max-h-[500px] object-cover" />
                   <div className="absolute bottom-4 left-0 right-0 flex items-center justify-center gap-3">
                     <button type="button" onClick={captureWebcam} className="bg-white text-black rounded-full h-12 w-12 shadow-lg hover:scale-105 transition-transform flex items-center justify-center p-0">
                       <Camera className="w-5 h-5 text-black" />
                     </button>
-                    <button type="button" onClick={toggleCameraFacingMode} className="bg-black/80 text-white rounded-full h-10 px-3.5 border border-[#23252A] shadow-lg hover:border-emerald-500/50 transition-colors flex items-center gap-1.5 text-xs">
+                    <button type="button" onClick={toggleCameraFacingMode} className="bg-black/80 text-white rounded-full h-10 px-3.5 border border-[#262626] shadow-lg hover:border-emerald-500/50 transition-colors flex items-center gap-1.5 text-xs">
                       <RotateCw className="w-3.5 h-3.5 text-emerald-400" />
                       <span>Flip ({facingMode === 'user' ? 'Front' : 'Back'})</span>
                     </button>
@@ -1324,7 +1324,7 @@ export default function UploadPage() {
               )}
             </div>
 
-            <div data-tour="asset-allocation" className="pt-4 border-t border-[#23252A] space-y-4">
+            <div data-tour="asset-allocation" className="pt-4 border-t border-[#262626] space-y-4">
               <label className="text-body font-medium text-ink block">Asset Allocation</label>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {['left_img', 'front_img', 'right_img'].map(field => renderCategoryCard(field))}
@@ -1334,7 +1334,7 @@ export default function UploadPage() {
               </div>
             </div>
 
-            <div className="pt-6 border-t border-[#23252A] flex items-center justify-between">
+            <div className="pt-6 border-t border-[#262626] flex items-center justify-between">
               <div className="text-caption text-ink-subtle">
                 Total Files: <span className="font-mono text-ink">{totalAvailablePhotos}</span>
               </div>
@@ -1360,7 +1360,7 @@ export default function UploadPage() {
 
       {/* Delete Photo Confirmation Modal */}
       <Modal isOpen={confirmModal.isOpen} onClose={() => setConfirmModal({ isOpen: false, itemToDelete: null })} title="Delete Photo">
-        <div className="p-6 bg-[#191A1B] text-ink space-y-4">
+        <div className="p-6 bg-[#171717] text-ink space-y-4">
           <p className="text-caption text-ink-subtle">Are you sure you want to delete this photo from the dataset? This cannot be undone.</p>
           <div className="flex justify-end gap-2 pt-2">
             <button className="button-secondary text-caption" onClick={() => setConfirmModal({ isOpen: false, itemToDelete: null })}>Cancel</button>

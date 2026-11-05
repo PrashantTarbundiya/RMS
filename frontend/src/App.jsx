@@ -75,6 +75,7 @@ import CookieConsentBanner from './components/ui/CookieConsentBanner'
 
 
 
+
 /**
 
  * ProtectedRoute - redirects unauthenticated users to /login.
@@ -95,7 +96,7 @@ function ProtectedRoute({ children }) {
 
       <div className="min-h-screen bg-[#010102] flex flex-col items-center justify-center gap-4">
 
-        <div className="w-10 h-10 rounded-xl border border-[#23252A] flex items-center justify-center bg-[#0F1011]">
+        <div className="w-10 h-10 rounded-xl border border-[#262626] flex items-center justify-center bg-[#111111]">
 
           <span className="font-mono text-emerald-400 font-bold text-sm">A</span>
 
@@ -354,6 +355,17 @@ function AppContent() {
   ];
   const isConsoleRoute = consoleRoutes.includes(location.pathname) || location.pathname.startsWith('/persons/edit/');
   const showNavbar = isConsoleRoute && (isAuthenticated || isMultiTenant === false);
+
+  // Enforce permanent dark mode universally across entire application & clear any custom theme overrides
+  React.useEffect(() => {
+    document.documentElement.classList.add('dark');
+    document.documentElement.classList.remove('light');
+    document.documentElement.removeAttribute('data-custom-theme');
+    try {
+      localStorage.removeItem('aurapass_theme_primary');
+      localStorage.removeItem('aurapass_theme_secondary');
+    } catch {}
+  }, []);
 
 
 

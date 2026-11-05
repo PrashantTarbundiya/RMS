@@ -66,12 +66,12 @@ function ErrorFallback({ error, errorInfo, onReset }) {
             <Bug className="w-3.5 h-3.5" />
             Technical Details
           </summary>
-          <div className="mt-3 p-4 rounded-lg bg-[#0F1011] border border-[#23252A] overflow-auto max-h-48">
+          <div className="mt-3 p-4 rounded-lg bg-[#111111] border border-[#262626] overflow-auto max-h-48">
             <pre className="text-[11px] font-mono text-[#F87171] whitespace-pre-wrap break-words">
               {error?.toString()}
             </pre>
             {errorInfo?.componentStack && (
-              <pre className="text-[10px] font-mono text-ink-tertiary whitespace-pre-wrap break-words mt-2 pt-2 border-t border-[#23252A]">
+              <pre className="text-[10px] font-mono text-ink-tertiary whitespace-pre-wrap break-words mt-2 pt-2 border-t border-[#262626]">
                 {errorInfo.componentStack.slice(0, 500)}
               </pre>
             )}

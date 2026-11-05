@@ -163,13 +163,13 @@ export default function DashboardPage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Enrollment Roster Card */}
           <div className="card-linear p-0 flex flex-col">
-            <div className="flex justify-between items-center p-6 border-b border-[#23252A]">
+            <div className="flex justify-between items-center p-6 border-b border-[#262626]">
               <div className="w-32 h-5 shimmer" />
               <div className="w-32 h-9 shimmer" />
             </div>
             <div className="p-6 space-y-4">
               {[1, 2, 3, 4].map(i => (
-                <div key={i} className="flex justify-between items-center py-2 border-b border-[#23252A]/50">
+                <div key={i} className="flex justify-between items-center py-2 border-b border-[#262626]/50">
                   <div className="w-36 h-4 shimmer" />
                   <div className="w-16 h-4 shimmer" />
                   <div className="flex gap-2">
@@ -183,13 +183,13 @@ export default function DashboardPage() {
 
           {/* Recent Activity Card */}
           <div className="card-linear p-0 flex flex-col">
-            <div className="flex justify-between items-center p-6 border-b border-[#23252A]">
+            <div className="flex justify-between items-center p-6 border-b border-[#262626]">
               <div className="w-32 h-5 shimmer" />
               <div className="w-20 h-8 shimmer" />
             </div>
             <div className="p-6 space-y-4">
               {[1, 2, 3, 4].map(i => (
-                <div key={i} className="flex justify-between items-center py-2 border-b border-[#23252A]/50">
+                <div key={i} className="flex justify-between items-center py-2 border-b border-[#262626]/50">
                   <div className="w-24 h-4 shimmer" />
                   <div className="w-48 h-4 shimmer" />
                 </div>
@@ -241,10 +241,7 @@ export default function DashboardPage() {
           </h1>
           <p className="text-ink-subtle text-caption mt-1">Real-time telemetry and management console.</p>
         </div>
-        <button className="button-secondary flex items-center gap-2" onClick={() => { setLoading(true); fetchDashboardData(); }}>
-          <RefreshCw className="h-4 w-4" />
-          <span className="text-button">Refresh</span>
-        </button>
+
       </motion.div>
 
       {/* Resumable Onboarding Checklist Card */}
@@ -305,7 +302,7 @@ export default function DashboardPage() {
       {requires_retrain && (
         <motion.div
           variants={itemVariants}
-          className="p-4 sm:p-5 rounded-xl bg-gradient-to-r from-amber-950/50 via-[#181510] to-[#0F1011] border border-amber-500/40 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-lg shadow-amber-950/20"
+          className="p-4 sm:p-5 rounded-xl bg-gradient-to-r from-amber-950/50 via-[#181510] to-[#111111] border border-amber-500/40 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-lg shadow-amber-950/20"
         >
           <div className="flex items-start sm:items-center gap-3.5">
             <div className="p-2.5 rounded-xl bg-amber-500/20 border border-amber-500/30 text-amber-400 shrink-0">
@@ -554,7 +551,7 @@ export default function DashboardPage() {
       {/* Clear History Confirmation Modal */}
       {isClearHistoryModalOpen && (
         <div className="fixed inset-0 z-[999999] flex items-center justify-center p-4 bg-[#010102]/80 backdrop-blur-sm">
-          <div className="w-full max-w-sm card-linear bg-[#191A1B] border-[#23252A] p-6 space-y-4">
+          <div className="w-full max-w-sm card-linear bg-[#191A1B] border-[#262626] p-6 space-y-4">
             <div>
               <h4 className="text-body font-semibold text-ink">Clear Telemetry Logs</h4>
               <p className="text-caption text-ink-subtle mt-1">
@@ -586,7 +583,7 @@ export default function DashboardPage() {
 function KpiCard({ icon, label, value, highlight = false }) {
   return (
     <ApertureReticle active={true} className="w-full" status="default">
-      <div className="bg-card border border-border text-card-foreground shadow-sm rounded-xl p-3 sm:p-5 flex items-start gap-2.5 sm:gap-4 h-full transition-all hover:border-slate-400 dark:hover:border-slate-600">
+      <div className="bg-card border border-border text-card-foreground shadow-sm rounded-xl p-3 sm:p-5 flex items-start gap-2.5 sm:gap-4 h-full transition-all hover:border-neutral-500">
         <div className="text-emerald-400/80 mt-1 shrink-0">
           {icon}
         </div>

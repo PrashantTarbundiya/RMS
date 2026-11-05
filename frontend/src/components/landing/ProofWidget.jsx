@@ -77,7 +77,7 @@ export default function ProofWidget() {
         {/* Telemetry Inspector Console */}
         <div className="rounded-lg border border-zinc-800 bg-zinc-950/90 overflow-hidden shadow-lg">
           {/* Header Bar with Live Scenario Selectors */}
-          <div className="p-4 border-b border-zinc-800/90 bg-[#0C0F17] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="p-4 border-b border-zinc-800/90 bg-[#111111] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex items-center gap-2">
               <Activity className="w-4 h-4 text-emerald-400" />
               <span className="text-xs font-mono font-semibold uppercase tracking-wider text-zinc-200">
@@ -103,7 +103,7 @@ export default function ProofWidget() {
           </div>
 
           {/* Telemetry Status Summary Ribbon */}
-          <div className="px-6 py-4 border-b border-zinc-800/80 bg-[#0A0D14] grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs font-mono">
+          <div className="px-6 py-4 border-b border-zinc-800/80 bg-[#111111] grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs font-mono">
             <div>
               <span className="text-zinc-500 block text-[10px] uppercase">Decision</span>
               <span className={`inline-block mt-0.5 px-2 py-0.5 rounded text-[11px] font-bold border ${scenario.outcomeColor}`}>

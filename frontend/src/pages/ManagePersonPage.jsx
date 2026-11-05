@@ -287,7 +287,7 @@ export default function ManagePersonPage() {
         </div>
 
         {/* Profile Card Shimmer */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-6 bg-[#0F1011] border border-[#23252A] rounded-xl mb-6">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-6 bg-[#111111] border border-[#262626] rounded-xl mb-6">
           <div className="flex items-center gap-4">
             <div className="w-16 h-16 rounded-full shimmer shrink-0" />
             <div className="space-y-2">
@@ -317,12 +317,12 @@ export default function ManagePersonPage() {
           {/* Dropbox Grids Shimmer */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
             {[1, 2, 3].map(i => (
-              <div key={i} className="min-h-[190px] rounded-lg p-4 border border-[#23252A] bg-[#0F1011] space-y-4">
+              <div key={i} className="min-h-[190px] rounded-lg p-4 border border-[#262626] bg-[#111111] space-y-4">
                 <div className="flex justify-between items-center">
                   <div className="w-20 h-4 shimmer" />
                   <div className="w-8 h-4 shimmer" />
                 </div>
-                <div className="h-24 w-full border border-dashed border-[#23252A] rounded-lg flex items-center justify-center">
+                <div className="h-24 w-full border border-dashed border-[#262626] rounded-lg flex items-center justify-center">
                   <div className="w-24 h-6 shimmer" />
                 </div>
               </div>
@@ -360,9 +360,9 @@ export default function ManagePersonPage() {
       </div>
 
       {/* Premium Profile Card */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-6 bg-[#0F1011] border border-[#23252A] rounded-xl">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-6 bg-[#111111] border border-[#262626] rounded-xl">
         <div className="flex items-center gap-4">
-          <div className="w-16 h-16 rounded-full border border-[#23252A] flex items-center justify-center bg-[#010102] overflow-hidden shrink-0 relative shadow-inner">
+          <div className="w-16 h-16 rounded-full border border-[#262626] flex items-center justify-center bg-[#010102] overflow-hidden shrink-0 relative shadow-inner">
             {avatarPhoto ? (
               <img 
                 src={getAuthenticatedPhotoUrl(originalName, avatarPhoto.angle || 'frontal', avatarPhoto.filename, accessToken)} 
@@ -375,7 +375,7 @@ export default function ManagePersonPage() {
                 }}
               />
             ) : null}
-            <div className={`avatar-initials ${avatarPhoto ? 'hidden' : 'flex'} w-full h-full items-center justify-center bg-gradient-to-br from-emerald-950 via-[#0F1011] to-[#010102] text-emerald-400 font-mono font-bold text-base tracking-wider border border-emerald-500/20`}>
+            <div className={`avatar-initials ${avatarPhoto ? 'hidden' : 'flex'} w-full h-full items-center justify-center bg-gradient-to-br from-emerald-950 via-[#111111] to-[#010102] text-emerald-400 font-mono font-bold text-base tracking-wider border border-emerald-500/20`}>
               {getInitials(originalName)}
             </div>
           </div>
@@ -447,10 +447,10 @@ export default function ManagePersonPage() {
               </div>
             </div>
 
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 mb-4 pt-4 border-t border-[#23252A]">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 mb-4 pt-4 border-t border-[#262626]">
               <h3 className="text-body font-medium text-ink m-0">Reference Images</h3>
               <div className="flex items-center gap-4">
-                <span className="px-2 py-0.5 rounded-full font-mono text-[10px] bg-[#010102] border border-[#23252A] text-ink-muted">Total: {photos.length + totalNewImages}</span>
+                <span className="px-2 py-0.5 rounded-full font-mono text-[10px] bg-[#010102] border border-[#262626] text-ink-muted">Total: {photos.length + totalNewImages}</span>
                 <button type="button" onClick={showWebcam ? stopWebcam : () => startWebcam()} className="button-secondary flex items-center gap-2">
                   {showWebcam ? <><X className="w-4 h-4" /> Close Camera</> : <><Video className="w-4 h-4" /> Open Webcam</>}
                 </button>
@@ -458,7 +458,7 @@ export default function ManagePersonPage() {
             </div>
 
             {showWebcam && (
-              <div className="p-4 bg-black rounded-lg border border-[#23252A] mb-6 text-center">
+              <div className="p-4 bg-black rounded-lg border border-[#262626] mb-6 text-center">
                 <video ref={videoRef} autoPlay playsInline muted className="w-full max-w-[400px] rounded-lg mx-auto mb-4 bg-black object-cover aspect-video" />
                 <div className="flex flex-wrap items-center justify-center gap-3">
                   <button type="button" onClick={captureWebcam} className="button-primary text-white flex items-center gap-2">
@@ -494,7 +494,7 @@ export default function ManagePersonPage() {
             </div>
 
             {/* Row 2: BULK UPLOAD (EXTRA) */}
-            <h3 className="text-body font-medium text-ink mb-1 m-0 pt-4 border-t border-[#23252A]">Bulk Upload (Unsorted)</h3>
+            <h3 className="text-body font-medium text-ink mb-1 m-0 pt-4 border-t border-[#262626]">Bulk Upload (Unsorted)</h3>
             <p className="text-[11px] text-ink-tertiary mb-4">
               {activeField === 'extra_files' ? 'Currently the active paste target.' : 'Click to make this the active paste target.'}
             </p>
@@ -509,7 +509,7 @@ export default function ManagePersonPage() {
                 else if (srcType === "existing") handleMoveExistingPhoto(e.dataTransfer.getData("sourceAngle"), 'extra', e.dataTransfer.getData("filename"));
                 else if (e.dataTransfer.files) handleFile('extra_files', e.dataTransfer.files);
               }}
-              className={`min-h-[150px] p-6 rounded-lg text-center flex flex-col items-center justify-center cursor-pointer transition-all border-2 ${activeField === 'extra_files' ? 'border-[#34D399] border-dashed bg-[#2563EB]/5' : 'border-[#23252A] border-dashed bg-transparent hover:border-[#34343A] hover:bg-[#141516]/50'}`}
+              className={`min-h-[150px] p-6 rounded-lg text-center flex flex-col items-center justify-center cursor-pointer transition-all border-2 ${activeField === 'extra_files' ? 'border-[#34D399] border-dashed bg-[#2563EB]/5' : 'border-[#262626] border-dashed bg-transparent hover:border-[#404040] hover:bg-[#111111]/50'}`}
             >
               <input type="file" multiple accept="image/*" id="bulk-upload-manage" className="hidden" onChange={(e) => handleFile('extra_files', e.target.files)} />
               
@@ -525,7 +525,7 @@ export default function ManagePersonPage() {
                       <img 
                         src={getAuthenticatedPhotoUrl(originalName, 'extra', p.filename, accessToken)} 
                         alt={p.filename} 
-                        className="w-full h-full object-cover rounded border border-[#23252A] shadow-sm"
+                        className="w-full h-full object-cover rounded border border-[#262626] shadow-sm"
                         onError={(e) => { e.currentTarget.style.opacity = '0.4'; }}
                       />
                       <button type="button" onClick={(e) => { e.stopPropagation(); handleDeletePhoto('extra', p.filename); }} className="absolute -top-1.5 -right-1.5 bg-[#F87171] text-white w-4 h-4 rounded-md text-[9px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-md hover:bg-red-600 focus:outline-none"><X className="w-2.5 h-2.5" /></button>
@@ -533,11 +533,11 @@ export default function ManagePersonPage() {
                   ))}
                   {images.extra_files.map((f, i) => (
                     <div key={i} draggable onDragStart={(e) => { e.dataTransfer.setData("sourceType", "local"); e.dataTransfer.setData("sourceField", "extra_files"); e.dataTransfer.setData("sourceIndex", i.toString()); }} className="relative w-16 h-16 group cursor-grab active:cursor-grabbing shrink-0">
-                      <img src={URL.createObjectURL(f)} className="w-full h-full object-cover rounded border border-[#23252A] shadow-sm" />
+                      <img src={URL.createObjectURL(f)} className="w-full h-full object-cover rounded border border-[#262626] shadow-sm" />
                       <button type="button" onClick={(e) => { e.stopPropagation(); removeNewFile('extra_files', i); }} className="absolute -top-1.5 -right-1.5 bg-[#F87171] text-white w-4 h-4 rounded-md text-[9px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-md hover:bg-red-600 focus:outline-none"><X className="w-2.5 h-2.5" /></button>
                     </div>
                   ))}
-                  <label htmlFor="bulk-upload-manage" className="w-16 h-16 border border-dashed border-[#23252A] rounded-md flex items-center justify-center cursor-pointer hover:bg-[#141516] transition-colors text-ink-tertiary hover:text-ink-subtle">
+                  <label htmlFor="bulk-upload-manage" className="w-16 h-16 border border-dashed border-[#262626] rounded-md flex items-center justify-center cursor-pointer hover:bg-[#111111] transition-colors text-ink-tertiary hover:text-ink-subtle">
                     <UploadCloud className="w-5 h-5" />
                   </label>
                 </div>
@@ -588,10 +588,10 @@ function DropBox({ field, title, files, existingFiles, personName, isActive, onF
       onClick={() => onFocus()}
       className={`relative min-h-[190px] rounded-lg p-4 flex flex-col justify-between transition-all border ${
         isActive 
-          ? 'border-emerald-500 bg-[#141516]' 
+          ? 'border-emerald-500 bg-[#111111]' 
           : isDragActive 
             ? 'border-emerald-400 bg-emerald-500/5' 
-            : 'border-[#23252A] bg-[#0F1011] hover:border-[#34343A]'
+            : 'border-[#262626] bg-[#111111] hover:border-[#404040]'
       }`}
     >
       <input type="file" multiple accept="image/*" ref={fileInputRef} className="hidden" onChange={(e) => e.target.files && onFiles(e.target.files)} />
@@ -599,7 +599,7 @@ function DropBox({ field, title, files, existingFiles, personName, isActive, onF
       <div>
         <div className="flex justify-between items-center mb-3">
           <span className={`text-[11px] font-semibold tracking-wider uppercase ${isActive ? 'text-ink' : 'text-ink-subtle'}`}>{title}</span>
-          <span className="px-2 py-0.5 rounded-full font-mono text-[10px] bg-[#010102] border border-[#23252A] text-ink-muted">
+          <span className="px-2 py-0.5 rounded-full font-mono text-[10px] bg-[#010102] border border-[#262626] text-ink-muted">
             {files.length + existingFiles.length}
           </span>
         </div>
@@ -607,7 +607,7 @@ function DropBox({ field, title, files, existingFiles, personName, isActive, onF
         {!hasContent && (
           <div 
             onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click(); }}
-            className="flex flex-col items-center justify-center pt-4 pb-5 text-center cursor-pointer border border-dashed border-[#23252A] hover:bg-[#141516] hover:border-[#34343A] rounded-lg h-24"
+            className="flex flex-col items-center justify-center pt-4 pb-5 text-center cursor-pointer border border-dashed border-[#262626] hover:bg-[#111111] hover:border-[#404040] rounded-lg h-24"
           >
             <UploadCloud className="w-6 h-6 mb-1 text-ink-tertiary" />
             <p className="text-[11px] text-ink-tertiary">Click or Drop file</p>
@@ -616,7 +616,7 @@ function DropBox({ field, title, files, existingFiles, personName, isActive, onF
       </div>
 
       {hasContent && (
-        <div className="mt-2 flex flex-wrap gap-2 max-h-48 overflow-y-auto pt-2 border-t border-[#23252A] flex-1">
+        <div className="mt-2 flex flex-wrap gap-2 max-h-48 overflow-y-auto pt-2 border-t border-[#262626] flex-1">
           {existingFiles.map((p) => (
             <div 
               key={p.filename} 
@@ -655,7 +655,7 @@ function DropBox({ field, title, files, existingFiles, personName, isActive, onF
               onClick={(e) => e.stopPropagation()} 
               className="relative w-12 h-12 group cursor-grab active:cursor-grabbing shrink-0"
             >
-              <img src={URL.createObjectURL(f)} className="w-full h-full object-cover rounded border border-[#23252A] shadow-sm" />
+              <img src={URL.createObjectURL(f)} className="w-full h-full object-cover rounded border border-[#262626] shadow-sm" />
               <span className="absolute top-0 left-0 bg-[#2563EB]/10 text-[#34D399] border border-emerald-500/20 text-[6px] py-0 px-0.5 rounded-none uppercase font-mono tracking-widest font-extrabold scale-75 origin-top-left">New</span>
               <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                 <button type="button" onClick={(e) => { e.stopPropagation(); onRemove(i); }} className="p-1 bg-[#F87171]/20 text-[#F87171] rounded hover:bg-[#F87171] hover:text-white transition-colors">
@@ -667,7 +667,7 @@ function DropBox({ field, title, files, existingFiles, personName, isActive, onF
           
           <label 
             onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click(); }}
-            className="w-12 h-12 border-2 border-dashed border-[#23252A] hover:bg-[#141516] hover:border-[#34343A] rounded flex items-center justify-center cursor-pointer text-ink-tertiary hover:text-ink-subtle shrink-0"
+            className="w-12 h-12 border-2 border-dashed border-[#262626] hover:bg-[#111111] hover:border-[#404040] rounded flex items-center justify-center cursor-pointer text-ink-tertiary hover:text-ink-subtle shrink-0"
           >
             <UploadCloud className="w-4 h-4" />
           </label>

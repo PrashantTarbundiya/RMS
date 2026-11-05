@@ -190,7 +190,7 @@ export default function TrainingPage() {
                 </div>
 
                 <div className="grid gap-4">
-                  <div className="p-4 bg-black/30 rounded-lg border border-[#23252A]">
+                  <div className="p-4 bg-black/30 rounded-lg border border-[#262626]">
                     <h4 className="m-0 mb-3 text-sm flex items-center gap-2 text-ink-subtle font-semibold uppercase tracking-wider text-[11px]">
                       <Terminal className="w-4 h-4 text-ink-tertiary" /> Encodings & Weights
                     </h4>
@@ -205,14 +205,14 @@ export default function TrainingPage() {
                       <button
                         type="button"
                         onClick={() => handleDownloadFile('encodings_InsightFace.pickle')}
-                        className="button-secondary text-ink text-caption flex items-center gap-2 h-9 px-3 border border-[#23252A] hover:border-emerald-500"
+                        className="button-secondary text-ink text-caption flex items-center gap-2 h-9 px-3 border border-[#262626] hover:border-emerald-500"
                       >
                         <Download className="w-4 h-4 text-ink-subtle" /> encodings_InsightFace.pickle
                       </button>
                       <button
                         type="button"
                         onClick={() => handleDownloadFile('best_mobile_sideface.pth')}
-                        className="button-secondary text-ink text-caption flex items-center gap-2 h-9 px-3 border border-[#23252A] hover:border-emerald-500"
+                        className="button-secondary text-ink text-caption flex items-center gap-2 h-9 px-3 border border-[#262626] hover:border-emerald-500"
                       >
                         <Download className="w-4 h-4 text-ink-subtle" /> best_mobile_sideface.pth
                       </button>
@@ -227,7 +227,7 @@ export default function TrainingPage() {
 
       {/* Terminal Output */}
       <div className="card-linear p-4 sm:p-6">
-        <div className="flex items-center justify-between border-b border-[#23252A] pb-3 mb-4">
+        <div className="flex items-center justify-between border-b border-[#262626] pb-3 mb-4">
           <div className="flex items-center gap-2">
             <Terminal className="w-4 h-4 text-ink-tertiary" />
             <h3 className="m-0 text-body font-mono text-ink-subtle">Terminal Output</h3>
@@ -242,7 +242,7 @@ export default function TrainingPage() {
               type="button"
               onClick={copyLogs}
               disabled={logs.length === 0}
-              className="h-7 px-2.5 rounded-md border border-[#23252A] bg-[#141516] hover:bg-[#1E2024] hover:border-emerald-500/40 text-ink-subtle hover:text-ink text-[11px] font-medium flex items-center gap-1.5 transition-all disabled:opacity-30 disabled:pointer-events-none"
+              className="h-7 px-2.5 rounded-md border border-[#262626] bg-[#171717] hover:bg-[#262626] hover:border-emerald-500/40 text-ink-subtle hover:text-ink text-[11px] font-medium flex items-center gap-1.5 transition-all disabled:opacity-30 disabled:pointer-events-none"
               title="Copy terminal logs"
             >
               {copied ? <Check size={12} className="text-emerald-400" /> : <Copy size={12} />}
@@ -252,7 +252,7 @@ export default function TrainingPage() {
               type="button"
               onClick={clearLogs}
               disabled={logs.length === 0}
-              className="h-7 px-2.5 rounded-md border border-[#23252A] bg-[#141516] hover:bg-rose-500/10 hover:border-rose-500/30 hover:text-rose-400 text-ink-muted text-[11px] font-medium flex items-center gap-1.5 transition-all disabled:opacity-30 disabled:pointer-events-none"
+              className="h-7 px-2.5 rounded-md border border-[#262626] bg-[#171717] hover:bg-rose-500/10 hover:border-rose-500/30 hover:text-rose-400 text-ink-muted text-[11px] font-medium flex items-center gap-1.5 transition-all disabled:opacity-30 disabled:pointer-events-none"
               title="Clear terminal output"
             >
               <Trash2 size={12} />
@@ -261,7 +261,7 @@ export default function TrainingPage() {
           </div>
         </div>
 
-        <div ref={terminalContainerRef} className="bg-black/60 rounded-xl p-3.5 sm:p-5 font-mono text-[10px] sm:text-[11px] leading-relaxed text-ink-subtle h-[380px] sm:h-[500px] overflow-y-auto border border-[#23252A]/60 shadow-inner">
+        <div ref={terminalContainerRef} className="bg-black/60 rounded-xl p-3.5 sm:p-5 font-mono text-[10px] sm:text-[11px] leading-relaxed text-ink-subtle h-[380px] sm:h-[500px] overflow-y-auto border border-[#262626]/60 shadow-inner">
           {logs.length === 0 ? (
             <EmptyState
               icon={Terminal}
@@ -298,7 +298,7 @@ function ModelProgressCard({ title, subtitle, percent, isTraining }) {
   let statusText = percent === 0 ? 'Pending' : (isTraining || percent < 100) ? 'Training' : 'Complete';
 
   return (
-    <div className="card-linear p-6 flex flex-col justify-between h-full bg-[#0F1011] border-[#23252A]">
+    <div className="card-linear p-6 flex flex-col justify-between h-full bg-[#111111] border-[#262626]">
       <div className="flex flex-col h-full justify-between gap-6">
         <div className="flex justify-between items-start">
           <div>
@@ -309,7 +309,7 @@ function ModelProgressCard({ title, subtitle, percent, isTraining }) {
             className={`inline-flex px-2 py-0.5 rounded font-mono text-[9px] font-semibold border uppercase tracking-wider ${
               status === 'success' ? 'bg-[#27A644]/10 text-[#27A644] border-[#27A644]/20' :
               status === 'progress' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 animate-pulse' :
-              'bg-[#141516] text-ink-muted border-[#23252A]'
+              'bg-[#171717] text-ink-muted border-[#262626]'
             }`}
           >
             {statusText}
@@ -320,7 +320,7 @@ function ModelProgressCard({ title, subtitle, percent, isTraining }) {
           <div className="flex justify-between mb-2 text-xs text-ink-subtle font-mono">
             <span>{percent}%</span>
           </div>
-          <div className="h-1.5 bg-[#141516] rounded-full overflow-hidden border border-[#23252A]">
+          <div className="h-1.5 bg-[#171717] rounded-full overflow-hidden border border-[#262626]">
             <motion.div
               initial={{ width: 0 }}
               animate={{ width: `${percent}%` }}

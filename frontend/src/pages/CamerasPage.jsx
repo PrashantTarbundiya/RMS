@@ -300,25 +300,25 @@ export default function CamerasPage() {
               <ShieldCheck className="w-5 h-5 text-emerald-400" />
               <span>Camera Registered Successfully</span>
             </div>
-            <button onClick={() => setCreatedCam(null)} className="text-slate-400 hover:text-white p-1">
+            <button onClick={() => setCreatedCam(null)} className="text-neutral-400 hover:text-white p-1">
               <X className="w-4 h-4" />
             </button>
           </div>
-          <p className="text-caption text-slate-300">
+          <p className="text-caption text-neutral-300">
             Copy the generated device key below. You will use this key when connecting your CCTV streamer daemon or kiosk client:
           </p>
-          <div className="flex items-center gap-2 bg-[#0A0D14] p-3 rounded-lg border border-emerald-500/30">
+          <div className="flex items-center gap-2 bg-[#111111] p-3 rounded-lg border border-emerald-500/30">
             <Key className="w-4 h-4 text-emerald-400 shrink-0" />
             <code className="font-mono text-xs text-emerald-300 flex-1 break-all select-all">{createdCam.api_key}</code>
             <button
               onClick={() => copyToClipboard(createdCam.api_key)}
-              className="p-1.5 rounded-md hover:bg-emerald-500/20 text-slate-300 hover:text-white transition-colors"
+              className="p-1.5 rounded-md hover:bg-emerald-500/20 text-neutral-300 hover:text-white transition-colors"
               title="Copy Key"
             >
               {copiedKey ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
             </button>
           </div>
-          <div className="pt-1 flex items-center justify-between text-[11px] text-slate-400 font-mono-tag">
+          <div className="pt-1 flex items-center justify-between text-[11px] text-neutral-400 font-mono-tag">
             <span>Authentication header: <code className="text-emerald-400">X-Camera-Key</code></span>
             <button
               onClick={() => setActivePreviewCam(createdCam)}
@@ -333,37 +333,37 @@ export default function CamerasPage() {
 
       {/* Quick Camera Connection Guide Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-        <div className="p-3.5 rounded-xl bg-[#0C0F17] border border-white/[0.06] flex items-start gap-3">
+        <div className="p-3.5 rounded-xl bg-[#111111] border border-white/[0.06] flex items-start gap-3">
           <div className="w-8 h-8 rounded-lg bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shrink-0 mt-0.5">
             <Radio className="w-4 h-4" />
           </div>
           <div>
             <h4 className="text-xs font-bold text-white">Physical IP Cameras</h4>
-            <p className="text-[11px] text-slate-400 mt-0.5 leading-relaxed">
+            <p className="text-[11px] text-neutral-400 mt-0.5 leading-relaxed">
               Streams from Hikvision, Dahua, CP Plus, Axis over RTSP on Port 554 via Edge Streamer.
             </p>
           </div>
         </div>
 
-        <div className="p-3.5 rounded-xl bg-[#0C0F17] border border-white/[0.06] flex items-start gap-3">
+        <div className="p-3.5 rounded-xl bg-[#111111] border border-white/[0.06] flex items-start gap-3">
           <div className="w-8 h-8 rounded-lg bg-cyan-500/15 border border-cyan-500/30 flex items-center justify-center text-cyan-400 shrink-0 mt-0.5">
             <Video className="w-4 h-4" />
           </div>
           <div>
             <h4 className="text-xs font-bold text-white">USB & Tablet Kiosks</h4>
-            <p className="text-[11px] text-slate-400 mt-0.5 leading-relaxed">
+            <p className="text-[11px] text-neutral-400 mt-0.5 leading-relaxed">
               Runs in browser on tablets, turnstile screens, or reception PCs using direct web camera.
             </p>
           </div>
         </div>
 
-        <div className="p-3.5 rounded-xl bg-[#0C0F17] border border-white/[0.06] flex items-start gap-3">
-          <div className="w-8 h-8 rounded-lg bg-purple-500/15 border border-purple-500/30 flex items-center justify-center text-purple-400 shrink-0 mt-0.5">
+        <div className="p-3.5 rounded-xl bg-[#111111] border border-white/[0.06] flex items-start gap-3">
+          <div className="w-8 h-8 rounded-lg bg-purple-500/15 border border-purple-500/30 flex items-center justify-center text-emerald-400 shrink-0 mt-0.5">
             <Sparkles className="w-4 h-4" />
           </div>
           <div>
             <h4 className="text-xs font-bold text-white">Simulated Demo Feeds</h4>
-            <p className="text-[11px] text-slate-400 mt-0.5 leading-relaxed">
+            <p className="text-[11px] text-neutral-400 mt-0.5 leading-relaxed">
               Instantly test verification speed and pipelines without needing physical hardware connected.
             </p>
           </div>
@@ -411,11 +411,11 @@ export default function CamerasPage() {
           </div>
         ) : cameras.length === 0 ? (
           <div className="py-14 text-center space-y-3">
-            <div className="w-12 h-12 rounded-xl bg-white/[0.03] border border-white/[0.06] flex items-center justify-center mx-auto text-slate-500">
+            <div className="w-12 h-12 rounded-xl bg-white/[0.03] border border-white/[0.06] flex items-center justify-center mx-auto text-neutral-500">
               <Camera className="w-6 h-6" />
             </div>
             <p className="text-body font-semibold text-white">No cameras registered yet</p>
-            <p className="text-xs text-slate-400 max-w-sm mx-auto leading-relaxed">
+            <p className="text-xs text-neutral-400 max-w-sm mx-auto leading-relaxed">
               Connect your first CCTV stream (Hikvision, Dahua, CP Plus) or USB webcam to begin automated check-ins.
             </p>
             <button
@@ -475,7 +475,7 @@ export default function CamerasPage() {
                           ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
                           : isUsb 
                             ? 'bg-cyan-500/10 border-cyan-500/30 text-cyan-400'
-                            : 'bg-purple-500/10 border-purple-500/30 text-purple-400'
+                            : 'bg-neutral-800 border-neutral-700 text-neutral-300'
                       }`}>
                         {isRtsp ? <Radio className="w-5 h-5" /> : isUsb ? <Video className="w-5 h-5" /> : <Sparkles className="w-5 h-5" />}
                       </div>
@@ -490,19 +490,19 @@ export default function CamerasPage() {
                               ? 'bg-emerald-950/60 text-emerald-300 border border-emerald-500/25'
                               : isUsb 
                                 ? 'bg-cyan-950/60 text-cyan-300 border border-cyan-500/25'
-                                : 'bg-purple-950/60 text-purple-300 border border-purple-500/25'
+                                : 'bg-neutral-900 text-neutral-300 border border-neutral-700'
                           }`}>
                             {isRtsp ? `RTSP (${meta.brand || 'IP CAM'})` : isUsb ? 'USB Webcam' : 'Virtual Loop'}
                           </span>
                         </div>
                         
-                        <div className="flex items-center gap-3 mt-1 text-[11px] text-slate-400 font-mono-tag flex-wrap">
-                          <span className="flex items-center gap-1 text-slate-300">
-                            <MapPin className="w-3 h-3 text-slate-400" />
+                        <div className="flex items-center gap-3 mt-1 text-[11px] text-neutral-400 font-mono-tag flex-wrap">
+                          <span className="flex items-center gap-1 text-neutral-300">
+                            <MapPin className="w-3 h-3 text-neutral-400" />
                             {meta.zone || 'Main Facility'}
                           </span>
                           {meta.url && (
-                            <span className="text-slate-500 truncate max-w-xs font-mono">
+                            <span className="text-neutral-500 truncate max-w-xs font-mono">
                               {meta.url}
                             </span>
                           )}
@@ -521,7 +521,7 @@ export default function CamerasPage() {
 
                       <button
                         onClick={() => handleDeleteCamera(cam.id)}
-                        className="p-2 rounded-lg hover:bg-red-500/10 text-slate-400 hover:text-red-400 border border-transparent hover:border-red-500/20 transition-colors"
+                        className="p-2 rounded-lg hover:bg-red-500/10 text-neutral-400 hover:text-red-400 border border-transparent hover:border-red-500/20 transition-colors"
                         title="Delete camera"
                       >
                         <Trash2 className="w-4 h-4" />
@@ -541,7 +541,7 @@ export default function CamerasPage() {
             <Cpu className="w-5 h-5 text-emerald-400" />
             <div>
               <h2 className="text-body font-semibold text-ink">Edge & Hardware Specification Matrix</h2>
-              <p className="text-[11px] text-slate-400 font-normal">Empirical recognition performance across camera specs, distances, and lighting.</p>
+              <p className="text-[11px] text-neutral-400 font-normal">Empirical recognition performance across camera specs, distances, and lighting.</p>
             </div>
           </div>
           <button
@@ -575,7 +575,7 @@ export default function CamerasPage() {
         {edgeResults && !edgeLoading && (
           <>
             {/* Tab switcher */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-1 mb-4 p-1 bg-[#0F1011] rounded-lg border border-[#23252A]">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-1 mb-4 p-1 bg-[#111111] rounded-lg border border-[#262626]">
               {[
                 { id: 'resolution', label: 'Resolution', icon: Monitor },
                 { id: 'lighting', label: 'Lighting', icon: Sun },
@@ -602,7 +602,7 @@ export default function CamerasPage() {
               <div className="overflow-x-auto">
                 <table className="w-full text-caption">
                   <thead>
-                    <tr className="border-b border-[#23252A]">
+                    <tr className="border-b border-[#262626]">
                       <th className="text-left py-2 px-3 text-ink-tertiary font-medium">Camera</th>
                       <th className="text-left py-2 px-3 text-ink-tertiary font-medium">Distance</th>
                       <th className="text-left py-2 px-3 text-ink-tertiary font-medium">Face Pixels</th>
@@ -613,7 +613,7 @@ export default function CamerasPage() {
                   </thead>
                   <tbody>
                     {edgeResults.resolution.map((r, i) => (
-                      <tr key={i} className="border-b border-[#23252A]/50 hover:bg-[#141516]/30">
+                      <tr key={i} className="border-b border-[#262626]/50 hover:bg-[#171717]/60">
                         <td className="py-2.5 px-3 text-ink font-medium">{r.config?.split(' @')[0]}</td>
                         <td className="py-2.5 px-3 text-ink-muted">{r.distance}</td>
                         <td className="py-2.5 px-3 text-ink-muted font-mono">{r.face_px}px</td>
@@ -636,7 +636,7 @@ export default function CamerasPage() {
               <div className="overflow-x-auto">
                 <table className="w-full text-caption">
                   <thead>
-                    <tr className="border-b border-[#23252A]">
+                    <tr className="border-b border-[#262626]">
                       <th className="text-left py-2 px-3 text-ink-tertiary font-medium">Condition</th>
                       <th className="text-left py-2 px-3 text-ink-tertiary font-medium">Gamma</th>
                       <th className="text-left py-2 px-3 text-ink-tertiary font-medium">Accuracy</th>
@@ -645,7 +645,7 @@ export default function CamerasPage() {
                   </thead>
                   <tbody>
                     {edgeResults.lighting.map((r, i) => (
-                      <tr key={i} className="border-b border-[#23252A]/50 hover:bg-[#141516]/30">
+                      <tr key={i} className="border-b border-[#262626]/50 hover:bg-[#171717]/60">
                         <td className="py-2.5 px-3 text-ink font-medium">{r.condition}</td>
                         <td className="py-2.5 px-3 text-ink-muted font-mono">{r.gamma}</td>
                         <td className="py-2.5 px-3 font-mono font-semibold" style={{ color: r.accuracy >= 90 ? '#27A644' : r.accuracy >= 70 ? '#F59E0B' : '#F87171' }}>{r.accuracy}%</td>
@@ -666,7 +666,7 @@ export default function CamerasPage() {
               <div className="overflow-x-auto">
                 <table className="w-full text-caption">
                   <thead>
-                    <tr className="border-b border-[#23252A]">
+                    <tr className="border-b border-[#262626]">
                       <th className="text-left py-2 px-3 text-ink-tertiary font-medium">Viewing Angle</th>
                       <th className="text-left py-2 px-3 text-ink-tertiary font-medium">Accuracy</th>
                       <th className="text-left py-2 px-3 text-ink-tertiary font-medium">Samples</th>
@@ -674,7 +674,7 @@ export default function CamerasPage() {
                   </thead>
                   <tbody>
                     {edgeResults.angle.map((r, i) => (
-                      <tr key={i} className="border-b border-[#23252A]/50 hover:bg-[#141516]/30">
+                      <tr key={i} className="border-b border-[#262626]/50 hover:bg-[#171717]/60">
                         <td className="py-2.5 px-3 text-ink font-medium">{r.angle}</td>
                         <td className="py-2.5 px-3 font-mono font-semibold" style={{ color: r.accuracy >= 90 ? '#27A644' : '#F59E0B' }}>{r.accuracy}%</td>
                         <td className="py-2.5 px-3 text-ink-muted font-mono">{r.samples}</td>
@@ -690,7 +690,7 @@ export default function CamerasPage() {
               <div className="overflow-x-auto">
                 <table className="w-full text-caption">
                   <thead>
-                    <tr className="border-b border-[#23252A]">
+                    <tr className="border-b border-[#262626]">
                       <th className="text-left py-2 px-3 text-ink-tertiary font-medium">Capture Rate</th>
                       <th className="text-left py-2 px-3 text-ink-tertiary font-medium">Drop Rate</th>
                       <th className="text-left py-2 px-3 text-ink-tertiary font-medium">Processing Time</th>
@@ -698,7 +698,7 @@ export default function CamerasPage() {
                   </thead>
                   <tbody>
                     {edgeResults.fps.map((r, i) => (
-                      <tr key={i} className="border-b border-[#23252A]/50 hover:bg-[#141516]/30">
+                      <tr key={i} className="border-b border-[#262626]/50 hover:bg-[#171717]/60">
                         <td className="py-2.5 px-3 text-ink font-medium">{r.fps} FPS</td>
                         <td className="py-2.5 px-3 text-ink-muted font-mono">{r.drop_rate}%</td>
                         <td className="py-2.5 px-3 font-mono font-semibold text-emerald-400">{r.processing_ms}ms</td>
@@ -718,22 +718,22 @@ export default function CamerasPage() {
       ───────────────────────────────────────────────────────────────────────────── */}
       {showAddModal && createPortal(
         <div className="fixed inset-0 z-[999999] flex items-center justify-center p-4 sm:p-6 bg-black/50 overflow-y-auto animate-in fade-in duration-150">
-          <div className="relative w-full max-w-xl bg-white dark:bg-[#0D0F17] border border-slate-200 dark:border-white/10 rounded-2xl p-5 sm:p-7 shadow-2xl space-y-5 my-auto max-h-[92vh] overflow-y-auto">
+          <div className="relative w-full max-w-xl bg-[#111111] border border-[#262626] rounded-2xl p-5 sm:p-7 shadow-2xl space-y-5 my-auto max-h-[92vh] overflow-y-auto">
             
             {/* Modal Header */}
             <div className="flex justify-between items-start pb-2 border-b border-border">
               <div>
-                <h2 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                <h2 className="text-base font-bold text-white flex items-center gap-2">
                   <Camera className="w-5 h-5 text-emerald-400" />
                   <span>Register & Connect Camera</span>
                 </h2>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                <p className="text-xs text-neutral-400 mt-0.5">
                   Connect any RTSP security camera (Hikvision, Dahua, CP Plus), USB webcam, or virtual feed.
                 </p>
               </div>
               <button 
                 onClick={() => setShowAddModal(false)}
-                className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-white/[0.05] transition-colors"
+                className="text-neutral-400 hover:text-white p-1 rounded-lg hover:bg-white/[0.05] transition-colors"
                 aria-label="Close"
               >
                 <X className="w-5 h-5" />
@@ -744,7 +744,7 @@ export default function CamerasPage() {
               
               {/* Protocol / Type Selection */}
               <div>
-                <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1.5">
+                <label className="text-xs font-semibold text-neutral-300 block mb-1.5">
                   Connection Protocol *
                 </label>
                 <div className="grid grid-cols-3 gap-2">
@@ -754,14 +754,14 @@ export default function CamerasPage() {
                     className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
                       streamType === 'rtsp'
                         ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-300 shadow-sm'
-                        : 'bg-white/[0.02] border-white/[0.06] text-slate-400 hover:border-white/10'
+                        : 'bg-white/[0.02] border-white/[0.06] text-neutral-400 hover:border-white/10'
                     }`}
                   >
                     <div className="flex items-center gap-1.5 text-xs font-bold">
                       <Radio className="w-3.5 h-3.5 text-emerald-400" />
                       <span>RTSP / IP Camera</span>
                     </div>
-                    <p className="text-[10px] text-slate-400 mt-1">CCTV, NVR, DVR</p>
+                    <p className="text-[10px] text-neutral-400 mt-1">CCTV, NVR, DVR</p>
                   </button>
 
                   <button
@@ -770,14 +770,14 @@ export default function CamerasPage() {
                     className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
                       streamType === 'usb'
                         ? 'bg-cyan-500/15 border-cyan-500/40 text-cyan-300 shadow-sm'
-                        : 'bg-white/[0.02] border-white/[0.06] text-slate-400 hover:border-white/10'
+                        : 'bg-white/[0.02] border-white/[0.06] text-neutral-400 hover:border-white/10'
                     }`}
                   >
                     <div className="flex items-center gap-1.5 text-xs font-bold">
                       <Video className="w-3.5 h-3.5 text-cyan-400" />
                       <span>USB Webcam</span>
                     </div>
-                    <p className="text-[10px] text-slate-400 mt-1">Tablet / Kiosk PC</p>
+                    <p className="text-[10px] text-neutral-400 mt-1">Tablet / Kiosk PC</p>
                   </button>
 
                   <button
@@ -785,15 +785,15 @@ export default function CamerasPage() {
                     onClick={() => setStreamType('virtual')}
                     className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
                       streamType === 'virtual'
-                        ? 'bg-purple-500/15 border-purple-500/40 text-purple-300 shadow-sm'
-                        : 'bg-white/[0.02] border-white/[0.06] text-slate-400 hover:border-white/10'
+                        ? 'bg-neutral-800 border-neutral-700 text-neutral-300 shadow-sm'
+                        : 'bg-white/[0.02] border-white/[0.06] text-neutral-400 hover:border-white/10'
                     }`}
                   >
                     <div className="flex items-center gap-1.5 text-xs font-bold">
-                      <Sparkles className="w-3.5 h-3.5 text-purple-400" />
+                      <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
                       <span>Virtual Feed</span>
                     </div>
-                    <p className="text-[10px] text-slate-400 mt-1">Simulated Testing</p>
+                    <p className="text-[10px] text-neutral-400 mt-1">Simulated Testing</p>
                   </button>
                 </div>
               </div>
@@ -801,33 +801,33 @@ export default function CamerasPage() {
               {/* Basic Fields */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs font-medium text-slate-700 dark:text-slate-300 block mb-1">Camera Name *</label>
+                  <label className="text-xs font-medium text-neutral-300 block mb-1">Camera Name *</label>
                   <input
                     type="text"
                     placeholder="e.g. Turnstile Gate 01"
                     value={newCamName}
                     onChange={(e) => setNewCamName(e.target.value)}
                     required
-                    className="w-full h-10 px-3 bg-slate-50 dark:bg-[#080A10] border border-slate-200 dark:border-white/10 rounded-xl text-xs text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 focus:outline-none focus:border-emerald-500"
+                    className="w-full h-10 px-3 bg-[#171717] border border-[#262626] rounded-xl text-xs text-white placeholder:text-neutral-500 focus:outline-none focus:border-emerald-500"
                   />
                 </div>
                 <div>
-                  <label className="text-xs font-medium text-slate-700 dark:text-slate-300 block mb-1">Location / Zone</label>
+                  <label className="text-xs font-medium text-neutral-300 block mb-1">Location / Zone</label>
                   <input
                     type="text"
                     placeholder="e.g. North Gate / Workshop A"
                     value={newCamLocation}
                     onChange={(e) => setNewCamLocation(e.target.value)}
-                    className="w-full h-10 px-3 bg-slate-50 dark:bg-[#080A10] border border-slate-200 dark:border-white/10 rounded-xl text-xs text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 focus:outline-none focus:border-emerald-500"
+                    className="w-full h-10 px-3 bg-[#171717] border border-[#262626] rounded-xl text-xs text-white placeholder:text-neutral-500 focus:outline-none focus:border-emerald-500"
                   />
                 </div>
               </div>
 
               {/* RTSP Specific Settings */}
               {streamType === 'rtsp' && (
-                <div className="p-4 rounded-xl bg-slate-50 dark:bg-black/40 border border-slate-200 dark:border-border space-y-3.5">
+                <div className="p-4 rounded-xl bg-[#171717] border border-[#262626] space-y-3.5">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-slate-800 dark:text-slate-200">Select Brand Preset</span>
+                    <span className="text-xs font-bold text-neutral-200">Select Brand Preset</span>
                     <span className="text-[10px] text-emerald-400 font-mono-tag">Auto-Configures Stream Format</span>
                   </div>
 
@@ -846,7 +846,7 @@ export default function CamerasPage() {
                         className={`px-2.5 py-1 rounded-lg text-xs font-semibold border transition-all cursor-pointer ${
                           selectedBrand === b.name
                             ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
-                            : 'bg-white/[0.03] text-slate-400 border-white/[0.06] hover:text-white'
+                            : 'bg-white/[0.03] text-neutral-400 border-white/[0.06] hover:text-white'
                         }`}
                       >
                         {b.name}
@@ -857,63 +857,63 @@ export default function CamerasPage() {
                   {/* IP, Port, Username, Password, Channel */}
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
                     <div className="col-span-2">
-                      <label className="text-[11px] text-slate-400 block mb-1 font-mono-tag">Camera IP Address</label>
+                      <label className="text-[11px] text-neutral-400 block mb-1 font-mono-tag">Camera IP Address</label>
                       <input
                         type="text"
                         placeholder="192.168.1.108"
                         value={camIp}
                         onChange={(e) => setCamIp(e.target.value)}
-                        className="w-full h-9 px-2.5 bg-slate-50 dark:bg-[#090C12] border border-slate-200 dark:border-white/10 rounded-lg text-xs font-mono text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 focus:outline-none focus:border-emerald-500"
+                        className="w-full h-9 px-2.5 bg-[#171717] border border-[#262626] rounded-lg text-xs font-mono text-white placeholder:text-neutral-500 focus:outline-none focus:border-emerald-500"
                       />
                     </div>
                     <div>
-                      <label className="text-[11px] text-slate-400 block mb-1 font-mono-tag">Port</label>
+                      <label className="text-[11px] text-neutral-400 block mb-1 font-mono-tag">Port</label>
                       <input
                         type="text"
                         placeholder="554"
                         value={camPort}
                         onChange={(e) => setCamPort(e.target.value)}
-                        className="w-full h-9 px-2.5 bg-slate-50 dark:bg-[#090C12] border border-slate-200 dark:border-white/10 rounded-lg text-xs font-mono text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 focus:outline-none focus:border-emerald-500"
+                        className="w-full h-9 px-2.5 bg-[#171717] border border-[#262626] rounded-lg text-xs font-mono text-white placeholder:text-neutral-500 focus:outline-none focus:border-emerald-500"
                       />
                     </div>
                     <div>
-                      <label className="text-[11px] text-slate-400 block mb-1 font-mono-tag">Channel</label>
+                      <label className="text-[11px] text-neutral-400 block mb-1 font-mono-tag">Channel</label>
                       <input
                         type="text"
                         placeholder="1"
                         value={camChannel}
                         onChange={(e) => setCamChannel(e.target.value)}
-                        className="w-full h-9 px-2.5 bg-slate-50 dark:bg-[#090C12] border border-slate-200 dark:border-white/10 rounded-lg text-xs font-mono text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 focus:outline-none focus:border-emerald-500"
+                        className="w-full h-9 px-2.5 bg-[#171717] border border-[#262626] rounded-lg text-xs font-mono text-white placeholder:text-neutral-500 focus:outline-none focus:border-emerald-500"
                       />
                     </div>
                   </div>
 
                   <div className="grid grid-cols-2 gap-2 text-xs">
                     <div>
-                      <label className="text-[11px] text-slate-400 block mb-1 font-mono-tag">Username</label>
+                      <label className="text-[11px] text-neutral-400 block mb-1 font-mono-tag">Username</label>
                       <input
                         type="text"
                         placeholder="admin"
                         value={camUser}
                         onChange={(e) => setCamUser(e.target.value)}
-                        className="w-full h-9 px-2.5 bg-slate-50 dark:bg-[#090C12] border border-slate-200 dark:border-white/10 rounded-lg text-xs text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 focus:outline-none focus:border-emerald-500"
+                        className="w-full h-9 px-2.5 bg-[#171717] border border-[#262626] rounded-lg text-xs text-white placeholder:text-neutral-500 focus:outline-none focus:border-emerald-500"
                       />
                     </div>
                     <div>
-                      <label className="text-[11px] text-slate-400 block mb-1 font-mono-tag">Password</label>
+                      <label className="text-[11px] text-neutral-400 block mb-1 font-mono-tag">Password</label>
                       <input
                         type="password"
                         placeholder="••••••••"
                         value={camPass}
                         onChange={(e) => setCamPass(e.target.value)}
-                        className="w-full h-9 px-2.5 bg-slate-50 dark:bg-[#090C12] border border-slate-200 dark:border-white/10 rounded-lg text-xs text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 focus:outline-none focus:border-emerald-500"
+                        className="w-full h-9 px-2.5 bg-[#171717] border border-[#262626] rounded-lg text-xs text-white placeholder:text-neutral-500 focus:outline-none focus:border-emerald-500"
                       />
                     </div>
                   </div>
 
                   {/* Generated RTSP Preview */}
-                  <div className="p-2.5 rounded-lg bg-slate-100 dark:bg-[#06080E] border border-slate-200 dark:border-white/[0.06] space-y-1">
-                    <span className="text-[10px] uppercase font-bold tracking-wider text-slate-500 block font-mono-tag">
+                  <div className="p-2.5 rounded-lg bg-[#171717] border border-[#262626] space-y-1">
+                    <span className="text-[10px] uppercase font-bold tracking-wider text-neutral-500 block font-mono-tag">
                       Generated RTSP Connection String:
                     </span>
                     <code className="text-[11px] font-mono text-emerald-400 break-all select-all block">
@@ -925,12 +925,12 @@ export default function CamerasPage() {
 
               {/* USB Stream Helper */}
               {streamType === 'usb' && (
-                <div className="p-3.5 rounded-xl bg-cyan-950/30 border border-cyan-500/30 text-xs text-slate-300 space-y-1.5">
+                <div className="p-3.5 rounded-xl bg-cyan-950/30 border border-cyan-500/30 text-xs text-neutral-300 space-y-1.5">
                   <div className="flex items-center gap-1.5 font-bold text-cyan-300">
                     <Video className="w-4 h-4" />
                     <span>USB Web Camera Kiosk Ready</span>
                   </div>
-                  <p className="text-[11px] text-slate-400 leading-relaxed">
+                  <p className="text-[11px] text-neutral-400 leading-relaxed">
                     This camera will bind directly to any browser opening AuraPass Kiosk mode (<code className="text-cyan-300 font-mono">/kiosk</code>). No background software or drivers required.
                   </p>
                 </div>
@@ -938,12 +938,12 @@ export default function CamerasPage() {
 
               {/* Virtual Stream Helper */}
               {streamType === 'virtual' && (
-                <div className="p-3.5 rounded-xl bg-purple-950/30 border border-purple-500/30 text-xs text-slate-300 space-y-1.5">
-                  <div className="flex items-center gap-1.5 font-bold text-purple-300">
+                <div className="p-3.5 rounded-xl bg-purple-950/30 border border-purple-500/30 text-xs text-neutral-300 space-y-1.5">
+                  <div className="flex items-center gap-1.5 font-bold text-neutral-300">
                     <Sparkles className="w-4 h-4" />
                     <span>Simulated Test Loop Feed</span>
                   </div>
-                  <p className="text-[11px] text-slate-400 leading-relaxed">
+                  <p className="text-[11px] text-neutral-400 leading-relaxed">
                     Instantly tests face detection, liveness, and employee verification using pre-loaded high-resolution biometric test sequences.
                   </p>
                 </div>
@@ -954,14 +954,14 @@ export default function CamerasPage() {
                 <button
                   type="button"
                   onClick={() => setShowAddModal(false)}
-                  className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-white/[0.05] hover:bg-slate-200 dark:hover:bg-white/10 text-xs font-semibold text-slate-700 dark:text-slate-300 transition-colors"
+                  className="px-4 py-2 rounded-xl bg-[#171717] hover:bg-[#262626] border border-[#262626] text-xs font-semibold text-neutral-300 transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={submitting || !newCamName.trim()}
-                  className="px-5 py-2 rounded-xl bg-emerald-400 hover:bg-emerald-300 text-xs font-bold text-slate-950 shadow-md shadow-emerald-500/20 transition-all disabled:opacity-50"
+                  className="px-5 py-2 rounded-xl bg-emerald-400 hover:bg-emerald-300 text-xs font-bold text-black shadow-md shadow-emerald-500/20 transition-all disabled:opacity-50"
                 >
                   {submitting ? 'Registering...' : 'Register Camera'}
                 </button>
@@ -977,24 +977,24 @@ export default function CamerasPage() {
       ───────────────────────────────────────────────────────────────────────────── */}
       {activePreviewCam && createPortal(
         <div className="fixed inset-0 z-[999999] flex items-center justify-center p-4 sm:p-6 bg-black/50 overflow-y-auto animate-in fade-in duration-150">
-          <div className="relative w-full max-w-2xl bg-white dark:bg-[#0D0F17] border border-slate-200 dark:border-white/10 rounded-2xl p-5 sm:p-7 shadow-2xl space-y-4 my-auto max-h-[92vh] overflow-y-auto">
+          <div className="relative w-full max-w-2xl bg-[#111111] border border-[#262626] rounded-2xl p-5 sm:p-7 shadow-2xl space-y-4 my-auto max-h-[92vh] overflow-y-auto">
             
             {/* Modal Header */}
             <div className="flex justify-between items-start pb-2 border-b border-border">
               <div>
                 <div className="flex items-center gap-2">
-                  <h3 className="text-base font-bold text-slate-900 dark:text-white">{activePreviewCam.name}</h3>
+                  <h3 className="text-base font-bold text-white">{activePreviewCam.name}</h3>
                   <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
                     Live Test
                   </span>
                 </div>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                <p className="text-xs text-neutral-400 mt-0.5">
                   Device Key: <code className="text-emerald-400 font-mono text-[11px]">{activePreviewCam.api_key}</code>
                 </p>
               </div>
               <button 
                 onClick={() => setActivePreviewCam(null)}
-                className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-white/[0.05]"
+                className="text-neutral-400 hover:text-white p-1 rounded-lg hover:bg-white/[0.05]"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -1007,7 +1007,7 @@ export default function CamerasPage() {
                 className={`pb-2 px-3 border-b-2 transition-all cursor-pointer ${
                   previewTab === 'feed'
                     ? 'border-emerald-400 text-emerald-400'
-                    : 'border-transparent text-slate-400 hover:text-white'
+                    : 'border-transparent text-neutral-400 hover:text-white'
                 }`}
               >
                 Live Feed & Diagnostics
@@ -1017,7 +1017,7 @@ export default function CamerasPage() {
                 className={`pb-2 px-3 border-b-2 transition-all cursor-pointer ${
                   previewTab === 'instructions'
                     ? 'border-emerald-400 text-emerald-400'
-                    : 'border-transparent text-slate-400 hover:text-white'
+                    : 'border-transparent text-neutral-400 hover:text-white'
                 }`}
               >
                 CCTV Edge Daemon Setup
@@ -1066,7 +1066,7 @@ export default function CamerasPage() {
                         <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
                         <span>RTSP Active &bull; 29.8 FPS</span>
                       </div>
-                      <div className="absolute top-2.5 right-2.5 px-2.5 py-1 rounded bg-black/80 backdrop-blur-md border border-white/10 text-[10px] font-mono text-slate-300">
+                      <div className="absolute top-2.5 right-2.5 px-2.5 py-1 rounded bg-black/80 backdrop-blur-md border border-white/10 text-[10px] font-mono text-neutral-300">
                         Latency: 184 ms
                       </div>
                     </div>
@@ -1085,15 +1085,15 @@ export default function CamerasPage() {
                 {/* Diagnostics Grid */}
                 <div className="grid grid-cols-3 gap-2 text-center text-xs">
                   <div className="p-2.5 rounded-lg bg-black/40 border border-white/[0.06]">
-                    <span className="text-[10px] text-slate-500 block uppercase font-mono-tag">Inference Engine</span>
+                    <span className="text-[10px] text-neutral-500 block uppercase font-mono-tag">Inference Engine</span>
                     <span className="text-white font-bold font-mono text-xs">FaceNet512</span>
                   </div>
                   <div className="p-2.5 rounded-lg bg-black/40 border border-white/[0.06]">
-                    <span className="text-[10px] text-slate-500 block uppercase font-mono-tag">Liveness Check</span>
+                    <span className="text-[10px] text-neutral-500 block uppercase font-mono-tag">Liveness Check</span>
                     <span className="text-emerald-400 font-bold font-mono text-xs">PASSED (98.7%)</span>
                   </div>
                   <div className="p-2.5 rounded-lg bg-black/40 border border-white/[0.06]">
-                    <span className="text-[10px] text-slate-500 block uppercase font-mono-tag">Relay Pulse</span>
+                    <span className="text-[10px] text-neutral-500 block uppercase font-mono-tag">Relay Pulse</span>
                     <span className="text-cyan-400 font-bold font-mono text-xs">Turnstile Open</span>
                   </div>
                 </div>
@@ -1103,15 +1103,15 @@ export default function CamerasPage() {
             {/* Tab 2: CCTV Edge Daemon Setup Guide */}
             {previewTab === 'instructions' && (
               <div className="space-y-3.5 text-xs">
-                <div className="p-3 rounded-xl bg-emerald-950/30 border border-emerald-500/30 text-slate-300 space-y-1">
+                <div className="p-3 rounded-xl bg-emerald-950/30 border border-emerald-500/30 text-neutral-300 space-y-1">
                   <p className="font-bold text-white text-xs">How to connect physical CCTV cameras to AuraPass:</p>
-                  <p className="text-[11px] text-slate-400 leading-relaxed">
+                  <p className="text-[11px] text-neutral-400 leading-relaxed">
                     Because browsers cannot connect directly to raw RTSP sockets, run our lightweight Python edge streamer on any PC or server connected to your CCTV network.
                   </p>
                 </div>
 
                 <div className="space-y-1.5">
-                  <span className="font-bold text-slate-300 text-[11px] uppercase font-mono-tag">Step 1: One-Line Streamer Command</span>
+                  <span className="font-bold text-neutral-300 text-[11px] uppercase font-mono-tag">Step 1: One-Line Streamer Command</span>
                   <div className="relative p-3 rounded-xl bg-[#07090F] border border-white/10 font-mono text-[11px] text-emerald-400 break-all select-all">
                     <code>
                       python edge_streamer.py --stream "{parseCameraMeta(activePreviewCam).url || 'rtsp://admin:pass@192.168.1.108:554/live'}" --key "{activePreviewCam.api_key}" --server "{window.location.origin}"
@@ -1123,7 +1123,7 @@ export default function CamerasPage() {
                         setCopiedDaemonCmd(true);
                         setTimeout(() => setCopiedDaemonCmd(false), 2000);
                       }}
-                      className="absolute top-2 right-2 p-1.5 rounded-md bg-white/[0.05] hover:bg-white/10 text-slate-300 hover:text-white"
+                      className="absolute top-2 right-2 p-1.5 rounded-md bg-white/[0.05] hover:bg-white/10 text-neutral-300 hover:text-white"
                       title="Copy Command"
                     >
                       {copiedDaemonCmd ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
@@ -1132,8 +1132,8 @@ export default function CamerasPage() {
                 </div>
 
                 <div className="space-y-1.5">
-                  <span className="font-bold text-slate-300 text-[11px] uppercase font-mono-tag">Step 2: Stream Requirements</span>
-                  <ul className="space-y-1 text-slate-400 text-[11px] list-disc list-inside">
+                  <span className="font-bold text-neutral-300 text-[11px] uppercase font-mono-tag">Step 2: Stream Requirements</span>
+                  <ul className="space-y-1 text-neutral-400 text-[11px] list-disc list-inside">
                     <li>Camera and edge PC must share the same local subnetwork (or VPN).</li>
                     <li>RTSP Port 554 must be open and accessible on the camera.</li>
                     <li>Supports any resolution (1080p, 720p, 4K) — frames are auto-resized to 720p for fast inference.</li>
@@ -1146,7 +1146,7 @@ export default function CamerasPage() {
             <div className="pt-2 flex justify-end">
               <button
                 onClick={() => setActivePreviewCam(null)}
-                className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-white/[0.05] hover:bg-slate-200 dark:hover:bg-white/10 text-xs font-semibold text-slate-700 dark:text-slate-300 transition-colors"
+                className="px-4 py-2 rounded-xl bg-[#171717] hover:bg-[#262626] border border-[#262626] text-xs font-semibold text-neutral-300 transition-colors"
               >
                 Close Viewer
               </button>

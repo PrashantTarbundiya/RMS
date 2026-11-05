@@ -3,7 +3,7 @@ import { CreditCard, KeyRound, ShieldAlert, Cpu, Fingerprint, LockKeyhole } from
 
 export default function ProblemSection() {
   return (
-    <section className="py-20 px-4 sm:px-6 border-t border-zinc-800/80 bg-[#07090E]">
+    <section className="py-20 px-4 sm:px-6 border-t border-[#262626] bg-[#0A0A0A]">
       <div className="max-w-6xl mx-auto">
         <div className="text-center mb-14">
           <p className="text-xs font-semibold uppercase tracking-wider text-emerald-400 mb-2">
@@ -73,7 +73,7 @@ export default function ProblemSection() {
           </div>
 
           {/* Panel 2: AuraPass™ Cryptographic Edge Attestation */}
-          <div className="p-7 rounded-lg bg-zinc-950/80 border border-blue-900/40 flex flex-col justify-between">
+          <div className="p-7 rounded-lg bg-zinc-950/80 border border-emerald-500/30 flex flex-col justify-between">
             <div>
               <div className="flex items-center justify-between pb-4 border-b border-zinc-800/80 mb-5">
                 <div className="flex items-center gap-2.5">
@@ -91,7 +91,7 @@ export default function ProblemSection() {
               </div>
 
               <div className="space-y-4">
-                <div className="flex items-start gap-3 p-3.5 rounded-md bg-zinc-900/60 border border-blue-950/60">
+                <div className="flex items-start gap-3 p-3.5 rounded-md bg-zinc-900/60 border border-[#262626]">
                   <Cpu className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
                   <div>
                     <div className="flex items-center justify-between">
@@ -104,7 +104,7 @@ export default function ProblemSection() {
                   </div>
                 </div>
 
-                <div className="flex items-start gap-3 p-3.5 rounded-md bg-zinc-900/60 border border-blue-950/60">
+                <div className="flex items-start gap-3 p-3.5 rounded-md bg-zinc-900/60 border border-[#262626]">
                   <LockKeyhole className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
                   <div>
                     <div className="flex items-center justify-between">

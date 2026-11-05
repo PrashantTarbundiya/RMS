@@ -312,7 +312,7 @@ export default function ModelsPage() {
                     checked={enableFacenet512}
                     onChange={e => handleToggleFacenet512(e.target.checked)}
                   />
-                  <div className="w-11 h-6 bg-[#23252A] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#059669]"></div>
+                  <div className="w-11 h-6 bg-[#262626] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#059669]"></div>
                 </label>
               </div>
 
@@ -334,7 +334,7 @@ export default function ModelsPage() {
                     checked={enableInsightFace}
                     onChange={e => handleToggleInsightFace(e.target.checked)}
                   />
-                  <div className="w-11 h-6 bg-[#23252A] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#059669]"></div>
+                  <div className="w-11 h-6 bg-[#262626] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#059669]"></div>
                 </label>
               </div>
 
@@ -356,7 +356,7 @@ export default function ModelsPage() {
                     checked={showConfidence}
                     onChange={e => handleToggleConfidence(e.target.checked)}
                   />
-                  <div className="w-11 h-6 bg-[#23252A] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#059669]"></div>
+                  <div className="w-11 h-6 bg-[#262626] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#059669]"></div>
                 </label>
               </div>
 
@@ -565,7 +565,7 @@ export default function ModelsPage() {
                     <th className="py-2.5 px-4">Status</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#23252A]/50 font-mono text-[11px]">
+                <tbody className="divide-y divide-[#262626]/50 font-mono text-[11px]">
                   {trainingHistory.map((item, idx) => (
                     <tr key={idx} className="hover:bg-white/[0.02] transition-colors">
                       <td className="py-2.5 px-4 text-muted-foreground">

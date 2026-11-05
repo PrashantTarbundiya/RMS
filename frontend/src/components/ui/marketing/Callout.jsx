@@ -16,22 +16,22 @@ export default function Callout({
 }) {
   const configs = {
     note: {
-      border: 'border-white/10 bg-[#0B1013]',
+      border: 'border-border bg-secondary/50',
       icon: Info,
-      iconColor: 'text-[#9AA7A3]',
-      titleColor: 'text-[#F3F6F5]',
+      iconColor: 'text-muted-foreground',
+      titleColor: 'text-foreground',
     },
     important: {
-      border: 'border-[#3DDC97]/30 bg-[#3DDC97]/[0.05]',
+      border: 'border-emerald-500/30 bg-emerald-500/10',
       icon: ShieldCheck,
-      iconColor: 'text-[#3DDC97]',
-      titleColor: 'text-[#3DDC97]',
+      iconColor: 'text-emerald-600 dark:text-emerald-400',
+      titleColor: 'text-emerald-700 dark:text-emerald-400',
     },
     warning: {
-      border: 'border-white/20 bg-[#10171B]',
+      border: 'border-amber-500/30 bg-amber-500/10',
       icon: AlertTriangle,
-      iconColor: 'text-[#F3F6F5]',
-      titleColor: 'text-[#F3F6F5]',
+      iconColor: 'text-amber-600 dark:text-amber-400',
+      titleColor: 'text-amber-700 dark:text-amber-400',
     },
   };
 
@@ -40,19 +40,17 @@ export default function Callout({
 
   return (
     <div
-      className={`p-4 sm:p-5 rounded-xl border text-sm leading-relaxed my-6 ${config.border} ${className}`}
+      className={`p-4 sm:p-5 rounded-xl border text-xs sm:text-sm leading-relaxed my-6 ${config.border} ${className}`}
     >
       <div className="flex items-start gap-3">
-        <Icon className={`w-4 h-4 shrink-0 mt-0.5 stroke-[1.5] ${config.iconColor}`} />
-        <div className="space-y-1">
+        <Icon className={`w-4 h-4 shrink-0 mt-0.5 stroke-[2] ${config.iconColor}`} />
+        <div className="space-y-1 w-full">
           {title && (
             <p className={`font-mono text-xs font-semibold tracking-wider uppercase ${config.titleColor}`}>
               {title}
             </p>
           )}
-          <div className="text-[#9AA7A3] text-[15px] leading-relaxed font-normal">
-            {children}
-          </div>
+          <div className="text-muted-foreground leading-relaxed">{children}</div>
         </div>
       </div>
     </div>

@@ -49,7 +49,7 @@ export default function Modal({ isOpen, onClose, title, children, footer }) {
               maxWidth: '500px',
               background: 'var(--surface-elevated, #FFFFFF)',
               border: '1px solid var(--border, #E5E7EB)',
-              color: 'var(--ink, #111827)',
+              color: 'var(--text-primary, #FAFAFA)',
               borderRadius: 'var(--radius-md)',
               boxShadow: 'var(--shadow-lg)',
               display: 'flex',
