@@ -393,7 +393,7 @@ export default function CamerasPage() {
           <select
             value={cameraStatusFilter}
             onChange={(e) => setCameraStatusFilter(e.target.value)}
-            className="input-linear h-10 px-3 text-caption text-ink bg-[#0F1011] border border-[#23252A] rounded-lg cursor-pointer focus:outline-none w-full sm:w-auto"
+            className="input-linear h-10 px-3 text-caption text-ink bg-card border border-border text-foreground rounded-lg cursor-pointer focus:outline-none w-full sm:w-auto"
           >
             <option value="all">All Devices ({cameras.length})</option>
             <option value="active">Active Devices</option>
@@ -403,7 +403,7 @@ export default function CamerasPage() {
       </div>
 
       {/* Camera List */}
-      <div className="card-linear p-0 overflow-hidden border border-white/[0.08] rounded-xl bg-[#0B0D14]">
+      <div className="card-linear p-0 overflow-hidden border border-border rounded-xl bg-card shadow-sm">
         {loading ? (
           <div className="py-12 text-center text-ink-tertiary text-caption flex items-center justify-center gap-2">
             <Loader2 className="w-4 h-4 animate-spin text-emerald-400" />
@@ -448,7 +448,7 @@ export default function CamerasPage() {
             </button>
           </div>
         ) : (
-          <div className="divide-y divide-white/[0.06]">
+          <div className="divide-y divide-border">
             {cameras
               .filter(cam => {
                 const meta = parseCameraMeta(cam);
@@ -468,7 +468,7 @@ export default function CamerasPage() {
                 const isVirtual = meta.type === 'virtual';
 
                 return (
-                  <div key={cam.id} className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-white/[0.02] transition-colors">
+                  <div key={cam.id} className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-secondary/50 transition-colors">
                     <div className="flex items-start sm:items-center gap-3.5">
                       <div className={`p-3 rounded-xl border shrink-0 ${
                         isRtsp 
@@ -481,7 +481,7 @@ export default function CamerasPage() {
                       </div>
                       <div>
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-sm font-semibold text-white">{cam.name}</span>
+                          <span className="text-sm font-semibold text-foreground">{cam.name}</span>
                           <span className="px-2 py-0.5 rounded-full text-[10px] font-mono bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 font-bold">
                             Active
                           </span>
@@ -721,7 +721,7 @@ export default function CamerasPage() {
           <div className="relative w-full max-w-xl bg-white dark:bg-[#0D0F17] border border-slate-200 dark:border-white/10 rounded-2xl p-5 sm:p-7 shadow-2xl space-y-5 my-auto max-h-[92vh] overflow-y-auto">
             
             {/* Modal Header */}
-            <div className="flex justify-between items-start pb-2 border-b border-white/[0.08]">
+            <div className="flex justify-between items-start pb-2 border-b border-border">
               <div>
                 <h2 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
                   <Camera className="w-5 h-5 text-emerald-400" />
@@ -825,7 +825,7 @@ export default function CamerasPage() {
 
               {/* RTSP Specific Settings */}
               {streamType === 'rtsp' && (
-                <div className="p-4 rounded-xl bg-slate-50 dark:bg-black/40 border border-slate-200 dark:border-white/[0.08] space-y-3.5">
+                <div className="p-4 rounded-xl bg-slate-50 dark:bg-black/40 border border-slate-200 dark:border-border space-y-3.5">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-bold text-slate-800 dark:text-slate-200">Select Brand Preset</span>
                     <span className="text-[10px] text-emerald-400 font-mono-tag">Auto-Configures Stream Format</span>
@@ -950,7 +950,7 @@ export default function CamerasPage() {
               )}
 
               {/* Action Buttons */}
-              <div className="flex justify-end gap-2.5 pt-3 border-t border-white/[0.08]">
+              <div className="flex justify-end gap-2.5 pt-3 border-t border-border">
                 <button
                   type="button"
                   onClick={() => setShowAddModal(false)}
@@ -980,7 +980,7 @@ export default function CamerasPage() {
           <div className="relative w-full max-w-2xl bg-white dark:bg-[#0D0F17] border border-slate-200 dark:border-white/10 rounded-2xl p-5 sm:p-7 shadow-2xl space-y-4 my-auto max-h-[92vh] overflow-y-auto">
             
             {/* Modal Header */}
-            <div className="flex justify-between items-start pb-2 border-b border-white/[0.08]">
+            <div className="flex justify-between items-start pb-2 border-b border-border">
               <div>
                 <div className="flex items-center gap-2">
                   <h3 className="text-base font-bold text-slate-900 dark:text-white">{activePreviewCam.name}</h3>

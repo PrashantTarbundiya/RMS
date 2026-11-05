@@ -928,7 +928,7 @@ export default function AttendancePage() {
 
         <motion.div variants={itemVariants} className="grid grid-cols-3 gap-2 sm:gap-4">
 
-          <div className="p-2.5 sm:p-4 bg-[#0F1011] border border-[#23252A] rounded-xl flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3">
+          <div className="p-2.5 sm:p-4 bg-card border border-border text-card-foreground rounded-xl flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3 shadow-sm">
 
             <div className="p-1.5 sm:p-2 rounded-lg bg-emerald-500/10 text-emerald-400 shrink-0">
 
@@ -954,7 +954,7 @@ export default function AttendancePage() {
 
 
 
-          <div className="p-2.5 sm:p-4 bg-[#0F1011] border border-[#23252A] rounded-xl flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3">
+          <div className="p-2.5 sm:p-4 bg-card border border-border text-card-foreground rounded-xl flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3 shadow-sm">
 
             <div className="p-1.5 sm:p-2 rounded-lg bg-emerald-500/10 text-emerald-400 shrink-0">
 
@@ -980,7 +980,7 @@ export default function AttendancePage() {
 
 
 
-          <div className="p-2.5 sm:p-4 bg-[#0F1011] border border-[#23252A] rounded-xl flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3">
+          <div className="p-2.5 sm:p-4 bg-card border border-border text-card-foreground rounded-xl flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3 shadow-sm">
 
             <div className="p-1.5 sm:p-2 rounded-lg bg-emerald-500/10 text-emerald-400 shrink-0">
 
@@ -1072,7 +1072,7 @@ export default function AttendancePage() {
 
                 onChange={(e) => { setDateFilter(e.target.value); updateParam('date', e.target.value); }}
 
-                style={{ colorScheme: 'dark' }}
+                
 
               />
 
@@ -1090,7 +1090,7 @@ export default function AttendancePage() {
 
                 onChange={(e) => { setStatusFilter(e.target.value); updateParam('status', e.target.value, 'all'); }}
 
-                className="input-linear h-10 px-2.5 sm:px-3 text-caption text-ink bg-[#0F1011] border border-[#23252A] rounded-lg cursor-pointer focus:outline-none w-full"
+                className="input-linear h-10 px-2.5 sm:px-3 text-caption text-ink bg-card border border-border rounded-lg cursor-pointer focus:outline-none w-full"
 
               >
 
@@ -1112,7 +1112,7 @@ export default function AttendancePage() {
 
                 onChange={(e) => { setSortBy(e.target.value); updateParam('sort', e.target.value, 'newest'); }}
 
-                className="input-linear h-10 px-2.5 sm:px-3 text-caption text-ink bg-[#0F1011] border border-[#23252A] rounded-lg cursor-pointer focus:outline-none w-full"
+                className="input-linear h-10 px-2.5 sm:px-3 text-caption text-ink bg-card border border-border rounded-lg cursor-pointer focus:outline-none w-full"
 
               >
 
@@ -1198,7 +1198,7 @@ export default function AttendancePage() {
 
             className={`px-2.5 py-1 rounded-md text-xs font-medium transition-all ${
 
-              !dateFilter ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30' : 'bg-[#141516] border border-[#23252A] hover:border-[#383A42]'
+              !dateFilter ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30' : 'bg-secondary border border-border hover:border-slate-400 dark:hover:border-slate-600 text-foreground'
 
             }`}
 
@@ -1218,7 +1218,7 @@ export default function AttendancePage() {
 
                 ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
 
-                : 'bg-[#141516] border border-[#23252A] hover:border-[#383A42]'
+                : 'bg-secondary border border-border hover:border-slate-400 dark:hover:border-slate-600 text-foreground'
 
             }`}
 
@@ -1238,7 +1238,7 @@ export default function AttendancePage() {
 
                 ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
 
-                : 'bg-[#141516] border border-[#23252A] hover:border-[#383A42]'
+                : 'bg-secondary border border-border hover:border-slate-400 dark:hover:border-slate-600 text-foreground'
 
             }`}
 
@@ -1258,7 +1258,7 @@ export default function AttendancePage() {
 
                 ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
 
-                : 'bg-[#141516] border border-[#23252A] hover:border-[#383A42]'
+                : 'bg-secondary border border-border hover:border-slate-400 dark:hover:border-slate-600 text-foreground'
 
             }`}
 
@@ -1304,7 +1304,7 @@ export default function AttendancePage() {
 
         ) : filteredData.length === 0 ? (
 
-          <div className="card-linear p-0 bg-[#0F1011] border-[#23252A]">
+          <div className="card-linear p-0 bg-card border border-border rounded-xl shadow-sm">
 
             <EmptyState
 
@@ -1320,15 +1320,15 @@ export default function AttendancePage() {
 
         ) : (
 
-          <div className="card-linear p-0 overflow-hidden bg-[#0F1011] border-[#23252A]">
+          <div className="card-linear p-0 overflow-hidden bg-card border border-border rounded-xl shadow-sm">
 
             {/* Mobile Cards (Visible below 640px) */}
 
-            <div className="block sm:hidden divide-y divide-[#23252A]/50 max-h-[600px] overflow-y-auto">
+            <div className="block sm:hidden divide-y divide-border/60 max-h-[600px] overflow-y-auto">
 
               {paginatedData.map((record, idx) => (
 
-                <div key={idx} className="p-3.5 space-y-2 hover:bg-[#141516]/60 transition-colors">
+                <div key={idx} className="p-3.5 space-y-2 hover:bg-secondary/50 transition-colors">
 
                   <div className="flex items-start justify-between gap-2">
 
@@ -1400,7 +1400,7 @@ export default function AttendancePage() {
 
               <table className="w-full text-left text-caption whitespace-nowrap">
 
-                <thead className="sticky top-0 bg-[#0F1011] border-b border-[#23252A] z-10">
+                <thead className="sticky top-0 bg-secondary/80 backdrop-blur-sm border-b border-border z-10">
 
                   <tr>
 
@@ -1420,11 +1420,11 @@ export default function AttendancePage() {
 
                 </thead>
 
-                <tbody className="divide-y divide-[#23252A]/50">
+                <tbody className="divide-y divide-border/60">
 
                   {paginatedData.map((record, idx) => (
 
-                    <tr key={idx} className="hover:bg-[#141516]/60 transition-colors group">
+                    <tr key={idx} className="hover:bg-secondary/50 transition-colors group">
 
                       <td className="px-6 py-3.5 text-ink-muted font-mono text-[12px]">
 
@@ -1506,7 +1506,7 @@ export default function AttendancePage() {
 
             </div>
 
-            <div className="px-4 sm:px-6 py-3 border-t border-[#23252A] bg-[#0F1011] text-xs text-ink-tertiary flex flex-col sm:flex-row items-center justify-between gap-3">
+            <div className="px-4 sm:px-6 py-3 border-t border-border bg-card text-xs text-ink-tertiary flex flex-col sm:flex-row items-center justify-between gap-3">
 
               <span className="font-mono text-[11px]">
 
@@ -1524,7 +1524,7 @@ export default function AttendancePage() {
 
                   disabled={currentPage <= 1}
 
-                  className="px-2.5 py-1 rounded bg-[#141516] border border-[#23252A] text-caption text-ink-subtle hover:text-ink disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                  className="px-2.5 py-1 rounded bg-secondary border border-border text-caption text-ink-subtle hover:text-ink disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
 
                 >
 
@@ -1546,7 +1546,7 @@ export default function AttendancePage() {
 
                   disabled={currentPage >= totalPages}
 
-                  className="px-2.5 py-1 rounded bg-[#141516] border border-[#23252A] text-caption text-ink-subtle hover:text-ink disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                  className="px-2.5 py-1 rounded bg-secondary border border-border text-caption text-ink-subtle hover:text-ink disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
 
                 >
 
@@ -1572,9 +1572,9 @@ export default function AttendancePage() {
 
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-in fade-in duration-200">
 
-          <div className="bg-[#0F1011] border border-[#23252A] rounded-2xl w-full max-w-lg p-6 shadow-2xl space-y-5">
+          <div className="bg-card border border-border rounded-2xl w-full max-w-lg p-6 shadow-2xl space-y-5 text-card-foreground">
 
-            <div className="flex items-center justify-between pb-3 border-b border-[#23252A]">
+            <div className="flex items-center justify-between pb-3 border-b border-border">
 
               <div>
 
@@ -1588,7 +1588,7 @@ export default function AttendancePage() {
 
                 onClick={() => setIsManualModalOpen(false)}
 
-                className="p-1.5 rounded-lg text-ink-muted hover:text-ink hover:bg-[#1A1C20] transition-colors"
+                className="p-1.5 rounded-lg text-ink-muted hover:text-ink hover:bg-secondary/80 transition-colors"
 
               >
 
@@ -1614,7 +1614,7 @@ export default function AttendancePage() {
 
                   onChange={(e) => setManualForm({ ...manualForm, name: e.target.value })}
 
-                  className="input-linear w-full h-10 px-3 text-caption text-ink bg-[#141516] border border-[#23252A] rounded-lg focus:outline-none focus:border-emerald-500/50 cursor-pointer"
+                  className="input-linear w-full h-10 px-3 text-caption text-ink bg-secondary border border-border text-foreground rounded-lg focus:outline-none focus:border-emerald-500/50 cursor-pointer"
 
                 >
 
@@ -1626,7 +1626,7 @@ export default function AttendancePage() {
 
                     return (
 
-                      <option key={idx} value={rawVal} className="bg-[#141516] text-white">
+                      <option key={idx} value={rawVal} className="bg-card text-foreground">
 
                         {formatPersonName(rawVal)}
 
@@ -1660,9 +1660,9 @@ export default function AttendancePage() {
 
                     onChange={(e) => setManualForm({ ...manualForm, date: e.target.value })}
 
-                    className="input-linear w-full h-10 px-3 text-caption text-ink bg-[#141516] border border-[#23252A] rounded-lg focus:outline-none"
+                    className="input-linear w-full h-10 px-3 text-caption text-ink bg-secondary border border-border text-foreground rounded-lg focus:outline-none"
 
-                    style={{ colorScheme: 'dark' }}
+                    
 
                   />
 
@@ -1684,9 +1684,9 @@ export default function AttendancePage() {
 
                     onChange={(e) => setManualForm({ ...manualForm, time: e.target.value })}
 
-                    className="input-linear w-full h-10 px-3 text-caption text-ink bg-[#141516] border border-[#23252A] rounded-lg focus:outline-none"
+                    className="input-linear w-full h-10 px-3 text-caption text-ink bg-secondary border border-border text-foreground rounded-lg focus:outline-none"
 
-                    style={{ colorScheme: 'dark' }}
+                    
 
                   />
 
@@ -1708,7 +1708,7 @@ export default function AttendancePage() {
 
                     onChange={(e) => setManualForm({ ...manualForm, event_type: e.target.value })}
 
-                    className="input-linear w-full h-10 px-3 text-caption text-ink bg-[#141516] border border-[#23252A] rounded-lg cursor-pointer focus:outline-none"
+                    className="input-linear w-full h-10 px-3 text-caption text-ink bg-secondary border border-border text-foreground rounded-lg cursor-pointer focus:outline-none"
 
                   >
 
@@ -1730,7 +1730,7 @@ export default function AttendancePage() {
 
                     onChange={(e) => setManualForm({ ...manualForm, status: e.target.value })}
 
-                    className="input-linear w-full h-10 px-3 text-caption text-ink bg-[#141516] border border-[#23252A] rounded-lg cursor-pointer focus:outline-none"
+                    className="input-linear w-full h-10 px-3 text-caption text-ink bg-secondary border border-border text-foreground rounded-lg cursor-pointer focus:outline-none"
 
                   >
 
@@ -1764,7 +1764,7 @@ export default function AttendancePage() {
 
                   onChange={(e) => setManualForm({ ...manualForm, department: e.target.value })}
 
-                  className="input-linear w-full h-10 px-3 text-caption text-ink bg-[#141516] border border-[#23252A] rounded-lg focus:outline-none"
+                  className="input-linear w-full h-10 px-3 text-caption text-ink bg-secondary border border-border text-foreground rounded-lg focus:outline-none"
 
                 />
 
@@ -1786,7 +1786,7 @@ export default function AttendancePage() {
 
                   onChange={(e) => setManualForm({ ...manualForm, notes: e.target.value })}
 
-                  className="input-linear w-full h-10 px-3 text-caption text-ink bg-[#141516] border border-[#23252A] rounded-lg focus:outline-none"
+                  className="input-linear w-full h-10 px-3 text-caption text-ink bg-secondary border border-border text-foreground rounded-lg focus:outline-none"
 
                 />
 
@@ -1794,7 +1794,7 @@ export default function AttendancePage() {
 
 
 
-              <div className="flex items-center justify-end gap-3 pt-3 border-t border-[#23252A]">
+              <div className="flex items-center justify-end gap-3 pt-3 border-t border-border">
 
                 <button
 

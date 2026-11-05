@@ -143,3 +143,4 @@ with open('frontend/src/index.css', 'w', encoding='utf-8') as f:
     f.write(css)
 
 print("index.css updated successfully!")
+

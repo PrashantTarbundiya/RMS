@@ -177,3 +177,4 @@ with open('frontend/src/pages/DepartmentsPage.jsx', 'w', encoding='utf-8') as f:
     f.write(txt)
 
 print("DepartmentsPage.jsx updated successfully!")
+

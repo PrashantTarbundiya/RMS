@@ -297,7 +297,7 @@ export default function ProfilePage() {
 
       {/* ── Executive Identity Header ── */}
 
-      <div className="relative overflow-hidden rounded-2xl border border-[#23252A] bg-gradient-to-b from-[#141517] via-[#0F1011] to-[#0A0B0C] p-6 sm:p-8 shadow-2xl">
+      <div className="relative overflow-hidden rounded-2xl border border-border bg-card p-6 sm:p-8 shadow-sm dark:shadow-2xl text-card-foreground">
 
         {/* Glow ambient background element */}
 
@@ -319,7 +319,7 @@ export default function ProfilePage() {
 
               </div>
 
-              <span className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-emerald-500 border-2 border-[#0F1011] ring-2 ring-emerald-500/30" />
+              <span className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-emerald-500 border-2 border-card ring-2 ring-emerald-500/30" />
 
             </div>
 
@@ -331,7 +331,7 @@ export default function ProfilePage() {
 
               <div className="flex flex-wrap items-center gap-2">
 
-                <h1 className="text-xl sm:text-2xl font-bold text-white tracking-tight">
+                <h1 className="text-xl sm:text-2xl font-bold text-foreground tracking-tight">
 
                   {user?.name || 'Vatsal Vadgama'}
 
@@ -345,7 +345,7 @@ export default function ProfilePage() {
 
               </div>
 
-              <p className="text-xs sm:text-sm text-zinc-400 font-mono">
+              <p className="text-xs sm:text-sm text-muted-foreground font-mono">
 
                 {user?.email || 'vatsalvadgama02@gmail.com'}
 
@@ -353,7 +353,7 @@ export default function ProfilePage() {
 
               <div className="flex flex-wrap items-center gap-3 pt-1 text-xs text-zinc-400">
 
-                <span className="flex items-center gap-1.5 text-zinc-300 font-medium">
+                <span className="flex items-center gap-1.5 text-foreground font-medium">
 
                   <Building size={14} className="text-emerald-400" />
 
@@ -475,7 +475,7 @@ export default function ProfilePage() {
 
               exit={{ opacity: 0, height: 0 }}
 
-              className="mt-6 pt-5 border-t border-[#23252A] flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-[#090A0C]/60 p-4 rounded-xl border border-zinc-800"
+              className="mt-6 pt-5 border-t border-border flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-secondary/50 p-4 rounded-xl border border-border"
 
             >
 
@@ -493,7 +493,7 @@ export default function ProfilePage() {
 
                   placeholder="Enter organization name"
 
-                  className="input-linear text-sm py-1.5 px-3 h-9 w-full sm:max-w-md text-white font-medium"
+                  className="input-linear text-sm py-1.5 px-3 h-9 w-full sm:max-w-md text-foreground font-medium bg-card border border-border"
 
                   autoFocus
 
@@ -576,7 +576,7 @@ export default function ProfilePage() {
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
 
-            <div className="card-linear p-5 bg-[#0F1011] border-[#23252A] space-y-2">
+            <div className="card-linear p-5 bg-card border border-border text-card-foreground rounded-xl space-y-2 shadow-sm">
 
               <div className="flex items-center justify-between text-zinc-400 text-xs">
 
@@ -586,7 +586,7 @@ export default function ProfilePage() {
 
               </div>
 
-              <div className="stat-number text-lg sm:text-2xl text-white">
+              <div className="stat-number text-lg sm:text-2xl text-foreground font-bold">
 
                 {stats?.total_people || 0}
 
@@ -598,7 +598,7 @@ export default function ProfilePage() {
 
 
 
-            <div className="card-linear p-5 bg-[#0F1011] border-[#23252A] space-y-2">
+            <div className="card-linear p-5 bg-card border border-border text-card-foreground rounded-xl space-y-2 shadow-sm">
 
               <div className="flex items-center justify-between text-zinc-400 text-xs">
 
@@ -608,7 +608,7 @@ export default function ProfilePage() {
 
               </div>
 
-              <div className="stat-number text-lg sm:text-2xl text-white">
+              <div className="stat-number text-lg sm:text-2xl text-foreground font-bold">
 
                 {stats?.total_photos || 0}
 
@@ -620,7 +620,7 @@ export default function ProfilePage() {
 
 
 
-            <div className="card-linear p-5 bg-[#0F1011] border-[#23252A] space-y-2">
+            <div className="card-linear p-5 bg-card border border-border text-card-foreground rounded-xl space-y-2 shadow-sm">
 
               <div className="flex items-center justify-between text-zinc-400 text-xs">
 
@@ -642,7 +642,7 @@ export default function ProfilePage() {
 
 
 
-            <div className="card-linear p-5 bg-[#0F1011] border-[#23252A] space-y-2">
+            <div className="card-linear p-5 bg-card border border-border text-card-foreground rounded-xl space-y-2 shadow-sm">
 
               <div className="flex items-center justify-between text-zinc-400 text-xs">
 
@@ -652,7 +652,7 @@ export default function ProfilePage() {
 
               </div>
 
-              <div className="text-lg font-bold text-white font-mono mt-1">
+              <div className="text-lg font-bold text-foreground font-mono mt-1">
 
                 Local Sovereign
 
@@ -668,13 +668,13 @@ export default function ProfilePage() {
 
           {/* Genuine Enrolled Team Members Roster */}
 
-          <div className="card-linear p-0 bg-[#0F1011] border-[#23252A] overflow-hidden">
+          <div className="card-linear p-0 bg-card border border-border rounded-xl overflow-hidden shadow-sm">
 
-            <div className="p-5 border-b border-[#23252A] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="p-5 border-b border-border flex flex-col sm:flex-row sm:items-center justify-between gap-3">
 
               <div>
 
-                <h3 className="text-sm font-semibold text-white flex items-center gap-2">
+                <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
 
                   <Users size={16} className="text-emerald-400" />
 
@@ -751,7 +751,7 @@ export default function ProfilePage() {
                   {stats.people.map(person => (
                     <div
                       key={person.name}
-                      className="p-3 rounded-xl border border-[#23252A] bg-[#0A0B0D] hover:border-[#34343A] transition-all flex items-center justify-between gap-2.5"
+                      className="p-3 rounded-xl border border-border bg-secondary/40 hover:bg-secondary/70 transition-all flex items-center justify-between gap-2.5"
                     >
                       <div className="flex items-center gap-2.5 min-w-0 flex-1">
                         <div className="w-8 h-8 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center font-semibold text-xs text-emerald-400 shrink-0">
@@ -790,11 +790,11 @@ export default function ProfilePage() {
 
           {/* Organization Parameters */}
 
-          <div data-tour="org-settings" className="card-linear p-0 bg-[#0F1011] border-[#23252A]">
+          <div data-tour="org-settings" className="card-linear p-0 bg-card border border-border rounded-xl shadow-sm">
 
-            <div className="p-5 border-b border-[#23252A]">
+            <div className="p-5 border-b border-border">
 
-              <h3 className="text-sm font-semibold text-white">Organization Parameters</h3>
+              <h3 className="text-sm font-semibold text-foreground">Organization Parameters</h3>
 
               <p className="text-xs text-zinc-400 mt-0.5">Workspace routing and governance parameters.</p>
 
@@ -802,7 +802,7 @@ export default function ProfilePage() {
 
             <div className="p-5 space-y-4 text-xs">
 
-              <div className="flex items-center justify-between py-1 border-b border-[#23252A]/50 pb-3">
+              <div className="flex items-center justify-between py-1 border-b border-border/60 pb-3">
 
                 <span className="text-zinc-400 font-medium">Tenant Display Name</span>
 
@@ -810,11 +810,11 @@ export default function ProfilePage() {
 
               </div>
 
-              <div className="flex items-center justify-between py-1 border-b border-[#23252A]/50 pb-3">
+              <div className="flex items-center justify-between py-1 border-b border-border/60 pb-3">
 
                 <span className="text-zinc-400 font-medium">Organization UUID</span>
 
-                <span className="font-mono text-zinc-300 text-[10px] sm:text-[11px] bg-black/40 px-2 py-0.5 rounded border border-[#23252A] break-all max-w-[180px] sm:max-w-none text-right">
+                <span className="font-mono text-foreground text-[10px] sm:text-[11px] bg-secondary px-2 py-0.5 rounded border border-border break-all max-w-[180px] sm:max-w-none text-right">
 
                   {user?.org_id || 'default-org-local'}
 
@@ -822,7 +822,7 @@ export default function ProfilePage() {
 
               </div>
 
-              <div className="flex items-center justify-between py-1 border-b border-[#23252A]/50 pb-3">
+              <div className="flex items-center justify-between py-1 border-b border-border/60 pb-3">
 
                 <span className="text-zinc-400 font-medium">Primary Administrator</span>
 
@@ -852,11 +852,11 @@ export default function ProfilePage() {
 
       {activeTab === 'notifications' && (
 
-        <div className="card-linear p-0 bg-[#0F1011] border-[#23252A] space-y-6">
+        <div className="card-linear p-0 bg-card border border-border rounded-xl space-y-6 shadow-sm">
 
-          <div className="p-5 border-b border-[#23252A]">
+          <div className="p-5 border-b border-border">
 
-            <h3 className="text-sm font-semibold text-white flex items-center gap-2">
+            <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
 
               <Bell size={16} className="text-emerald-400" />
 
@@ -886,7 +886,7 @@ export default function ProfilePage() {
 
             ].map(item => (
 
-              <div key={item.key} className="flex items-center justify-between p-3.5 rounded-xl bg-[#0A0B0D] border border-[#23252A]">
+              <div key={item.key} className="flex items-center justify-between p-3.5 rounded-xl bg-secondary/40 border border-border">
 
                 <div>
 
@@ -924,7 +924,7 @@ export default function ProfilePage() {
 
                   className={`relative w-11 h-6 rounded-full transition-colors cursor-pointer shrink-0 ml-4 ${
 
-                    notifPrefs?.[item.key] ? 'bg-[#059669]' : 'bg-[#23252A]'
+                    notifPrefs?.[item.key] ? 'bg-emerald-600' : 'bg-slate-300 dark:bg-slate-700'
 
                   }`}
 
@@ -950,7 +950,7 @@ export default function ProfilePage() {
 
 
 
-            <div className="pt-4 border-t border-[#23252A]">
+            <div className="pt-4 border-t border-border">
 
               <h4 className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-3">Notification Dispatch Channels</h4>
 
@@ -964,7 +964,7 @@ export default function ProfilePage() {
 
                 ].map(item => (
 
-                  <div key={item.key} className="flex items-center justify-between p-3.5 rounded-xl bg-[#0A0B0D] border border-[#23252A]">
+                  <div key={item.key} className="flex items-center justify-between p-3.5 rounded-xl bg-secondary/40 border border-border">
 
                     <div>
 
@@ -1002,7 +1002,7 @@ export default function ProfilePage() {
 
                       className={`relative w-11 h-6 rounded-full transition-colors cursor-pointer shrink-0 ml-4 ${
 
-                        notifPrefs?.[item.key] ? 'bg-[#059669]' : 'bg-[#23252A]'
+                        notifPrefs?.[item.key] ? 'bg-emerald-600' : 'bg-slate-300 dark:bg-slate-700'
 
                       }`}
 
@@ -1046,11 +1046,11 @@ export default function ProfilePage() {
 
           {/* Hardware & Core Specs */}
 
-          <div className="card-linear p-0 bg-[#0F1011] border-[#23252A]">
+          <div className="card-linear p-0 bg-card border border-border rounded-xl shadow-sm">
 
-            <div className="p-5 border-b border-[#23252A]">
+            <div className="p-5 border-b border-border">
 
-              <h3 className="text-sm font-semibold text-white flex items-center gap-2">
+              <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
 
                 <Cpu size={16} className="text-emerald-400" />
 
@@ -1062,7 +1062,7 @@ export default function ProfilePage() {
 
             <div className="p-5 grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
 
-              <div className="p-3.5 rounded-xl bg-[#0A0B0D] border border-[#23252A]">
+              <div className="p-3.5 rounded-xl bg-secondary/40 border border-border">
 
                 <div className="flex items-center gap-2 text-zinc-400 mb-1">
 
@@ -1082,7 +1082,7 @@ export default function ProfilePage() {
 
 
 
-              <div className="p-3.5 rounded-xl bg-[#0A0B0D] border border-[#23252A]">
+              <div className="p-3.5 rounded-xl bg-secondary/40 border border-border">
 
                 <div className="flex items-center gap-2 text-zinc-400 mb-1">
 
@@ -1102,7 +1102,7 @@ export default function ProfilePage() {
 
 
 
-              <div className="p-3.5 rounded-xl bg-[#0A0B0D] border border-[#23252A]">
+              <div className="p-3.5 rounded-xl bg-secondary/40 border border-border">
 
                 <div className="flex items-center gap-2 text-zinc-400 mb-1">
 
@@ -1130,13 +1130,13 @@ export default function ProfilePage() {
 
           {isAdmin && (
 
-            <div className="card-linear p-0 bg-[#0F1011] border-[#23252A]">
+            <div className="card-linear p-0 bg-card border border-border rounded-xl shadow-sm">
 
-              <div className="p-5 border-b border-[#23252A] flex items-center justify-between">
+              <div className="p-5 border-b border-border flex items-center justify-between">
 
                 <div>
 
-                  <h3 className="text-sm font-semibold text-white flex items-center gap-2">
+                  <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
 
                     <Package size={16} className="text-emerald-400" />
 
@@ -1164,7 +1164,7 @@ export default function ProfilePage() {
 
               <div className="p-5 space-y-4">
 
-                <div className="flex flex-wrap items-center justify-between gap-3 p-3.5 rounded-xl bg-[#0A0B0D] border border-[#23252A] text-xs">
+                <div className="flex flex-wrap items-center justify-between gap-3 p-3.5 rounded-xl bg-secondary/40 border border-border text-xs">
 
                   <div>
 
@@ -1264,7 +1264,7 @@ export default function ProfilePage() {
 
                 {/* Offline Air-Gapped Upload */}
 
-                <div className="pt-3 border-t border-[#23252A]">
+                <div className="pt-3 border-t border-border">
 
                   <h4 className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">Offline Air-Gapped Package Deployment</h4>
 

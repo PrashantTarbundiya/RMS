@@ -231,7 +231,7 @@ export default function AuditLogsPage() {
       </div>
 
       {/* Logs Container - Dual-mode (Mobile Cards + Desktop Table) */}
-      <div className="rounded-xl overflow-hidden border border-[#23252A] bg-[#0F1011]">
+      <div className="rounded-xl overflow-hidden border border-border bg-card shadow-sm">
         {isLoading ? (
           <SkeletonTable rows={6} cols={4} />
         ) : logs.length === 0 ? (
@@ -248,7 +248,7 @@ export default function AuditLogsPage() {
         ) : (
           <>
             {/* Mobile Cards (<640px) */}
-            <div className="sm:hidden divide-y divide-[#23252A]">
+            <div className="sm:hidden divide-y divide-border/60">
               <AnimatePresence>
                 {logs.map((log, idx) => (
                   <motion.div
@@ -256,7 +256,7 @@ export default function AuditLogsPage() {
                     initial={{ opacity: 0, y: 6 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: idx * 0.02 }}
-                    className="p-3.5 space-y-2.5 hover:bg-[#161719] transition-colors"
+                    className="p-3.5 space-y-2.5 hover:bg-secondary/50 transition-colors"
                   >
                     <div className="flex items-center justify-between gap-2">
                       <span className={`badge text-[10px] ${
@@ -311,7 +311,7 @@ export default function AuditLogsPage() {
                       )}
                     </div>
 
-                    <div className="flex items-center justify-between pt-1 border-t border-[#23252A]/50 text-[11px]">
+                    <div className="flex items-center justify-between pt-1 border-t border-border/60 text-[11px]">
                       <span className="text-ink-tertiary">
                         {log.timestamp ? new Date(log.timestamp).toLocaleDateString() : ''}
                       </span>
@@ -356,7 +356,7 @@ export default function AuditLogsPage() {
             <div className="hidden sm:block overflow-x-auto">
               <table className="w-full">
                 <thead>
-                  <tr className="border-b border-[#23252A]">
+                  <tr className="border-b border-border bg-secondary/60">
                     {['Type', 'Timestamp', 'Details', 'Status'].map(h => (
                       <th key={h} className="px-4 py-3 text-left text-[11px] font-semibold text-ink-tertiary uppercase tracking-wider">
                         {h}
@@ -372,7 +372,7 @@ export default function AuditLogsPage() {
                         initial={{ opacity: 0, y: 6 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: idx * 0.02 }}
-                        className="border-b border-[#23252A] table-row-hover"
+                        className="border-b border-border/60 table-row-hover"
                       >
                         {/* Type Badge */}
                         <td className="px-4 py-3">
@@ -487,7 +487,7 @@ export default function AuditLogsPage() {
                 className={`min-w-[36px] h-9 rounded-lg text-caption font-medium transition-all cursor-pointer ${
                   p === page 
                     ? 'bg-emerald-600 text-white border border-emerald-500' 
-                    : 'bg-[#0F1011] text-ink-subtle border border-[#23252A] hover:border-[#34343A]'
+                    : 'bg-secondary text-ink-subtle border border-border hover:border-slate-400 dark:hover:border-slate-600'
                 }`}
               >
                 {p}

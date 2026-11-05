@@ -333,7 +333,7 @@ export default function DepartmentsPage() {
       {activeTab === 'roster' && (
         <div className="space-y-4">
           {/* Subheader Toolbar: Synchronized height and padding to eliminate layout shift */}
-          <div className="card-linear px-4 py-3 bg-[#0F1011] border-[#23252A] rounded-xl flex flex-wrap items-center justify-between gap-3 min-h-[50px]">
+          <div className="card-linear px-4 py-3 bg-card border-border shadow-sm rounded-xl flex flex-wrap items-center justify-between gap-3 min-h-[50px]">
             <div className="relative flex-1 min-w-[200px]">
               <Search size={14} className="absolute left-3 top-2.5 text-ink-tertiary" />
               <input

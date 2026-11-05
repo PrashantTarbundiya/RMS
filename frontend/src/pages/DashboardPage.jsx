@@ -335,7 +335,7 @@ export default function DashboardPage() {
       )}
 
       {/* System Status Line (Calm) */}
-      <motion.div variants={itemVariants} className="flex flex-wrap gap-2.5 sm:gap-6 p-3 sm:p-4 bg-[#0F1011] border border-[#23252A] rounded-lg items-center text-caption text-ink-muted">
+      <motion.div variants={itemVariants} className="flex flex-wrap gap-2.5 sm:gap-6 p-3 sm:p-4 bg-card border border-border text-card-foreground shadow-sm rounded-lg items-center text-caption text-ink-muted">
         <div className="flex items-center gap-2">
           <span className="text-ink-subtle">Status:</span> 
           {requires_retrain ? (
@@ -371,7 +371,7 @@ export default function DashboardPage() {
 
       {/* Quick Actions */}
       <motion.div variants={itemVariants} className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <Link to="/upload" className="group p-4 bg-[#0F1011] border border-[#23252A] rounded-lg flex items-center gap-3 hover:border-[#059669]/40 hover:bg-[#059669]/5 transition-all">
+        <Link to="/upload" className="group p-4 bg-card border border-border text-card-foreground shadow-sm rounded-lg flex items-center gap-3 hover:border-[#059669]/40 hover:bg-[#059669]/5 transition-all">
           <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-400 group-hover:bg-emerald-500/20 transition-colors"><Upload size={18} /></div>
           <div>
             <div className="text-sm font-medium text-ink">Enroll Person</div>
@@ -379,7 +379,7 @@ export default function DashboardPage() {
           </div>
           <ArrowRight size={14} className="ml-auto text-ink-tertiary group-hover:text-emerald-400 transition-colors" />
         </Link>
-        <Link to="/test" className="group p-4 bg-[#0F1011] border border-[#23252A] rounded-lg flex items-center gap-3 hover:border-[#27A644]/40 hover:bg-[#27A644]/5 transition-all">
+        <Link to="/test" className="group p-4 bg-card border border-border text-card-foreground shadow-sm rounded-lg flex items-center gap-3 hover:border-[#27A644]/40 hover:bg-[#27A644]/5 transition-all">
           <div className="p-2 rounded-lg bg-[#27A644]/10 text-[#4ade80] group-hover:bg-[#27A644]/20 transition-colors"><Video size={18} /></div>
           <div>
             <div className="text-sm font-medium text-ink">Run Test</div>
@@ -387,7 +387,7 @@ export default function DashboardPage() {
           </div>
           <ArrowRight size={14} className="ml-auto text-ink-tertiary group-hover:text-[#4ade80] transition-colors" />
         </Link>
-        <Link to="/analytics" className="group p-4 bg-[#0F1011] border border-[#23252A] rounded-lg flex items-center gap-3 hover:border-[#FBBF24]/40 hover:bg-[#FBBF24]/5 transition-all">
+        <Link to="/analytics" className="group p-4 bg-card border border-border text-card-foreground shadow-sm rounded-lg flex items-center gap-3 hover:border-[#FBBF24]/40 hover:bg-[#FBBF24]/5 transition-all">
           <div className="p-2 rounded-lg bg-[#FBBF24]/10 text-[#fde68a] group-hover:bg-[#FBBF24]/20 transition-colors"><BarChart3 size={18} /></div>
           <div>
             <div className="text-sm font-medium text-ink">View Analytics</div>
@@ -400,8 +400,8 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         
         {/* Person Management Table */}
-        <div className="card-linear p-0 overflow-hidden flex flex-col">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between py-3 px-4 sm:py-4 sm:px-6 border-b border-[#23252A] gap-3 bg-[#0F1011]">
+        <div className="card-linear p-0 overflow-hidden flex flex-col bg-card border border-border rounded-xl shadow-sm">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between py-3 px-4 sm:py-4 sm:px-6 border-b border-border gap-3 bg-secondary/30">
             <h3 className="text-body font-medium text-ink">Enrollment Roster</h3>
             <div className="flex items-center gap-2">
               <input 
@@ -418,7 +418,7 @@ export default function DashboardPage() {
           <div className="overflow-x-auto max-h-[400px] relative">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="border-b border-[#23252A] bg-[#141516]/50">
+                <tr className="border-b border-border bg-secondary/60">
                   <th className="py-3 px-6 text-caption text-ink-subtle font-medium">Identifier</th>
                   <th className="py-3 px-6 text-caption text-ink-subtle font-medium">Samples</th>
                   <th className="py-3 px-6 text-right"></th>
@@ -439,7 +439,7 @@ export default function DashboardPage() {
                       const isDeleting = deletingPerson === name;
                       
                       return (
-                        <tr key={name} className="border-b border-[#23252A]/50 hover:bg-[#141516]/30 transition-colors">
+                        <tr key={name} className="border-b border-border/60 hover:bg-secondary/40 transition-colors">
                           <td className="py-3 px-6 text-mono text-ink">
                             {isEditing ? (
                               <div className="flex items-center gap-2">
@@ -496,8 +496,8 @@ export default function DashboardPage() {
         </div>
 
         {/* Recent Telemetry */}
-        <div className="card-linear p-0 overflow-hidden flex flex-col">
-          <div className="flex flex-row items-center justify-between py-3 px-4 sm:py-4 sm:px-6 border-b border-[#23252A] bg-[#0F1011]">
+        <div className="card-linear p-0 overflow-hidden flex flex-col bg-card border border-border rounded-xl shadow-sm">
+          <div className="flex flex-row items-center justify-between py-3 px-4 sm:py-4 sm:px-6 border-b border-border bg-secondary/30">
             <h3 className="text-body font-medium text-ink">Recent Activity</h3>
             {history.length > 0 && (
               <button 
@@ -511,14 +511,14 @@ export default function DashboardPage() {
           <div className="overflow-x-auto max-h-[400px] relative">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="border-b border-[#23252A] bg-[#141516]/50">
+                <tr className="border-b border-border bg-secondary/60">
                   <th className="py-3 px-6 text-caption text-ink-subtle font-medium">Timestamp</th>
                   <th className="py-3 px-6 text-caption text-ink-subtle font-medium">Verification Status</th>
                 </tr>
               </thead>
               <tbody>
                 {history.slice(0, 20).map((entry, idx) => (
-                  <tr key={idx} className="border-b border-[#23252A]/50 hover:bg-[#141516]/30 transition-colors">
+                  <tr key={idx} className="border-b border-border/60 hover:bg-secondary/40 transition-colors">
                     <td className="py-3 px-6 text-mono text-caption text-ink-tertiary whitespace-nowrap">
                       {new Date(entry.timestamp).toLocaleTimeString()}
                     </td>
@@ -586,7 +586,7 @@ export default function DashboardPage() {
 function KpiCard({ icon, label, value, highlight = false }) {
   return (
     <ApertureReticle active={true} className="w-full" status="default">
-      <div className="bg-[#0F1011] border border-[#23252A] rounded-xl p-3 sm:p-5 flex items-start gap-2.5 sm:gap-4 h-full transition-all hover:border-[#383A42]">
+      <div className="bg-card border border-border text-card-foreground shadow-sm rounded-xl p-3 sm:p-5 flex items-start gap-2.5 sm:gap-4 h-full transition-all hover:border-slate-400 dark:hover:border-slate-600">
         <div className="text-emerald-400/80 mt-1 shrink-0">
           {icon}
         </div>

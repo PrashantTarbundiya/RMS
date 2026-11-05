@@ -81,3 +81,4 @@ with open('frontend/src/pages/CamerasPage.jsx', 'w', encoding='utf-8') as f:
     f.write(content)
 
 print("CamerasPage.jsx updated successfully!")
+
