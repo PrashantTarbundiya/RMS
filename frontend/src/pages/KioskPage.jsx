@@ -396,7 +396,10 @@ export default function KioskPage() {
       setStatus(STATUS.DENIED);
       setRecognizedName('Unrecognized');
       setConfidence(0);
-      addLog('Unknown', false);
+      // Only log once per unknown burst to prevent log storms
+      if (newCount === 2) {
+        addLog('Unknown', false);
+      }
 
       // Auto-pause if too many unknowns (prevent rapid alerts)
       if (newCount >= MAX_CONSECUTIVE_UNKNOWNS) {

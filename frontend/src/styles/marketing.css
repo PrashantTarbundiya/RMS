@@ -1,59 +1,79 @@
 /* =============================================================================
    AuraPass™ Enterprise — Public Experience Design System Tokens
-   Source: AURAPASS_PUBLIC_UI_REDESIGN.md Section 3
+   Benchmark: pop.site, cal.com, stripe.com, linear.app
    ============================================================================= */
 
-:root {
-  /* Surfaces */
-  --bg-0: #070A12;        /* page background (deepest) */
-  --bg-1: #0B0F19;        /* section background */
-  --bg-2: #0F1524;        /* card */
-  --bg-3: #141B2E;        /* raised card / hover */
-  --border: rgba(148, 163, 184, 0.14);
-  --border-strong: rgba(148, 163, 184, 0.26);
+:root, .light {
+  /* Surfaces (Cal.com / Pop.site clean white canvas) */
+  --bg-0: #FFFFFF;        /* page background (pure white) */
+  --bg-1: #F8F9FA;        /* section background / soft gray */
+  --bg-2: #FFFFFF;        /* card surface */
+  --bg-3: #F1F3F5;        /* hover / raised card */
+  --border: #E5E7EB;
+  --border-strong: #D1D5DB;
 
-  /* Text */
-  --text-1: #F1F5F9;      /* headings */
-  --text-2: #CBD5E1;      /* body */
-  --text-3: #94A3B8;      /* muted */
+  /* Typography */
+  --text-1: #0F172A;      /* display headings (deep slate) */
+  --text-2: #334155;      /* body copy */
+  --text-3: #64748B;      /* muted / subtitles */
 
-  /* Brand */
-  --accent: #34D399;      /* emerald, primary CTA */
-  --accent-strong: #10B981;
-  --accent-soft: rgba(52, 211, 153, 0.12);
-  --accent-glow: rgba(52, 211, 153, 0.35);
-
-  /* Semantic Secondary */
-  --violet: #A78BFA;
-  --amber: #FBBF24;
-  --cyan: #22D3EE;
-  --rose: #FB7185;
+  /* Brand / Action */
+  --accent: #10B981;      /* emerald primary */
+  --accent-strong: #059669;
+  --accent-soft: rgba(16, 185, 129, 0.08);
+  --accent-glow: rgba(16, 185, 129, 0.25);
 
   /* Radius, shadow, motion */
   --r-sm: 8px;
   --r-md: 12px;
   --r-lg: 20px;
   --r-xl: 28px;
-  --shadow-card: 0 1px 0 rgba(255, 255, 255, 0.04) inset, 0 20px 50px -20px rgba(0, 0, 0, 0.6);
+  --shadow-card: 0 1px 3px 0 rgba(0, 0, 0, 0.04), 0 1px 2px 0 rgba(0, 0, 0, 0.02);
+  --shadow-float: 0 12px 30px -6px rgba(0, 0, 0, 0.08), 0 4px 12px -2px rgba(0, 0, 0, 0.03);
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.dark {
+  /* Surfaces (Dark Mode Monolith) */
+  --bg-0: #06090B;
+  --bg-1: #0B1013;
+  --bg-2: #10171B;
+  --bg-3: #151E24;
+  --border: rgba(255, 255, 255, 0.08);
+  --border-strong: rgba(255, 255, 255, 0.16);
+
+  /* Typography */
+  --text-1: #F3F6F5;
+  --text-2: #9AA7A3;
+  --text-3: #66726E;
+
+  /* Brand */
+  --accent: #3DDC97;
+  --accent-strong: #5FE8AD;
+  --accent-soft: rgba(61, 220, 151, 0.12);
+  --accent-glow: rgba(61, 220, 151, 0.35);
+
+  --shadow-card: 0 1px 0 rgba(255, 255, 255, 0.04) inset, 0 20px 50px -20px rgba(0, 0, 0, 0.6);
+  --shadow-float: 0 20px 50px -10px rgba(0, 0, 0, 0.7);
 }
 
 /* Base Body & Layout Rules for Public Surfaces */
 .public-surface {
   background-color: var(--bg-0);
   color: var(--text-2);
-  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-family: 'Plus Jakarta Sans', Inter, system-ui, -apple-system, sans-serif;
   line-height: 1.65;
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
-/* Typography Hierarchy per Section 3 */
+/* Typography Hierarchy */
 .public-surface h1,
 .public-surface h2,
 .public-surface h3,
 .public-surface h4 {
   color: var(--text-1);
-  font-weight: 700 !important; /* Max weight 700 */
-  letter-spacing: -0.02em !important;
+  font-weight: 700;
+  letter-spacing: -0.025em;
   text-wrap: balance;
   line-height: 1.15;
 }
@@ -62,36 +82,28 @@
   text-wrap: pretty;
 }
 
-.public-surface .prose p,
-.public-surface article p {
-  max-width: 68ch;
-}
-
 .public-surface .font-mono-tag {
-  font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-family: "JetBrains Mono", ui-monospace, monospace;
 }
 
-/* Ambient Radial Backgrounds */
+/* Light / Dark Ambient Radial Backgrounds */
 .marketing-bg {
   background-color: var(--bg-0);
-  background-image: 
-    radial-gradient(circle at 50% 0%, rgba(16, 185, 129, 0.12) 0%, transparent 55%),
-    radial-gradient(circle at 85% 25%, rgba(14, 165, 233, 0.06) 0%, transparent 45%);
-  background-attachment: fixed;
+  background-image: radial-gradient(circle at 50% 0%, var(--accent-soft) 0%, transparent 55%);
 }
 
-/* Subtle Dotted Grid Behind Hero Only */
-.hero-dot-grid {
+.light .hero-dot-grid {
+  background-size: 24px 24px;
+  background-image: radial-gradient(#E2E8F0 1.2px, transparent 1.2px);
+  mask-image: radial-gradient(ellipse 70% 60% at 50% 20%, #000 40%, transparent 100%);
+  -webkit-mask-image: radial-gradient(ellipse 70% 60% at 50% 20%, #000 40%, transparent 100%);
+}
+
+.dark .hero-dot-grid {
   background-size: 28px 28px;
-  background-image: radial-gradient(rgba(255, 255, 255, 0.07) 1px, transparent 1px);
+  background-image: radial-gradient(rgba(255, 255, 255, 0.08) 1px, transparent 1px);
   mask-image: radial-gradient(ellipse 65% 55% at 50% 15%, #000 50%, transparent 100%);
   -webkit-mask-image: radial-gradient(ellipse 65% 55% at 50% 15%, #000 50%, transparent 100%);
-}
-
-/* Section Hairline Separator */
-.section-hairline {
-  border-top: 1px solid transparent;
-  border-image: linear-gradient(90deg, transparent 0%, rgba(148, 163, 184, 0.15) 30%, rgba(148, 163, 184, 0.15) 70%, transparent 100%) 1;
 }
 
 /* Card Tokens */
@@ -99,167 +111,11 @@
   background: var(--bg-2);
   border: 1px solid var(--border);
   box-shadow: var(--shadow-card);
-  border-radius: var(--r-lg);
-  transition: all 0.25s var(--ease-out);
+  border-radius: var(--r-md);
+  transition: all 0.2s ease;
 }
 
 .public-card:hover {
-  background: var(--bg-3);
   border-color: var(--border-strong);
-  transform: translateY(-2px);
-}
-
-/* Shimmer Highlight Keyframe */
-@keyframes specular-shimmer {
-  0% { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
-}
-
-.specular-text-shimmer {
-  background: linear-gradient(
-    90deg,
-    #ffffff 0%,
-    #a7f3d0 35%,
-    #34d399 50%,
-    #a7f3d0 65%,
-    #ffffff 100%
-  );
-  background-size: 200% auto;
-  color: transparent;
-  -webkit-background-clip: text;
-  background-clip: text;
-  animation: specular-shimmer 6s linear infinite;
-}
-
-/* Scanline Animation */
-@keyframes hud-scanline {
-  0% { top: 0%; opacity: 0.8; }
-  50% { opacity: 1; }
-  100% { top: 100%; opacity: 0.2; }
-}
-
-.animate-scanline {
-  animation: hud-scanline 2.2s ease-in-out infinite alternate;
-}
-
-/* Top Progress Bar */
-.scroll-progress-bar {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 2px;
-  background: var(--accent);
-  transform-origin: 0%;
-  z-index: 100;
-  box-shadow: 0 0 10px var(--accent-glow);
-}
-
-/* Custom Scrollbar */
-.public-scroll::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-.public-scroll::-webkit-scrollbar-track {
-  background: rgba(11, 15, 25, 0.6);
-}
-.public-scroll::-webkit-scrollbar-thumb {
-  background: rgba(148, 163, 184, 0.2);
-  border-radius: 9999px;
-}
-.public-scroll::-webkit-scrollbar-thumb:hover {
-  background: rgba(52, 211, 153, 0.4);
-}
-
-/* Radar sweep for liveness detection */
-@keyframes radar-sweep {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
-.animate-radar {
-  animation: radar-sweep 3s linear infinite;
-}
-
-/* Pulse beam flow */
-@keyframes beam-flow {
-  0% { stroke-dashoffset: 40; }
-  100% { stroke-dashoffset: 0; }
-}
-
-.animate-beam-flow {
-  stroke-dasharray: 8 6;
-  animation: beam-flow 1.2s linear infinite;
-}
-
-/* Custom interactive slider styling */
-.range-slider-thumb::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  background: #34D399;
-  cursor: pointer;
-  box-shadow: 0 0 10px rgba(52, 211, 153, 0.6);
-  border: 2px solid #070A12;
-}
-
-.range-slider-thumb::-moz-range-thumb {
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  background: #34D399;
-  cursor: pointer;
-  box-shadow: 0 0 10px rgba(52, 211, 153, 0.6);
-  border: 2px solid #070A12;
-}
-
-/* Stitch Precision Design System Patterns */
-.grid-bg-pattern {
-  background-image: 
-    radial-gradient(circle at 50% 0%, rgba(16, 185, 129, 0.12) 0%, transparent 60%),
-    linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
-  background-size: 100% 100%, 48px 48px, 48px 48px;
-}
-
-.glow-emerald-box {
-  box-shadow: 0 0 32px -4px rgba(16, 185, 129, 0.22), 0 0 64px -16px rgba(52, 211, 153, 0.12);
-}
-
-.scanner-line {
-  position: absolute;
-  left: 0;
-  right: 0;
-  height: 2px;
-  background: linear-gradient(90deg, transparent, #4edea3, transparent);
-  box-shadow: 0 0 12px #4edea3;
-  animation: scanSweep 3s cubic-bezier(0.4, 0, 0.2, 1) infinite alternate;
-}
-
-@keyframes scanSweep {
-  0% { top: 8%; opacity: 0.2; }
-  50% { opacity: 0.9; }
-  100% { top: 92%; opacity: 0.2; }
-}
-
-/* Print Stylesheet per Section 8 */
-@media print {
-  body {
-    background: #ffffff !important;
-    color: #000000 !important;
-  }
-  header, footer, nav, aside, .no-print {
-    display: none !important;
-  }
-  .public-surface {
-    background: #ffffff !important;
-    color: #000000 !important;
-  }
-  .public-card {
-    border: 1px solid #ccc !important;
-    box-shadow: none !important;
-    background: #ffffff !important;
-  }
+  box-shadow: var(--shadow-float);
 }

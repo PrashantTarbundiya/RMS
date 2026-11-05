@@ -114,15 +114,14 @@ export function ToastProvider({ children }) {
                 transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
                 style={{
                   pointerEvents: 'auto',
-                  background: color.bg,
-                  border: `1px solid ${color.border}`,
-                  borderRadius: 10,
+                  background: 'var(--surface-elevated, #FFFFFF)',
+                  border: '1px solid var(--border, #E5E7EB)',
+                  borderRadius: 12,
                   padding: '12px 16px',
                   display: 'flex',
                   alignItems: 'flex-start',
                   gap: 10,
-                  backdropFilter: 'blur(16px)',
-                  boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+                  boxShadow: '0 10px 25px -5px rgba(0,0,0,0.15), 0 8px 10px -6px rgba(0,0,0,0.08)',
                 }}
               >
                 <Icon size={18} style={{ color: color.icon, marginTop: 1, flexShrink: 0 }} />

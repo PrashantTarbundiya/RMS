@@ -3043,6 +3043,14 @@ def log_recognition(faces_results, org_id=None):
             
             if not is_recognized or label == 'Unknown':
                 status = 'error'
+                # Rate limit consecutive unknown logs within 4 seconds to prevent log flooding
+                if history and history[0].get('label') == 'Unknown':
+                    try:
+                        last_ts = datetime.datetime.fromisoformat(history[0].get('timestamp', ''))
+                        if (datetime.datetime.now() - last_ts).total_seconds() < 4.0:
+                            continue
+                    except Exception:
+                        pass
             elif confidence < 1.0:
                 status = 'warning'
             else:

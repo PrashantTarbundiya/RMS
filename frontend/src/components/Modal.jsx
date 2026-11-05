@@ -31,8 +31,7 @@ export default function Modal({ isOpen, onClose, title, children, footer }) {
             onClick={onClose}
             style={{
               position: 'absolute', inset: 0,
-              background: 'rgba(11, 14, 26, 0.8)',
-              backdropFilter: 'blur(4px)'
+              background: 'rgba(0, 0, 0, 0.5)',
             }}
           />
           
@@ -48,8 +47,9 @@ export default function Modal({ isOpen, onClose, title, children, footer }) {
               position: 'relative',
               width: '90%',
               maxWidth: '500px',
-              background: 'var(--bg-surface)',
-              border: '1px solid var(--border-subtle)',
+              background: 'var(--surface-elevated, #FFFFFF)',
+              border: '1px solid var(--border, #E5E7EB)',
+              color: 'var(--ink, #111827)',
               borderRadius: 'var(--radius-md)',
               boxShadow: 'var(--shadow-lg)',
               display: 'flex',

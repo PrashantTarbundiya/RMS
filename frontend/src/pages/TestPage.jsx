@@ -382,30 +382,43 @@ export default function TestPage() {
     }
   }, [mode, webcamReady, apiClient, socketConnected, customThreshold, enableFacenet512, enableInsightFace]);
 
+  const runLivePredictionRef = useRef(runLivePrediction);
   useEffect(() => {
-    if (mode === 'webcam' && webcamReady && !isFeedbackModalOpen) {
-      const scheduleNext = () => {
-        // WebSocket can handle faster frame rate; fallback is slower
-        const baseDelay = socketConnected ? 500 : 2000;
+    runLivePredictionRef.current = runLivePrediction;
+  });
+
+  useEffect(() => {
+    let isCancelled = false;
+    let timerId = null;
+
+    const loop = async () => {
+      if (isCancelled) return;
+      if (modeRef.current === 'webcam' && !isFeedbackModalOpen) {
+        try {
+          await runLivePredictionRef.current?.();
+        } catch {
+          // Handled internally in runLivePrediction
+        }
+      }
+      if (!isCancelled && modeRef.current === 'webcam') {
+        const baseDelay = socketConnected ? 800 : 2000;
         const delay = backoffDelayRef.current > 0 ? backoffDelayRef.current : baseDelay;
-        
-        liveLoopRef.current = setTimeout(() => {
-          runLivePrediction();
-          if (modeRef.current === 'webcam') {
-            scheduleNext();
-          }
-        }, delay);
-      };
-      
-      runLivePrediction();
-      scheduleNext();
+        timerId = setTimeout(loop, delay);
+      }
+    };
+
+    if (mode === 'webcam' && webcamReady && !isFeedbackModalOpen) {
+      timerId = setTimeout(loop, 400);
     } else {
       if (liveLoopRef.current) {
         clearTimeout(liveLoopRef.current);
         liveLoopRef.current = null;
       }
     }
+
     return () => {
+      isCancelled = true;
+      if (timerId) clearTimeout(timerId);
       if (liveLoopRef.current) {
         clearTimeout(liveLoopRef.current);
         liveLoopRef.current = null;
@@ -415,7 +428,7 @@ export default function TestPage() {
         inFlightTimerRef.current = null;
       }
     };
-  }, [mode, webcamReady, isFeedbackModalOpen, runLivePrediction, socketConnected]);
+  }, [mode, webcamReady, isFeedbackModalOpen, socketConnected]);
 
   useEffect(() => {
     if (results) {

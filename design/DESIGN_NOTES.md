@@ -151,3 +151,4 @@ The landing page is an interactive narrative scrolling experience featuring a pe
 - **Infrastructure Theme**: `ERROR_CODE: 404 // NON_ROUTABLE_COORDINATE`.
 - **Monumental 404 Display**: Delicate technical bounding box with coordinate crosshairs and `TCP_EGRESS_BLOCKED`.
 - **Search & Recovery**: Global search bar and 3 recovery cards (`Product Story`, `Documentation Hub`, `Support Center`).
+
