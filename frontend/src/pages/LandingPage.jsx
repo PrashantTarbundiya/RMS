@@ -367,17 +367,17 @@ export default function LandingPage() {
       <div className="fixed inset-0 pointer-events-none grid-bg-pattern z-0" />
 
       {/* 1. FLOATING PILL HEADER */}
-      <header className={`fixed top-4 sm:top-6 inset-x-0 mx-auto max-w-5xl w-[92%] sm:w-full rounded-full border border-white/10 bg-[#0B0F19]/80 backdrop-blur-xl shadow-[0_0_24px_-4px_rgba(16,185,129,0.15)] z-40 px-5 sm:px-6 py-2.5 sm:py-3 transition-all duration-300 ${scrolledNav ? 'border-emerald-500/30 shadow-[0_0_32px_-4px_rgba(16,185,129,0.25)]' : ''}`}>
+      <header className={`fixed top-3 sm:top-6 inset-x-0 mx-auto max-w-5xl w-[94%] sm:w-full rounded-full border border-white/10 bg-[#0B0F19]/85 backdrop-blur-xl shadow-[0_0_24px_-4px_rgba(16,185,129,0.15)] z-40 px-3.5 sm:px-6 py-2 sm:py-3 transition-all duration-300 ${scrolledNav ? 'border-emerald-500/30 shadow-[0_0_32px_-4px_rgba(16,185,129,0.25)]' : ''}`}>
         <div className="flex justify-between items-center w-full">
           
           {/* Brand Mark */}
-          <Link to="/" className="text-base sm:text-lg font-bold tracking-tight text-white flex items-center gap-2.5 group">
-            <span className="relative flex items-center justify-center w-7 h-7 rounded-lg bg-[#070A12] border border-emerald-500/40 text-emerald-400 group-hover:border-emerald-400 transition-colors">
-              <Scan className="w-4 h-4" />
+          <Link to="/" className="text-sm sm:text-base md:text-lg font-bold tracking-tight text-white flex items-center gap-2 group shrink-0">
+            <span className="relative flex items-center justify-center w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-[#070A12] border border-emerald-500/40 text-emerald-400 group-hover:border-emerald-400 transition-colors">
+              <Scan className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
             </span>
             <span className="bg-gradient-to-r from-white via-slate-100 to-slate-300 bg-clip-text text-transparent">
-              AuraPass<span className="text-emerald-400 font-mono text-xs ml-1">ENT</span>
+              AuraPass<span className="text-emerald-400 font-mono text-[10px] sm:text-xs ml-1">ENT</span>
             </span>
           </Link>
 
@@ -497,7 +497,7 @@ export default function LandingPage() {
         </div>
 
         {/* Main Pitch Headline */}
-        <h1 className="text-3xl sm:text-5xl md:text-6xl font-extrabold text-white max-w-4xl tracking-tight leading-[1.15] mb-5">
+        <h1 className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold text-white max-w-4xl tracking-tight leading-[1.18] mb-4 sm:mb-5">
           Attendance that recognizes{' '}
           <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 via-teal-300 to-emerald-200">
             people
@@ -577,7 +577,7 @@ export default function LandingPage() {
             <img
               src={currentHeroStream.image}
               alt={currentHeroStream.employee}
-              className="w-full h-full object-cover opacity-60 filter contrast-110 saturate-75"
+              className="w-full h-full object-cover opacity-85 filter contrast-105 brightness-110"
             />
 
             {/* Sweeping Scanning Laser */}
