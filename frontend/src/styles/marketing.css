@@ -215,6 +215,35 @@
   border: 2px solid #070A12;
 }
 
+/* Stitch Precision Design System Patterns */
+.grid-bg-pattern {
+  background-image: 
+    radial-gradient(circle at 50% 0%, rgba(16, 185, 129, 0.12) 0%, transparent 60%),
+    linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+  background-size: 100% 100%, 48px 48px, 48px 48px;
+}
+
+.glow-emerald-box {
+  box-shadow: 0 0 32px -4px rgba(16, 185, 129, 0.22), 0 0 64px -16px rgba(52, 211, 153, 0.12);
+}
+
+.scanner-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #4edea3, transparent);
+  box-shadow: 0 0 12px #4edea3;
+  animation: scanSweep 3s cubic-bezier(0.4, 0, 0.2, 1) infinite alternate;
+}
+
+@keyframes scanSweep {
+  0% { top: 8%; opacity: 0.2; }
+  50% { opacity: 0.9; }
+  100% { top: 92%; opacity: 0.2; }
+}
+
 /* Print Stylesheet per Section 8 */
 @media print {
   body {

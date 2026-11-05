@@ -14,6 +14,7 @@ import {
   AlertTriangle,
   ArrowRight,
   Play,
+  Pause,
   Eye,
   FileText,
   ChevronDown,
@@ -31,68 +32,76 @@ import {
   Menu,
   BookOpen,
   ExternalLink,
-  ArrowUp
+  ArrowUp,
+  Activity,
+  Terminal,
+  Camera,
+  Database,
+  KeyRound,
+  RotateCcw
 } from 'lucide-react';
 import Badge from '../components/ui/marketing/Badge';
 import SectionHeader from '../components/ui/marketing/SectionHeader';
 
 export default function LandingPage() {
-  const { user } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const navigate = useNavigate();
 
   // Scroll states for Navbar and sticky elements
   const [scrolledNav, setScrolledNav] = useState(false);
   const [scrollProgress, setScrollProgress] = useState(0);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [showStickyMobileCta, setShowStickyMobileCta] = useState(false);
   const [showVideoModal, setShowVideoModal] = useState(false);
 
-  // 3D Tilt State for Hero Terminal
-  const [tilt, setTilt] = useState({ x: 0, y: 0 });
-  const cardRef = useRef(null);
+  // Live IST Clock
+  const [currentTimeStr, setCurrentTimeStr] = useState('');
 
   // Hero Multi-Camera Stream Switcher
   const [activeHeroStream, setActiveHeroStream] = useState(0);
 
-  // Simulator Scenario: 'standard' | 'spoofing' | 'glasses'
-  const [simMode, setSimMode] = useState('standard');
-  const [simRunning, setSimRunning] = useState(false);
-  const [simStep, setSimStep] = useState(6); // 1 to 6
-  const [simTime, setSimTime] = useState(184); // ms
-
-  // Interactive Bento Tile 1: Live Attendance Feed Department Filter
-  const [attendanceDeptFilter, setAttendanceDeptFilter] = useState('all');
-
-  // Interactive Bento Tile 2: Shift Grace Calculator Slider
-  const [graceMinutes, setGraceMinutes] = useState(15);
-
-  // Interactive Bento Tile 3: Anti-Spoofing Radar Test Mode
-  const [radarTestMode, setRadarTestMode] = useState('live'); // 'live' | 'attack'
-
-  // Interactive Bento Tile 4: 3-Shot Enrollment Active Perspective
-  const [enrollmentAngle, setEnrollmentAngle] = useState(0); // 0 (0°), 1 (-15°), 2 (+15°)
-
-  // Interactive Bento Tile 5: GPIO Relay Pulse Test State
+  // Hardware Relay Pulse Simulator State
   const [relayPulsed, setRelayPulsed] = useState(false);
 
-  // Console Tour Active Tab
-  const [activeTourTab, setActiveTourTab] = useState(0);
+  // The 300ms Verification Engine — Sequential Storytelling State
+  const [activeStoryChapter, setActiveStoryChapter] = useState(0);
+  const [isStoryPlaying, setIsStoryPlaying] = useState(true);
+  const [storyElapsedMs, setStoryElapsedMs] = useState(42);
 
-  // Pricing State: Currency & Billing Interval
+  // Interactive Capabilities: Anti-Spoofing Radar Test Mode ('live' | 'attack')
+  const [radarTestMode, setRadarTestMode] = useState('live');
+
+  // Interactive Capabilities: Shift Grace Calculator Slider
+  const [graceMinutes, setGraceMinutes] = useState(15);
+
+  // Interactive Capabilities: Department Filter
+  const [attendanceDeptFilter, setAttendanceDeptFilter] = useState('all');
+
+  // Fair Indian Enterprise Pricing State
+  const [pricingStaffCount, setPricingStaffCount] = useState(120); // 10 to 500
+  const [billingInterval, setBillingInterval] = useState('monthly'); // 'monthly' | 'annual'
   const [currency, setCurrency] = useState('INR'); // 'INR' | 'USD'
-  const [billingInterval, setBillingInterval] = useState('annual'); // 'monthly' | 'annual'
-  const [pricingStaffCount, setPricingStaffCount] = useState(50); // 25 to 500
-  const [showPricingCompare, setShowPricingCompare] = useState(false);
 
-  // FAQ Accordion State (single open)
+  // FAQ Accordion State (single open index)
   const [expandedFaq, setExpandedFaq] = useState(0);
+
+  // Dynamic Clock Effect
+  useEffect(() => {
+    const updateTime = () => {
+      const now = new Date();
+      const dateStr = now.toISOString().slice(0, 10);
+      const timeStr = now.toTimeString().slice(0, 8);
+      setCurrentTimeStr(`${dateStr} ${timeStr} IST`);
+    };
+    updateTime();
+    const timer = setInterval(updateTime, 1000);
+    return () => clearInterval(timer);
+  }, []);
 
   // Scroll Listener
   useEffect(() => {
     const handleScroll = () => {
       const scrollY = window.scrollY;
       setScrolledNav(scrollY > 20);
-      setShowStickyMobileCta(scrollY > 500 && scrollY < document.body.scrollHeight - 1200);
 
       const winScroll = document.documentElement.scrollTop;
       const height = document.documentElement.scrollHeight - document.documentElement.clientHeight;
@@ -104,69 +113,117 @@ export default function LandingPage() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Mouse Move Tilt Effect
-  const handleMouseMove = (e) => {
-    if (!cardRef.current) return;
-    const rect = cardRef.current.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    const centerX = rect.width / 2;
-    const centerY = rect.height / 2;
-    const tiltX = ((y - centerY) / centerY) * -2.5;
-    const tiltY = ((x - centerX) / centerX) * 2.5;
-    setTilt({ x: tiltX, y: tiltY });
-  };
+  // 300ms Verification Engine Sequential Auto-advancer
+  useEffect(() => {
+    if (!isStoryPlaying) return;
 
-  const handleMouseLeave = () => {
-    setTilt({ x: 0, y: 0 });
-  };
+    const timings = [42, 178, 218, 284];
+    setStoryElapsedMs(timings[activeStoryChapter]);
 
-  // Trigger Hardware Simulation
-  const triggerSimulation = (mode = simMode) => {
-    if (simRunning) return;
-    setSimRunning(true);
-    setSimStep(1);
+    const timer = setTimeout(() => {
+      setActiveStoryChapter((prev) => (prev + 1) % 4);
+    }, 3800);
 
-    const timingMap = {
-      standard: 184,
-      spoofing: 112,
-      glasses: 218
-    };
+    return () => clearTimeout(timer);
+  }, [activeStoryChapter, isStoryPlaying]);
 
-    setSimTime(timingMap[mode]);
-
-    let step = 1;
-    const interval = setInterval(() => {
-      step++;
-      setSimStep(step);
-      if (step >= 6) {
-        clearInterval(interval);
-        setSimRunning(false);
-      }
-    }, 250);
-  };
+  // Story Chapters Data
+  const STORY_CHAPTERS = [
+    {
+      id: "CH_01",
+      range: "0 – 45 ms",
+      title: "The Silent Beam",
+      subtitle: "Optical Ingestion & Landmark Mesh Lock",
+      icon: Camera,
+      tag: "BUFFER: OPENCV C++",
+      status: "GPU ZERO-COPY",
+      summary: "H.264/H.265 RTSP hardware-decoded frame buffer ingestion. An ultra-light optical cone isolates head crops and aligns a MediaPipe 68-point spatial landmark mesh regardless of spectacles, medical masks, or 5-lux night shadows.",
+      metricValue: "42 ms",
+      metricLabel: "INGESTION & 68-PT MESH",
+      details: [
+        "Hardware-accelerated RTSP stream ingestion over local subnet",
+        "Sub-15ms face detection cone filtering out background artifacts",
+        "68-point planar coordinate alignment for roll/pitch/yaw invariance",
+        "Adaptive CLAHE contrast equalization for challenging ambient backlight"
+      ]
+    },
+    {
+      id: "CH_02",
+      range: "45 – 180 ms",
+      title: "The Neural Core",
+      subtitle: "GhostFaceNet Embedding & Anti-Spoof Radar",
+      icon: Cpu,
+      tag: "VECTOR: 512-D INT8",
+      status: "ACCURACY: 99.6%",
+      summary: "GhostFaceNet produces a 512-dimensional floating vector representation. Cosine similarity performs sub-millisecond nearest neighbor search over in-memory indexes while ISO 30107-3 anti-spoof nets reject screen reflections.",
+      metricValue: "136 ms",
+      metricLabel: "EMBEDDING & DISTANCE LOOKUP",
+      details: [
+        "GhostFaceNet ultra-low latency tensor generation on host CPU/GPU",
+        "L2-normalized 512-d unit vector space comparison in <2ms",
+        "Dual-frequency Fourier analysis blocks paper & phone screen replay",
+        "Calibrated cosine distance threshold (0.42) for 99.6% precision"
+      ]
+    },
+    {
+      id: "CH_03",
+      range: "180 – 220 ms",
+      title: "Physical Gate Unlock",
+      subtitle: "Hardware GPIO Dry-Contact Relay Pulse",
+      icon: Zap,
+      tag: "RELAY: OPTO-ISOLATED",
+      status: "PULSE: 450ms",
+      summary: "Hardware GPIO dry-contact relay pulse fired via edge micro-nodes (Jetson Orin, Raspberry Pi 5, or industrial Advantech). Dispatches a calibrated 24V dry trigger to optical turnstile flaps or magnetic swing latches in <40ms.",
+      metricValue: "38 ms",
+      metricLabel: "RELAY SWITCH LATENCY",
+      details: [
+        "Opto-isolated GPIO relay pin triggering 24V turnstile release",
+        "Micro-pulse width calibrated to 450ms for seamless person pass-through",
+        "Compatible with magnetic locks, tripod turnstiles, and speed gates",
+        "Local fallback loop ensures gate actuation even during LAN interruption"
+      ]
+    },
+    {
+      id: "CH_04",
+      range: "220 – 300 ms",
+      title: "The Sovereign Ledger",
+      subtitle: "Append-Only Local Audit & Instant HRMS Sync",
+      icon: Database,
+      tag: "LOCAL DB: WAL MODE",
+      status: "ZERO CLOUD EXPOSURE",
+      summary: "Append-only SQLite & local PostgreSQL audit event recorded. Calculates shift grace windows and generates 1-click DPDP Act compliant records for SAP, Zoho People, and Keka APIs without a single byte departing the intranet.",
+      metricValue: "64 ms",
+      metricLabel: "AUDIT LOG & SYNC CYCLE",
+      details: [
+        "Atomic ACID transaction committed to on-prem SQLite/Postgres DB",
+        "Real-time grace period evaluation (09:00 AM + 15 min buffer)",
+        "Zero-knowledge audit trail with irreversible non-invertible hashes",
+        "DPDP Act 2023 compliant local export to Tally, Keka, and Zoho People"
+      ]
+    }
+  ];
 
   // Trigger Hardware Relay Pulse
   const triggerRelayPulse = () => {
     setRelayPulsed(true);
     setTimeout(() => {
       setRelayPulsed(false);
-    }, 2200);
+    }, 2400);
   };
 
   // Export Sample Attendance CSV
   const exportSampleCSV = () => {
     const csvContent = "data:text/csv;charset=utf-8," 
-      + "Badge ID,Employee Name,Department,Timestamp,Status,Confidence\n"
-      + "EMP-0142,Priya Sharma,Quality Assurance,2026-11-03 09:12:04,ON TIME,99.4%\n"
-      + "EMP-0089,Rajesh Patel,Operations,2026-11-03 09:14:22,ON TIME,98.9%\n"
-      + "EMP-0211,Alex Rivera,Engineering,2026-11-03 09:18:45,LATE,99.1%\n"
-      + "EMP-0105,Vatsal Vadgama,Engineering,2026-11-03 09:05:12,ON TIME,99.7%\n"
-      + "EMP-0334,Neha Gupta,Quality Assurance,2026-11-03 09:11:30,ON TIME,98.4%";
+      + "Badge ID,Employee Name,Department,Timestamp,Status,Confidence,Gate Lane\n"
+      + "EMP-0142,Rajesh Patel,Operations,2026-11-05 09:12:04,ON TIME,99.6%,Front Gate Lane 01\n"
+      + "EMP-0089,Priya Sharma,Quality Assurance,2026-11-05 09:14:22,ON TIME,99.4%,Turnstile Gate B\n"
+      + "EMP-0105,Vatsal Vadgama,Engineering,2026-11-05 09:05:12,ON TIME,99.8%,Executive Reception\n"
+      + "EMP-0211,Alex Rivera,Engineering,2026-11-05 09:18:45,LATE,99.1%,Front Gate Lane 01\n"
+      + "EMP-0334,Neha Gupta,Quality Assurance,2026-11-05 09:11:30,ON TIME,98.7%,Turnstile Gate B";
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
     link.setAttribute("href", encodedUri);
-    link.setAttribute("download", "aurapass_attendance_sample.csv");
+    link.setAttribute("download", "aurapass_enterprise_attendance_sample.csv");
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -181,16 +238,17 @@ export default function LandingPage() {
     {
       name: "Front Gate Lane 01",
       protocol: "Hikvision DS-2CD • RTSP 1080p",
-      location: "Main Entrance Turnstiles",
+      location: "Main Lobby Turnstile",
       fps: "29.8 FPS",
       latency: "184 ms",
       employee: "Rajesh Patel",
       badge: "EMP-0142",
+      role: "HEAD OF OPERATIONS",
       dept: "Operations",
       time: "09:12:04 AM",
       status: "ON TIME",
       confidence: "99.6%",
-      liveness: "99.1% Verified",
+      liveness: "99.1% Liveness Confirmed",
       image: "/people/man.jpg"
     },
     {
@@ -201,11 +259,12 @@ export default function LandingPage() {
       latency: "162 ms",
       employee: "Priya Sharma",
       badge: "EMP-0089",
+      role: "QUALITY ASSURANCE LEAD",
       dept: "Quality Assurance",
       time: "09:14:22 AM",
       status: "ON TIME",
       confidence: "99.4%",
-      liveness: "98.9% Verified",
+      liveness: "98.9% Liveness Confirmed",
       image: "/people/women.jpg"
     },
     {
@@ -216,1313 +275,1087 @@ export default function LandingPage() {
       latency: "148 ms",
       employee: "Vatsal Vadgama",
       badge: "EMP-0105",
+      role: "PRINCIPAL ENGINEER",
       dept: "Engineering",
       time: "09:05:12 AM",
       status: "ON TIME",
       confidence: "99.8%",
-      liveness: "99.5% Verified",
+      liveness: "99.5% Liveness Confirmed",
       image: "/people/man2.jpg"
     }
   ];
 
-  // Live Attendance Feed Rows with accurate gender representation
+  const currentHeroStream = HERO_STREAMS[activeHeroStream];
+
+  // Dynamic Pricing Calculation for Indian Enterprises
+  // Dynamic scale: ₹19/staff/mo for small teams down to ₹15/staff/mo for growing enterprises
+  const calculatePrice = (count) => {
+    const rate = 19 - ((count - 10) / 490) * 4;
+    const monthlyTotal = Math.round(count * rate);
+    const annualTotal = Math.round(monthlyTotal * 12 * 0.85); // 15% discount for annual
+    return {
+      monthlyTotal,
+      annualTotal,
+      rate: rate.toFixed(2),
+      discountedMonthly: Math.round(annualTotal / 12)
+    };
+  };
+
+  const pricingData = calculatePrice(pricingStaffCount);
+  const displayTotal = billingInterval === 'monthly' ? pricingData.monthlyTotal : pricingData.discountedMonthly;
+
+  // Live Attendance Feed Rows
   const ATTENDANCE_ROWS = [
-    { id: "EMP-0142", name: "Priya Sharma", dept: "QA", time: "09:12:04 AM", status: "ON TIME", confidence: "99.4%", avatar: "PS" },
-    { id: "EMP-0089", name: "Rajesh Patel", dept: "Operations", time: "09:14:22 AM", status: "ON TIME", confidence: "98.9%", avatar: "RP" },
+    { id: "EMP-0142", name: "Rajesh Patel", dept: "Operations", time: "09:12:04 AM", status: "ON TIME", confidence: "99.6%", avatar: "RP" },
+    { id: "EMP-0089", name: "Priya Sharma", dept: "QA", time: "09:14:22 AM", status: "ON TIME", confidence: "99.4%", avatar: "PS" },
+    { id: "EMP-0105", name: "Vatsal Vadgama", dept: "Engineering", time: "09:05:12 AM", status: "ON TIME", confidence: "99.8%", avatar: "VV" },
     { id: "EMP-0211", name: "Alex Rivera", dept: "Engineering", time: "09:18:45 AM", status: "LATE", confidence: "99.1%", avatar: "AR" },
-    { id: "EMP-0105", name: "Vatsal Vadgama", dept: "Engineering", time: "09:05:12 AM", status: "ON TIME", confidence: "99.7%", avatar: "VV" },
-    { id: "EMP-0334", name: "Neha Gupta", dept: "QA", time: "09:11:30 AM", status: "ON TIME", confidence: "98.4%", avatar: "NG" },
-    { id: "EMP-0412", name: "Shivam Petkar", dept: "Operations", time: "09:22:10 AM", status: "LATE", confidence: "99.0%", avatar: "SP" },
+    { id: "EMP-0334", name: "Neha Gupta", dept: "QA", time: "09:11:30 AM", status: "ON TIME", confidence: "98.7%", avatar: "NG" },
+    { id: "EMP-0412", name: "Shivam Petkar", dept: "Operations", time: "09:24:10 AM", status: "LATE", confidence: "99.0%", avatar: "SP" }
   ];
 
   const filteredAttendance = attendanceDeptFilter === 'all' 
     ? ATTENDANCE_ROWS 
     : ATTENDANCE_ROWS.filter(r => r.dept.toLowerCase() === attendanceDeptFilter.toLowerCase());
 
-  // Defensible FAQ Data
+  // Defensible Indian Enterprise FAQs
   const faqs = [
     {
-      q: "Does any facial biometric data ever leave our local network?",
-      a: "No. AuraPass is an entirely self-hosted biometric engine. Video decoding, face detection via MediaPipe, vector embedding generation via FaceNet512, and vector similarity lookup run 100% locally on your host hardware. Zero bytes of image or vector data are ever transmitted to an external cloud."
+      q: "Does any facial biometric data ever leave our local network or facility?",
+      a: "No. AuraPass is an entirely sovereign on-premise biometric engine. Video decoding, face detection via MediaPipe, vector embedding generation via GhostFaceNet, and vector distance lookups execute 100% locally on your host server. Zero bytes of image or biometric data are ever transmitted to an external cloud or third-party CDN, fully satisfying statutory Indian DPDP Act 2023 mandates."
     },
     {
       q: "Which security cameras and webcams are compatible?",
-      a: "AuraPass works with standard IP security cameras broadcasting H.264 video over RTSP or ONVIF (including Hikvision, Dahua, Axis, and Hanwha Techwin) as well as any standard USB Video Class (UVC) webcam, such as Logitech C920, C922, or BRIO."
+      a: "AuraPass is completely hardware-agnostic. It works with any IP camera broadcasting H.264/H.265 video over RTSP or ONVIF (including Hikvision, CP PLUS, Dahua, Uniview, and Axis) as well as standard USB Video Class (UVC) webcams (Logitech C920, C922, BRIO). You do not need to replace existing CCTV infrastructure."
     },
     {
-      q: "How does the per-person pricing work for Indian businesses?",
-      a: "You only pay for the active employees enrolled in the system at just ₹23 to ₹29 per employee per month. There are no per-scan fees, no cloud storage surcharges, and no hidden penalties. A 7-day free trial is included with full access."
+      q: "How does the per-person pricing work for Indian enterprises?",
+      a: "You only pay for active enrolled employees — starting at ₹19 per staff per month and tapering down to ₹15 per staff per month for 500+ employees. There are zero per-camera license fees, zero per-scan surcharges, and zero proprietary terminal hardware taxes. A full 7-day unrestricted free trial is provided on all plans."
     },
     {
       q: "How does presentation attack detection (PAD) stop photo and phone screen spoofing?",
-      a: "Our multi-cue anti-spoofing pipeline combines high-frequency micro-texture analysis, planar color distortion detection, and facial depth gradient estimation. Static 2D paper printouts, tablet screens, and phone replays fail the liveness threshold and are rejected in under 120 ms."
+      a: "Our multi-cue anti-spoofing pipeline combines high-frequency micro-texture analysis, specular reflection detection, and facial depth gradient estimation adhering to ISO/IEC 30107-3. 2D paper printouts, tablet screens, and phone photo replays fail the liveness threshold and are rejected in under 120 ms."
     },
     {
-      q: "What happens to employee photographs after enrollment?",
-      a: "Photographs can be permanently discarded immediately after vector generation. AuraPass stores only 512-dimensional numeric floating-point vectors from which original facial photographs cannot be reconstructed."
+      q: "How does the system connect to physical turnstiles, tripod gates, and magnetic doors?",
+      a: "AuraPass dispatches an opto-isolated 24V dry-contact relay trigger via standard GPIO interfaces (compatible with Raspberry Pi, NVIDIA Jetson, or USB relay boards). When facial verification completes in under 300 ms, a 450 ms momentary pulse releases the gate flap seamlessly as the employee walks through."
     },
     {
-      q: "Is AuraPass compliant with GDPR Article 9, Illinois BIPA, and Indian privacy norms?",
-      a: "AuraPass provides on-premise data residency, irreversible vector storage, and 1-click permanent record purging. Data never leaves your premises. Formal legal compliance depends on organizational consent policies."
+      q: "What server hardware is required to run AuraPass locally?",
+      a: "For single-lane facilities (up to 500 staff), a standard quad-core Intel i5/i7 or AMD Ryzen workstation with 8 GB RAM and Docker is sufficient. For multi-camera facilities with 5+ lanes, an 8-core CPU or an optional dedicated NVIDIA GPU ensures continuous sub-200 ms latency across concurrent streams."
     },
     {
-      q: "What server hardware is required to run AuraPass?",
-      a: "For single-lane offices (up to 500 staff), any standard quad-core Intel i5 or AMD Ryzen workstation with 8 GB RAM is sufficient. For multi-camera facilities with 5+ lanes, an 8-core CPU or an optional dedicated NVIDIA GPU ensures continuous sub-300 ms throughput."
+      q: "Can we automatically export attendance records to payroll and HRMS software?",
+      a: "Yes. Attendance events can be filtered by shift, date, or department and exported directly to standardized CSV, Excel, or printable executive PDF registers compatible with Tally, Zoho People, Keka, SAP SuccessFactors, and custom payroll software."
     },
     {
-      q: "Can we automatically export attendance records to payroll software?",
-      a: "Yes. Attendance events can be filtered by date, shift, or department and exported directly to standardized CSV, Excel, or PDF formats compatible with Tally, QuickBooks, Excel, and custom HRMS."
+      q: "What happens to employee photographs after biometric enrollment?",
+      a: "Photographs can be permanently discarded immediately after vector generation. AuraPass stores only 512-dimensional numeric floating-point vectors from which original facial photographs cannot be mathematically reconstructed, guaranteeing privacy by design."
     }
   ];
 
-  const currentHeroStream = HERO_STREAMS[activeHeroStream];
-
-  // Pricing Calculation Helpers
-  const unitRate = currency === 'INR' 
-    ? (billingInterval === 'annual' ? 15 : 19) 
-    : (billingInterval === 'annual' ? 0.20 : 0.25);
-  
-  const currencySymbol = currency === 'INR' ? '₹' : '$';
-  const calculatedProTotal = Math.round(pricingStaffCount * unitRate);
-
   return (
-    <div className="min-h-screen public-surface bg-[#070A12] text-slate-200 flex flex-col font-sans relative selection:bg-emerald-500/30 selection:text-emerald-200">
+    <div className="min-h-screen bg-[#070A12] text-slate-200 flex flex-col font-sans relative selection:bg-emerald-500/30 selection:text-emerald-200 overflow-x-hidden">
       
-      {/* Top Scroll Progress Indicator */}
+      {/* Top Scroll Progress Bar */}
       <div
-        className="scroll-progress-bar"
+        className="fixed top-0 left-0 right-0 h-0.5 bg-emerald-400 z-50 origin-left shadow-[0_0_8px_rgba(52,211,153,0.6)]"
         style={{ transform: `scaleX(${scrollProgress / 100})` }}
       />
 
-      {/* Hero Ambient Illumination Spotlight */}
-      <div className="absolute inset-x-0 top-0 h-[600px] pointer-events-none z-0 overflow-hidden">
-        <div className="absolute top-[-120px] left-1/2 -translate-x-1/2 w-[900px] h-[400px] bg-gradient-to-b from-emerald-500/15 via-emerald-500/5 to-transparent rounded-full blur-[120px]" />
-        <div className="absolute inset-0 hero-dot-grid opacity-60" />
-      </div>
+      {/* Background Precision Grid & Radial Glow */}
+      <div className="fixed inset-0 pointer-events-none grid-bg-pattern z-0" />
 
-      {/* ─────────────────────────────────────────────────────────────────────────────
-          5.1 NAVIGATION (COMPACT, WELL-FRAMED 1320px HEADER)
-      ───────────────────────────────────────────────────────────────────────────── */}
-      <header
-        className={`sticky top-0 z-50 transition-all duration-300 ${
-          scrolledNav
-            ? 'h-14 bg-[#070A12]/92 backdrop-blur-xl border-b border-white/[0.08]'
-            : 'h-16 bg-transparent border-b border-transparent'
-        }`}
-      >
-        <div className="max-w-[1320px] mx-auto px-5 sm:px-8 lg:px-10 h-full flex items-center justify-between">
+      {/* 1. FLOATING PILL HEADER */}
+      <header className={`fixed top-4 sm:top-6 inset-x-0 mx-auto max-w-5xl w-[92%] sm:w-full rounded-full border border-white/10 bg-[#0B0F19]/80 backdrop-blur-xl shadow-[0_0_24px_-4px_rgba(16,185,129,0.15)] z-40 px-5 sm:px-6 py-2.5 sm:py-3 transition-all duration-300 ${scrolledNav ? 'border-emerald-500/30 shadow-[0_0_32px_-4px_rgba(16,185,129,0.25)]' : ''}`}>
+        <div className="flex justify-between items-center w-full">
           
-          {/* Logo & Wordmark */}
-          <Link to="/" className="flex items-center gap-2 group">
-            <div className="w-7 h-7 rounded-lg bg-emerald-500/15 border border-emerald-500/35 flex items-center justify-center text-emerald-400 group-hover:border-emerald-400 transition-all shadow-sm shadow-emerald-500/20">
-              <Scan className="w-3.5 h-3.5" />
-            </div>
-            <span className="font-bold text-base tracking-tight text-white group-hover:text-emerald-300 transition-colors">
-              AuraPass<sup className="text-[9px] text-emerald-400 font-mono-tag ml-0.5">&trade;</sup>
+          {/* Brand Mark */}
+          <Link to="/" className="text-base sm:text-lg font-bold tracking-tight text-white flex items-center gap-2.5 group">
+            <span className="relative flex items-center justify-center w-7 h-7 rounded-lg bg-[#070A12] border border-emerald-500/40 text-emerald-400 group-hover:border-emerald-400 transition-colors">
+              <Scan className="w-4 h-4" />
+              <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
+            </span>
+            <span className="bg-gradient-to-r from-white via-slate-100 to-slate-300 bg-clip-text text-transparent">
+              AuraPass<span className="text-emerald-400 font-mono text-xs ml-1">ENT</span>
             </span>
           </Link>
 
-          {/* Desktop Center Links */}
-          <nav className="hidden lg:flex items-center gap-7 text-xs text-slate-300 font-medium">
-            <a href="#simulator" className="hover:text-white transition-colors">Interactive Demo</a>
-            <a href="#capabilities" className="hover:text-white transition-colors">Capabilities</a>
-            <a href="#sovereignty" className="hover:text-white transition-colors">Sovereignty & Trust</a>
-            <a href="#pricing" className="hover:text-white transition-colors">Fair Pricing</a>
-            <Link to="/docs" className="hover:text-emerald-400 text-emerald-400/90 transition-colors flex items-center gap-1">
-              <BookOpen className="w-3 h-3" />
-              <span>Docs</span>
+          {/* Desktop Navigation Links */}
+          <nav className="hidden md:flex items-center gap-6 text-xs sm:text-sm font-medium">
+            <a href="#storytelling" className="text-slate-300 hover:text-emerald-400 transition-colors">
+              The 300ms Story
+            </a>
+            <a href="#comparison" className="text-slate-300 hover:text-emerald-400 transition-colors">
+              Comparison
+            </a>
+            <a href="#capabilities" className="text-slate-300 hover:text-emerald-400 transition-colors">
+              Capabilities
+            </a>
+            <a href="#pricing" className="text-slate-300 hover:text-emerald-400 transition-colors">
+              Indian Pricing
+            </a>
+            <a href="#faq" className="text-slate-300 hover:text-emerald-400 transition-colors">
+              FAQ
+            </a>
+            <Link to="/docs" className="text-slate-400 hover:text-slate-200 transition-colors flex items-center gap-1">
+              <BookOpen className="w-3.5 h-3.5" /> Docs
             </Link>
-            <Link to="/support" className="hover:text-white transition-colors">Support</Link>
           </nav>
 
-          {/* Right Action CTAs */}
+          {/* Header Action Buttons */}
           <div className="flex items-center gap-2.5">
-            {user ? (
+            <div className="hidden lg:flex items-center gap-1.5 text-slate-400 font-mono text-[11px] px-2.5 py-1 rounded-md border border-white/10 bg-[#070A12]/60">
+              <Terminal className="w-3 h-3 text-emerald-400" />
+              <span>v2.8-rtsp</span>
+            </div>
+
+            {isAuthenticated ? (
               <button
                 onClick={() => navigate('/dashboard')}
-                className="px-3.5 py-1.5 rounded-lg bg-emerald-400 hover:bg-emerald-300 text-slate-950 text-xs font-bold transition-all shadow-md shadow-emerald-500/20 cursor-pointer active:scale-98 flex items-center gap-1.5"
+                className="text-xs sm:text-sm font-semibold text-[#070A12] bg-emerald-400 px-4 py-1.5 rounded-full shadow-[0_0_16px_rgba(52,211,153,0.35)] hover:bg-emerald-300 transition-all flex items-center gap-1.5"
               >
-                <span>Open console</span>
-                <ArrowRight className="w-3 h-3" />
+                <span>Console</span>
+                <ArrowRight className="w-3.5 h-3.5" />
               </button>
             ) : (
-              <>
-                <Link
-                  to="/login"
-                  className="px-3 py-1.5 text-xs font-semibold text-slate-300 hover:text-white transition-colors"
-                >
-                  Sign in
-                </Link>
-                <Link
-                  to="/register"
-                  className="hidden sm:inline-flex px-3.5 py-1.5 rounded-lg bg-emerald-400 hover:bg-emerald-300 active:scale-98 text-slate-950 text-xs font-bold transition-all shadow-md shadow-emerald-500/20 cursor-pointer items-center gap-1.5"
-                >
-                  <span>Start Free Trial</span>
-                  <ArrowRight className="w-3 h-3" />
-                </Link>
-              </>
+              <a
+                href="#pricing"
+                className="text-xs sm:text-sm font-semibold text-[#070A12] bg-emerald-400 px-4 py-1.5 rounded-full shadow-[0_0_16px_rgba(52,211,153,0.35)] hover:bg-emerald-300 transition-all flex items-center gap-1.5"
+              >
+                <span>Start Free</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </a>
             )}
 
-            {/* Mobile Menu Trigger */}
+            {/* Mobile Menu Toggle */}
             <button
-              type="button"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="lg:hidden p-1.5 rounded-lg bg-[#0F1524] border border-white/[0.08] text-slate-300 hover:text-white"
-              aria-label="Toggle navigation menu"
+              className="md:hidden p-1.5 text-slate-400 hover:text-white rounded-lg border border-white/10"
+              aria-label="Toggle Navigation"
             >
-              {mobileMenuOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
+              {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>
           </div>
         </div>
 
-        {/* Mobile Fullscreen Drawer */}
+        {/* Mobile Dropdown Menu */}
         {mobileMenuOpen && (
-          <div className="lg:hidden fixed inset-x-0 top-14 bg-[#070A12]/98 backdrop-blur-2xl border-b border-white/[0.08] p-5 space-y-4 animate-in slide-in-from-top-2">
-            <nav className="flex flex-col gap-3 text-xs font-medium text-slate-200">
-              <a href="#simulator" onClick={() => setMobileMenuOpen(false)} className="py-1">Interactive Demo</a>
-              <a href="#capabilities" onClick={() => setMobileMenuOpen(false)} className="py-1">Capabilities</a>
-              <a href="#sovereignty" onClick={() => setMobileMenuOpen(false)} className="py-1">Sovereignty & Trust</a>
-              <a href="#pricing" onClick={() => setMobileMenuOpen(false)} className="py-1">Fair Pricing</a>
-              <Link to="/docs" onClick={() => setMobileMenuOpen(false)} className="py-1 text-emerald-400">Documentation</Link>
-              <Link to="/support" onClick={() => setMobileMenuOpen(false)} className="py-1">Help Center & Support</Link>
-            </nav>
-            <div className="pt-3 border-t border-white/[0.08] flex flex-col gap-2">
-              <Link
-                to="/register"
-                onClick={() => setMobileMenuOpen(false)}
-                className="w-full py-2.5 rounded-lg bg-emerald-400 text-slate-950 font-bold text-xs text-center shadow-lg shadow-emerald-500/20"
-              >
-                Start 7-Day Free Trial
-              </Link>
-              <Link
-                to="/login"
-                onClick={() => setMobileMenuOpen(false)}
-                className="w-full py-2 rounded-lg bg-[#0F1524] border border-white/[0.08] text-slate-200 font-semibold text-xs text-center"
-              >
-                Sign in to Console
-              </Link>
+          <div className="md:hidden mt-3 pt-3 border-t border-white/10 flex flex-col gap-2.5 text-sm pb-2">
+            <a 
+              href="#storytelling" 
+              onClick={() => setMobileMenuOpen(false)}
+              className="text-slate-300 hover:text-emerald-400 py-1"
+            >
+              The 300ms Story
+            </a>
+            <a 
+              href="#comparison" 
+              onClick={() => setMobileMenuOpen(false)}
+              className="text-slate-300 hover:text-emerald-400 py-1"
+            >
+              Comparison
+            </a>
+            <a 
+              href="#capabilities" 
+              onClick={() => setMobileMenuOpen(false)}
+              className="text-slate-300 hover:text-emerald-400 py-1"
+            >
+              Capabilities
+            </a>
+            <a 
+              href="#pricing" 
+              onClick={() => setMobileMenuOpen(false)}
+              className="text-slate-300 hover:text-emerald-400 py-1"
+            >
+              Indian Enterprise Pricing
+            </a>
+            <a 
+              href="#faq" 
+              onClick={() => setMobileMenuOpen(false)}
+              className="text-slate-300 hover:text-emerald-400 py-1"
+            >
+              FAQ
+            </a>
+            <div className="pt-2 flex items-center justify-between border-t border-white/5">
+              <Link to="/login" className="text-slate-400 text-xs">Sign In</Link>
+              <Link to="/register" className="text-emerald-400 font-semibold text-xs">Create Account</Link>
             </div>
           </div>
         )}
       </header>
 
-      {/* ─────────────────────────────────────────────────────────────────────────────
-          5.2 HERO SECTION (SHORTENED, BALANCED & WELL-FRAMED)
-      ───────────────────────────────────────────────────────────────────────────── */}
-      <section className="relative pt-4 sm:pt-6 pb-8 px-5 sm:px-8 lg:px-10 max-w-[1320px] mx-auto w-full z-10">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-center">
-          
-          {/* Left Column: Compact Technical Narrative (5 Cols) */}
-          <div className="lg:col-span-5 text-left space-y-4">
-            
-            {/* Technical Eyebrow Pill */}
-            <div className="inline-flex items-center gap-2 px-3 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-[11px] font-semibold backdrop-blur-md">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-              <span className="font-mono-tag">⚡ Local Engine v2026.2 • Zero Cloud Egress</span>
-            </div>
-
-            {/* H1 Headline (Tightened font size to fit screens cleanly) */}
-            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-white leading-tight">
-              Attendance that recognizes people, <br />
-              <span className="specular-text-shimmer">not badges.</span>
-            </h1>
-
-            {/* Subhead */}
-            <p className="text-sm sm:text-base text-slate-300 leading-relaxed font-normal max-w-lg">
-              Transform standard RTSP security cameras or USB webcams into sub-300 ms facial verification gates. Complete on-premise execution with zero data egress.
-            </p>
-
-            {/* CTAs */}
-            <div className="pt-1 flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-              <Link
-                to="/register"
-                className="px-5 py-2.5 rounded-xl bg-emerald-400 hover:bg-emerald-300 text-slate-950 text-xs font-bold shadow-md shadow-emerald-500/20 transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-98"
-              >
-                <span>Start 7-Day Free Trial</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </Link>
-
-              <a
-                href="#simulator"
-                className="px-4 py-2.5 rounded-xl bg-[#0F1524] hover:bg-[#162035] border border-white/[0.08] hover:border-emerald-500/30 text-slate-200 text-xs font-semibold transition-all flex items-center justify-center gap-1.5"
-              >
-                <Play className="w-3.5 h-3.5 text-emerald-400 fill-emerald-400" />
-                <span>See it work</span>
-              </a>
-            </div>
-
-            {/* Trust Row */}
-            <div className="pt-2 grid grid-cols-2 gap-1.5 text-[11px] text-slate-400 font-medium">
-              <span className="flex items-center gap-1.5"><Check className="w-3 h-3 text-emerald-400 shrink-0" /> Free 7-day trial</span>
-              <span className="flex items-center gap-1.5"><Check className="w-3 h-3 text-emerald-400 shrink-0" /> Setup in ~10 minutes</span>
-              <span className="flex items-center gap-1.5"><Check className="w-3 h-3 text-emerald-400 shrink-0" /> Operates 100% offline</span>
-              <span className="flex items-center gap-1.5"><Check className="w-3 h-3 text-emerald-400 shrink-0" /> Hikvision, Dahua, Axis, UVC</span>
-            </div>
-          </div>
-
-          {/* Right Column: Compact Multi-Camera Terminal Showcase (7 Cols) */}
-          <div
-            className="lg:col-span-7 w-full relative"
-            style={{ perspective: 1000 }}
-            onMouseMove={handleMouseMove}
-            onMouseLeave={handleMouseLeave}
-          >
-            {/* 3D Tilt Terminal Wrapper with constrained height */}
-            <div
-              ref={cardRef}
-              style={{
-                transform: `rotateX(${tilt.x}deg) rotateY(${tilt.y}deg)`,
-                transition: 'transform 0.15s ease-out'
-              }}
-              className="w-full rounded-2xl public-card p-3 sm:p-4 shadow-xl relative overflow-hidden bg-[#0A0E1A] border border-white/[0.1]"
-            >
-              {/* Terminal Top Chrome: Camera Switcher Tabs */}
-              <div className="flex items-center justify-between pb-2.5 border-b border-white/[0.08] mb-2.5 gap-2 text-xs font-mono-tag">
-                <div className="flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-rose-500/80 inline-block" />
-                  <span className="w-2 h-2 rounded-full bg-amber-500/80 inline-block" />
-                  <span className="w-2 h-2 rounded-full bg-emerald-500/80 inline-block" />
-                  <span className="text-slate-400 ml-1.5 font-bold text-[11px]">{currentHeroStream.name}</span>
-                </div>
-
-                {/* Multi-Camera Stream Switcher Pills */}
-                <div className="flex items-center gap-1 bg-[#05070D] p-0.5 rounded-lg border border-white/[0.06]">
-                  {HERO_STREAMS.map((s, idx) => (
-                    <button
-                      key={idx}
-                      type="button"
-                      onClick={() => setActiveHeroStream(idx)}
-                      className={`px-2 py-0.5 rounded text-[10px] transition-all cursor-pointer ${
-                        activeHeroStream === idx
-                          ? 'bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/40 shadow-sm'
-                          : 'text-slate-400 hover:text-white'
-                      }`}
-                    >
-                      Cam {idx + 1}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Live Stream Viewport with 68-Point Mesh Overlay (Capped at 300px max-height) */}
-              <div className="relative aspect-[16/9] max-h-[300px] w-full rounded-xl bg-black border border-white/[0.08] overflow-hidden flex items-center justify-center">
-                <img
-                  src={currentHeroStream.image}
-                  alt={currentHeroStream.name}
-                  onError={(e) => {
-                    e.currentTarget.onerror = null;
-                    e.currentTarget.src = '/aurapass_kiosk_preview.jpg';
-                  }}
-                  className="absolute inset-0 w-full h-full object-cover object-center filter brightness-95 contrast-105"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-black/35 pointer-events-none" />
-
-                {/* Animated HUD Scanline */}
-                <div className="absolute inset-x-0 h-[2px] bg-emerald-400/80 shadow-[0_0_12px_#34D399] animate-scanline pointer-events-none" />
-
-                {/* 68-Point Landmark Mesh Vector Simulation */}
-                <div className="relative z-10 w-32 h-32 rounded-full border border-emerald-400/50 bg-emerald-500/10 shadow-[0_0_25px_rgba(52,211,153,0.3)] flex items-center justify-center">
-                  <div className="absolute inset-1.5 rounded-full border border-dashed border-emerald-400/30 animate-spin" style={{ animationDuration: '18s' }} />
-                  
-                  {/* Subtle 68-point mesh constellation markers */}
-                  <div className="absolute top-6 left-9 w-1 h-1 bg-emerald-300 rounded-full shadow-[0_0_6px_#34D399]" />
-                  <div className="absolute top-6 right-9 w-1 h-1 bg-emerald-300 rounded-full shadow-[0_0_6px_#34D399]" />
-                  <div className="absolute top-12 left-14 w-1 h-1 bg-emerald-300 rounded-full shadow-[0_0_6px_#34D399]" />
-                  <div className="absolute top-18 left-10 w-1 h-1 bg-emerald-300 rounded-full shadow-[0_0_6px_#34D399]" />
-                  <div className="absolute top-18 right-10 w-1 h-1 bg-emerald-300 rounded-full shadow-[0_0_6px_#34D399]" />
-                  <div className="absolute bottom-8 left-14 w-1 h-1 bg-emerald-300 rounded-full shadow-[0_0_6px_#34D399]" />
-                  
-                  <CheckCircle2 className="w-10 h-10 text-emerald-400 drop-shadow-[0_0_10px_rgba(52,211,153,0.8)]" />
-                </div>
-
-                {/* HUD Overlay Tags */}
-                <div className="absolute top-2.5 left-2.5 z-10 text-[10px] font-mono-tag bg-black/80 backdrop-blur-md px-2 py-1 rounded border border-white/10 text-slate-300 flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                  <span>Protocol: <strong className="text-white">{currentHeroStream.protocol}</strong></span>
-                </div>
-                <div className="absolute top-2.5 right-2.5 z-10 text-[10px] font-mono-tag bg-black/80 backdrop-blur-md px-2 py-1 rounded border border-white/10 text-emerald-400 font-bold">
-                  {currentHeroStream.fps} &bull; {currentHeroStream.latency}
-                </div>
-
-                {/* Active Identified Employee Card (Priya Sharma matching the photo) */}
-                <div className="absolute bottom-2.5 inset-x-2.5 z-10 bg-[#070A12]/92 backdrop-blur-md rounded-lg p-2 border border-emerald-500/35 flex items-center justify-between text-xs font-mono-tag shadow-lg">
-                  <div className="flex items-center gap-2">
-                    <div className="w-6 h-6 rounded bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-300 font-bold text-[10px]">
-                      {currentHeroStream.employee.split(' ').map(n=>n[0]).join('')}
-                    </div>
-                    <div>
-                      <p className="font-bold text-white text-[11px] leading-tight">{currentHeroStream.employee} ({currentHeroStream.badge})</p>
-                      <p className="text-[10px] text-slate-400 font-normal">{currentHeroStream.dept} &bull; {currentHeroStream.time}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <span className="px-1.5 py-0.5 rounded bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 font-bold text-[10px]">
-                      {currentHeroStream.status}
-                    </span>
-                    <span className="text-[10px] text-slate-400 font-bold">
-                      {currentHeroStream.confidence}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Terminal Footer Telemetry Strip */}
-              <div className="grid grid-cols-3 gap-2 mt-2 text-center text-xs font-mono-tag">
-                <div className="p-1.5 rounded-lg bg-[#070A12] border border-white/[0.06]">
-                  <span className="text-emerald-400 font-bold text-xs">&lt; 300 ms</span>
-                  <span className="text-[9px] text-slate-500 block">Latency</span>
-                </div>
-                <div className="p-1.5 rounded-lg bg-[#070A12] border border-white/[0.06]">
-                  <span className="text-emerald-400 font-bold text-xs">512-d</span>
-                  <span className="text-[9px] text-slate-500 block">Vectors</span>
-                </div>
-                <div className="p-1.5 rounded-lg bg-[#070A12] border border-white/[0.06]">
-                  <span className="text-emerald-400 font-bold text-xs">0 Bytes</span>
-                  <span className="text-[9px] text-slate-500 block">Cloud Egress</span>
-                </div>
-              </div>
-            </div>
-          </div>
+      {/* 2. HERO SECTION — SCREEN FITTED & PROPORTIONATE */}
+      <section className="relative z-10 pt-28 sm:pt-36 pb-16 sm:pb-20 px-4 sm:px-6 max-w-6xl mx-auto flex flex-col items-center text-center">
+        
+        {/* Status Telemetry Pill Badge */}
+        <div className="inline-flex items-center gap-2.5 px-3.5 py-1.5 rounded-full bg-[#0B0F19] border border-emerald-500/30 text-emerald-400 mb-6 glow-emerald-box">
+          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+          <span className="font-mono text-[11px] font-medium uppercase tracking-wider">
+            ON-PREM EDGE VERIFICATION // SUB-300MS LATENCY
+          </span>
         </div>
 
-        {/* Hardware Compatibility Strip */}
-        <div className="mt-8 pt-4 border-t border-white/[0.08] flex flex-col md:flex-row items-center justify-between gap-3 text-xs font-mono-tag text-slate-400">
-          <span>Works with the security cameras and terminals you already own:</span>
-          <div className="flex flex-wrap items-center gap-5 text-slate-300 font-semibold text-[11px]">
-            <span className="hover:text-emerald-400 transition-colors">Hikvision</span>
-            <span className="hover:text-emerald-400 transition-colors">Dahua</span>
-            <span className="hover:text-emerald-400 transition-colors">Axis Communications</span>
-            <span className="hover:text-emerald-400 transition-colors">Hanwha Vision</span>
-            <span className="hover:text-emerald-400 transition-colors">Logitech USB</span>
-            <span className="text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">RTSP / ONVIF</span>
-          </div>
-        </div>
-      </section>
+        {/* Main Pitch Headline */}
+        <h1 className="text-3xl sm:text-5xl md:text-6xl font-extrabold text-white max-w-4xl tracking-tight leading-[1.15] mb-5">
+          Attendance that recognizes{' '}
+          <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 via-teal-300 to-emerald-200">
+            people
+          </span>
+          , not badges.
+        </h1>
 
-      {/* ─────────────────────────────────────────────────────────────────────────────
-          5.3 "THE PROBLEM" FRAMING STRIP
-      ───────────────────────────────────────────────────────────────────────────── */}
-      <section className="py-10 px-5 sm:px-8 lg:px-10 max-w-[1320px] mx-auto w-full section-hairline z-10">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5 text-left">
-          <div className="p-5 rounded-2xl public-card space-y-2 border-l-2 border-l-rose-500/60">
-            <span className="text-[11px] font-mono-tag font-bold text-rose-400 bg-rose-500/10 px-2 py-0.5 rounded border border-rose-500/20 inline-block">
-              Badge Vulnerability
-            </span>
-            <p className="text-sm font-semibold text-white">Badges get lost, shared, and buddy-punched.</p>
-            <p className="text-xs text-slate-400 leading-relaxed font-normal">
-              Plastic RFID keycards cost ₹200–₹500 to replace and cannot guarantee genuine human presence.
-            </p>
-          </div>
-
-          <div className="p-5 rounded-2xl public-card space-y-2 border-l-2 border-l-amber-500/60">
-            <span className="text-[11px] font-mono-tag font-bold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20 inline-block">
-              Cloud Privacy Exposure
-            </span>
-            <p className="text-sm font-semibold text-white">Cloud face systems send employee biometrics off-site.</p>
-            <p className="text-xs text-slate-400 leading-relaxed font-normal">
-              Transmitting facial imagery over public cloud APIs creates high security exposure and internet dependency.
-            </p>
-          </div>
-
-          <div className="p-5 rounded-2xl public-card space-y-2 border-l-2 border-l-cyan-500/60">
-            <span className="text-[11px] font-mono-tag font-bold text-cyan-400 bg-cyan-500/10 px-2 py-0.5 rounded border border-cyan-500/20 inline-block">
-              Timesheet Disputes
-            </span>
-            <p className="text-sm font-semibold text-white">Manual registers cause ongoing payroll disputes.</p>
-            <p className="text-xs text-slate-400 leading-relaxed font-normal">
-              Disputed arrival times and proxy attendance consume hours of management time every month.
-            </p>
-          </div>
-        </div>
-
-        <p className="text-center text-xs text-slate-400 font-mono-tag pt-6">
-          AuraPass fixes all three on your own local computer or server.
+        {/* Subtitle */}
+        <p className="text-sm sm:text-base md:text-lg text-slate-400 max-w-2xl mb-8 leading-relaxed font-normal">
+          Turn existing standard RTSP CCTV cameras or webcams into instant walk-through turnstiles with zero cloud exposure, 99.6% accuracy, and sovereign on-premise execution.
         </p>
-      </section>
 
-      {/* ─────────────────────────────────────────────────────────────────────────────
-          5.4 INTERACTIVE HARDWARE SIMULATOR ("SEE IT WORK")
-      ───────────────────────────────────────────────────────────────────────────── */}
-      <section id="simulator" className="py-12 px-5 sm:px-8 lg:px-10 max-w-[1320px] mx-auto w-full section-hairline z-10">
-        <SectionHeader
-          badge="Interactive Hardware Simulator"
-          badgeIcon={Sparkles}
-          title="See how face verification works in real time"
-          subtitle="Test standard employee arrival, presentation attack rejection, or glasses tolerance."
-        />
-
-        {/* Scenario Switcher Tabs */}
-        <div className="flex flex-wrap items-center justify-center gap-2 mb-6">
-          <button
-            type="button"
-            onClick={() => { setSimMode('standard'); triggerSimulation('standard'); }}
-            className={`px-3.5 py-1.5 rounded-xl text-xs font-medium transition-all cursor-pointer ${
-              simMode === 'standard'
-                ? 'bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/40 shadow-sm'
-                : 'bg-[#0F1524] text-slate-400 hover:text-white border border-white/[0.08]'
-            }`}
+        {/* Action Buttons */}
+        <div className="flex flex-col sm:flex-row items-center gap-3.5 mb-10 w-full sm:w-auto">
+          <a
+            href="#pricing"
+            className="w-full sm:w-auto px-6 py-3 rounded-xl bg-emerald-400 text-[#070A12] font-semibold text-sm hover:bg-emerald-300 transition-all shadow-[0_0_24px_rgba(16,185,129,0.3)] flex items-center justify-center gap-2"
           >
-            Standard Arrival (0° Frontal)
-          </button>
+            <Zap className="w-4 h-4 fill-current" />
+            <span>Start 7-Day Free Trial</span>
+          </a>
           <button
-            type="button"
-            onClick={() => { setSimMode('spoofing'); triggerSimulation('spoofing'); }}
-            className={`px-3.5 py-1.5 rounded-xl text-xs font-medium transition-all cursor-pointer ${
-              simMode === 'spoofing'
-                ? 'bg-rose-500/20 text-rose-300 font-bold border border-rose-500/40 shadow-sm'
-                : 'bg-[#0F1524] text-slate-400 hover:text-white border border-white/[0.08]'
-            }`}
+            onClick={() => setShowVideoModal(true)}
+            className="w-full sm:w-auto px-6 py-3 rounded-xl bg-[#0F1524]/80 hover:bg-[#141B2E] text-slate-200 border border-white/10 hover:border-emerald-500/40 text-sm font-medium transition-all backdrop-blur-md flex items-center justify-center gap-2"
           >
-            Photo & Screen Spoof Rejection
-          </button>
-          <button
-            type="button"
-            onClick={() => { setSimMode('glasses'); triggerSimulation('glasses'); }}
-            className={`px-3.5 py-1.5 rounded-xl text-xs font-medium transition-all cursor-pointer ${
-              simMode === 'glasses'
-                ? 'bg-cyan-500/20 text-cyan-300 font-bold border border-cyan-500/40 shadow-sm'
-                : 'bg-[#0F1524] text-slate-400 hover:text-white border border-white/[0.08]'
-            }`}
-          >
-            Daily Glasses & Headwear Tolerance
+            <Play className="w-4 h-4 text-emerald-400 fill-emerald-400/20" />
+            <span>Watch CCTV Ingestion Demo</span>
           </button>
         </div>
 
-        {/* Simulator Shell: Left Viewport (7 Cols), Right Pipeline Timing (5 Cols) */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
-          
-          {/* Left Viewport */}
-          <div className="lg:col-span-7 rounded-2xl public-card p-4 flex flex-col justify-between relative overflow-hidden bg-[#0A0E1A]">
-            <div className="flex items-center justify-between pb-2 border-b border-white/[0.08] mb-2 text-xs font-mono-tag">
-              <span className="text-slate-400">Camera Terminal: RTSP_CAM_01</span>
-              <span className="text-emerald-400 font-bold">Latency: {simTime} ms</span>
-            </div>
-
-            <div className="relative aspect-[16/9] max-h-[300px] w-full rounded-xl bg-black border border-white/[0.08] overflow-hidden flex items-center justify-center">
-              <img
-                src={simMode === 'spoofing' ? '/auth-bg.png' : '/aurapass_kiosk_preview.jpg'}
-                alt="Simulator Viewport"
-                className={`absolute inset-0 w-full h-full object-cover object-center filter ${
-                  simMode === 'spoofing' ? 'grayscale brightness-75' : 'brightness-95'
-                }`}
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-black/35 pointer-events-none" />
-
-              {/* Status Outcome HUD Banner (Accurately displays Priya Sharma for the female photo) */}
-              {simStep >= 5 && (
-                <div
-                  className={`absolute z-20 px-4 py-2 rounded-xl border backdrop-blur-md text-xs font-mono-tag font-bold flex items-center gap-2 shadow-2xl ${
-                    simMode === 'spoofing'
-                      ? 'bg-rose-950/80 border-rose-500/50 text-rose-300'
-                      : 'bg-emerald-950/80 border-emerald-500/50 text-emerald-300'
-                  }`}
-                >
-                  {simMode === 'spoofing' ? (
-                    <>
-                      <AlertTriangle className="w-4 h-4 text-rose-400" />
-                      <span>Rejected: Presentation Attack Detected</span>
-                    </>
-                  ) : (
-                    <>
-                      <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                      <span>Access Granted: Priya Sharma (99.4%)</span>
-                    </>
-                  )}
-                </div>
-              )}
-
-              {/* HUD Corner Data Chips */}
-              <div className="absolute bottom-2.5 left-2.5 z-10 text-[10px] font-mono-tag bg-black/80 px-2 py-0.5 rounded border border-white/10 text-slate-300">
-                Mode: <strong className="text-white">{simMode.toUpperCase()}</strong>
-              </div>
-              <div className="absolute bottom-2.5 right-2.5 z-10 text-[10px] font-mono-tag bg-black/80 px-2 py-0.5 rounded border border-white/10 text-slate-300">
-                Zero Cloud Egress
-              </div>
-            </div>
-
-            <div className="mt-3 flex items-center justify-between pt-1">
-              <button
-                type="button"
-                onClick={() => triggerSimulation(simMode)}
-                disabled={simRunning}
-                className="px-4 py-2 rounded-xl bg-emerald-400 hover:bg-emerald-300 disabled:opacity-50 text-slate-950 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-md shadow-emerald-500/20"
-              >
-                <RefreshCw className={`w-3 h-3 ${simRunning ? 'animate-spin' : ''}`} />
-                <span>{simRunning ? 'Executing...' : 'Simulate check-in again'}</span>
-              </button>
-              <span className="text-[10px] font-mono-tag text-slate-500">Continuous local loop</span>
-            </div>
-          </div>
-
-          {/* Right Pipeline Checklist */}
-          <div className="lg:col-span-5 rounded-2xl public-card p-5 flex flex-col justify-between text-left space-y-3">
-            <div>
-              <p className="text-[11px] font-mono-tag font-bold text-emerald-400 uppercase tracking-wider mb-0.5">
-                Real-Time Inference Pipeline
-              </p>
-              <h3 className="text-base font-bold text-white">Under 300 ms End-to-End</h3>
-              <p className="text-xs text-slate-400 leading-relaxed font-normal">
-                Watch each step execute sequentially in host CPU memory.
-              </p>
-            </div>
-
-            <div className="space-y-2 font-mono-tag text-xs">
-              <div className={`p-2.5 rounded-lg border transition-all ${
-                simStep >= 1 ? 'bg-[#0E1526] border-emerald-500/35 text-white' : 'bg-[#080B14] border-white/[0.06] text-slate-500'
-              }`}>
-                <div className="flex items-center justify-between">
-                  <span className="flex items-center gap-1.5">
-                    <CheckCircle2 className={`w-3.5 h-3.5 ${simStep >= 1 ? 'text-emerald-400' : 'text-slate-600'}`} />
-                    <span>1. Video Frame Captured</span>
-                  </span>
-                  <span className="text-[10px] text-slate-400">12 ms</span>
-                </div>
-              </div>
-
-              <div className={`p-2.5 rounded-lg border transition-all ${
-                simStep >= 2 ? 'bg-[#0E1526] border-emerald-500/35 text-white' : 'bg-[#080B14] border-white/[0.06] text-slate-500'
-              }`}>
-                <div className="flex items-center justify-between">
-                  <span className="flex items-center gap-1.5">
-                    <CheckCircle2 className={`w-3.5 h-3.5 ${simStep >= 2 ? 'text-emerald-400' : 'text-slate-600'}`} />
-                    <span>2. MediaPipe BlazeFace (68 Pts)</span>
-                  </span>
-                  <span className="text-[10px] text-slate-400">28 ms</span>
-                </div>
-              </div>
-
-              <div className={`p-2.5 rounded-lg border transition-all ${
-                simStep >= 3 ? 'bg-[#0E1526] border-emerald-500/35 text-white' : 'bg-[#080B14] border-white/[0.06] text-slate-500'
-              }`}>
-                <div className="flex items-center justify-between">
-                  <span className="flex items-center gap-1.5">
-                    <CheckCircle2 className={`w-3.5 h-3.5 ${simStep >= 3 ? 'text-emerald-400' : 'text-slate-600'}`} />
-                    <span>3. Anti-Spoofing & Liveness</span>
-                  </span>
-                  <span className={`text-[10px] ${simMode === 'spoofing' ? 'text-rose-400 font-bold' : 'text-slate-400'}`}>
-                    {simMode === 'spoofing' ? 'FAILED' : '36 ms'}
-                  </span>
-                </div>
-              </div>
-
-              <div className={`p-2.5 rounded-lg border transition-all ${
-                simStep >= 4 ? 'bg-[#0E1526] border-emerald-500/35 text-white' : 'bg-[#080B14] border-white/[0.06] text-slate-500'
-              }`}>
-                <div className="flex items-center justify-between">
-                  <span className="flex items-center gap-1.5">
-                    <CheckCircle2 className={`w-3.5 h-3.5 ${simStep >= 4 ? 'text-emerald-400' : 'text-slate-600'}`} />
-                    <span>4. FaceNet512 Vector Extracted</span>
-                  </span>
-                  <span className="text-[10px] text-slate-400">72 ms</span>
-                </div>
-              </div>
-
-              <div className={`p-2.5 rounded-lg border transition-all ${
-                simStep >= 5 ? 'bg-[#0E1526] border-emerald-500/35 text-white' : 'bg-[#080B14] border-white/[0.06] text-slate-500'
-              }`}>
-                <div className="flex items-center justify-between">
-                  <span className="flex items-center gap-1.5">
-                    <CheckCircle2 className={`w-3.5 h-3.5 ${simStep >= 5 ? 'text-emerald-400' : 'text-slate-600'}`} />
-                    <span>5. Vector Distance & Match</span>
-                  </span>
-                  <span className="text-[10px] text-slate-400">4 ms</span>
-                </div>
-              </div>
-
-              <div className={`p-2.5 rounded-lg border transition-all ${
-                simStep >= 6 ? 'bg-[#0E1526] border-emerald-500/35 text-white' : 'bg-[#080B14] border-white/[0.06] text-slate-500'
-              }`}>
-                <div className="flex items-center justify-between">
-                  <span className="flex items-center gap-1.5">
-                    <CheckCircle2 className={`w-3.5 h-3.5 ${simStep >= 6 ? 'text-emerald-400' : 'text-slate-600'}`} />
-                    <span>6. Gate Relay & Attendance Log</span>
-                  </span>
-                  <span className="text-[10px] text-emerald-400 font-bold">Total: {simTime} ms</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="pt-1 border-t border-white/[0.08] text-[10px] text-slate-400 font-mono-tag">
-              Zero frames uploaded to any third-party cloud.
-            </div>
-          </div>
+        {/* Quick Enterprise Guarantee Chips */}
+        <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-6 text-xs text-slate-400 mb-12 font-mono">
+          <span className="flex items-center gap-1.5">
+            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" /> 7-Day Free Trial On All Plans
+          </span>
+          <span className="flex items-center gap-1.5">
+            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" /> Compatible with Any RTSP CCTV
+          </span>
+          <span className="flex items-center gap-1.5">
+            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" /> 100% Air-Gapped (DPDP Act 2023)
+          </span>
         </div>
-      </section>
 
-      {/* ─────────────────────────────────────────────────────────────────────────────
-          5.6 CAPABILITIES (LIVING INTERACTIVE BENTO GRID)
-      ───────────────────────────────────────────────────────────────────────────── */}
-      <section id="capabilities" className="py-12 px-5 sm:px-8 lg:px-10 max-w-[1320px] mx-auto w-full section-hairline z-10">
-        <SectionHeader
-          badge="Interactive Capabilities"
-          badgeIcon={Zap}
-          title="Living tools engineered for workplace operations"
-          subtitle="Test live interactive controls for attendance timelines, grace period rules, and relay triggers."
-        />
-
-        {/* Asymmetric Living Bento Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 text-left">
+        {/* LIVE CCTV GATE STREAM PREVIEW WIDGET */}
+        <div className="w-full max-w-4xl rounded-2xl border border-white/10 bg-[#0B0F19]/90 backdrop-blur-xl p-3 sm:p-5 shadow-2xl relative overflow-hidden text-left">
           
-          {/* Tile 1: Live Interactive Attendance Timeline & Export (Span 2) */}
-          <div className="md:col-span-2 rounded-2xl public-card p-5 flex flex-col justify-between space-y-3">
-            <div>
-              <div className="flex flex-wrap items-center justify-between gap-2 mb-1.5">
-                <span className="text-[11px] font-mono-tag font-bold text-emerald-400 uppercase tracking-wider">
-                  Live Operations Feed
-                </span>
-                <div className="flex items-center gap-1.5">
-                  {['all', 'engineering', 'operations', 'qa'].map(d => (
-                    <button
-                      key={d}
-                      type="button"
-                      onClick={() => setAttendanceDeptFilter(d)}
-                      className={`px-2 py-0.5 rounded text-[10px] font-mono-tag capitalize transition-all cursor-pointer ${
-                        attendanceDeptFilter === d
-                          ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-bold'
-                          : 'text-slate-400 hover:text-white bg-white/[0.04]'
-                      }`}
-                    >
-                      {d}
-                    </button>
-                  ))}
-                  <button
-                    type="button"
-                    onClick={exportSampleCSV}
-                    className="ml-1 px-2.5 py-0.5 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/35 text-emerald-300 text-[11px] font-semibold flex items-center gap-1 transition-colors cursor-pointer"
-                  >
-                    <Download className="w-3 h-3" />
-                    <span>Export CSV</span>
-                  </button>
-                </div>
-              </div>
-              <h3 className="text-base font-bold text-white">Real-Time Attendance Timeline</h3>
-              <p className="text-xs text-slate-400 leading-relaxed font-normal">
-                Continuous log of verified employee check-ins with department filters and 1-click payroll spreadsheet export.
-              </p>
-            </div>
-
-            {/* Live Filtered Table */}
-            <div className="rounded-xl bg-[#070A12] border border-white/[0.06] overflow-hidden">
-              <table className="w-full text-left text-xs font-mono-tag">
-                <thead className="bg-[#0B0F19] text-slate-400 border-b border-white/[0.06]">
-                  <tr>
-                    <th className="py-2 px-3">Employee</th>
-                    <th className="py-2 px-3">Department</th>
-                    <th className="py-2 px-3">Timestamp</th>
-                    <th className="py-2 px-3">Status</th>
-                    <th className="py-2 px-3 text-right">Confidence</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-white/[0.04]">
-                  {filteredAttendance.map((row, idx) => (
-                    <tr key={idx} className="hover:bg-white/[0.02] transition-colors">
-                      <td className="py-2 px-3 flex items-center gap-2">
-                        <span className="w-5 h-5 rounded bg-emerald-500/20 text-emerald-300 font-bold flex items-center justify-center text-[9px]">
-                          {row.avatar}
-                        </span>
-                        <span className="text-white font-medium text-[11px]">{row.name}</span>
-                      </td>
-                      <td className="py-2 px-3 text-slate-300 text-[11px]">{row.dept}</td>
-                      <td className="py-2 px-3 text-slate-400 text-[11px]">{row.time}</td>
-                      <td className="py-2 px-3">
-                        <span className={`px-1.5 py-0.2 rounded text-[9px] font-bold ${
-                          row.status === 'ON TIME'
-                            ? 'bg-emerald-500/15 text-emerald-400'
-                            : 'bg-amber-500/15 text-amber-400'
-                        }`}>
-                          {row.status}
-                        </span>
-                      </td>
-                      <td className="py-2 px-3 text-right text-slate-300 text-[11px]">{row.confidence}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          {/* Tile 2: Interactive Shift Grace Calculator Slider */}
-          <div className="rounded-2xl public-card p-5 flex flex-col justify-between space-y-3">
-            <div>
-              <span className="text-[11px] font-mono-tag font-bold text-amber-400 uppercase tracking-wider block mb-0.5">
-                Interactive Policy Tool
-              </span>
-              <h3 className="text-base font-bold text-white">Shift Grace Calculator</h3>
-              <p className="text-xs text-slate-400 leading-relaxed font-normal">
-                Drag the grace slider to see arrival status change dynamically in real time.
-              </p>
-            </div>
-
-            <div className="p-3.5 rounded-xl bg-[#070A12] border border-white/[0.06] space-y-2.5 font-mono-tag text-xs">
-              <div className="flex items-center justify-between">
-                <span className="text-slate-400">Department Grace Buffer:</span>
-                <span className="text-emerald-400 font-bold">{graceMinutes} Minutes</span>
-              </div>
-
-              {/* Slider Control */}
-              <input
-                type="range"
-                min="0"
-                max="30"
-                value={graceMinutes}
-                onChange={(e) => setGraceMinutes(Number(e.target.value))}
-                className="w-full range-slider-thumb accent-emerald-400 cursor-pointer"
-              />
-
-              <div className="pt-2 border-t border-white/[0.06] text-[10px] space-y-1">
-                <div className="flex justify-between text-slate-400">
-                  <span>Shift Start: <strong>09:00 AM</strong></span>
-                  <span>Arrival: <strong>09:14 AM</strong></span>
-                </div>
-                <div className="flex justify-between items-center pt-0.5">
-                  <span>Calculated Status:</span>
-                  <span className={`px-1.5 py-0.5 rounded font-bold ${
-                    graceMinutes >= 14
-                      ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
-                      : 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
-                  }`}>
-                    {graceMinutes >= 14 ? 'ON TIME (Grace Applied)' : 'LATE (Flagged for Review)'}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            <p className="text-[10px] text-slate-500 font-mono-tag">
-              Configurable per department (Engineering, Sales, Plant).
-            </p>
-          </div>
-
-          {/* Tile 3: Multi-Cue Presentation Attack Radar */}
-          <div className="rounded-2xl public-card p-5 flex flex-col justify-between space-y-3">
-            <div>
-              <span className="text-[11px] font-mono-tag font-bold text-rose-400 uppercase tracking-wider block mb-0.5">
-                Anti-Spoofing Radar
-              </span>
-              <h3 className="text-base font-bold text-white">Passive Liveness Detection</h3>
-              <p className="text-xs text-slate-400 leading-relaxed font-normal">
-                Detects 2D photos, screen replays, and printed masks in under 120 ms.
-              </p>
-            </div>
-
-            {/* Radar Simulation */}
-            <div className="p-3 rounded-xl bg-[#070A12] border border-white/[0.06] flex items-center justify-between gap-3">
-              <div className="relative w-16 h-16 rounded-full border border-emerald-500/30 bg-emerald-950/20 flex items-center justify-center overflow-hidden shrink-0">
-                <div className="absolute inset-0 rounded-full border border-dashed border-emerald-500/20" />
-                <div className="absolute w-full h-[1px] bg-emerald-400/80 animate-radar origin-center" />
-                <Eye className="w-5 h-5 text-emerald-400" />
-              </div>
-
-              <div className="space-y-1 text-xs font-mono-tag">
-                <div className="flex gap-1.5">
-                  <button
-                    type="button"
-                    onClick={() => setRadarTestMode('live')}
-                    className={`px-2 py-0.5 rounded text-[10px] cursor-pointer ${
-                      radarTestMode === 'live'
-                        ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-bold'
-                        : 'text-slate-400 bg-white/5'
-                    }`}
-                  >
-                    Live Human
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setRadarTestMode('attack')}
-                    className={`px-2 py-0.5 rounded text-[10px] cursor-pointer ${
-                      radarTestMode === 'attack'
-                        ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40 font-bold'
-                        : 'text-slate-400 bg-white/5'
-                    }`}
-                  >
-                    Photo Attack
-                  </button>
-                </div>
-                <p className="text-[10px] text-slate-300 pt-0.5">
-                  PAD Score: <strong className={radarTestMode === 'live' ? 'text-emerald-400' : 'text-rose-400'}>
-                    {radarTestMode === 'live' ? '98.9% (Genuine)' : '11.4% (Spoof Detected)'}
-                  </strong>
-                </p>
-              </div>
-            </div>
-
-            <p className="text-[10px] text-slate-500 font-mono-tag">
-              Compliant with ISO/IEC 30107-3 PAD standards.
-            </p>
-          </div>
-
-          {/* Tile 4: 3-Shot Enrollment Protocol Visualizer */}
-          <div className="rounded-2xl public-card p-5 flex flex-col justify-between space-y-3">
-            <div>
-              <span className="text-[11px] font-mono-tag font-bold text-cyan-400 uppercase tracking-wider block mb-0.5">
-                Biometric Quality
-              </span>
-              <h3 className="text-base font-bold text-white">3-Shot Enrollment Protocol</h3>
-              <p className="text-xs text-slate-400 leading-relaxed font-normal">
-                Multi-angle face registration captures three key perspectives under 2 minutes.
-              </p>
-            </div>
-
-            {/* Angle Switcher */}
-            <div className="grid grid-cols-3 gap-1.5 text-center font-mono-tag text-xs">
-              {[
-                { angle: 0, label: "0° Frontal", stat: "100%" },
-                { angle: 1, label: "-15° Left", stat: "98%" },
-                { angle: 2, label: "+15° Right", stat: "99%" }
-              ].map((item, idx) => (
+          {/* Multi-Camera Channel Switcher Tabs */}
+          <div className="flex flex-wrap items-center justify-between pb-3 border-b border-white/10 gap-2 mb-3">
+            <div className="flex items-center gap-1.5 bg-[#070A12] p-1 rounded-lg border border-white/5">
+              {HERO_STREAMS.map((stream, idx) => (
                 <button
                   key={idx}
-                  type="button"
-                  onClick={() => setEnrollmentAngle(idx)}
-                  className={`p-2 rounded-lg border transition-all cursor-pointer ${
-                    enrollmentAngle === idx
-                      ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-300 font-bold'
-                      : 'bg-[#070A12] border-white/[0.06] text-slate-400 hover:text-white'
-                  }`}
+                  onClick={() => setActiveHeroStream(idx)}
+                  className={`px-2.5 py-1 rounded text-xs font-mono font-medium transition-all flex items-center gap-1.5 ${activeHeroStream === idx ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40' : 'text-slate-400 hover:text-slate-200'}`}
                 >
-                  <span className="block text-[11px]">{item.label}</span>
-                  <span className="text-[9px] text-slate-500 block">{item.stat} Quality</span>
+                  <span className={`w-1.5 h-1.5 rounded-full ${activeHeroStream === idx ? 'bg-emerald-400 animate-ping' : 'bg-slate-500'}`} />
+                  Cam {idx + 1}
                 </button>
               ))}
             </div>
 
-            <p className="text-[10px] text-slate-500 font-mono-tag">
-              Requires 160×160px minimum face bounding box.
-            </p>
+            {/* Feed Status & Clock */}
+            <div className="flex items-center gap-3 font-mono text-xs text-slate-400">
+              <span className="text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
+                {currentHeroStream.fps} • {currentHeroStream.latency}
+              </span>
+              <span className="hidden sm:inline text-slate-500">
+                {currentTimeStr || '2026-11-05 09:14:22 IST'}
+              </span>
+            </div>
           </div>
 
-          {/* Tile 5: Hardware Relay Pulse & Turnstile Trigger */}
-          <div className="rounded-2xl public-card p-5 flex flex-col justify-between space-y-3">
+          {/* Video Stream Container Simulation */}
+          <div className="relative w-full aspect-[16/10] sm:aspect-[16/9] rounded-xl overflow-hidden border border-white/10 bg-[#05080E]">
+            
+            {/* Subject Image (Rajesh Patel / Priya Sharma / Vatsal Vadgama) */}
+            <img
+              src={currentHeroStream.image}
+              alt={currentHeroStream.employee}
+              className="w-full h-full object-cover opacity-60 filter contrast-110 saturate-75"
+            />
+
+            {/* Sweeping Scanning Laser */}
+            <div className="scanner-line" />
+
+            {/* Camera Reticle & Overlays */}
+            <div className="absolute inset-0 pointer-events-none p-4 sm:p-6 flex flex-col justify-between">
+              
+              {/* Top Sensor Specs */}
+              <div className="flex justify-between items-start text-[11px] font-mono">
+                <div className="text-emerald-300 bg-black/60 px-2.5 py-1 rounded backdrop-blur border border-emerald-500/20">
+                  {currentHeroStream.protocol}
+                </div>
+                <div className="text-slate-300 bg-black/60 px-2.5 py-1 rounded backdrop-blur border border-white/10">
+                  BUFFER: 3.8ms // LOSS: 0.00%
+                </div>
+              </div>
+
+              {/* Bounding Detection Box Over Subject Face */}
+              <div className="absolute top-[20%] sm:top-[22%] left-[34%] sm:left-[38%] w-[32%] sm:w-[24%] h-[52%] sm:h-[50%] border-2 border-emerald-400 rounded-sm shadow-[0_0_20px_rgba(52,211,153,0.45)] flex flex-col justify-between p-2">
+                
+                {/* Corner Brackets */}
+                <div className="flex justify-between">
+                  <span className="w-2.5 h-2.5 border-t-2 border-l-2 border-emerald-400 -mt-2 -ml-2" />
+                  <span className="w-2.5 h-2.5 border-t-2 border-r-2 border-emerald-400 -mt-2 -mr-2" />
+                </div>
+
+                {/* Center 68-Point Mesh Lock Crosshair */}
+                <div className="self-center flex flex-col items-center">
+                  <Scan className="w-7 h-7 text-emerald-400/80 animate-pulse" />
+                  <span className="font-mono text-[9px] text-emerald-400 bg-black/80 px-1 py-0.5 rounded border border-emerald-500/40 mt-1 uppercase">
+                    68-Pt Mesh Lock
+                  </span>
+                </div>
+
+                <div className="flex justify-between">
+                  <span className="w-2.5 h-2.5 border-b-2 border-l-2 border-emerald-400 -mb-2 -ml-2" />
+                  <span className="w-2.5 h-2.5 border-b-2 border-r-2 border-emerald-400 -mb-2 -mr-2" />
+                </div>
+
+                {/* Identity Tag Badge Floating Below Bounding Box */}
+                <div className="absolute -bottom-14 sm:-bottom-16 left-0 right-0 bg-[#0B0F19]/95 border border-emerald-500/50 backdrop-blur-md p-2 rounded-lg text-left shadow-xl pointer-events-auto">
+                  <div className="flex items-center justify-between text-[10px] font-mono mb-0.5">
+                    <span className="text-emerald-400 font-bold">AUTHORIZED — {currentHeroStream.latency}</span>
+                    <span className="text-slate-300">{currentHeroStream.confidence}</span>
+                  </div>
+                  <p className="text-xs sm:text-sm font-bold text-white truncate">
+                    {currentHeroStream.employee}
+                  </p>
+                  <div className="flex items-center justify-between text-[9px] font-mono text-slate-400">
+                    <span>{currentHeroStream.role}</span>
+                    <span className="text-emerald-400 font-bold">{currentHeroStream.badge}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Bottom Telemetry Relay Status Strip */}
+              <div className="flex flex-wrap items-center justify-between bg-black/75 backdrop-blur border border-white/10 p-2 sm:p-2.5 rounded-lg text-[10px] sm:text-xs font-mono">
+                <div className="flex items-center gap-2">
+                  <span className={`flex items-center gap-1.5 font-semibold ${relayPulsed ? 'text-emerald-300 animate-pulse' : 'text-slate-300'}`}>
+                    <Lock className={`w-3.5 h-3.5 ${relayPulsed ? 'text-emerald-400' : 'text-slate-400'}`} />
+                    {relayPulsed ? 'RELAY 01: UNLATCHED (24V PULSE 450ms)' : 'RELAY 01: READY / STANDBY'}
+                  </span>
+                  <span className="text-slate-600">|</span>
+                  <span className="text-emerald-400">GPIO_PIN_18</span>
+                </div>
+                <div className="text-slate-400 flex items-center gap-2">
+                  <span>TOTAL CYCLE: {currentHeroStream.latency}</span>
+                  <button
+                    onClick={triggerRelayPulse}
+                    className="px-2 py-0.5 rounded bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/30 text-[10px] cursor-pointer transition-colors"
+                  >
+                    Test Gate Pulse
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 3. THE PROBLEM VS THE WALK-THROUGH STANDARD */}
+      <section id="comparison" className="relative z-10 py-16 sm:py-20 px-4 sm:px-6 max-w-6xl mx-auto border-t border-white/10">
+        <div className="text-center max-w-3xl mx-auto mb-12 sm:mb-16">
+          <p className="font-mono text-xs text-emerald-400 uppercase tracking-widest mb-2 font-medium">
+            INFRASTRUCTURE COMPARISON
+          </p>
+          <h2 className="text-2xl sm:text-4xl font-extrabold text-white tracking-tight">
+            The Friction of the Past vs The Walk-Through Standard
+          </h2>
+          <p className="text-sm sm:text-base text-slate-400 mt-3 font-normal">
+            Replacing brittle plastic credentials with non-cooperative, zero-latency optical authorization.
+          </p>
+        </div>
+
+        {/* Side-by-Side Comparison Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8">
+          
+          {/* Legacy Card */}
+          <div className="rounded-2xl border border-rose-500/25 bg-[#0D111A]/80 backdrop-blur-md p-6 sm:p-8 flex flex-col justify-between">
             <div>
-              <span className="text-[11px] font-mono-tag font-bold text-emerald-400 uppercase tracking-wider block mb-0.5">
-                Access Control
-              </span>
-              <h3 className="text-base font-bold text-white">Hardware Relay & Turnstiles</h3>
-              <p className="text-xs text-slate-400 leading-relaxed font-normal">
-                Syncs directly with GPIO signals and digital relays to trigger magnetic door locks.
-              </p>
-            </div>
-
-            {/* Relay Pulse Button */}
-            <div className="p-3 rounded-xl bg-[#070A12] border border-white/[0.06] space-y-2 font-mono-tag text-xs">
-              <button
-                type="button"
-                onClick={triggerRelayPulse}
-                className={`w-full py-2 rounded-lg font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 text-xs ${
-                  relayPulsed
-                    ? 'bg-emerald-500 text-slate-950 shadow-md shadow-emerald-500/30'
-                    : 'bg-[#0F1524] text-slate-200 hover:bg-[#182238] border border-white/10'
-                }`}
-              >
-                <Zap className={`w-3.5 h-3.5 ${relayPulsed ? 'fill-slate-950 text-slate-950 animate-bounce' : 'text-emerald-400'}`} />
-                <span>{relayPulsed ? 'RELAY ACTIVE: GATE OPEN' : 'Test GPIO Relay Pulse'}</span>
-              </button>
-              <div className="flex justify-between text-[10px] text-slate-400">
-                <span>Signal: <strong className={relayPulsed ? 'text-emerald-400' : 'text-slate-500'}>
-                  {relayPulsed ? 'HIGH (Active)' : 'LOW (Standby)'}
-                </strong></span>
-                <span>Port: <strong>GPIO 17</strong></span>
+              <div className="flex items-center gap-3 pb-5 border-b border-white/10 mb-5">
+                <div className="w-10 h-10 rounded-xl bg-rose-500/10 border border-rose-500/30 flex items-center justify-center text-rose-400">
+                  <AlertTriangle className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base sm:text-lg font-bold text-white">Legacy RFID & Thumb Scanners</h3>
+                  <p className="font-mono text-xs text-rose-400 uppercase tracking-wider">The Bottleneck Paradigm</p>
+                </div>
               </div>
+
+              <ul className="space-y-4 text-xs sm:text-sm text-slate-300">
+                <li className="flex items-start gap-2.5">
+                  <X className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
+                  <span><strong>15+ minute peak shift queues:</strong> Workers bottleneck at physical turnstiles touching oily optical readers that fail with dirty, wet, or sweating hands.</span>
+                </li>
+                <li className="flex items-start gap-2.5">
+                  <X className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
+                  <span><strong>Buddy punching & badge loss:</strong> Plastic RFID smart cards get loaned, lost, or damaged, costing ₹120–₹250 per card replacement recurring fee.</span>
+                </li>
+                <li className="flex items-start gap-2.5">
+                  <X className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
+                  <span><strong>Cloud biometric privacy violations:</strong> Vendors streaming raw camera JPEGs to public multi-tenant clouds violate statutory DPDP Act 2023 compliance.</span>
+                </li>
+                <li className="flex items-start gap-2.5">
+                  <X className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
+                  <span><strong>Proprietary hardware lock-in:</strong> Requires expensive standalone biometric wall terminals (₹35,000+ each) that fail after warranty periods.</span>
+                </li>
+              </ul>
             </div>
 
-            <p className="text-[10px] text-slate-500 font-mono-tag">
-              Compatible with turnstiles, speed gates, and maglocks.
-            </p>
-          </div>
-
-        </div>
-      </section>
-
-      {/* ─────────────────────────────────────────────────────────────────────────────
-          5.8 BIOMETRIC SOVEREIGNTY & AIR-GAP ARCHITECTURE
-      ───────────────────────────────────────────────────────────────────────────── */}
-      <section id="sovereignty" className="py-12 px-5 sm:px-8 lg:px-10 max-w-[1320px] mx-auto w-full section-hairline z-10">
-        <SectionHeader
-          badge="Biometric Sovereignty"
-          badgeIcon={Shield}
-          title="Total on-premise execution. Zero cloud egress."
-          subtitle="Built for strict privacy and data protection norms. No external cloud dependencies."
-        />
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-center max-w-5xl mx-auto">
-          {/* Principles */}
-          <div className="space-y-3 text-left">
-            <div className="p-4 rounded-xl public-card space-y-1">
-              <h3 className="text-sm font-bold text-white">One-Way Numeric Vectors</h3>
-              <p className="text-xs text-slate-400 leading-relaxed font-normal">
-                Faces are transformed into irreversible 512-dimensional numeric unit vectors. Raw images do not need to be stored after enrollment processing.
-              </p>
-            </div>
-
-            <div className="p-4 rounded-xl public-card space-y-1">
-              <h3 className="text-sm font-bold text-white">Runs Fully Offline</h3>
-              <p className="text-xs text-slate-400 leading-relaxed font-normal">
-                No outbound connection required. Operates behind your physical firewall on an isolated VLAN with total feature parity.
-              </p>
-            </div>
-
-            <div className="p-4 rounded-xl public-card space-y-1">
-              <h3 className="text-sm font-bold text-white">1-Click Permanent Deletion</h3>
-              <p className="text-xs text-slate-400 leading-relaxed font-normal">
-                When an employee leaves, administrators can delete their profile and permanently purge their vectors from the active database index.
-              </p>
+            <div className="mt-6 pt-4 border-t border-white/10 flex items-center justify-between font-mono text-xs text-rose-400">
+              <span>THROUGHPUT: 4-6 PERSONS / MIN</span>
+              <span>AVERAGE DELAY: 2,400ms</span>
             </div>
           </div>
 
-          {/* Data Flow Diagram */}
-          <div className="p-5 rounded-xl public-card flex flex-col items-center justify-center text-center font-mono-tag text-xs space-y-3 bg-[#070A12]">
-            <p className="font-bold text-white uppercase text-[10px] pb-1 border-b border-white/[0.08] w-full">
-              Local Data Flow Boundary
-            </p>
-
-            <div className="w-full space-y-1.5 text-left text-[11px]">
-              <div className="p-2 rounded-lg bg-[#0B0F19] border border-white/[0.06] flex items-center justify-between">
-                <span>1. Camera Feed (RTSP)</span>
-                <span className="text-slate-400">Local Wire</span>
-              </div>
-              <div className="p-2 rounded-lg bg-[#0B0F19] border border-white/[0.06] flex items-center justify-between">
-                <span>2. Local Host Inference</span>
-                <span className="text-emerald-400 font-bold">512-d Vector</span>
-              </div>
-              <div className="p-2 rounded-lg bg-[#0B0F19] border border-white/[0.06] flex items-center justify-between">
-                <span>3. Local SQLite / PostgreSQL</span>
-                <span className="text-emerald-400 font-bold">Encrypted DB</span>
-              </div>
-              <div className="p-2 rounded-lg bg-[#0B0F19] border border-white/[0.06] flex items-center justify-between">
-                <span>4. Digital GPIO Relay Pulse</span>
-                <span className="text-emerald-400 font-bold">Turnstile Trigger</span>
-              </div>
+          {/* AuraPass On-Premise Flow Card */}
+          <div className="rounded-2xl border border-emerald-500/40 bg-[#0B131F]/90 backdrop-blur-md p-6 sm:p-8 flex flex-col justify-between shadow-[0_0_32px_-8px_rgba(16,185,129,0.2)] relative">
+            <div className="absolute -top-3 right-6 px-3 py-0.5 rounded-full bg-emerald-400 text-[#070A12] font-mono text-[10px] font-bold uppercase tracking-wider">
+              The Sovereign Edge
             </div>
 
-            <div className="p-2.5 rounded-lg bg-rose-950/20 border border-rose-500/30 text-rose-300 text-xs flex items-center gap-2 w-full justify-center">
-              <WifiOff className="w-3.5 h-3.5 text-rose-400" />
-              <span>Hard Boundary: 0 Bytes Cloud Egress</span>
+            <div>
+              <div className="flex items-center gap-3 pb-5 border-b border-white/10 mb-5">
+                <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+                  <KeyRound className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base sm:text-lg font-bold text-white">AuraPass Walk-Through Flow</h3>
+                  <p className="font-mono text-xs text-emerald-400 uppercase tracking-wider">Sub-300ms Optical Standard</p>
+                </div>
+              </div>
+
+              <ul className="space-y-4 text-xs sm:text-sm text-slate-200">
+                <li className="flex items-start gap-2.5">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                  <span><strong>Zero-stopping continuous transit:</strong> Walk naturally through turnstiles. The camera detects and matches faces 2 meters before arrival in under 300ms.</span>
+                </li>
+                <li className="flex items-start gap-2.5">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                  <span><strong>Works on existing CCTV:</strong> Seamlessly ingest RTSP/ONVIF streams from Hikvision, CP PLUS, Dahua, or USB cameras. Zero new terminal purchases.</span>
+                </li>
+                <li className="flex items-start gap-2.5">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                  <span><strong>100% Air-Gapped DPDP 2023 compliance:</strong> Sovereign local inference. Biometric vectors never depart the facility local network. Zero external cloud dependencies.</span>
+                </li>
+                <li className="flex items-start gap-2.5">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                  <span><strong>Anti-spoof liveness rejection:</strong> ISO 30107-3 compliant texture and depth gradient analysis blocks mobile phone screens, videos, and printed photos.</span>
+                </li>
+              </ul>
+            </div>
+
+            <div className="mt-6 pt-4 border-t border-white/10 flex items-center justify-between font-mono text-xs text-emerald-400 font-semibold">
+              <span>THROUGHPUT: 35+ PERSONS / MIN</span>
+              <span>AVERAGE DELAY: 184ms MATCH LOCK</span>
             </div>
           </div>
         </div>
       </section>
 
-      {/* ─────────────────────────────────────────────────────────────────────────────
-          5.10 FAIR PER-PERSON PRICING (TAILORED FOR INDIAN & INTERNATIONAL MARKETS)
-      ───────────────────────────────────────────────────────────────────────────── */}
-      <section id="pricing" className="py-12 px-5 sm:px-8 lg:px-10 max-w-[1320px] mx-auto w-full section-hairline z-10">
+      {/* 4. THE 300MS STORYTELLING LIFECYCLE (Sequential Chapters) */}
+      <section id="storytelling" className="relative z-10 py-16 sm:py-20 px-4 sm:px-6 max-w-6xl mx-auto border-t border-white/10">
         
-        {/* Free 7-Day Trial Callout Banner */}
-        <div className="mb-8 p-3 rounded-2xl bg-gradient-to-r from-emerald-500/15 via-emerald-500/25 to-emerald-500/15 border border-emerald-500/40 text-center flex flex-col sm:flex-row items-center justify-center gap-2 text-xs font-mono-tag text-emerald-300 shadow-lg shadow-emerald-950/30">
-          <Sparkles className="w-4 h-4 text-emerald-400 shrink-0" />
-          <span><strong>Free 7-Day Full Trial on All Plans:</strong> Test on your own cameras with zero payment and no credit card required.</span>
+        {/* Section Header */}
+        <div className="text-center max-w-3xl mx-auto mb-10 sm:mb-14">
+          <p className="font-mono text-xs text-emerald-400 uppercase tracking-widest mb-2 font-medium">
+            ANATOMY OF A SUB-300MS PASS
+          </p>
+          <h2 className="text-2xl sm:text-4xl font-extrabold text-white tracking-tight">
+            The Four Chapters of Instant Optical Verification
+          </h2>
+          <p className="text-sm sm:text-base text-slate-400 mt-3 font-normal">
+            From raw RTSP sensor photons to physical turnstile motor release — executed locally in less than the blink of an eye.
+          </p>
         </div>
 
-        <SectionHeader
-          badge="Fair Per-Person Pricing"
-          badgeIcon={Zap}
-          title="Transparent pricing based on enrolled staff"
-          subtitle="Pay only for the people who use the system. No scan limits, no hardware lock-in."
-        />
-
-        {/* Currency & Annual Billing Toggles */}
-        <div className="flex flex-wrap items-center justify-center gap-3 mb-8">
+        {/* Story Stepper Controller Bar */}
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-[#0B0F19] border border-white/10 rounded-2xl p-3 sm:p-4 mb-8">
           
-          {/* Currency Switcher (INR default for Indian clients) */}
-          <div className="inline-flex items-center p-1 rounded-xl bg-[#0F1524] border border-white/[0.08] text-xs font-mono-tag">
-            <button
-              type="button"
-              onClick={() => setCurrency('INR')}
-              className={`px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer ${
-                currency === 'INR'
-                  ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-sm'
-                  : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              🇮🇳 INR (₹)
-            </button>
-            <button
-              type="button"
-              onClick={() => setCurrency('USD')}
-              className={`px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer ${
-                currency === 'USD'
-                  ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-sm'
-                  : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              🌐 USD ($)
-            </button>
-          </div>
-
-          {/* Annual Billing Switcher with 20% discount badge */}
-          <div className="inline-flex items-center p-1 rounded-xl bg-[#0F1524] border border-white/[0.08] text-xs font-mono-tag">
-            <button
-              type="button"
-              onClick={() => setBillingInterval('monthly')}
-              className={`px-3 py-1.5 rounded-lg font-medium transition-all cursor-pointer ${
-                billingInterval === 'monthly'
-                  ? 'bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/40 shadow-sm'
-                  : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              Monthly
-            </button>
-            <button
-              type="button"
-              onClick={() => setBillingInterval('annual')}
-              className={`px-3 py-1.5 rounded-lg font-medium transition-all flex items-center gap-1.5 cursor-pointer ${
-                billingInterval === 'annual'
-                  ? 'bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/40 shadow-sm'
-                  : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              <span>Annual</span>
-              <span className="px-1.5 py-0.2 rounded text-[10px] bg-emerald-500 text-slate-950 font-bold">
-                20% OFF
-              </span>
-            </button>
-          </div>
-        </div>
-
-        {/* Interactive Per-Person Price Calculator Tool */}
-        <div className="mb-10 p-5 rounded-2xl public-card bg-[#090D17] border border-emerald-500/30 max-w-2xl mx-auto text-left font-mono-tag text-xs">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-slate-300 font-bold text-xs">Calculate For Your Staff Size:</span>
-            <span className="text-emerald-400 font-bold text-sm">{pricingStaffCount} Employees</span>
-          </div>
-
-          {/* Slider */}
-          <input
-            type="range"
-            min="10"
-            max="500"
-            step="10"
-            value={pricingStaffCount}
-            onChange={(e) => setPricingStaffCount(Number(e.target.value))}
-            className="w-full range-slider-thumb accent-emerald-400 cursor-pointer mb-3"
-          />
-
-          <div className="flex flex-wrap items-center justify-between pt-2 border-t border-white/[0.08] text-[11px]">
-            <span className="text-slate-400">
-              Rate: <strong className="text-white">{currencySymbol}{unitRate}</strong> / employee / month
-            </span>
-            <span className="text-emerald-300 font-bold">
-              Total: {currencySymbol}{calculatedProTotal.toLocaleString()} / month
-              {billingInterval === 'annual' && <span className="text-[10px] text-slate-400 ml-1">(billed annually)</span>}
-            </span>
-          </div>
-        </div>
-
-        {/* 3 Fair Pricing Cards */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch text-left">
-          
-          {/* Card 1: Free Starter */}
-          <div className="rounded-2xl public-card p-6 flex flex-col justify-between border-white/[0.08] relative">
-            <div className="space-y-3">
-              <span className="px-2.5 py-0.5 rounded-full text-[11px] font-mono-tag bg-white/[0.06] text-slate-300 border border-white/[0.08] inline-block font-semibold">
-                Pilot & Small Setups
-              </span>
-              <h3 className="text-xl font-bold text-white">Starter</h3>
-              <p className="text-xs text-slate-400 leading-relaxed font-normal">
-                For small retail shops, test gates, and single-room setups.
-              </p>
-
-              <div className="pt-1">
-                <span className="text-3xl font-bold text-white font-mono-tag">{currencySymbol}0</span>
-                <span className="text-xs text-slate-400 ml-2">free forever</span>
-              </div>
-
-              <div className="pt-3 border-t border-white/[0.08] space-y-2 text-xs text-slate-300 font-normal">
-                <div className="flex items-center gap-2"><Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" /> Up to 25 enrolled employees</div>
-                <div className="flex items-center gap-2"><Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" /> 1 camera stream (RTSP or USB)</div>
-                <div className="flex items-center gap-2"><Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" /> 100% on-premise local SQLite</div>
-                <div className="flex items-center gap-2"><Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" /> Full sub-300 ms verification speed</div>
-                <div className="flex items-center gap-2"><Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" /> Daily logs & CSV attendance export</div>
-              </div>
-            </div>
-
-            <div className="pt-6 mt-auto">
-              <Link
-                to="/register"
-                className="w-full py-2.5 rounded-xl bg-[#0F1524] hover:bg-[#162035] border border-white/10 text-white font-bold text-xs flex items-center justify-center transition-colors"
+          {/* Chapter Selector Buttons */}
+          <div className="flex flex-wrap items-center gap-1.5 w-full sm:w-auto">
+            {STORY_CHAPTERS.map((ch, idx) => (
+              <button
+                key={ch.id}
+                onClick={() => {
+                  setActiveStoryChapter(idx);
+                  setIsStoryPlaying(false);
+                }}
+                className={`px-3 py-1.5 rounded-xl font-mono text-xs font-semibold transition-all flex items-center gap-2 ${activeStoryChapter === idx ? 'bg-emerald-400 text-[#070A12] shadow-[0_0_16px_rgba(52,211,153,0.35)]' : 'text-slate-400 hover:text-slate-200 bg-[#070A12]/50'}`}
               >
-                Start free (No Card Needed)
-              </Link>
-            </div>
+                <span>{ch.id}</span>
+                <span className="hidden sm:inline font-sans text-xs">({ch.range})</span>
+              </button>
+            ))}
           </div>
 
-          {/* Card 2: Professional (Per-Person Model) */}
-          <div className="rounded-2xl public-card p-6 flex flex-col justify-between border-emerald-500/50 shadow-lg shadow-emerald-950/30 relative bg-[#0B101D]">
-            <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-2.5 py-0.5 rounded-full bg-emerald-500 text-slate-950 text-[10px] font-bold font-mono-tag uppercase tracking-wider shadow-md">
-              Most Popular • 7-Day Free Trial
-            </div>
+          {/* Stepper Play/Pause & Live Millisecond Counter */}
+          <div className="flex items-center justify-between w-full sm:w-auto gap-4 font-mono text-xs">
+            <button
+              onClick={() => setIsStoryPlaying(!isStoryPlaying)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-white/10 bg-[#070A12] text-slate-300 hover:text-emerald-400 transition-colors"
+            >
+              {isStoryPlaying ? <Pause className="w-3.5 h-3.5 text-emerald-400" /> : <Play className="w-3.5 h-3.5 text-emerald-400" />}
+              <span>{isStoryPlaying ? 'Auto Stepping' : 'Paused (Click Chapter)'}</span>
+            </button>
 
-            <div className="space-y-3">
-              <span className="px-2.5 py-0.5 rounded-full text-[11px] font-mono-tag bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 inline-block font-semibold">
-                Offices, Factories & Schools
-              </span>
-              <h3 className="text-xl font-bold text-white">Professional</h3>
-              <p className="text-xs text-slate-400 leading-relaxed font-normal">
-                Fair, transparent per-employee billing for growing facilities.
-              </p>
-
-              <div className="pt-1 flex items-baseline gap-1.5 font-mono-tag">
-                <span className="text-3xl font-bold text-white">
-                  {currencySymbol}{unitRate}
-                </span>
-                <span className="text-xs text-slate-400">/ employee / month</span>
-                {billingInterval === 'annual' && (
-                  <span className="text-[10px] text-emerald-400 font-bold ml-1">SAVE 20%</span>
-                )}
-              </div>
-
-              <div className="pt-3 border-t border-white/[0.08] space-y-2 text-xs text-slate-300 font-normal">
-                <div className="flex items-center gap-2"><Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" /> Pay only for enrolled staff (from 25 users)</div>
-                <div className="flex items-center gap-2"><Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" /> Unlimited RTSP & ONVIF camera lanes</div>
-                <div className="flex items-center gap-2"><Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" /> Multi-camera mosaic & live site feeds</div>
-                <div className="flex items-center gap-2"><Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" /> Department grace policies & shifts</div>
-                <div className="flex items-center gap-2"><Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" /> Hardware GPIO turnstile & relay triggers</div>
-                <div className="flex items-center gap-2"><Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" /> Priority WhatsApp & phone assistance</div>
-              </div>
-            </div>
-
-            <div className="pt-6 mt-auto">
-              <Link
-                to="/register"
-                className="w-full py-2.5 rounded-xl bg-emerald-400 hover:bg-emerald-300 text-slate-950 font-bold text-xs flex items-center justify-center transition-all shadow-md shadow-emerald-500/20 active:scale-98"
-              >
-                <span>Start 7-Day Free Trial &rarr;</span>
-              </Link>
-            </div>
-          </div>
-
-          {/* Card 3: Custom Enterprise */}
-          <div className="rounded-2xl public-card p-6 flex flex-col justify-between border-white/[0.08] relative">
-            <div className="space-y-3">
-              <span className="px-2.5 py-0.5 rounded-full text-[11px] font-mono-tag bg-white/[0.06] text-slate-300 border border-white/[0.08] inline-block font-semibold">
-                Campuses & High Volume (500+)
-              </span>
-              <h3 className="text-xl font-bold text-white">Custom Enterprise</h3>
-              <p className="text-xs text-slate-400 leading-relaxed font-normal">
-                For manufacturing plants, institutions, and multi-branch campuses.
-              </p>
-
-              <div className="pt-1">
-                <span className="text-3xl font-bold text-white font-mono-tag">Custom</span>
-                <span className="text-xs text-slate-400 ml-2">volume discount</span>
-              </div>
-
-              <div className="pt-3 border-t border-white/[0.08] space-y-2 text-xs text-slate-300 font-normal">
-                <div className="flex items-center gap-2"><Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" /> Heavy volume discounts (from {currencySymbol}{currency === 'INR' ? '15' : '0.18'} / user)</div>
-                <div className="flex items-center gap-2"><Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" /> Turnkey pre-configured on-prem appliances</div>
-                <div className="flex items-center gap-2"><Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" /> On-site turnstile & magnetic lock GPIO wiring</div>
-                <div className="flex items-center gap-2"><Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" /> 100% offline air-gapped updates</div>
-                <div className="flex items-center gap-2"><Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" /> Dedicated Solutions Architect</div>
-              </div>
-            </div>
-
-            <div className="pt-6 mt-auto">
-              <Link
-                to="/support"
-                className="w-full py-2.5 rounded-xl bg-[#0F1524] hover:bg-[#162035] border border-white/10 text-white font-bold text-xs flex items-center justify-center transition-colors"
-              >
-                Contact for Custom Quote
-              </Link>
+            <div className="text-emerald-400 font-bold bg-emerald-500/10 px-3 py-1.5 rounded-lg border border-emerald-500/20">
+              TIMELINE: {storyElapsedMs} ms / 300 ms
             </div>
           </div>
         </div>
 
-        {/* Collapsible Feature Comparison Table Toggle */}
-        <div className="mt-8 text-center">
-          <button
-            type="button"
-            onClick={() => setShowPricingCompare(!showPricingCompare)}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#0F1524] hover:bg-[#162035] border border-white/10 text-xs font-semibold text-slate-200 transition-colors cursor-pointer"
-          >
-            <span>{showPricingCompare ? "Hide feature comparison" : "Compare all plan features"}</span>
-            <ChevronDown className={`w-3.5 h-3.5 transition-transform ${showPricingCompare ? "rotate-180" : ""}`} />
-          </button>
-        </div>
+        {/* Active Chapter Deep-Dive Display Card */}
+        {(() => {
+          const ch = STORY_CHAPTERS[activeStoryChapter];
+          const IconComponent = ch.icon;
 
-        {showPricingCompare && (
-          <div className="mt-6 rounded-xl public-card p-5 overflow-x-auto text-left text-xs font-mono-tag bg-[#070A12] border border-white/[0.08]">
-            <table className="w-full text-slate-300">
-              <thead className="border-b border-white/[0.08] text-white">
-                <tr>
-                  <th className="py-2.5 px-3 text-left font-bold">Feature</th>
-                  <th className="py-2.5 px-3 text-center font-bold">Starter</th>
-                  <th className="py-2.5 px-3 text-center font-bold text-emerald-400">Professional</th>
-                  <th className="py-2.5 px-3 text-center font-bold">Enterprise</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-white/[0.04]">
-                <tr>
-                  <td className="py-2.5 px-3 font-semibold text-white">Trial Period</td>
-                  <td className="py-2.5 px-3 text-center">Free Forever</td>
-                  <td className="py-2.5 px-3 text-center text-emerald-400 font-bold">7 Days Free Trial</td>
-                  <td className="py-2.5 px-3 text-center">Custom Pilot POC</td>
-                </tr>
-                <tr>
-                  <td className="py-2.5 px-3 font-semibold text-white">Enrolled Users</td>
-                  <td className="py-2.5 px-3 text-center">Up to 25</td>
-                  <td className="py-2.5 px-3 text-center text-emerald-400 font-bold">Pay-Per-Person (Flexible)</td>
-                  <td className="py-2.5 px-3 text-center">500+ Volume Discount</td>
-                </tr>
-                <tr>
-                  <td className="py-2.5 px-3 font-semibold text-white">Concurrent Camera Streams</td>
-                  <td className="py-2.5 px-3 text-center">1 Stream</td>
-                  <td className="py-2.5 px-3 text-center text-emerald-400 font-bold">Unlimited RTSP / UVC</td>
-                  <td className="py-2.5 px-3 text-center">Unlimited + Multi-Node</td>
-                </tr>
-                <tr>
-                  <td className="py-2.5 px-3 font-semibold text-white">Verification Speed</td>
-                  <td className="py-2.5 px-3 text-center">&lt; 300 ms</td>
-                  <td className="py-2.5 px-3 text-center text-emerald-400 font-bold">&lt; 300 ms</td>
-                  <td className="py-2.5 px-3 text-center">&lt; 150 ms (Hardware-tuned)</td>
-                </tr>
-                <tr>
-                  <td className="py-2.5 px-3 font-semibold text-white">Turnstile / Relay GPIO</td>
-                  <td className="py-2.5 px-3 text-center">No</td>
-                  <td className="py-2.5 px-3 text-center text-emerald-400 font-bold">Digital Relay Sync</td>
-                  <td className="py-2.5 px-3 text-center">Custom Opto-Isolated Wiring</td>
-                </tr>
-                <tr>
-                  <td className="py-2.5 px-3 font-semibold text-white">Database Engine</td>
-                  <td className="py-2.5 px-3 text-center">Local SQLite</td>
-                  <td className="py-2.5 px-3 text-center text-emerald-400 font-bold">PostgreSQL + Auto-Backups</td>
-                  <td className="py-2.5 px-3 text-center">Clustered High Availability</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        )}
+          return (
+            <div className="rounded-2xl border border-emerald-500/30 bg-[#0A0E18]/90 backdrop-blur-xl p-6 sm:p-10 shadow-2xl mb-10 transition-all duration-300">
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+                
+                {/* Left Narrative Content */}
+                <div className="lg:col-span-7 space-y-4 text-left">
+                  <div className="flex items-center gap-3">
+                    <span className="font-mono text-xs font-bold text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-md border border-emerald-500/30">
+                      CHAPTER {activeStoryChapter + 1} OF 4
+                    </span>
+                    <span className="font-mono text-xs text-slate-400">
+                      WINDOW: {ch.range}
+                    </span>
+                  </div>
+
+                  <h3 className="text-xl sm:text-3xl font-extrabold text-white tracking-tight flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shrink-0">
+                      <IconComponent className="w-5 h-5" />
+                    </div>
+                    <span>{ch.title}</span>
+                  </h3>
+
+                  <p className="text-sm font-mono text-emerald-300/90 font-medium">
+                    {ch.subtitle}
+                  </p>
+
+                  <p className="text-sm sm:text-base text-slate-300 leading-relaxed font-normal">
+                    {ch.summary}
+                  </p>
+
+                  <div className="pt-2 grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-slate-400 font-mono">
+                    {ch.details.map((detail, idx) => (
+                      <div key={idx} className="flex items-center gap-2">
+                        <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                        <span>{detail}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Right Telemetry Spec Box */}
+                <div className="lg:col-span-5 bg-[#070A12] border border-white/10 rounded-xl p-6 space-y-4 text-left font-mono">
+                  <div className="flex items-center justify-between pb-3 border-b border-white/10 text-xs text-slate-400">
+                    <span>HARDWARE ACCELERATION</span>
+                    <span className="text-emerald-400 font-bold">{ch.status}</span>
+                  </div>
+
+                  <div className="text-center py-4 bg-[#0B0F19] rounded-lg border border-white/5">
+                    <div className="text-3xl sm:text-4xl font-extrabold text-emerald-400">
+                      {ch.metricValue}
+                    </div>
+                    <div className="text-[11px] text-slate-400 mt-1 uppercase">
+                      {ch.metricLabel}
+                    </div>
+                  </div>
+
+                  <div className="space-y-2 text-xs">
+                    <div className="flex justify-between text-slate-400">
+                      <span>Subnet Protocol:</span>
+                      <span className="text-white">Gigabit Local LAN</span>
+                    </div>
+                    <div className="flex justify-between text-slate-400">
+                      <span>Cloud Egress:</span>
+                      <span className="text-emerald-400 font-bold">0.00 Bytes (Air-Gapped)</span>
+                    </div>
+                    <div className="flex justify-between text-slate-400">
+                      <span>Architecture Mode:</span>
+                      <span className="text-white">{ch.tag}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
+
+        {/* 4-Chapter Bento Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+          {STORY_CHAPTERS.map((ch, idx) => {
+            const IconComp = ch.icon;
+            const isActive = activeStoryChapter === idx;
+
+            return (
+              <div
+                key={ch.id}
+                onClick={() => {
+                  setActiveStoryChapter(idx);
+                  setIsStoryPlaying(false);
+                }}
+                className={`rounded-xl border p-5 sm:p-6 flex flex-col justify-between cursor-pointer transition-all duration-300 text-left ${isActive ? 'bg-[#0E1524] border-emerald-400/60 shadow-[0_0_24px_rgba(52,211,153,0.2)]' : 'bg-[#0B0F19]/60 border-white/10 hover:border-emerald-500/30'}`}
+              >
+                <div>
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="font-mono text-xs text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded">
+                      {ch.range}
+                    </span>
+                    <span className="font-mono text-xs text-slate-500 font-bold">
+                      {ch.id}
+                    </span>
+                  </div>
+
+                  <div className="w-10 h-10 rounded-lg bg-[#070A12] border border-white/10 flex items-center justify-center text-emerald-400 mb-4">
+                    <IconComp className="w-5 h-5" />
+                  </div>
+
+                  <h4 className="text-base font-bold text-white mb-1.5">
+                    {ch.title}
+                  </h4>
+                  <p className="text-xs text-slate-400 leading-relaxed font-normal line-clamp-3">
+                    {ch.summary}
+                  </p>
+                </div>
+
+                <div className="mt-5 pt-3 border-t border-white/10 font-mono text-[10px] text-slate-500 flex items-center justify-between">
+                  <span>{ch.tag}</span>
+                  <span className="text-emerald-400">{ch.status}</span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </section>
 
-      {/* ─────────────────────────────────────────────────────────────────────────────
-          5.11 FREQUENTLY ASKED QUESTIONS (ACCORDION)
-      ───────────────────────────────────────────────────────────────────────────── */}
-      <section id="faq" className="py-12 px-5 sm:px-8 lg:px-10 max-w-[1100px] mx-auto w-full section-hairline z-10">
-        <SectionHeader
-          badge="FAQ"
-          badgeIcon={HelpCircle}
-          title="Frequently asked questions"
-          subtitle="Honest, clear answers about hardware, privacy, and per-person pricing."
-        />
+      {/* 5. INTERACTIVE CAPABILITIES & LIVE ATTENDANCE LOG */}
+      <section id="capabilities" className="relative z-10 py-16 sm:py-20 px-4 sm:px-6 max-w-6xl mx-auto border-t border-white/10">
+        
+        <div className="text-center max-w-3xl mx-auto mb-12">
+          <p className="font-mono text-xs text-emerald-400 uppercase tracking-widest mb-2 font-medium">
+            FIELD-TESTED CAPABILITIES
+          </p>
+          <h2 className="text-2xl sm:text-4xl font-extrabold text-white tracking-tight">
+            Built for High-Throughput Industrial & Corporate Sites
+          </h2>
+          <p className="text-sm sm:text-base text-slate-400 mt-3 font-normal">
+            Zero cloud lag, sub-millisecond local attendance logging, and dynamic grace-period recalculation.
+          </p>
+        </div>
 
-        <div className="space-y-2.5 text-left">
-          {faqs.map((faq, i) => {
-            const isExpanded = expandedFaq === i;
-            return (
-              <div key={i} className="rounded-xl public-card overflow-hidden transition-all bg-[#090D17]">
-                <button
-                  type="button"
-                  onClick={() => setExpandedFaq(isExpanded ? null : i)}
-                  className="w-full p-4 flex items-center justify-between gap-4 text-left cursor-pointer hover:bg-white/[0.02] transition-colors"
-                  aria-expanded={isExpanded}
+        {/* 2-Column Interactive Bento */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8">
+          
+          {/* Left Column: Live Attendance Ledger Filter */}
+          <div className="lg:col-span-7 rounded-2xl border border-white/10 bg-[#0B0F19]/90 p-5 sm:p-6 flex flex-col justify-between text-left">
+            <div>
+              <div className="flex flex-wrap items-center justify-between pb-4 border-b border-white/10 gap-2 mb-4">
+                <div>
+                  <h3 className="text-base sm:text-lg font-bold text-white flex items-center gap-2">
+                    <Database className="w-4 h-4 text-emerald-400" />
+                    Live Local Gate Ledger
+                  </h3>
+                  <p className="text-xs text-slate-400">Append-only local SQLite WAL database records</p>
+                </div>
+
+                {/* Department Filters */}
+                <div className="flex items-center gap-1 bg-[#070A12] p-1 rounded-lg border border-white/5 font-mono text-xs">
+                  {['all', 'Operations', 'Engineering', 'QA'].map((dept) => (
+                    <button
+                      key={dept}
+                      onClick={() => setAttendanceDeptFilter(dept)}
+                      className={`px-2.5 py-1 rounded transition-colors ${attendanceDeptFilter.toLowerCase() === dept.toLowerCase() ? 'bg-emerald-500/20 text-emerald-300 font-semibold' : 'text-slate-400 hover:text-slate-200'}`}
+                    >
+                      {dept}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Attendance Table */}
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs font-mono">
+                  <thead>
+                    <tr className="border-b border-white/5 text-slate-500 uppercase tracking-wider text-[10px]">
+                      <th className="py-2.5 px-2">Badge</th>
+                      <th className="py-2.5 px-2">Staff Name</th>
+                      <th className="py-2.5 px-2">Dept</th>
+                      <th className="py-2.5 px-2">Punch Time</th>
+                      <th className="py-2.5 px-2">Status</th>
+                      <th className="py-2.5 px-2 text-right">Conf</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-white/5">
+                    {filteredAttendance.map((row) => (
+                      <tr key={row.id} className="hover:bg-white/[0.02] transition-colors">
+                        <td className="py-2.5 px-2 text-emerald-400 font-bold">{row.id}</td>
+                        <td className="py-2.5 px-2 text-white font-sans font-medium">{row.name}</td>
+                        <td className="py-2.5 px-2 text-slate-400">{row.dept}</td>
+                        <td className="py-2.5 px-2 text-slate-300">{row.time}</td>
+                        <td className="py-2.5 px-2">
+                          <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${row.status === 'ON TIME' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'}`}>
+                            {row.status}
+                          </span>
+                        </td>
+                        <td className="py-2.5 px-2 text-right text-emerald-300">{row.confidence}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div className="mt-5 pt-4 border-t border-white/10 flex items-center justify-between text-xs">
+              <span className="font-mono text-slate-400">Total Filtered: {filteredAttendance.length} records</span>
+              <button
+                onClick={exportSampleCSV}
+                className="px-3 py-1.5 rounded-lg bg-[#070A12] border border-white/10 hover:border-emerald-500/40 text-slate-200 hover:text-emerald-300 text-xs font-mono transition-colors flex items-center gap-1.5"
+              >
+                <Download className="w-3.5 h-3.5" />
+                Export Sample CSV
+              </button>
+            </div>
+          </div>
+
+          {/* Right Column: Interactive Anti-Spoof Radar & Grace Slider */}
+          <div className="lg:col-span-5 space-y-6 text-left">
+            
+            {/* Anti-Spoof Radar Simulation */}
+            <div className="rounded-2xl border border-white/10 bg-[#0B0F19]/90 p-5 sm:p-6">
+              <div className="flex items-center justify-between pb-3 border-b border-white/10 mb-4">
+                <div>
+                  <h3 className="text-base font-bold text-white flex items-center gap-2">
+                    <Shield className="w-4 h-4 text-emerald-400" />
+                    Anti-Spoofing Radar
+                  </h3>
+                  <p className="text-xs text-slate-400">ISO 30107-3 Liveness Verification</p>
+                </div>
+
+                {/* Live vs Attack Toggle */}
+                <div className="flex items-center gap-1 bg-[#070A12] p-1 rounded-lg border border-white/5 font-mono text-xs">
+                  <button
+                    onClick={() => setRadarTestMode('live')}
+                    className={`px-2 py-1 rounded transition-colors ${radarTestMode === 'live' ? 'bg-emerald-500/20 text-emerald-300 font-bold' : 'text-slate-400'}`}
+                  >
+                    Live Face
+                  </button>
+                  <button
+                    onClick={() => setRadarTestMode('attack')}
+                    className={`px-2 py-1 rounded transition-colors ${radarTestMode === 'attack' ? 'bg-rose-500/20 text-rose-300 font-bold' : 'text-slate-400'}`}
+                  >
+                    Phone Replay
+                  </button>
+                </div>
+              </div>
+
+              {radarTestMode === 'live' ? (
+                <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-xs font-mono space-y-2">
+                  <div className="flex items-center justify-between text-emerald-400 font-bold">
+                    <span className="flex items-center gap-1.5">
+                      <CheckCircle2 className="w-4 h-4" /> 3D Liveness Verified
+                    </span>
+                    <span>CONF: 99.4%</span>
+                  </div>
+                  <p className="text-slate-300 font-sans">
+                    Specular skin reflection and micro-blinking match biological thresholds. Turnstile unlatched in 184ms.
+                  </p>
+                </div>
+              ) : (
+                <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/30 text-xs font-mono space-y-2">
+                  <div className="flex items-center justify-between text-rose-400 font-bold">
+                    <span className="flex items-center gap-1.5">
+                      <AlertTriangle className="w-4 h-4" /> Presentation Attack Detected
+                    </span>
+                    <span>SPOOF: 98.7%</span>
+                  </div>
+                  <p className="text-slate-300 font-sans">
+                    Planar glass glare & screen Moire patterns detected. Access denied, alarm flag written to audit log.
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* Shift Grace Policy Buffer Calculator */}
+            <div className="rounded-2xl border border-white/10 bg-[#0B0F19]/90 p-5 sm:p-6">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-sm font-bold text-white flex items-center gap-2">
+                  <Clock className="w-4 h-4 text-emerald-400" />
+                  Shift Grace Period Buffer
+                </span>
+                <span className="font-mono text-emerald-400 font-bold text-sm bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
+                  {graceMinutes} min
+                </span>
+              </div>
+              <p className="text-xs text-slate-400 mb-4">
+                Arrivals within {graceMinutes} minutes of scheduled shift start are marked ON TIME automatically.
+              </p>
+              <input
+                type="range"
+                min="5"
+                max="30"
+                step="5"
+                value={graceMinutes}
+                onChange={(e) => setGraceMinutes(parseInt(e.target.value, 10))}
+                className="w-full h-2 bg-[#070A12] rounded-lg appearance-none cursor-pointer accent-emerald-400"
+              />
+              <div className="flex justify-between font-mono text-[10px] text-slate-500 mt-2">
+                <span>5 MIN (STRICT)</span>
+                <span>15 MIN (STANDARD)</span>
+                <span>30 MIN (FLEXIBLE)</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 6. TRANSPARENT PRICING FOR INDIAN ENTERPRISES (Interactive Slider) */}
+      <section id="pricing" className="relative z-10 py-16 sm:py-24 px-4 sm:px-6 max-w-5xl mx-auto border-t border-white/10">
+        
+        <div className="text-center max-w-3xl mx-auto mb-12 sm:mb-16">
+          <p className="font-mono text-xs text-emerald-400 uppercase tracking-widest mb-2 font-medium">
+            SOVEREIGN INDIAN PRICING CALCULATOR
+          </p>
+          <h2 className="text-2xl sm:text-4xl font-extrabold text-white tracking-tight">
+            Fair Per-Person Pricing for Indian Enterprises
+          </h2>
+          <p className="text-sm sm:text-base text-slate-400 mt-3 font-normal">
+            Scale affordably without hardware lock-in or recurring per-camera licensing fees. Pay only for active staff profiles.
+          </p>
+        </div>
+
+        {/* Pricing Interactive Glass Card */}
+        <div className="rounded-3xl border border-emerald-500/30 bg-[#0B0F19]/90 backdrop-blur-xl p-6 sm:p-10 shadow-2xl relative text-left">
+          
+          {/* Interval Switcher (Monthly vs Annual) */}
+          <div className="flex justify-center mb-8">
+            <div className="inline-flex items-center gap-1 bg-[#070A12] p-1 rounded-xl border border-white/10 font-mono text-xs">
+              <button
+                onClick={() => setBillingInterval('monthly')}
+                className={`px-4 py-2 rounded-lg font-semibold transition-all ${billingInterval === 'monthly' ? 'bg-emerald-400 text-[#070A12] shadow-[0_0_12px_rgba(52,211,153,0.3)]' : 'text-slate-400 hover:text-slate-200'}`}
+              >
+                Monthly Billing
+              </button>
+              <button
+                onClick={() => setBillingInterval('annual')}
+                className={`px-4 py-2 rounded-lg font-semibold transition-all flex items-center gap-1.5 ${billingInterval === 'annual' ? 'bg-emerald-400 text-[#070A12] shadow-[0_0_12px_rgba(52,211,153,0.3)]' : 'text-slate-400 hover:text-slate-200'}`}
+              >
+                <span>Annual Billing</span>
+                <span className="text-[10px] bg-emerald-950 text-emerald-300 px-1.5 py-0.5 rounded border border-emerald-500/40">
+                  SAVE 15%
+                </span>
+              </button>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-center">
+            
+            {/* Left: Workforce Slider Controls */}
+            <div className="lg:col-span-7 space-y-6">
+              
+              <div className="flex items-center justify-between">
+                <span className="font-mono text-xs uppercase tracking-wider text-slate-400">
+                  Active Enrolled Workforce
+                </span>
+                <div className="flex items-baseline gap-1.5">
+                  <span className="text-3xl sm:text-4xl font-extrabold text-emerald-400 font-mono">
+                    {pricingStaffCount}
+                  </span>
+                  <span className="text-xs text-slate-400">staff members</span>
+                </div>
+              </div>
+
+              {/* Slider Input */}
+              <div className="relative py-2">
+                <input
+                  type="range"
+                  min="10"
+                  max="500"
+                  step="5"
+                  value={pricingStaffCount}
+                  onChange={(e) => setPricingStaffCount(parseInt(e.target.value, 10))}
+                  className="w-full h-3 bg-[#070A12] rounded-lg appearance-none cursor-pointer accent-emerald-400"
+                />
+                <div className="flex justify-between font-mono text-[10px] text-slate-500 mt-2">
+                  <span>10 STAFF</span>
+                  <span>150</span>
+                  <span>300</span>
+                  <span>500+ STAFF</span>
+                </div>
+              </div>
+
+              {/* Inclusions Checklist */}
+              <div className="pt-4 border-t border-white/10 grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs text-slate-300">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <span>On-premise Docker license</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <span>Unlimited RTSP camera feeds</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <span>Zero hardware lock-in</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <span>Full 7-day unrestricted trial</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Right: Calculated Price Summary Box */}
+            <div className="lg:col-span-5 bg-[#070A12]/90 border border-white/10 rounded-2xl p-6 sm:p-8 flex flex-col justify-between text-center relative glow-emerald-box">
+              
+              <div className="mb-6">
+                <span className="font-mono text-xs text-emerald-400 uppercase tracking-wider font-semibold">
+                  ESTIMATED COMMITMENT
+                </span>
+                
+                <div className="flex items-center justify-center gap-1.5 mt-3 mb-1">
+                  <span className="text-2xl sm:text-3xl font-bold text-emerald-400 font-sans">₹</span>
+                  <span className="text-4xl sm:text-5xl font-extrabold text-white font-mono">
+                    {displayTotal.toLocaleString('en-IN')}
+                  </span>
+                  <span className="text-xs text-slate-500 font-mono">/ mo</span>
+                </div>
+
+                <p className="font-mono text-xs text-emerald-400">
+                  ₹{pricingData.rate} per staff / month
+                </p>
+                <p className="text-xs text-slate-500 mt-1">
+                  + applicable GST (18%) • Invoiced locally
+                </p>
+              </div>
+
+              <div className="space-y-3">
+                <Link
+                  to="/register"
+                  className="w-full py-3.5 px-6 rounded-xl bg-emerald-400 text-[#070A12] font-bold text-sm hover:bg-emerald-300 transition-all shadow-[0_0_20px_rgba(52,211,153,0.35)] flex items-center justify-center gap-2"
                 >
-                  <span className="text-xs sm:text-sm font-semibold text-white">{faq.q}</span>
-                  <ChevronDown
-                    className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 shrink-0 ${
-                      isExpanded ? 'rotate-180 text-emerald-400' : ''
-                    }`}
-                  />
+                  <Zap className="w-4 h-4 fill-current" />
+                  <span>Start 7-Day Free Trial</span>
+                </Link>
+                <p className="font-mono text-[10px] text-slate-500 text-center">
+                  No credit card or proprietary gate hardware required.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* 500+ Multi-Site Facility Callout */}
+          <div className="mt-8 p-4 sm:p-5 rounded-xl border border-white/10 bg-[#070A12]/60 flex flex-col md:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <Building className="w-6 h-6 text-emerald-400 shrink-0" />
+              <div className="text-left">
+                <p className="text-sm font-bold text-white">Managing 500+ workers across multiple plant facilities?</p>
+                <p className="text-xs text-slate-400">We provide custom cluster sync, high-availability edge failover, and on-site deployment engineers.</p>
+              </div>
+            </div>
+            <Link
+              to="/support"
+              className="whitespace-nowrap px-4 py-2 rounded-lg border border-white/20 hover:border-emerald-400 text-xs font-semibold text-white hover:text-emerald-300 transition-colors"
+            >
+              Enterprise Deployment
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* 7. BIOMETRIC SOVEREIGNTY & REGULATORY ASSURANCE */}
+      <section className="relative z-10 py-16 px-4 sm:px-6 max-w-6xl mx-auto border-t border-white/10 text-center">
+        <div className="max-w-2xl mx-auto mb-10">
+          <p className="font-mono text-xs text-emerald-400 uppercase tracking-widest font-medium">
+            SOVEREIGNTY & REGULATORY ASSURANCE
+          </p>
+          <h3 className="text-xl sm:text-3xl font-extrabold text-white mt-1">
+            Zero-Trust Physical Security By Design
+          </h3>
+        </div>
+
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+          
+          <div className="p-4 rounded-xl border border-white/10 bg-[#0B0F19]/60 backdrop-blur text-center flex flex-col items-center">
+            <CheckCircle2 className="w-6 h-6 text-emerald-400 mb-2" />
+            <span className="text-xs sm:text-sm font-bold text-white">DPDP Act 2023</span>
+            <span className="font-mono text-[10px] text-slate-500 mt-0.5">100% Compliant</span>
+          </div>
+
+          <div className="p-4 rounded-xl border border-white/10 bg-[#0B0F19]/60 backdrop-blur text-center flex flex-col items-center">
+            <WifiOff className="w-6 h-6 text-emerald-400 mb-2" />
+            <span className="text-xs sm:text-sm font-bold text-white">Air-Gapped Setup</span>
+            <span className="font-mono text-[10px] text-slate-500 mt-0.5">Zero Cloud Egress</span>
+          </div>
+
+          <div className="p-4 rounded-xl border border-white/10 bg-[#0B0F19]/60 backdrop-blur text-center flex flex-col items-center">
+            <Shield className="w-6 h-6 text-emerald-400 mb-2" />
+            <span className="text-xs sm:text-sm font-bold text-white">ISO 27001</span>
+            <span className="font-mono text-[10px] text-slate-500 mt-0.5">Audit-Ready Logs</span>
+          </div>
+
+          <div className="p-4 rounded-xl border border-white/10 bg-[#0B0F19]/60 backdrop-blur text-center flex flex-col items-center">
+            <KeyRound className="w-6 h-6 text-emerald-400 mb-2" />
+            <span className="text-xs sm:text-sm font-bold text-white">Transient Vectors</span>
+            <span className="font-mono text-[10px] text-slate-500 mt-0.5">No Raw Photos Kept</span>
+          </div>
+
+          <div className="p-4 rounded-xl border border-white/10 bg-[#0B0F19]/60 backdrop-blur text-center flex flex-col items-center col-span-2 md:col-span-1">
+            <Cpu className="w-6 h-6 text-emerald-400 mb-2" />
+            <span className="text-xs sm:text-sm font-bold text-white">On-Device Neural</span>
+            <span className="font-mono text-[10px] text-slate-500 mt-0.5">Host CPU/GPU Enclave</span>
+          </div>
+        </div>
+      </section>
+
+      {/* 8. FREQUENTLY ASKED QUESTIONS */}
+      <section id="faq" className="relative z-10 py-16 sm:py-20 px-4 sm:px-6 max-w-4xl mx-auto border-t border-white/10">
+        
+        <div className="text-center max-w-2xl mx-auto mb-10 sm:mb-12">
+          <p className="font-mono text-xs text-emerald-400 uppercase tracking-widest mb-2 font-medium">
+            TRANSPARENT ANSWERS
+          </p>
+          <h2 className="text-2xl sm:text-4xl font-extrabold text-white tracking-tight">
+            Frequently Asked Questions
+          </h2>
+          <p className="text-sm text-slate-400 mt-2 font-normal">
+            Everything IT directors, plant heads, and facility managers ask about on-premise biometric gates.
+          </p>
+        </div>
+
+        <div className="space-y-3 text-left">
+          {faqs.map((faq, idx) => {
+            const isOpen = expandedFaq === idx;
+
+            return (
+              <div
+                key={idx}
+                className="rounded-xl border border-white/10 bg-[#0B0F19]/80 overflow-hidden transition-all duration-200"
+              >
+                <button
+                  onClick={() => setExpandedFaq(isOpen ? -1 : idx)}
+                  className="w-full p-4 sm:p-5 flex items-center justify-between text-left gap-4"
+                  aria-expanded={isOpen}
+                >
+                  <span className="text-sm sm:text-base font-bold text-white">
+                    {faq.q}
+                  </span>
+                  <ChevronDown className={`w-4 h-4 text-emerald-400 shrink-0 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
                 </button>
-                {isExpanded && (
-                  <div className="px-4 pb-4 pt-0.5 text-xs text-slate-300 leading-relaxed border-t border-white/[0.06] font-normal">
+
+                {isOpen && (
+                  <div className="px-4 sm:px-5 pb-5 pt-1 text-xs sm:text-sm text-slate-300 leading-relaxed border-t border-white/5 font-normal">
                     {faq.a}
                   </div>
                 )}
@@ -1532,182 +1365,149 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ─────────────────────────────────────────────────────────────────────────────
-          5.12 FINAL CTA BAND
-      ───────────────────────────────────────────────────────────────────────────── */}
-      <section className="py-12 px-5 sm:px-8 lg:px-10 max-w-[1320px] mx-auto w-full z-10">
-        <div className="rounded-2xl border border-emerald-500/35 bg-gradient-to-b from-[#0E1729] to-[#070B14] p-6 sm:p-10 text-center relative overflow-hidden shadow-xl shadow-emerald-950/40">
-          <div className="relative z-10 max-w-lg mx-auto space-y-3">
-            <span className="inline-block px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-[10px] font-mono-tag font-bold tracking-wider uppercase">
-              Free 7-Day Trial
-            </span>
-            <h2 className="text-2xl sm:text-3xl font-bold text-white tracking-tight leading-tight">
-              Start verifying faces in about 10 minutes.
-            </h2>
-            <p className="text-xs text-slate-300 leading-relaxed font-normal">
-              Connect your existing webcam or IP camera and begin attendance logging immediately.
-            </p>
-
-            <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
-              <Link
-                to="/register"
-                className="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-emerald-400 hover:bg-emerald-300 text-slate-950 font-bold text-xs transition-all shadow-lg shadow-emerald-500/25 flex items-center justify-center gap-1.5 cursor-pointer active:scale-98"
-              >
-                <span>Start 7-Day Free Trial</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </Link>
-              <Link
-                to="/docs"
-                className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-[#0F1524] hover:bg-[#162035] border border-white/10 text-slate-200 font-semibold text-xs transition-colors flex items-center justify-center gap-1.5"
-              >
-                <BookOpen className="w-3.5 h-3.5 text-emerald-400" />
-                <span>Read the docs</span>
-              </Link>
-            </div>
-
-            <p className="text-[10px] text-slate-500 font-mono-tag pt-1">No credit card or commitment required.</p>
-          </div>
-        </div>
-      </section>
-
-      {/* ─────────────────────────────────────────────────────────────────────────────
-          5.13 FOOTER (COMPACT & BALANCED)
-      ───────────────────────────────────────────────────────────────────────────── */}
-      <footer className="mt-auto border-t border-white/[0.08] bg-[#05070D] py-10 px-5 sm:px-8 lg:px-10 z-10">
-        <div className="max-w-[1320px] mx-auto grid grid-cols-1 md:grid-cols-5 gap-6 mb-8 text-left">
+      {/* 9. ENTERPRISE COMMAND-CENTER FOOTER */}
+      <footer className="border-t border-white/10 bg-[#05080E] relative z-10 text-left mt-auto">
+        <div className="max-w-6xl mx-auto px-6 py-12 sm:py-16 flex flex-col gap-10 w-full">
           
-          <div className="md:col-span-2 space-y-2">
-            <div className="flex items-center gap-2">
-              <div className="w-6 h-6 rounded-lg bg-emerald-500/15 border border-emerald-500/35 flex items-center justify-center text-emerald-400">
-                <Scan className="w-3 h-3" />
-              </div>
-              <span className="font-bold text-sm text-white">AuraPass</span>
+          {/* Top Row: Brand & Telemetry Status */}
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 pb-8 border-b border-white/10">
+            <div>
+              <Link to="/" className="text-lg font-bold text-white flex items-center gap-2">
+                <Scan className="w-5 h-5 text-emerald-400" />
+                <span>AuraPass Enterprise</span>
+              </Link>
+              <p className="text-xs text-slate-400 mt-1 font-normal">
+                Sovereign local zero-knowledge biometric verification & gate telemetry for Indian industry.
+              </p>
             </div>
-            <p className="text-xs text-slate-400 max-w-sm leading-relaxed font-normal">
-              High-throughput on-premise facial recognition attendance and access verification engine.
-            </p>
-            <div className="pt-1 flex items-center gap-2 text-xs font-mono-tag text-emerald-400">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-              <span>All systems operational &bull; v2026.2</span>
+
+            <div className="flex items-center gap-2.5 px-3 py-1.5 rounded-lg bg-[#0B0F19] border border-white/10 font-mono text-xs text-slate-300">
+              <span className="w-2 h-2 rounded-full bg-emerald-400" />
+              <span>EDGE DAEMON: OPERATIONAL (LATENCY 184ms)</span>
             </div>
           </div>
 
-          <div className="space-y-2">
-            <p className="text-xs font-bold text-white uppercase font-mono-tag tracking-wider">Product</p>
-            <ul className="space-y-1.5 text-xs text-slate-400 font-normal">
-              <li><a href="#simulator" className="hover:text-emerald-400 transition-colors">Simulator</a></li>
-              <li><a href="#capabilities" className="hover:text-emerald-400 transition-colors">Capabilities</a></li>
-              <li><a href="#pricing" className="hover:text-emerald-400 transition-colors">Pricing & Plans</a></li>
-            </ul>
+          {/* Links Grid */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-xs font-normal">
+            
+            <div className="flex flex-col gap-2.5">
+              <p className="font-mono text-xs text-white font-bold uppercase tracking-wider mb-1">
+                CORE ARCHITECTURE
+              </p>
+              <a href="#storytelling" className="text-slate-400 hover:text-emerald-400 transition-colors">GhostFaceNet 512-D</a>
+              <a href="#storytelling" className="text-slate-400 hover:text-emerald-400 transition-colors">RTSP / ONVIF Ingestion</a>
+              <a href="#storytelling" className="text-slate-400 hover:text-emerald-400 transition-colors">Dry-Contact GPIO Relays</a>
+              <a href="#storytelling" className="text-slate-400 hover:text-emerald-400 transition-colors">ISO 30107-3 Liveness</a>
+            </div>
+
+            <div className="flex flex-col gap-2.5">
+              <p className="font-mono text-xs text-white font-bold uppercase tracking-wider mb-1">
+                COMPLIANCE & LEGAL
+              </p>
+              <Link to="/privacy-policy" className="text-slate-400 hover:text-emerald-400 transition-colors">DPDP Act 2023 Blueprint</Link>
+              <Link to="/terms" className="text-slate-400 hover:text-emerald-400 transition-colors">Terms of Service</Link>
+              <Link to="/docs" className="text-slate-400 hover:text-emerald-400 transition-colors">Air-Gap Deployment Guide</Link>
+              <Link to="/support" className="text-slate-400 hover:text-emerald-400 transition-colors">Security Disclosures</Link>
+            </div>
+
+            <div className="flex flex-col gap-2.5">
+              <p className="font-mono text-xs text-white font-bold uppercase tracking-wider mb-1">
+                INTEGRATIONS
+              </p>
+              <span className="text-slate-400">SAP SuccessFactors</span>
+              <span className="text-slate-400">Zoho People Sync</span>
+              <span className="text-slate-400">Keka HRMS Webhook</span>
+              <span className="text-slate-400">Tally Payroll CSV Export</span>
+            </div>
+
+            <div className="flex flex-col gap-2.5 font-mono text-[11px]">
+              <p className="font-mono text-xs text-white font-bold uppercase tracking-wider mb-1 font-sans">
+                SYSTEM TELEMETRY
+              </p>
+              <span className="text-slate-400">KERNEL: Linux 6.1 RT</span>
+              <span className="text-slate-400">CONTAINER: distroless</span>
+              <span className="text-slate-400">CRYPTO: Ed25519 Local Audit</span>
+              <span className="text-emerald-400 font-bold">STATUS: ALL GATES CLEAR</span>
+            </div>
           </div>
 
-          <div className="space-y-2">
-            <p className="text-xs font-bold text-white uppercase font-mono-tag tracking-wider">Documentation</p>
-            <ul className="space-y-1.5 text-xs text-slate-400 font-normal">
-              <li><Link to="/docs?page=quickstart" className="hover:text-emerald-400 transition-colors">Quickstart</Link></li>
-              <li><Link to="/docs?page=rtsp-streams" className="hover:text-emerald-400 transition-colors">Cameras & RTSP</Link></li>
-              <li><Link to="/docs?page=3-shot-protocol" className="hover:text-emerald-400 transition-colors">3-Shot Enrollment</Link></li>
-              <li><Link to="/support" className="hover:text-emerald-400 transition-colors">Help Center</Link></li>
-            </ul>
+          {/* Bottom Copyright Strip */}
+          <div className="flex flex-col sm:flex-row justify-between items-center pt-8 border-t border-white/10 text-xs text-slate-500 gap-4">
+            <p>© 2026 AuraPass Cryptographic Systems Inc. Sovereign Local Zero-Knowledge Verification. All rights reserved.</p>
+            <div className="flex items-center gap-5">
+              <Link to="/privacy-policy" className="hover:text-emerald-400 transition-colors">Privacy Policy</Link>
+              <Link to="/terms" className="hover:text-emerald-400 transition-colors">Terms of Service</Link>
+              <button onClick={scrollToTop} className="hover:text-emerald-400 transition-colors flex items-center gap-1">
+                <ArrowUp className="w-3.5 h-3.5" /> Back to top
+              </button>
+            </div>
           </div>
-
-          <div className="space-y-2">
-            <p className="text-xs font-bold text-white uppercase font-mono-tag tracking-wider">Legal</p>
-            <ul className="space-y-1.5 text-xs text-slate-400 font-normal">
-              <li><Link to="/privacy-policy" className="hover:text-emerald-400 transition-colors">Privacy Policy</Link></li>
-              <li><Link to="/terms" className="hover:text-emerald-400 transition-colors">Terms of Service</Link></li>
-              <li><a href="#sovereignty" className="hover:text-emerald-400 transition-colors">Biometric Sovereignty</a></li>
-              <li>
-                <button
-                  type="button"
-                  onClick={scrollToTop}
-                  className="hover:text-emerald-400 transition-colors flex items-center gap-1 cursor-pointer pt-1"
-                >
-                  <span>Back to top</span>
-                  <ArrowUp className="w-3 h-3" />
-                </button>
-              </li>
-            </ul>
-          </div>
-        </div>
-
-        <div className="max-w-[1320px] mx-auto pt-6 border-t border-white/[0.06] flex flex-col sm:flex-row items-center justify-between gap-2 text-[10px] text-slate-500 font-mono-tag">
-          <p>&copy; {new Date().getFullYear()} AuraPass. All rights reserved.</p>
-          <p>On-premise engine v2026.2</p>
         </div>
       </footer>
 
-      {/* ─────────────────────────────────────────────────────────────────────────────
-          5.14 STICKY MOBILE CTA BAR
-      ───────────────────────────────────────────────────────────────────────────── */}
-      {showStickyMobileCta && (
-        <div className="lg:hidden fixed bottom-0 inset-x-0 p-2.5 bg-[#070A12]/95 backdrop-blur-xl border-t border-white/[0.08] z-40 flex items-center justify-between gap-3 animate-in slide-in-from-bottom-2">
-          <div className="text-left font-mono-tag text-xs">
-            <span className="text-white font-bold block text-xs">AuraPass Enterprise</span>
-            <span className="text-emerald-400 text-[10px]">7-Day Free Trial &bull; Sub-300ms</span>
-          </div>
-          <Link
-            to="/register"
-            className="px-3.5 py-1.5 rounded-lg bg-emerald-400 text-slate-950 font-bold text-xs shadow-md shadow-emerald-500/20 active:scale-98"
-          >
-            Start Free Trial
-          </Link>
-        </div>
-      )}
-
- 
-
-      {/* Pixa-inspired Video Demo Modal */}
+      {/* VIDEO DEMONSTRATION MODAL */}
       {showVideoModal && (
-        <div 
-          id="landing-video-modal"
-          className="fixed inset-0 z-[99999] bg-black/85 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200"
-          onClick={() => setShowVideoModal(false)}
-        >
-          <div 
-            className="relative w-full max-w-4xl bg-[#0D1017] border border-white/15 rounded-2xl p-4 sm:p-6 shadow-2xl space-y-4 overflow-hidden"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between pb-3 border-b border-white/10">
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full bg-emerald-500 animate-pulse" />
-                <span className="text-sm font-bold text-white font-mono-tag">AuraPass™ Edge Verification Live Demonstration</span>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md">
+          <div className="bg-[#0B0F19] border border-white/20 rounded-2xl max-w-2xl w-full p-6 relative shadow-2xl text-left">
+            
+            <div className="flex items-center justify-between pb-4 border-b border-white/10 mb-4">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+                  <Play className="w-4 h-4 fill-current" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-white">AuraPass Optical Walk-Through Demo</h3>
+                  <p className="text-xs text-slate-400 font-mono">Simulated Sub-300ms RTSP Verification Cycle</p>
+                </div>
               </div>
-              <button 
+              <button
                 onClick={() => setShowVideoModal(false)}
-                className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition-colors cursor-pointer"
-                aria-label="Close modal"
+                className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition-colors"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="relative aspect-video w-full rounded-xl bg-black overflow-hidden border border-white/10 flex items-center justify-center">
-              <iframe 
-                className="w-full h-full"
-                src="https://www.youtube.com/embed/6j4fPVkA3EA?autoplay=1&mute=1&controls=1&rel=0" 
-                title="AuraPass Edge Facial Verification Demo"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-                allowFullScreen
+            {/* Video Screen Representation */}
+            <div className="relative aspect-video rounded-xl overflow-hidden border border-white/10 bg-[#05080E] mb-4">
+              <img
+                src="/people/man.jpg"
+                alt="Rajesh Patel CCTV Walkthrough"
+                className="w-full h-full object-cover opacity-60 filter contrast-125"
               />
+              <div className="scanner-line" />
+              
+              <div className="absolute inset-0 p-4 flex flex-col justify-between pointer-events-none">
+                <div className="flex justify-between font-mono text-[10px] text-emerald-300 bg-black/60 px-2.5 py-1 rounded w-fit">
+                  HIKVISION 4K DS-2CD // REALTIME CAPTURE
+                </div>
+                <div className="bg-black/80 border border-emerald-500/40 p-3 rounded-lg flex items-center justify-between font-mono text-xs">
+                  <div>
+                    <span className="text-emerald-400 font-bold">MATCH: Rajesh Patel (Operations)</span>
+                    <p className="text-slate-400 text-[10px]">Turnstile 24V Relay Fired • Delay: 184ms</p>
+                  </div>
+                  <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 text-[10px] font-bold">
+                    UNLOCKED
+                  </span>
+                </div>
+              </div>
             </div>
 
-            <div className="flex flex-wrap items-center justify-between text-xs text-slate-400 pt-2 gap-2">
-              <div className="flex items-center gap-2">
-                <Check className="w-3.5 h-3.5 text-emerald-400" />
-                <span>Compatible with standard Hikvision, Dahua, CP Plus & USB webcams</span>
-              </div>
-              <Link 
-                to="/register"
+            <div className="flex items-center justify-between pt-2">
+              <p className="text-xs text-slate-400">
+                AuraPass processes streams directly over LAN via ONVIF/RTSP.
+              </p>
+              <button
                 onClick={() => setShowVideoModal(false)}
-                className="px-3.5 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs"
+                className="px-4 py-2 rounded-lg bg-emerald-400 text-[#070A12] text-xs font-bold hover:bg-emerald-300 transition-colors"
               >
-                Start 7-Day Free Trial
-              </Link>
+                Close Demo
+              </button>
             </div>
           </div>
         </div>
       )}
+
     </div>
   );
 }
