@@ -1,35 +1,63 @@
-import React, { useState, useEffect } from 'react';
-import { ChevronRight } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
 
-export default function TableOfContents({ items = [], activeId, onItemClick }) {
-  if (!items.length) return null;
+/**
+ * Table of Contents Rail with Scroll-Spy
+ */
+export default function TableOfContents({
+  headings = [],
+  className = '',
+}) {
+  const [activeId, setActiveId] = useState('');
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            setActiveId(entry.target.id);
+          }
+        });
+      },
+      {
+        rootMargin: '0% 0% -70% 0%',
+        threshold: 0.1,
+      }
+    );
+
+    headings.forEach(({ id }) => {
+      const el = document.getElementById(id);
+      if (el) observer.observe(el);
+    });
+
+    return () => observer.disconnect();
+  }, [headings]);
+
+  if (!headings || headings.length === 0) return null;
 
   return (
-    <div className="space-y-3">
-      <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider font-mono-tag">
-        On This Page
+    <nav className={`text-xs space-y-3 ${className}`} aria-label="Table of contents">
+      <p className="font-mono text-[11px] font-semibold text-[#F3F6F5] uppercase tracking-wider">
+        On this page
       </p>
-      <nav className="space-y-1 text-xs">
-        {items.map((item) => {
-          const isActive = activeId === item.id;
+      <ul className="space-y-2 border-l border-white/[0.08] pl-3">
+        {headings.map(({ id, text, level }) => {
+          const isActive = activeId === id;
           return (
-            <button
-              key={item.id}
-              type="button"
-              onClick={() => onItemClick(item.id)}
-              className={`w-full text-left py-1.5 px-2 rounded-lg transition-colors flex items-center justify-between cursor-pointer ${
-                isActive
-                  ? 'text-emerald-400 font-semibold bg-emerald-500/10'
-                  : 'text-slate-400 hover:text-white hover:bg-white/[0.04]'
-              }`}
-            >
-              <span className="truncate">{item.title}</span>
-              {isActive && <ChevronRight className="w-3.5 h-3.5 text-emerald-400 shrink-0" />}
-            </button>
+            <li key={id} className={level === 3 ? 'pl-2.5' : ''}>
+              <a
+                href={`#${id}`}
+                className={`block transition-colors py-0.5 leading-snug ${
+                  isActive
+                    ? 'text-[#3DDC97] font-medium -ml-[13px] border-l-2 border-[#3DDC97] pl-[11px]'
+                    : 'text-[#9AA7A3] hover:text-[#F3F6F5]'
+                }`}
+              >
+                {text}
+              </a>
+            </li>
           );
         })}
-      </nav>
-    </div>
+      </ul>
+    </nav>
   );
 }
-

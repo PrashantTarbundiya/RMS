@@ -1,140 +1,42 @@
-import React, { useState, useEffect } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import {
   LifeBuoy,
-  BookOpen,
-  Server,
-  ChevronDown,
-  Camera,
-  Activity,
-  ArrowLeft,
   Search,
-  Code,
+  Camera,
   Users,
+  Zap,
+  Shield,
+  Clock,
+  ArrowRight,
   CheckCircle2,
   AlertTriangle,
-  Building,
   Send,
-  Mail,
-  Copy,
   Check,
-  ExternalLink,
-  MessageSquare
+  Scan,
+  X
 } from 'lucide-react';
-import { API_BASE } from '../config';
-
-const HELP_CATEGORIES = [
-  { id: 'all', label: 'All Topics' },
-  { id: 'getting-started', label: 'Getting Started' },
-  { id: 'camera', label: 'Cameras & Hardware' },
-  { id: 'enrollment', label: 'Biometric Enrollment' },
-  { id: 'attendance', label: 'Attendance & Payroll' },
-  { id: 'billing', label: 'Billing & Plans' },
-  { id: 'troubleshooting', label: 'Troubleshooting' },
-];
-
-const FAQS = [
-  {
-    category: 'camera',
-    q: 'How do I locate the RTSP URL for my security cameras?',
-    a: 'Most enterprise security cameras (Hikvision, Dahua, Axis, Hanwha) stream over RTSP on port 554. For Hikvision: rtsp://username:password@<IP>:554/Streaming/Channels/101. For Dahua: rtsp://username:password@<IP>:554/cam/realmonitor?channel=1&subtype=0. Review our camera documentation for manufacturer patterns.'
-  },
-  {
-    category: 'camera',
-    q: 'Can we connect standard USB webcams for reception desks?',
-    a: 'Yes. In the Cameras page, choose Device Index mode and enter 0 for your computer\'s primary webcam. Standard webcams (Logitech, Anker, integrated laptop cameras) are fully supported without additional software.'
-  },
-  {
-    category: 'enrollment',
-    q: 'How many photos are needed per employee?',
-    a: 'AuraPass requires 3 clear photos per worker: one frontal (0°), one slight left (15°), and one slight right (15°). Good diffuse lighting ensures sub-300ms verification.'
-  },
-  {
-    category: 'enrollment',
-    q: 'Does it recognize employees with daily glasses or masks?',
-    a: 'Yes. Prescription glasses and natural daily headwear are recognized accurately. For best results, capture at least one enrollment photo with their daily glasses on. Dark sunglasses should be removed during check-in.'
-  },
-  {
-    category: 'attendance',
-    q: 'How does the grace period policy work?',
-    a: 'Under the Departments tab, each department can be configured with an arrival grace period (e.g. 15 minutes). If shift start is 09:00 AM and grace is 15 minutes, arrivals up to 09:15 AM are marked ON TIME. Arrivals at 09:16 AM or later are automatically flagged as LATE.'
-  },
-  {
-    category: 'attendance',
-    q: 'How do I export attendance data to Excel or CSV for payroll?',
-    a: 'Navigate to the Attendance view, choose your desired date range or department filter, and click the "Export CSV" or "Export Excel" button. The resulting file includes employee names, badge IDs, entry/exit timestamps, and status flags.'
-  },
-  {
-    category: 'billing',
-    q: 'What is included in the free Starter plan?',
-    a: 'The Starter plan is completely free forever. It supports up to 200 enrolled employees, up to 5 camera streams, local SQLite storage, full sub-300ms verification speed, and daily logs with CSV export. No credit card is required.'
-  },
-  {
-    category: 'troubleshooting',
-    q: 'What should we do if our building network loses internet access?',
-    a: 'AuraPass operates 100% on your local premises. All face detection, vector matching, and attendance logging execute locally on your machine. Zero internet connection is required for ongoing operations.'
-  }
-];
+import Button from '../components/ui/marketing/Button';
+import Eyebrow from '../components/ui/marketing/Eyebrow';
+import Container from '../components/ui/marketing/Container';
+import Section from '../components/ui/marketing/Section';
 
 export default function SupportPage() {
-  const [searchParams, setSearchParams] = useSearchParams();
-  const activeCategory = searchParams.get('category') || 'all';
-  const searchQuery = searchParams.get('q') || '';
+  const [searchQuery, setSearchQuery] = useState('');
+  const [ticketSubmitted, setTicketSubmitted] = useState(false);
+  const [ticketLoading, setTicketLoading] = useState(false);
 
-  const updateCategory = (newCat) => {
-    setSearchParams((prev) => {
-      const next = new URLSearchParams(prev);
-      if (newCat === 'all') next.delete('category');
-      else next.set('category', newCat);
-      return next;
-    }, { replace: true });
-  };
-
-  const updateSearch = (newQ) => {
-    setSearchParams((prev) => {
-      const next = new URLSearchParams(prev);
-      if (!newQ) next.delete('q');
-      else next.set('q', newQ);
-      return next;
-    }, { replace: true });
-  };
-
-  const [expandedFaq, setExpandedFaq] = useState(null);
-  const [systemHealth, setSystemHealth] = useState(null);
-  const [healthLoading, setHealthLoading] = useState(true);
-
-  // Contact Form State & Validation
+  // Form State
   const [formData, setFormData] = useState({
     name: '',
     email: '',
-    company: '',
-    topic: 'Support',
-    plan: 'Starter',
-    message: ''
+    organization: '',
+    hardwareModel: '',
+    priority: 'medium',
+    description: '',
   });
-  const [formErrors, setFormErrors] = useState({});
-  const [formSubmitted, setFormSubmitted] = useState(false);
 
-  useEffect(() => {
-    fetch(`${API_BASE}/health`)
-      .then((res) => res.json())
-      .then((data) => {
-        setSystemHealth(data);
-        setHealthLoading(false);
-      })
-      .catch(() => {
-        fetch(`${API_BASE}/ping`)
-          .then((r) => r.json())
-          .then(() => {
-            setSystemHealth({ status: 'ok', app_version: '2026.2', database: 'sqlite_local' });
-            setHealthLoading(false);
-          })
-          .catch(() => {
-            setSystemHealth({ status: 'offline' });
-            setHealthLoading(false);
-          });
-      });
-  }, []);
+  const [formErrors, setFormErrors] = useState({});
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -144,344 +46,481 @@ export default function SupportPage() {
     }
   };
 
-  const handleContactSubmit = (e) => {
+  const handleFormSubmit = (e) => {
     e.preventDefault();
     const errors = {};
 
-    if (!formData.name.trim()) errors.name = 'Please provide your full name.';
-    if (!formData.email.trim() || !/^\S+@\S+\.\S+$/.test(formData.email)) {
-      errors.email = 'Please provide a valid workplace email address.';
+    if (!formData.name.trim()) errors.name = 'Full name is required';
+    if (!formData.email.trim() || !formData.email.includes('@')) {
+      errors.email = 'Valid corporate email address required';
     }
-    if (!formData.company.trim()) errors.company = 'Please provide your organization name.';
-    if (!formData.message.trim() || formData.message.length < 10) {
-      errors.message = 'Please provide details about your inquiry (min 10 characters).';
-    }
+    if (!formData.organization.trim()) errors.organization = 'Organization name required';
+    if (!formData.description.trim()) errors.description = 'Issue description required';
 
     if (Object.keys(errors).length > 0) {
       setFormErrors(errors);
       return;
     }
 
-    setFormSubmitted(true);
+    setTicketLoading(true);
+    // Simulate enterprise ticket dispatch
+    setTimeout(() => {
+      setTicketLoading(false);
+      setTicketSubmitted(true);
+    }, 800);
   };
 
-  const filteredFaqs = FAQS.filter((item) => {
-    const matchesCategory = activeCategory === 'all' || item.category === activeCategory;
-    const matchesQuery =
-      item.q.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.a.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesCategory && matchesQuery;
-  });
+  // Category Cards
+  const CATEGORIES = [
+    {
+      id: 'camera',
+      title: 'Camera & Hardware Setup',
+      icon: Camera,
+      topics: [
+        'RTSP and ONVIF URL ingestion',
+        'Managed PoE switch power budgets',
+        'Hikvision, Dahua, and Axis configuration',
+        'Sub-300ms stream latency optimization'
+      ],
+      link: '/docs?page=rtsp-onvif'
+    },
+    {
+      id: 'enrollment',
+      title: 'Face Enrollment & Lighting',
+      icon: Users,
+      topics: [
+        '3-shot protocol (0°, -15°, +15°)',
+        '300 to 700 Lux illumination standards',
+        'Prescription glasses and mask tolerance',
+        '160×160 pixel minimum face bounding box'
+      ],
+      link: '/docs?page=three-shot-protocol'
+    },
+    {
+      id: 'turnstiles',
+      title: 'Turnstiles, Kiosks & Relays',
+      icon: Zap,
+      topics: [
+        '24V opto-isolated GPIO dry-contact wiring',
+        '450ms momentary pulse calibration',
+        'Tripod and speed gate flap controllers',
+        'Fail-open vs fail-secure emergency safety'
+      ],
+      link: '/docs?page=turnstile-relays'
+    },
+    {
+      id: 'compliance',
+      title: 'Local Data & Compliance',
+      icon: Shield,
+      topics: [
+        'DPDP Act 2023 local residency mandates',
+        '512-D non-invertible vector verification',
+        'SQLite WAL and PostgreSQL backup procedures',
+        'Tamper-evident audit trail exports'
+      ],
+      link: '/docs?page=sovereignty-spec'
+    }
+  ];
+
+  // Popular Technical Runbooks
+  const POPULAR_ARTICLES = [
+    {
+      title: 'Troubleshooting RTSP packet loss and dropped frames over managed PoE switches',
+      category: 'Network Infrastructure',
+      readTime: '4 min read',
+      link: '/docs?page=camera-troubleshooting'
+    },
+    {
+      title: 'Calibrating facial vector thresholds for 3-shot enrollment in variable lobby lighting',
+      category: 'Biometrics & Inference',
+      readTime: '3 min read',
+      link: '/docs?page=image-quality'
+    },
+    {
+      title: 'Wiring 24V DC opto-isolated relays to Alvarado and Boon Edam turnstile gates',
+      category: 'Physical Access Control',
+      readTime: '4 min read',
+      link: '/docs?page=turnstile-relays'
+    },
+    {
+      title: 'Automating daily PostgreSQL biometric hash backups without cloud egress',
+      category: 'Database & Security',
+      readTime: '5 min read',
+      link: '/docs?page=sovereignty-spec'
+    },
+    {
+      title: 'Configuring shift grace periods and deterministic punch reconciliation',
+      category: 'Rostering & Payroll',
+      readTime: '4 min read',
+      link: '/docs?page=shifts-and-grace'
+    },
+    {
+      title: 'Emergency bypass and air-gapped node recovery procedure during power interruptions',
+      category: 'Node Operations',
+      readTime: '3 min read',
+      link: '/docs?page=general-faq'
+    }
+  ];
 
   return (
-    <div className="min-h-screen public-surface bg-[#070A12] flex flex-col font-sans relative">
+    <div className="min-h-screen bg-[#06090B] text-[#9AA7A3] font-sans selection:bg-[#3DDC97]/20 selection:text-[#3DDC97]">
       
-      {/* Header */}
-      <header className="border-b border-white/[0.08] bg-[#070A12]/90 backdrop-blur-xl sticky top-0 z-30">
-        <div className="max-w-[1720px] mx-auto px-4 sm:px-6 lg:px-10 h-16 flex items-center justify-between">
-          <Link
-            to="/"
-            className="flex items-center gap-2 text-xs sm:text-sm text-slate-400 hover:text-white transition-colors"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            <span>Back to Home</span>
+      {/* 1. TOP HEADER */}
+      <header className="sticky top-0 z-40 bg-[#06090B]/95 border-b border-white/[0.08] backdrop-blur-md">
+        <Container className="py-3.5 flex items-center justify-between">
+          <Link to="/" className="flex items-center gap-2 text-[#F3F6F5] font-semibold text-sm">
+            <span className="w-6 h-6 rounded-md bg-[#0B1013] border border-white/10 flex items-center justify-center text-[#3DDC97]">
+              <Scan className="w-3.5 h-3.5 stroke-[1.5]" />
+            </span>
+            <span>AuraPass</span>
+            <span className="text-xs font-mono text-[#3DDC97] px-1.5 py-0.2 rounded bg-[#3DDC97]/10 border border-[#3DDC97]/20">
+              SUPPORT
+            </span>
           </Link>
 
           <div className="flex items-center gap-4 text-xs font-medium">
-            <Link to="/docs" className="text-emerald-400 hover:text-emerald-300 transition-colors flex items-center gap-1 font-semibold">
-              <BookOpen className="w-3.5 h-3.5" />
-              <span>Docs</span>
+            <Link to="/docs" className="text-[#9AA7A3] hover:text-white transition-colors">
+              Documentation
             </Link>
-            <Link to="/privacy-policy" className="text-slate-400 hover:text-white transition-colors hidden sm:inline">
-              Privacy
-            </Link>
-            <Link to="/terms" className="text-slate-400 hover:text-white transition-colors hidden sm:inline">
-              Terms
-            </Link>
-            <Link
-              to="/dashboard"
-              className="px-3.5 py-1.5 rounded-lg bg-emerald-500/15 border border-emerald-500/35 text-emerald-300 font-semibold hover:bg-emerald-500/25 transition-colors"
-            >
-              Console
+            <Link to="/" className="text-[#3DDC97] hover:text-[#5FE8AD] transition-colors">
+              ← System Overview
             </Link>
           </div>
-        </div>
+        </Container>
       </header>
 
-      {/* Hero Banner */}
-      <div className="border-b border-white/[0.08] bg-[#0B0F19] py-12 px-6">
-        <div className="max-w-[1720px] mx-auto px-4 sm:px-6 lg:px-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-          <div>
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/25 text-emerald-300 text-[11px] font-semibold uppercase tracking-wider font-mono-tag mb-3">
-              <LifeBuoy className="w-3.5 h-3.5" />
-              Help Center & Diagnostics
+      {/* 2. HERO SEARCH SECTION */}
+      <section className="pt-16 pb-14 border-b border-white/[0.08] relative overflow-hidden">
+        <Container className="text-center max-w-3xl space-y-4">
+          <Eyebrow variant="emerald">Help Center & Engineering Knowledge Base</Eyebrow>
+          <h1 className="text-3xl sm:text-5xl font-semibold text-[#F3F6F5] tracking-tight leading-[1.1] text-balance">
+            Hardware-grade resolution for enterprise deployments.
+          </h1>
+          <p className="text-sm sm:text-base text-[#9AA7A3] max-w-xl mx-auto leading-relaxed">
+            Diagnostic guides, dry-contact relay wiring specifications, camera RTSP ingestion matrices, and priority escalation for on-premise nodes.
+          </p>
+
+          {/* Large Search Input */}
+          <div className="pt-4 max-w-xl mx-auto">
+            <div className="relative">
+              <Search className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-[#66726E]" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search help articles, camera setup, or error codes..."
+                className="w-full h-12 pl-11 pr-4 rounded-xl bg-[#0B1013] border border-white/10 text-sm text-[#F3F6F5] placeholder-[#66726E] focus:outline-none focus:border-[#3DDC97]/40 shadow-sm"
+              />
             </div>
-            <h1 className="text-3xl sm:text-4xl font-bold text-white tracking-tight leading-tight">
-              AuraPass Help Center
-            </h1>
-            <p className="text-sm text-slate-400 mt-2 max-w-xl leading-relaxed font-normal">
-              Self-service troubleshooting playbooks, camera configurations, and engineering support.
-            </p>
-          </div>
 
-          {/* System Status Box */}
-          <div className="p-4 rounded-xl bg-[#0F1524] border border-white/[0.08] shrink-0 w-full md:w-auto shadow-sm">
-            <div className="flex items-center justify-between gap-4 text-xs">
-              <span className="text-slate-400 flex items-center gap-1.5">
-                <Activity className="w-3.5 h-3.5 text-emerald-400" />
-                Local Engine Status:
-              </span>
-              <span className="font-mono-tag font-bold text-emerald-400 flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                {healthLoading ? 'Checking...' : systemHealth?.status === 'ok' ? 'Online & Ready' : 'Online (Local)'}
-              </span>
+            {/* Quick Suggestion Pills */}
+            <div className="flex flex-wrap items-center justify-center gap-2 pt-3 text-[11px] font-mono text-[#66726E]">
+              <span>Quick filters:</span>
+              <button
+                type="button"
+                onClick={() => setSearchQuery('RTSP stream drops')}
+                className="hover:text-[#F3F6F5] underline underline-offset-2"
+              >
+                RTSP stream drops
+              </button>
+              <span>•</span>
+              <button
+                type="button"
+                onClick={() => setSearchQuery('Turnstile relay wiring')}
+                className="hover:text-[#F3F6F5] underline underline-offset-2"
+              >
+                Turnstile relay wiring
+              </button>
+              <span>•</span>
+              <button
+                type="button"
+                onClick={() => setSearchQuery('3-shot enrollment')}
+                className="hover:text-[#F3F6F5] underline underline-offset-2"
+              >
+                3-shot enrollment
+              </button>
+              <span>•</span>
+              <button
+                type="button"
+                onClick={() => setSearchQuery('Grace period')}
+                className="hover:text-[#F3F6F5] underline underline-offset-2"
+              >
+                Grace period
+              </button>
             </div>
-            <p className="text-[10px] text-slate-500 font-mono-tag mt-1.5">
-              Engine Version: {systemHealth?.app_version || 'v2026.2'} &bull; Database: SQLite Local
-            </p>
           </div>
-        </div>
-      </div>
+        </Container>
+      </section>
 
-      {/* Main Content Area */}
-      <main className="flex-1 max-w-[1720px] w-full mx-auto px-4 sm:px-6 lg:px-10 py-10 space-y-12">
-        
-        {/* Search & Topic Filters */}
-        <div className="space-y-4">
-          <div className="relative max-w-2xl">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => updateSearch(e.target.value)}
-              placeholder="Search help articles (RTSP streams, enrollment, grace periods)..."
-              className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-[#0F1524] border border-white/[0.08] text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-emerald-500/50 transition-all font-normal"
-            />
+      {/* 3. SUBSYSTEM CATEGORY CARDS */}
+      <Section hairline={false}>
+        <Container>
+          <div className="text-center max-w-xl mx-auto mb-12 space-y-2">
+            <Eyebrow variant="neutral">Four System Pillars</Eyebrow>
+            <h2 className="text-2xl sm:text-3xl font-semibold text-[#F3F6F5] tracking-tight">
+              Explore by Technical Subsystem
+            </h2>
           </div>
 
-          <div className="flex items-center gap-2 overflow-x-auto pb-2 public-scroll">
-            {HELP_CATEGORIES.map((cat) => {
-              const isActive = activeCategory === cat.id;
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {CATEGORIES.map((cat) => {
+              const Icon = cat.icon;
               return (
-                <button
+                <div
                   key={cat.id}
-                  onClick={() => updateCategory(cat.id)}
-                  className={`px-3.5 py-1.5 rounded-lg text-xs font-medium transition-all shrink-0 cursor-pointer ${
-                    isActive
-                      ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/35 font-semibold'
-                      : 'bg-[#0F1524] text-slate-400 border border-white/[0.08] hover:text-white'
-                  }`}
+                  className="p-6 sm:p-7 rounded-2xl border border-white/[0.08] bg-[#0B1013] flex flex-col justify-between space-y-5 hover:border-white/20 transition-colors"
                 >
-                  {cat.label}
-                </button>
+                  <div className="space-y-4">
+                    <div className="w-10 h-10 rounded-xl bg-[#06090B] border border-white/10 flex items-center justify-center text-[#3DDC97]">
+                      <Icon className="w-5 h-5 stroke-[1.5]" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-semibold text-[#F3F6F5] tracking-tight">
+                        {cat.title}
+                      </h3>
+                      <ul className="mt-3 space-y-2 text-xs text-[#9AA7A3]">
+                        {cat.topics.map((topic, i) => (
+                          <li key={i} className="flex items-center gap-2">
+                            <span className="w-1 h-1 rounded-full bg-[#3DDC97]" />
+                            <span>{topic}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+
+                  <Link
+                    to={cat.link}
+                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#3DDC97] hover:text-[#5FE8AD] transition-colors pt-2 border-t border-white/[0.06]"
+                  >
+                    <span>Browse technical documentation</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </Link>
+                </div>
               );
             })}
           </div>
-        </div>
+        </Container>
+      </Section>
 
-        {/* Structured Troubleshooting Playbooks */}
-        <div className="space-y-4">
-          <h2 className="text-sm font-bold text-white uppercase font-mono-tag tracking-wider flex items-center gap-2">
-            <AlertTriangle className="w-4 h-4 text-emerald-400" />
-            <span>Structured Troubleshooting Playbooks</span>
-          </h2>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-            <div className="p-5 rounded-2xl public-card space-y-3">
-              <span className="text-[10px] uppercase font-mono-tag text-emerald-400 font-bold bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20 inline-block">
-                Camera & Stream
-              </span>
-              <h3 className="text-sm font-bold text-white">Camera Feed Displays Black or Times Out</h3>
-              <div className="text-xs text-slate-400 space-y-1.5 leading-relaxed font-normal">
-                <p><strong className="text-slate-300">Symptom:</strong> Video element spins indefinitely.</p>
-                <p><strong className="text-slate-300">Likely Cause:</strong> Firewall blocking RTSP port 554 or incorrect credentials.</p>
-                <p><strong className="text-slate-300">Fix:</strong> Test RTSP in VLC Media Player. Verify camera user has streaming rights.</p>
-                <p><strong className="text-slate-300">If Still Failing:</strong> Switch to substream channel (720p @ 15 FPS).</p>
-              </div>
-            </div>
-
-            <div className="p-5 rounded-2xl public-card space-y-3">
-              <span className="text-[10px] uppercase font-mono-tag text-emerald-400 font-bold bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20 inline-block">
-                Recognition Accuracy
-              </span>
-              <h3 className="text-sm font-bold text-white">Face Not Recognized or Low Confidence</h3>
-              <div className="text-xs text-slate-400 space-y-1.5 leading-relaxed font-normal">
-                <p><strong className="text-slate-300">Symptom:</strong> Recognized as visitor (distance &gt; 0.40).</p>
-                <p><strong className="text-slate-300">Likely Cause:</strong> Heavy backlighting, glare, or face angle exceeds 30°.</p>
-                <p><strong className="text-slate-300">Fix:</strong> Ensure diffuse indoor lighting (300-500 lux).</p>
-                <p><strong className="text-slate-300">If Still Failing:</strong> Re-enroll with 3 clear photos in entrance lighting.</p>
-              </div>
-            </div>
-
-            <div className="p-5 rounded-2xl public-card space-y-3">
-              <span className="text-[10px] uppercase font-mono-tag text-purple-400 font-bold bg-purple-500/10 px-2 py-0.5 rounded border border-purple-500/20 inline-block">
-                Rostering & Shifts
-              </span>
-              <h3 className="text-sm font-bold text-white">Arrival Flagged as Late Incorrectly</h3>
-              <div className="text-xs text-slate-400 space-y-1.5 leading-relaxed font-normal">
-                <p><strong className="text-slate-300">Symptom:</strong> On-time employee flagged as Late in logs.</p>
-                <p><strong className="text-slate-300">Likely Cause:</strong> Grace threshold set too tight or incorrect department.</p>
-                <p><strong className="text-slate-300">Fix:</strong> Check Departments tab and verify grace buffer (e.g. 15 min).</p>
-                <p><strong className="text-slate-300">If Still Failing:</strong> Check system clock synchronization (NTP).</p>
-              </div>
-            </div>
+      {/* 4. POPULAR TECHNICAL ARTICLES */}
+      <Section className="border-t border-white/[0.08]">
+        <Container>
+          <div className="text-center max-w-xl mx-auto mb-12 space-y-2">
+            <Eyebrow variant="neutral">Verified Runbooks</Eyebrow>
+            <h2 className="text-2xl sm:text-3xl font-semibold text-[#F3F6F5] tracking-tight">
+              Popular Engineering Articles
+            </h2>
           </div>
-        </div>
 
-        {/* FAQs */}
-        <div className="space-y-4">
-          <h2 className="text-sm font-bold text-white uppercase font-mono-tag tracking-wider">
-            Frequently Asked Questions ({filteredFaqs.length})
-          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {POPULAR_ARTICLES.map((art, idx) => (
+              <Link
+                key={idx}
+                to={art.link}
+                className="p-4 sm:p-5 rounded-xl border border-white/[0.08] bg-[#0B1013] hover:border-white/20 transition-colors flex items-start justify-between gap-4 group"
+              >
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2 font-mono text-[11px] text-[#66726E]">
+                    <span>{art.category}</span>
+                    <span>•</span>
+                    <span>{art.readTime}</span>
+                  </div>
+                  <h4 className="text-sm font-semibold text-[#F3F6F5] group-hover:text-[#3DDC97] transition-colors">
+                    {art.title}
+                  </h4>
+                </div>
+                <ArrowRight className="w-4 h-4 text-[#66726E] group-hover:text-[#3DDC97] shrink-0 mt-1 transition-colors" />
+              </Link>
+            ))}
+          </div>
+        </Container>
+      </Section>
 
-          <div className="space-y-3">
-            {filteredFaqs.map((faq, i) => {
-              const isExpanded = expandedFaq === i;
-              return (
-                <div key={i} className="rounded-xl border border-white/[0.08] bg-[#0F1524] overflow-hidden">
-                  <button
-                    type="button"
-                    onClick={() => setExpandedFaq(isExpanded ? null : i)}
-                    className="w-full p-4 flex items-center justify-between gap-4 text-left cursor-pointer hover:bg-white/[0.02] transition-colors"
+      {/* 5. ENTERPRISE ENGINEERING SUPPORT TICKET FORM */}
+      <Section className="border-t border-white/[0.08]">
+        <Container size="narrow">
+          <div className="text-center max-w-xl mx-auto mb-10 space-y-2">
+            <Eyebrow variant="emerald">Priority Engineering Escalation</Eyebrow>
+            <h2 className="text-2xl sm:text-3xl font-semibold text-[#F3F6F5] tracking-tight">
+              Open a Support Ticket
+            </h2>
+            <p className="text-xs text-[#9AA7A3] leading-relaxed">
+              Air-gapped on-premise emergency SLA: 2 hours for Business and Enterprise tiers. Handled by systems engineers.
+            </p>
+          </div>
+
+          <div className="p-6 sm:p-8 rounded-2xl border border-white/10 bg-[#0B1013] shadow-xl">
+            {ticketSubmitted ? (
+              <div className="py-10 text-center space-y-3">
+                <div className="w-12 h-12 rounded-full bg-[#3DDC97]/10 border border-[#3DDC97]/30 text-[#3DDC97] flex items-center justify-center mx-auto">
+                  <Check className="w-6 h-6 stroke-[2]" />
+                </div>
+                <h3 className="text-lg font-semibold text-[#F3F6F5]">
+                  Support Ticket Dispatched Successfully
+                </h3>
+                <p className="text-xs text-[#9AA7A3] max-w-md mx-auto leading-relaxed">
+                  Ticket reference <span className="font-mono text-[#3DDC97]">#TKT-2026-0842</span> has been routed to our on-premise deployment engineering group. You will receive an encrypted acknowledgment at your corporate email address within the SLA window.
+                </p>
+                <div className="pt-4">
+                  <Button
+                    onClick={() => {
+                      setTicketSubmitted(false);
+                      setFormData({
+                        name: '',
+                        email: '',
+                        organization: '',
+                        hardwareModel: '',
+                        priority: 'medium',
+                        description: '',
+                      });
+                    }}
+                    variant="secondary"
+                    size="sm"
                   >
-                    <span className="text-xs sm:text-sm font-semibold text-white">{faq.q}</span>
-                    <ChevronDown
-                      className={`w-4 h-4 text-slate-400 transition-transform ${isExpanded ? 'rotate-180 text-emerald-400' : ''}`}
+                    Submit another inquiry
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <form onSubmit={handleFormSubmit} className="space-y-4 text-xs font-sans">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-[#F3F6F5] font-medium mb-1.5">
+                      Full Name *
+                    </label>
+                    <input
+                      type="text"
+                      name="name"
+                      value={formData.name}
+                      onChange={handleInputChange}
+                      placeholder="e.g. Vikram Singhania"
+                      className="w-full h-10 px-3 rounded-lg bg-[#06090B] border border-white/10 text-xs text-[#F3F6F5] placeholder-[#66726E] focus:outline-none focus:border-[#3DDC97]/40"
                     />
-                  </button>
-                  {isExpanded && (
-                    <div className="px-4 pb-4 pt-1 text-xs text-slate-300 leading-relaxed border-t border-white/[0.06] font-normal">
-                      {faq.a}
-                    </div>
+                    {formErrors.name && (
+                      <p className="text-[#FF6B6B] text-[11px] mt-1">{formErrors.name}</p>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="block text-[#F3F6F5] font-medium mb-1.5">
+                      Corporate Work Email *
+                    </label>
+                    <input
+                      type="email"
+                      name="email"
+                      value={formData.email}
+                      onChange={handleInputChange}
+                      placeholder="vikram@enterprise.com"
+                      className="w-full h-10 px-3 rounded-lg bg-[#06090B] border border-white/10 text-xs text-[#F3F6F5] placeholder-[#66726E] focus:outline-none focus:border-[#3DDC97]/40"
+                    />
+                    {formErrors.email && (
+                      <p className="text-[#FF6B6B] text-[11px] mt-1">{formErrors.email}</p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-[#F3F6F5] font-medium mb-1.5">
+                      Organization / Facility Name *
+                    </label>
+                    <input
+                      type="text"
+                      name="organization"
+                      value={formData.organization}
+                      onChange={handleInputChange}
+                      placeholder="e.g. Acme Industrial Plant 02"
+                      className="w-full h-10 px-3 rounded-lg bg-[#06090B] border border-white/10 text-xs text-[#F3F6F5] placeholder-[#66726E] focus:outline-none focus:border-[#3DDC97]/40"
+                    />
+                    {formErrors.organization && (
+                      <p className="text-[#FF6B6B] text-[11px] mt-1">{formErrors.organization}</p>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="block text-[#F3F6F5] font-medium mb-1.5">
+                      Camera or Hardware Model
+                    </label>
+                    <input
+                      type="text"
+                      name="hardwareModel"
+                      value={formData.hardwareModel}
+                      onChange={handleInputChange}
+                      placeholder="e.g. Hikvision DS-2CD / Logitech BRIO"
+                      className="w-full h-10 px-3 rounded-lg bg-[#06090B] border border-white/10 text-xs text-[#F3F6F5] placeholder-[#66726E] focus:outline-none focus:border-[#3DDC97]/40"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[#F3F6F5] font-medium mb-1.5">
+                    Priority Level
+                  </label>
+                  <select
+                    name="priority"
+                    value={formData.priority}
+                    onChange={handleInputChange}
+                    className="w-full h-10 px-3 rounded-lg bg-[#06090B] border border-white/10 text-xs text-[#F3F6F5] focus:outline-none focus:border-[#3DDC97]/40"
+                  >
+                    <option value="low">Low — General inquiry or licensing question</option>
+                    <option value="medium">Medium — Configuration assistance</option>
+                    <option value="high">High — RTSP or biometric degradation</option>
+                    <option value="urgent">Urgent — Turnstile relay or perimeter lockout</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-[#F3F6F5] font-medium mb-1.5">
+                    Issue Description & Diagnostic Logs *
+                  </label>
+                  <textarea
+                    rows={4}
+                    name="description"
+                    value={formData.description}
+                    onChange={handleInputChange}
+                    placeholder="Describe the incident, error messages, and network subnet topology..."
+                    className="w-full p-3 rounded-lg bg-[#06090B] border border-white/10 text-xs text-[#F3F6F5] placeholder-[#66726E] focus:outline-none focus:border-[#3DDC97]/40 font-mono"
+                  />
+                  {formErrors.description && (
+                    <p className="text-[#FF6B6B] text-[11px] mt-1">{formErrors.description}</p>
                   )}
                 </div>
-              );
-            })}
-          </div>
-        </div>
 
-        {/* Contact Form Section */}
-        <div className="p-6 sm:p-8 rounded-3xl bg-[#0B0F19] border border-white/[0.08] space-y-6">
-          <div>
-            <h2 className="text-xl font-bold text-white">Contact Enterprise Support</h2>
-            <p className="text-xs text-slate-400 mt-1 leading-relaxed">
-              Business plan customers receive priority 2-hour SLA response. Starter tier inquiries are answered best-effort.
-            </p>
-          </div>
-
-          {formSubmitted ? (
-            <div className="p-6 rounded-2xl bg-emerald-950/20 border border-emerald-500/30 text-emerald-200 text-sm space-y-2 font-mono-tag">
-              <p className="font-bold text-white flex items-center gap-2">
-                <CheckCircle2 className="w-5 h-5 text-emerald-400" />
-                <span>Inquiry Submitted Successfully</span>
-              </p>
-              <p className="text-xs text-slate-300 font-normal">
-                Thank you, {formData.name}. Our engineering support team will review your inquiry and follow up at {formData.email}.
-              </p>
-            </div>
-          ) : (
-            <form onSubmit={handleContactSubmit} className="space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-                <div>
-                  <label className="block text-slate-300 font-semibold mb-1">Your Full Name *</label>
-                  <input
-                    type="text"
-                    name="name"
-                    value={formData.name}
-                    onChange={handleInputChange}
-                    placeholder="Jane Doe"
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-[#0F1524] border border-white/[0.08] text-slate-200 placeholder-slate-500 focus:outline-none focus:border-emerald-500/50"
-                  />
-                  {formErrors.name && <p className="text-[11px] text-rose-400 mt-1">{formErrors.name}</p>}
-                </div>
-
-                <div>
-                  <label className="block text-slate-300 font-semibold mb-1">Work Email Address *</label>
-                  <input
-                    type="email"
-                    name="email"
-                    value={formData.email}
-                    onChange={handleInputChange}
-                    placeholder="jane@company.com"
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-[#0F1524] border border-white/[0.08] text-slate-200 placeholder-slate-500 focus:outline-none focus:border-emerald-500/50"
-                  />
-                  {formErrors.email && <p className="text-[11px] text-rose-400 mt-1">{formErrors.email}</p>}
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
-                <div>
-                  <label className="block text-slate-300 font-semibold mb-1">Organization Name *</label>
-                  <input
-                    type="text"
-                    name="company"
-                    value={formData.company}
-                    onChange={handleInputChange}
-                    placeholder="Acme Manufacturing"
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-[#0F1524] border border-white/[0.08] text-slate-200 placeholder-slate-500 focus:outline-none focus:border-emerald-500/50"
-                  />
-                  {formErrors.company && <p className="text-[11px] text-rose-400 mt-1">{formErrors.company}</p>}
-                </div>
-
-                <div>
-                  <label className="block text-slate-300 font-semibold mb-1">Topic</label>
-                  <select
-                    name="topic"
-                    value={formData.topic}
-                    onChange={handleInputChange}
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-[#0F1524] border border-white/[0.08] text-slate-200 focus:outline-none focus:border-emerald-500/50"
+                <div className="pt-2 flex items-center justify-between">
+                  <p className="text-[11px] font-mono text-[#66726E]">
+                    Zero raw imagery or video frames uploaded with inquiry.
+                  </p>
+                  <Button
+                    type="submit"
+                    variant="primary"
+                    size="md"
+                    disabled={ticketLoading}
                   >
-                    <option value="Support">Technical Support</option>
-                    <option value="Camera">Camera / RTSP Integration</option>
-                    <option value="Security">Security & Privacy Inquiry</option>
-                    <option value="Sales">Sales & Enterprise Hardware</option>
-                  </select>
+                    {ticketLoading ? 'Dispatching...' : 'Submit Support Ticket'}
+                  </Button>
                 </div>
+              </form>
+            )}
+          </div>
+        </Container>
+      </Section>
 
-                <div>
-                  <label className="block text-slate-300 font-semibold mb-1">Current Plan</label>
-                  <select
-                    name="plan"
-                    value={formData.plan}
-                    onChange={handleInputChange}
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-[#0F1524] border border-white/[0.08] text-slate-200 focus:outline-none focus:border-emerald-500/50"
-                  >
-                    <option value="Starter">Starter ($0 / Free Forever)</option>
-                    <option value="Business">Business ($399 / mo)</option>
-                    <option value="Enterprise">Custom Enterprise</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="text-xs">
-                <label className="block text-slate-300 font-semibold mb-1">Details & Log Output *</label>
-                <textarea
-                  name="message"
-                  rows={4}
-                  value={formData.message}
-                  onChange={handleInputChange}
-                  placeholder="Describe your question or paste relevant RTSP error logs..."
-                  className="w-full p-3.5 rounded-xl bg-[#0F1524] border border-white/[0.08] text-slate-200 placeholder-slate-500 focus:outline-none focus:border-emerald-500/50 font-normal"
-                />
-                {formErrors.message && <p className="text-[11px] text-rose-400 mt-1">{formErrors.message}</p>}
-              </div>
-
-              <button
-                type="submit"
-                className="px-6 py-3 rounded-xl bg-emerald-400 hover:bg-emerald-300 text-slate-950 font-bold text-xs flex items-center gap-2 transition-all cursor-pointer shadow-md shadow-emerald-500/20"
-              >
-                <Send className="w-3.5 h-3.5" />
-                <span>Submit Inquiry</span>
-              </button>
-            </form>
-          )}
-        </div>
-      </main>
-
-      {/* Footer */}
-      <footer className="border-t border-white/[0.08] bg-[#05070D] py-8 px-6 text-center text-xs text-slate-500 font-mono-tag">
-        <p>&copy; {new Date().getFullYear()} AuraPass Enterprise. Local Support Engine v2026.2.</p>
+      {/* 6. MINIMAL FOOTER */}
+      <footer className="border-t border-white/[0.08] bg-[#06090B] py-10 text-xs text-[#66726E]">
+        <Container className="flex flex-col sm:flex-row justify-between items-center gap-4">
+          <div className="flex items-center gap-2 text-white">
+            <Scan className="w-4 h-4 text-[#3DDC97] stroke-[1.5]" />
+            <span>AuraPass Enterprise Support</span>
+          </div>
+          <div className="flex items-center gap-4">
+            <Link to="/docs" className="hover:text-white transition-colors">Documentation</Link>
+            <Link to="/privacy-policy" className="hover:text-white transition-colors">Legal & Privacy</Link>
+            <Link to="/" className="text-[#3DDC97] hover:underline">System Overview</Link>
+          </div>
+        </Container>
       </footer>
+
     </div>
   );
 }

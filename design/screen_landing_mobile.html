@@ -1,0 +1,950 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport"/>
+<title>AuraPass Enterprise | Precision Biometric Sovereignty</title>
+<!-- Material Symbols Outlined -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Geist & Public Sans Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500;600&amp;family=Geist:wght@400;500;600&amp;family=Public+Sans:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              bg: '#06090B',
+              surface: '#0B1013',
+              raised: '#10171B',
+              line: 'rgba(255, 255, 255, 0.08)',
+              'line-strong': 'rgba(255, 255, 255, 0.16)',
+              emerald: '#3DDC97',
+              'emerald-hover': '#5FE8AD',
+              'emerald-tint': 'rgba(61, 220, 151, 0.12)',
+              danger: '#FF6B6B',
+              text: '#F3F6F5',
+              muted: '#9AA7A3',
+              faint: '#66726E'
+            }
+          },
+          borderRadius: {
+            "DEFAULT": "0.5rem",
+            "lg": "1rem",
+            "xl": "1.5rem",
+            "full": "9999px"
+          },
+          fontFamily: {
+            headline: ["Geist", "sans-serif"],
+            display: ["Geist", "sans-serif"],
+            body: ["Geist", "sans-serif"],
+            label: ["Public Sans", "sans-serif"],
+            mono: ["Geist Mono", "JetBrains Mono", "monospace"]
+          }
+        },
+      },
+    }
+  </script>
+<style>
+    body {
+      background-color: #06090B;
+      color: #F3F6F5;
+      font-family: 'Geist', sans-serif;
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      display: inline-block;
+      vertical-align: middle;
+      line-height: 1;
+    }
+    /* Pulse glow */
+    @keyframes pulse-emerald {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(1.15); }
+    }
+    .animate-telemetry-dot {
+      animation: pulse-emerald 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+    /* Custom scrollbar suppression for clean mobile layout */
+    ::-webkit-scrollbar {
+      display: none;
+    }
+    * {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+      box-sizing: border-box;
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-brand-bg text-brand-text min-h-screen pb-20 selection:bg-brand-emerald selection:text-black antialiased">
+<!-- Mobile Container Wrapper: Strict 390px Viewport Simulation -->
+<div class="w-full max-w-[390px] mx-auto min-h-screen bg-brand-bg relative overflow-x-hidden border-x border-white/[0.04] shadow-2xl">
+<!-- SHARED COMPONENT: TopAppBar -->
+<header class="fixed top-0 left-0 w-full z-50 bg-[#06090B]/90 backdrop-blur-md border-b border-white/[0.08]">
+<div class="max-w-[390px] mx-auto h-14 px-4 flex justify-between items-center w-full">
+<!-- Brand & Telemetry Dot -->
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[#3DDC97] text-xl" data-icon="shield">shield</span>
+<span class="font-headline text-sm font-semibold tracking-wider text-[#F3F6F5] uppercase">AuraPass</span>
+<div class="flex items-center gap-1.5 ml-1 bg-white/[0.04] border border-white/[0.08] px-2 py-0.5 rounded-full">
+<span class="w-1.5 h-1.5 rounded-full bg-[#3DDC97] animate-telemetry-dot"></span>
+<span class="font-mono text-[9px] text-[#9AA7A3] tracking-tighter uppercase">LIVE</span>
+</div>
+</div>
+<!-- Trailing Action -->
+<a class="text-xs font-mono font-medium px-3 py-1.5 rounded-lg bg-brand-surface border border-white/[0.08] text-[#3DDC97] hover:text-[#F3F6F5] transition-colors duration-150 min-h-[44px] flex items-center" href="#audit-preview">
+          Audit Stream
+        </a>
+</div>
+</header>
+<!-- Sub-bar Telemetry Ticker (Sticky below Header) -->
+<div class="mt-14 w-full bg-brand-surface border-b border-white/[0.08] px-4 py-2 flex items-center justify-between text-[10px] font-mono text-brand-faint">
+<div class="flex items-center gap-1 text-[#3DDC97]">
+<span class="material-symbols-outlined text-xs" data-icon="terminal">terminal</span>
+<span class="truncate max-w-[190px]">GATE_01_RTSP | ONVIF</span>
+</div>
+<div class="flex items-center gap-2 text-right">
+<span>1080p@30</span>
+<span class="text-brand-emerald">14ms</span>
+</div>
+</div>
+<!-- Sticky Pipeline Stage Tracker -->
+<div class="sticky top-14 z-40 bg-brand-bg/95 backdrop-blur-md border-b border-white/[0.08] px-4 py-2.5">
+<div class="flex items-center justify-between mb-1.5">
+<span class="font-mono text-[10px] tracking-widest text-brand-muted uppercase font-medium">PIPELINE AUDIT STAGES</span>
+<span class="font-mono text-[10px] text-brand-emerald font-semibold">STAGE <span id="stage-number">01</span> / 06</span>
+</div>
+<!-- Stage Indicator Horizontal Ribbon -->
+<div class="grid grid-cols-6 gap-1 h-1.5 rounded-full overflow-hidden bg-brand-raised">
+<div class="bg-brand-emerald h-full rounded-full transition-all duration-300" id="step-bar-1"></div>
+<div class="bg-white/[0.1] h-full rounded-full transition-all duration-300" id="step-bar-2"></div>
+<div class="bg-white/[0.1] h-full rounded-full transition-all duration-300" id="step-bar-3"></div>
+<div class="bg-white/[0.1] h-full rounded-full transition-all duration-300" id="step-bar-4"></div>
+<div class="bg-white/[0.1] h-full rounded-full transition-all duration-300" id="step-bar-5"></div>
+<div class="bg-white/[0.1] h-full rounded-full transition-all duration-300" id="step-bar-6"></div>
+</div>
+<div class="flex justify-between items-center mt-1 text-[9px] font-mono text-brand-faint">
+<span class="text-brand-emerald">01 Arrival</span>
+<span>02 Paradox</span>
+<span>03 Seen</span>
+<span>04 Vector</span>
+<span>05 Decision</span>
+<span>06 Ledger</span>
+</div>
+</div>
+<!-- MAIN BODY CONTENT -->
+<main class="w-full px-4 pt-6 space-y-16">
+<!-- ========================================== -->
+<!-- CHAPTER 01: ARRIVAL HERO                   -->
+<!-- ========================================== -->
+<section class="space-y-4 pt-2" id="chapter-01">
+<!-- Chapter Pill Badge -->
+<div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-brand-surface border border-white/[0.08]">
+<span class="w-1.5 h-1.5 rounded-full bg-brand-emerald animate-pulse"></span>
+<span class="font-mono text-[10px] tracking-wider text-brand-muted uppercase">CHAPTER 01 • 00.00 METER APPROACH</span>
+</div>
+<h1 class="text-2xl font-headline font-semibold text-brand-text tracking-tight leading-[1.25] text-balance">
+          Attendance that recognizes people, not badges.
+        </h1>
+<p class="text-xs font-body text-brand-muted leading-relaxed text-pretty">
+          Turn existing RTSP security cameras and webcams into sub-300 ms facial verification gates with sovereign on-premise execution.
+        </p>
+<!-- CTA Cluster (min-h-[44px] compliance) -->
+<div class="pt-2 flex flex-col gap-2.5">
+<button class="w-full h-12 bg-brand-emerald text-brand-bg font-headline text-sm font-semibold rounded-lg hover:bg-brand-emerald-hover transition-colors flex items-center justify-center gap-2 active:scale-[0.99] shadow-[0_0_24px_rgba(61,220,151,0.2)]">
+<span>Start free</span>
+<span class="material-symbols-outlined text-base font-semibold" data-icon="arrow_forward">arrow_forward</span>
+</button>
+<a class="w-full h-11 bg-brand-surface border border-white/[0.08] text-brand-text font-headline text-xs font-medium rounded-lg hover:border-white/[0.16] transition-colors flex items-center justify-center gap-1.5 min-h-[44px]" href="#chapter-02">
+<span>See how it works</span>
+<span class="material-symbols-outlined text-sm text-brand-muted" data-icon="south">south</span>
+</a>
+</div>
+<!-- Trust Badge -->
+<div class="p-2.5 rounded-lg bg-brand-surface/60 border border-white/[0.08] flex items-center gap-2">
+<span class="material-symbols-outlined text-brand-emerald text-base" data-icon="verified_user">verified_user</span>
+<p class="font-mono text-[10px] text-brand-muted leading-tight">
+            On-premise. Works offline. Zero biometric image storage.
+          </p>
+</div>
+<!-- Visual Card: RTSP HUD Simulation -->
+<div class="w-full bg-brand-surface rounded-xl border border-white/[0.08] p-3 relative overflow-hidden">
+<div class="flex items-center justify-between border-b border-white/[0.08] pb-2 mb-2 font-mono text-[9px] text-brand-muted">
+<span class="text-brand-emerald flex items-center gap-1">
+<span class="w-1.5 h-1.5 bg-brand-emerald rounded-full"></span> RTSP://192.168.1.144:554/ch01
+            </span>
+<span>FPS: 30.1 • 14ms</span>
+</div>
+<!-- Video Viewport Simulator -->
+<div class="relative w-full h-48 bg-[#040608] rounded-lg overflow-hidden border border-white/[0.04] flex items-center justify-center">
+<!-- Simulated Grid scan -->
+<div class="absolute inset-0 opacity-15 bg-[radial-gradient(#3DDC97_1px,transparent_1px)] [background-size:12px_12px]"></div>
+<!-- Facial Silhouette Wireframe -->
+<div class="relative w-28 h-36 border border-dashed border-white/20 rounded-2xl flex flex-col items-center justify-center">
+<!-- Bounding Box Reticles -->
+<div class="absolute -top-1 -left-1 w-3 h-3 border-t-2 border-l-2 border-brand-emerald"></div>
+<div class="absolute -top-1 -right-1 w-3 h-3 border-t-2 border-r-2 border-brand-emerald"></div>
+<div class="absolute -bottom-1 -left-1 w-3 h-3 border-b-2 border-l-2 border-brand-emerald"></div>
+<div class="absolute -bottom-1 -right-1 w-3 h-3 border-b-2 border-r-2 border-brand-emerald"></div>
+<!-- Silhouette Silhouette & Landmark Points -->
+<span class="material-symbols-outlined text-white/30 text-6xl" data-icon="person">person</span>
+<div class="absolute top-10 flex gap-4">
+<span class="w-1.5 h-1.5 rounded-full bg-brand-emerald animate-ping"></span>
+<span class="w-1.5 h-1.5 rounded-full bg-brand-emerald animate-ping"></span>
+</div>
+<div class="absolute bottom-10 w-4 h-0.5 bg-brand-emerald/70 rounded-full"></div>
+</div>
+<!-- HUD Overlay telemetry tags -->
+<div class="absolute top-2 left-2 bg-brand-bg/80 border border-white/[0.08] px-2 py-0.5 rounded text-[9px] font-mono text-brand-emerald">
+              CONF: 99.82%
+            </div>
+<div class="absolute bottom-2 right-2 bg-brand-bg/80 border border-white/[0.08] px-2 py-0.5 rounded text-[9px] font-mono text-brand-muted">
+              LOC: x:412 y:188
+            </div>
+</div>
+<div class="mt-2.5 flex items-center justify-between text-[10px] font-mono text-brand-faint">
+<span>ONVIF Profile S/T</span>
+<span class="text-brand-emerald">LOCK ACQUIRED [SSD-TENSOR]</span>
+</div>
+</div>
+</section>
+<!-- ========================================== -->
+<!-- CHAPTER 02: THE LEGACY PARADOX             -->
+<!-- ========================================== -->
+<section class="space-y-4" id="chapter-02">
+<div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-brand-surface border border-white/[0.08]">
+<span class="font-mono text-[10px] tracking-wider text-brand-muted uppercase">CHAPTER 02 • THE LEGACY PARADOX</span>
+</div>
+<h2 class="text-xl font-headline font-semibold text-brand-text tracking-tight text-balance">
+          Physical plastic cards fail in quiet, expensive ways.
+        </h2>
+<p class="text-xs font-body text-brand-muted leading-relaxed text-pretty">
+          Traditional RFID badges and cloud biometric scanners compromise both perimeter security and employee trust.
+        </p>
+<!-- 3 Stacked Mobile Cards -->
+<div class="space-y-2.5 pt-1">
+<!-- Card 1 -->
+<div class="p-3.5 rounded-xl bg-brand-surface border border-white/[0.08] hover:border-white/[0.16] transition-colors">
+<div class="flex items-start gap-3">
+<span class="font-mono text-sm font-semibold text-brand-emerald pt-0.5">01</span>
+<div>
+<h3 class="text-xs font-headline font-semibold text-brand-text">Lost or shared badges ("Buddy Punching")</h3>
+<p class="text-[11px] font-body text-brand-muted mt-1 leading-normal">
+                  Cards cloned or passed backward. Organizations report up to 7% unverified payroll leaks annually.
+                </p>
+</div>
+</div>
+</div>
+<!-- Card 2 -->
+<div class="p-3.5 rounded-xl bg-brand-surface border border-white/[0.08] hover:border-white/[0.16] transition-colors">
+<div class="flex items-start gap-3">
+<span class="font-mono text-sm font-semibold text-brand-emerald pt-0.5">02</span>
+<div>
+<h3 class="text-xs font-headline font-semibold text-brand-text">Biometrics sent to third-party clouds</h3>
+<p class="text-[11px] font-body text-brand-muted mt-1 leading-normal">
+                  Transmitting face portraits off-premise triggers massive compliance penalties under Illinois BIPA and EU GDPR.
+                </p>
+</div>
+</div>
+</div>
+<!-- Card 3 -->
+<div class="p-3.5 rounded-xl bg-brand-surface border border-white/[0.08] hover:border-white/[0.16] transition-colors">
+<div class="flex items-start gap-3">
+<span class="font-mono text-sm font-semibold text-brand-emerald pt-0.5">03</span>
+<div>
+<h3 class="text-xs font-headline font-semibold text-brand-text">Manual timesheet reconciliations</h3>
+<p class="text-[11px] font-body text-brand-muted mt-1 leading-normal">
+                  Operations and HR waste dozens of hours every pay cycle correcting forgotten taps and failed fingerprint sensors.
+                </p>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- ========================================== -->
+<!-- CHAPTER 03: INSTANT GEOMETRY LOCK          -->
+<!-- ========================================== -->
+<section class="space-y-4" id="chapter-03">
+<div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-brand-surface border border-white/[0.08]">
+<span class="font-mono text-[10px] tracking-wider text-brand-muted uppercase">CHAPTER 03 • INSTANT GEOMETRY LOCK</span>
+</div>
+<h2 class="text-xl font-headline font-semibold text-brand-text tracking-tight text-balance">
+          Seen in milliseconds. Measured, not memorized.
+        </h2>
+<p class="text-xs font-body text-brand-muted leading-relaxed text-pretty">
+          As a colleague approaches at normal walking velocity, local inferencing nodes lock coordinates, extract facial contour landmarks, and confirm 3D depth geometry.
+        </p>
+<!-- Technical Telemetry Bento Card -->
+<div class="p-3.5 rounded-xl bg-brand-surface border border-white/[0.08] space-y-3">
+<div class="flex items-center justify-between border-b border-white/[0.08] pb-2">
+<span class="text-[11px] font-headline font-medium text-brand-text">Single Frame Tensor Metrics</span>
+<span class="font-mono text-[9px] text-brand-emerald px-1.5 py-0.5 rounded bg-brand-emerald-tint">100% LOCAL</span>
+</div>
+<div class="grid grid-cols-1 gap-2 font-mono text-[11px]">
+<div class="flex justify-between items-center p-2 rounded bg-brand-raised border border-white/[0.04]">
+<span class="text-brand-faint">RTSP Ingestion</span>
+<span class="text-brand-text">1080p @ 30fps H.264</span>
+</div>
+<div class="flex justify-between items-center p-2 rounded bg-brand-raised border border-white/[0.04]">
+<span class="text-brand-faint">Face Localization</span>
+<span class="text-brand-emerald">14 ms (Single Frame SSD)</span>
+</div>
+<div class="flex justify-between items-center p-2 rounded bg-brand-raised border border-white/[0.04]">
+<span class="text-brand-faint">Landmark Density</span>
+<span class="text-brand-text">68-Point Mesh Tensor</span>
+</div>
+</div>
+<!-- Mesh Overlay Preview -->
+<div class="relative w-full h-32 bg-brand-bg rounded-lg border border-white/[0.08] flex items-center justify-center overflow-hidden">
+<!-- Simulated 68-pt biometric mesh matrix -->
+<div class="w-24 h-24 border border-brand-emerald/40 rounded-full relative flex items-center justify-center">
+<div class="absolute inset-2 border border-brand-emerald/20 rounded-full"></div>
+<div class="absolute w-full h-0.5 bg-brand-emerald/30"></div>
+<div class="absolute h-full w-0.5 bg-brand-emerald/30"></div>
+<!-- Dot grid simulating landmarks -->
+<div class="grid grid-cols-5 gap-2">
+<span class="w-1 h-1 bg-brand-emerald rounded-full"></span>
+<span class="w-1 h-1 bg-brand-emerald rounded-full"></span>
+<span class="w-1 h-1 bg-brand-emerald rounded-full"></span>
+<span class="w-1 h-1 bg-brand-emerald rounded-full"></span>
+<span class="w-1 h-1 bg-brand-emerald rounded-full"></span>
+<span class="w-1 h-1 bg-brand-emerald rounded-full"></span>
+<span class="w-1 h-1 bg-brand-emerald rounded-full"></span>
+<span class="w-1 h-1 bg-brand-emerald rounded-full"></span>
+<span class="w-1 h-1 bg-brand-emerald rounded-full"></span>
+<span class="w-1 h-1 bg-brand-emerald rounded-full"></span>
+</div>
+</div>
+<span class="absolute bottom-2 left-2 text-[9px] font-mono text-brand-muted">CONTOUR LOCK: OK</span>
+<span class="absolute top-2 right-2 text-[9px] font-mono text-brand-emerald">DEPTH: VALID (STEREO)</span>
+</div>
+</div>
+</section>
+<!-- ========================================== -->
+<!-- CHAPTER 04: IRREVERSIBLE MATHEMATIZATION   -->
+<!-- ========================================== -->
+<section class="space-y-4" id="chapter-04">
+<div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-brand-surface border border-white/[0.08]">
+<span class="font-mono text-[10px] tracking-wider text-brand-muted uppercase">CHAPTER 04 • IRREVERSIBLE MATHEMATIZATION</span>
+</div>
+<h2 class="text-xl font-headline font-semibold text-brand-text tracking-tight text-balance">
+          Understood as numbers. The photo is destroyed immediately.
+        </h2>
+<p class="text-xs font-body text-brand-muted leading-relaxed text-pretty">
+          The optical frame never touches disk. The facial structure collapses into a 512-dimension unit vector normalized on a hypersphere. You cannot reconstruct a human face from this float array.
+        </p>
+<!-- Visual: 512 Float Stream & Bars -->
+<div class="p-3.5 rounded-xl bg-brand-surface border border-white/[0.08] space-y-3">
+<div class="flex items-center justify-between text-[11px] font-mono">
+<span class="text-brand-muted">Hypersphere Vector Projection</span>
+<span class="text-brand-emerald">512-DIM FLOAT32</span>
+</div>
+<!-- Vector Bar Simulation -->
+<div class="flex items-end gap-0.5 h-12 w-full bg-brand-bg p-1.5 rounded-lg border border-white/[0.04] overflow-hidden">
+<div class="w-1 bg-brand-emerald/70 h-[30%]"></div>
+<div class="w-1 bg-brand-emerald h-[80%]"></div>
+<div class="w-1 bg-brand-emerald/50 h-[45%]"></div>
+<div class="w-1 bg-brand-emerald h-[95%]"></div>
+<div class="w-1 bg-brand-emerald/30 h-[20%]"></div>
+<div class="w-1 bg-brand-emerald h-[70%]"></div>
+<div class="w-1 bg-brand-emerald/80 h-[85%]"></div>
+<div class="w-1 bg-brand-emerald/40 h-[40%]"></div>
+<div class="w-1 bg-brand-emerald h-[60%]"></div>
+<div class="w-1 bg-brand-emerald/60 h-[50%]"></div>
+<div class="w-1 bg-brand-emerald h-[100%]"></div>
+<div class="w-1 bg-brand-emerald/70 h-[75%]"></div>
+<div class="w-1 bg-brand-emerald h-[90%]"></div>
+<div class="w-1 bg-brand-emerald/30 h-[35%]"></div>
+<div class="w-1 bg-brand-emerald h-[65%]"></div>
+<div class="w-1 bg-brand-emerald/50 h-[55%]"></div>
+<div class="w-1 bg-brand-emerald h-[80%]"></div>
+<div class="w-1 bg-brand-emerald/80 h-[92%]"></div>
+<div class="w-1 bg-brand-emerald/40 h-[25%]"></div>
+<div class="w-1 bg-brand-emerald h-[60%]"></div>
+<div class="w-1 bg-brand-emerald/60 h-[48%]"></div>
+<div class="w-1 bg-brand-emerald h-[72%]"></div>
+<div class="w-1 bg-brand-emerald/70 h-[64%]"></div>
+<div class="w-1 bg-brand-emerald h-[88%]"></div>
+<div class="w-1 bg-brand-emerald/30 h-[18%]"></div>
+<div class="w-1 bg-brand-emerald h-[82%]"></div>
+<div class="w-1 bg-brand-emerald/50 h-[52%]"></div>
+<div class="w-1 bg-brand-emerald h-[91%]"></div>
+</div>
+<!-- Raw Float snippet -->
+<div class="p-2 rounded bg-brand-bg font-mono text-[9px] text-brand-faint overflow-x-hidden truncate border border-white/[0.04]">
+            [+0.0821, -0.4419, +0.9102, -0.0034, +0.3129, +0.7712, -0.1983, +0.5510, +0.8123, -0.6612, ...]
+          </div>
+<!-- Security Assurance Box -->
+<div class="flex items-start gap-2.5 p-2.5 rounded bg-brand-emerald-tint/40 border border-brand-emerald/30">
+<span class="material-symbols-outlined text-brand-emerald text-base" data-icon="lock">lock</span>
+<div class="text-[11px] font-body text-brand-text">
+<span class="font-semibold text-brand-emerald">Zero raw pixel storage.</span> Only mathematical arrays exist in volatile memory. Salted with AES-256-GCM.
+            </div>
+</div>
+</div>
+</section>
+<!-- ========================================== -->
+<!-- CHAPTER 05: THE PIPELINE RACE              -->
+<!-- ========================================== -->
+<section class="space-y-4" id="chapter-05">
+<div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-brand-surface border border-white/[0.08]">
+<span class="font-mono text-[10px] tracking-wider text-brand-muted uppercase">CHAPTER 05 • THE PIPELINE RACE</span>
+</div>
+<h2 class="text-xl font-headline font-semibold text-brand-text tracking-tight text-balance">
+          Verified before their hand reaches the handle.
+        </h2>
+<p class="text-xs font-body text-brand-muted leading-relaxed text-pretty">
+          From camera frame ingestion to access relay signal: under 300 ms total budget. Zero stopping, zero awkward staring at a tablet screen.
+        </p>
+<!-- Interactive Mobile Attack & Liveness Switcher (Tabs >= 44px) -->
+<div class="p-3.5 rounded-xl bg-brand-surface border border-white/[0.08] space-y-3">
+<span class="text-[11px] font-mono text-brand-muted">Liveness Inference Modes:</span>
+<div class="grid grid-cols-3 gap-1.5 p-1 bg-brand-bg rounded-lg border border-white/[0.04]">
+<button class="h-11 rounded-md text-[11px] font-mono font-medium transition-all duration-150 bg-brand-emerald text-brand-bg" id="btn-normal" onclick="switchMode('normal')">
+              Normal
+            </button>
+<button class="h-11 rounded-md text-[11px] font-mono font-medium text-brand-muted hover:text-white transition-all duration-150" id="btn-spoof" onclick="switchMode('spoof')">
+              Photo Spoof
+            </button>
+<button class="h-11 rounded-md text-[11px] font-mono font-medium text-brand-muted hover:text-white transition-all duration-150" id="btn-mask" onclick="switchMode('mask')">
+              Mask/Lens
+            </button>
+</div>
+<!-- Dynamic Result Readout -->
+<div class="p-3 rounded-lg bg-brand-raised border border-brand-emerald/30 space-y-2" id="readout-card">
+<div class="flex items-center justify-between">
+<span class="font-mono text-[10px] px-2 py-0.5 rounded bg-brand-emerald text-brand-bg font-semibold" id="readout-badge">
+                GENUINE MATCH
+              </span>
+<span class="font-mono text-[11px] text-brand-emerald font-semibold" id="readout-time">
+                268 ms
+              </span>
+</div>
+<p class="text-xs font-body text-brand-text" id="readout-text">
+              Status: Verified authenticated employee. Turnstile dry contact fires at 268 ms.
+            </p>
+</div>
+</div>
+</section>
+<!-- ========================================== -->
+<!-- CHAPTER 06: IMMUTABLE DISPATCH             -->
+<!-- ========================================== -->
+<section class="space-y-4" id="chapter-06">
+<div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-brand-surface border border-white/[0.08]">
+<span class="font-mono text-[10px] tracking-wider text-brand-muted uppercase">CHAPTER 06 • IMMUTABLE DISPATCH</span>
+</div>
+<h2 class="text-xl font-headline font-semibold text-brand-text tracking-tight text-balance">
+          Recorded to payroll without a single human intervention.
+        </h2>
+<p class="text-xs font-body text-brand-muted leading-relaxed text-pretty">
+          The verified identity generates a cryptographically signed event that syncs to your existing ERP or payroll software (Workday, ADP, SAP, or localized SQL databases).
+        </p>
+<!-- Audit Log Preview Component -->
+<div class="p-3.5 rounded-xl bg-brand-surface border border-white/[0.08] space-y-2.5" id="audit-preview">
+<div class="flex items-center justify-between border-b border-white/[0.08] pb-2 text-[10px] font-mono">
+<span class="text-brand-muted">IMMUTABLE PAYROLL DISPATCH</span>
+<span class="text-brand-emerald">SYNC: ACTIVE (SAP)</span>
+</div>
+<!-- Dispatch Items -->
+<div class="space-y-2 font-mono text-[11px]">
+<!-- Item 1 -->
+<div class="p-2.5 rounded-lg bg-brand-raised border border-white/[0.04] flex items-center justify-between">
+<div>
+<div class="text-brand-text font-medium">Marcus Vance</div>
+<div class="text-[9px] text-brand-faint">08:59:42 • On time (+0m)</div>
+</div>
+<div class="text-right">
+<span class="text-brand-emerald font-semibold">99.8%</span>
+<div class="text-[9px] text-brand-muted">RELAY #1</div>
+</div>
+</div>
+<!-- Item 2 -->
+<div class="p-2.5 rounded-lg bg-brand-raised border border-white/[0.04] flex items-center justify-between">
+<div>
+<div class="text-brand-text font-medium">Elena Rostova</div>
+<div class="text-[9px] text-brand-faint">08:58:19 • On time</div>
+</div>
+<div class="text-right">
+<span class="text-brand-emerald font-semibold">99.4%</span>
+<div class="text-[9px] text-brand-muted">RELAY #2</div>
+</div>
+</div>
+<!-- Item 3 -->
+<div class="p-2.5 rounded-lg bg-brand-raised border border-white/[0.04] flex items-center justify-between">
+<div>
+<div class="text-brand-text font-medium">David K. Chen</div>
+<div class="text-[9px] text-brand-faint">08:57:04 • On time</div>
+</div>
+<div class="text-right">
+<span class="text-brand-emerald font-semibold">99.7%</span>
+<div class="text-[9px] text-brand-muted">RELAY #1</div>
+</div>
+</div>
+</div>
+<!-- Export Action Buttons (Min-h-[44px]) -->
+<div class="pt-2 flex flex-wrap gap-2">
+<button class="flex-1 h-11 bg-brand-bg border border-white/[0.08] hover:border-brand-emerald rounded-lg text-[10px] font-mono text-brand-muted hover:text-brand-text flex items-center justify-center gap-1.5 transition-colors">
+<span class="material-symbols-outlined text-xs" data-icon="table_view">table_view</span>
+              Export CSV
+            </button>
+<button class="flex-1 h-11 bg-brand-bg border border-white/[0.08] hover:border-brand-emerald rounded-lg text-[10px] font-mono text-brand-muted hover:text-brand-text flex items-center justify-center gap-1.5 transition-colors">
+<span class="material-symbols-outlined text-xs" data-icon="file_download">file_download</span>
+              Excel (.xlsx)
+            </button>
+<button class="flex-1 h-11 bg-brand-bg border border-white/[0.08] hover:border-brand-emerald rounded-lg text-[10px] font-mono text-brand-muted hover:text-brand-text flex items-center justify-center gap-1.5 transition-colors">
+<span class="material-symbols-outlined text-xs" data-icon="picture_as_pdf">picture_as_pdf</span>
+              Audit PDF
+            </button>
+</div>
+</div>
+</section>
+<!-- ========================================== -->
+<!-- CHAPTER 07: ARCHITECTURAL INTEGRITY        -->
+<!-- ========================================== -->
+<section class="space-y-4" id="chapter-07">
+<div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-brand-surface border border-white/[0.08]">
+<span class="font-mono text-[10px] tracking-wider text-brand-muted uppercase">CHAPTER 07 • ARCHITECTURAL INTEGRITY</span>
+</div>
+<h2 class="text-xl font-headline font-semibold text-brand-text tracking-tight text-balance">
+          The Sovereignty Boundary
+        </h2>
+<p class="text-xs font-body text-brand-muted leading-relaxed text-pretty">
+          Your camera streams never leave your subnet. The AuraPass engine executes inside your perimeter behind your hardware firewall.
+        </p>
+<!-- Network Boundary Diagram Card -->
+<div class="p-3.5 rounded-xl bg-brand-surface border border-white/[0.08] space-y-3">
+<div class="flex items-center justify-between text-[11px] font-mono">
+<span class="text-brand-emerald flex items-center gap-1">
+<span class="material-symbols-outlined text-sm" data-icon="shield_with_heart">shield_with_heart</span>
+              ON-PREMISE BOUNDARY
+            </span>
+<span class="text-brand-muted font-mono">&lt;= 18ms LAN</span>
+</div>
+<!-- Flow nodes -->
+<div class="space-y-2 text-[11px] font-mono">
+<div class="p-2.5 rounded-lg bg-brand-raised border border-white/[0.06] flex items-center justify-between">
+<span class="text-brand-text">1. RTSP Cams</span>
+<span class="text-brand-faint">ONVIF / H.264</span>
+</div>
+<div class="flex justify-center text-brand-emerald">
+<span class="material-symbols-outlined text-base" data-icon="south">south</span>
+</div>
+<div class="p-2.5 rounded-lg bg-brand-emerald-tint/50 border border-brand-emerald/40 flex items-center justify-between">
+<span class="text-brand-text font-medium">2. AuraPass Node</span>
+<span class="text-brand-emerald">TensorRT 100% On-Prem</span>
+</div>
+<div class="flex justify-center text-brand-emerald">
+<span class="material-symbols-outlined text-base" data-icon="south">south</span>
+</div>
+<div class="p-2.5 rounded-lg bg-brand-raised border border-white/[0.06] flex items-center justify-between">
+<span class="text-brand-text">3. Attendance DB</span>
+<span class="text-brand-muted">Postgres / SAP / ADP</span>
+</div>
+</div>
+<!-- Hard Blocked Egress Rule -->
+<div class="p-2.5 rounded-lg bg-[#FF6B6B]/10 border border-[#FF6B6B]/30 flex items-start gap-2.5">
+<span class="material-symbols-outlined text-[#FF6B6B] text-lg" data-icon="block">block</span>
+<div class="text-[10px] font-mono text-[#FF6B6B] leading-tight">
+              EGRESS RULES: DROP ALL 0.0.0.0/0. Public cloud APIs physically excluded. No raw frames ever cross boundary.
+            </div>
+</div>
+</div>
+<!-- Stored vs Excluded Comparison Cards -->
+<div class="grid grid-cols-1 gap-2.5 pt-1">
+<!-- Allowed -->
+<div class="p-3 rounded-xl bg-brand-surface border border-white/[0.08] space-y-2">
+<div class="flex items-center gap-1.5 text-brand-emerald text-xs font-headline font-semibold">
+<span class="material-symbols-outlined text-sm" data-icon="check_circle">check_circle</span>
+              What we store on-premise
+            </div>
+<ul class="text-[11px] font-body text-brand-muted space-y-1">
+<li class="flex items-center gap-1.5">• 512-dim mathematical unit floats</li>
+<li class="flex items-center gap-1.5">• Timestamps &amp; Gate Relay ID</li>
+<li class="flex items-center gap-1.5">• Cryptographic signature hash</li>
+</ul>
+</div>
+<!-- Blocked -->
+<div class="p-3 rounded-xl bg-brand-surface border border-white/[0.08] space-y-2">
+<div class="flex items-center gap-1.5 text-brand-danger text-xs font-headline font-semibold">
+<span class="material-symbols-outlined text-sm" data-icon="cancel">cancel</span>
+              What we never store or transmit
+            </div>
+<ul class="text-[11px] font-body text-brand-muted space-y-1">
+<li class="flex items-center gap-1.5">• Zero human photos or JPEG/PNG files</li>
+<li class="flex items-center gap-1.5">• Zero external cloud vector syncs</li>
+<li class="flex items-center gap-1.5">• Zero third-party telemetry beacons</li>
+</ul>
+</div>
+</div>
+</section>
+<!-- ========================================== -->
+<!-- CHAPTER 08: SCALE & DEPLOYMENT             -->
+<!-- ========================================== -->
+<section class="space-y-4" id="chapter-08">
+<div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-brand-surface border border-white/[0.08]">
+<span class="font-mono text-[10px] tracking-wider text-brand-muted uppercase">CHAPTER 08 • SCALE &amp; DEPLOYMENT</span>
+</div>
+<h2 class="text-xl font-headline font-semibold text-brand-text tracking-tight text-balance">
+          Predictable on-premise infrastructure.
+        </h2>
+<p class="text-xs font-body text-brand-muted leading-relaxed text-pretty">
+          Deploy on standard commodity Linux hardware or certified industrial edge appliances.
+        </p>
+<!-- Monthly / Annual Toggle -->
+<div class="flex items-center justify-center p-1 bg-brand-surface rounded-lg border border-white/[0.08] max-w-xs mx-auto">
+<button class="flex-1 h-9 rounded text-xs font-medium font-headline bg-brand-raised text-brand-text transition-colors" id="toggle-monthly" onclick="toggleBilling('monthly')">
+            Monthly
+          </button>
+<button class="flex-1 h-9 rounded text-xs font-medium font-headline text-brand-muted transition-colors flex items-center justify-center gap-1" id="toggle-annual" onclick="toggleBilling('annual')">
+<span>Annual</span>
+<span class="text-[9px] font-mono text-brand-emerald px-1 rounded bg-brand-emerald-tint">-20%</span>
+</button>
+</div>
+<!-- 3 Mobile Pricing Cards -->
+<div class="space-y-3 pt-2">
+<!-- Card 1: Starter -->
+<div class="p-4 rounded-xl bg-brand-surface border border-white/[0.08] space-y-3">
+<div class="flex justify-between items-start">
+<div>
+<h3 class="text-sm font-headline font-semibold text-brand-text">Starter Engine</h3>
+<p class="text-[11px] font-body text-brand-muted">Pilot and single-door offices.</p>
+</div>
+<div class="text-right">
+<div class="text-lg font-mono font-semibold text-brand-text">$0</div>
+<div class="text-[9px] font-mono text-brand-faint">forever</div>
+</div>
+</div>
+<ul class="text-[11px] font-mono text-brand-muted space-y-1.5 border-y border-white/[0.06] py-3">
+<li>• Up to 200 enrolled staff</li>
+<li>• 5 simultaneous RTSP streams</li>
+<li>• ONVIF Profile S/T support</li>
+<li>• Local CSV audit logs</li>
+</ul>
+<button class="w-full h-11 bg-brand-raised border border-white/[0.08] text-brand-text rounded-lg text-xs font-headline font-medium hover:border-white/[0.2] transition-colors min-h-[44px]">
+              Download Docker Container
+            </button>
+</div>
+<!-- Card 2: Business (Recommended Production) -->
+<div class="p-4 rounded-xl bg-brand-surface border-2 border-brand-emerald space-y-3 relative">
+<div class="absolute -top-2.5 right-4 px-2 py-0.5 rounded-full bg-brand-emerald text-brand-bg font-mono text-[9px] font-bold tracking-wider uppercase">
+              RECOMMENDED PRODUCTION
+            </div>
+<div class="flex justify-between items-start pt-1">
+<div>
+<h3 class="text-sm font-headline font-semibold text-brand-text">Business Sovereign</h3>
+<p class="text-[11px] font-body text-brand-muted">Multi-facility enterprise campuses.</p>
+</div>
+<div class="text-right">
+<div class="text-lg font-mono font-semibold text-brand-emerald" id="business-price">$399</div>
+<div class="text-[9px] font-mono text-brand-faint">facility / mo</div>
+</div>
+</div>
+<ul class="text-[11px] font-mono text-brand-muted space-y-1.5 border-y border-white/[0.06] py-3">
+<li>• Up to 5,000 enrolled staff</li>
+<li>• Unlimited camera stream ingest</li>
+<li>• Hardware turnstile relay dry contacts</li>
+<li>• Automated ADP / Workday / SAP sync</li>
+<li>• Sub-300ms verification SLA</li>
+</ul>
+<button class="w-full h-11 bg-brand-emerald text-brand-bg rounded-lg text-xs font-headline font-semibold hover:bg-brand-emerald-hover transition-colors min-h-[44px] shadow-[0_0_16px_rgba(61,220,151,0.25)]">
+              Deploy Free 30-Day Trial
+            </button>
+</div>
+<!-- Card 3: Enterprise -->
+<div class="p-4 rounded-xl bg-brand-surface border border-white/[0.08] space-y-3">
+<div class="flex justify-between items-start">
+<div>
+<h3 class="text-sm font-headline font-semibold text-brand-text">Enterprise Air-Gapped</h3>
+<p class="text-[11px] font-body text-brand-muted">Defense, healthcare, data centers.</p>
+</div>
+<div class="text-right">
+<div class="text-lg font-mono font-semibold text-brand-text">Custom</div>
+<div class="text-[9px] font-mono text-brand-faint">multi-campus</div>
+</div>
+</div>
+<ul class="text-[11px] font-mono text-brand-muted space-y-1.5 border-y border-white/[0.06] py-3">
+<li>• 50,000+ active staff members</li>
+<li>• Air-gapped HSM key management</li>
+<li>• Dedicated security solutions architect</li>
+<li>• BIPA, SOC2 &amp; GDPR compliance guarantees</li>
+</ul>
+<button class="w-full h-11 bg-brand-raised border border-white/[0.08] text-brand-text rounded-lg text-xs font-headline font-medium hover:border-white/[0.2] transition-colors min-h-[44px]">
+              Contact Systems Architect
+            </button>
+</div>
+</div>
+</section>
+<!-- ========================================== -->
+<!-- COMPLIANCE & TECHNICAL FAQ                 -->
+<!-- ========================================== -->
+<section class="space-y-4 pt-4">
+<div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-brand-surface border border-white/[0.08]">
+<span class="font-mono text-[10px] tracking-wider text-brand-muted uppercase">TECHNICAL CLARIFICATIONS</span>
+</div>
+<h2 class="text-xl font-headline font-semibold text-brand-text tracking-tight text-balance">
+          Technical &amp; Compliance Inquiries
+        </h2>
+<p class="text-xs font-body text-brand-muted leading-relaxed">
+          Clear answers for security directors, IT infrastructure teams, and legal counsel.
+        </p>
+<!-- Accordions -->
+<div class="space-y-2 pt-1 font-headline">
+<!-- FAQ 1 -->
+<div class="rounded-xl bg-brand-surface border border-white/[0.08] overflow-hidden">
+<button class="w-full p-3.5 text-left flex items-center justify-between text-xs font-medium text-brand-text min-h-[44px]" onclick="toggleFaq(1)">
+<span>01 • Do we need to replace our current security cameras?</span>
+<span class="material-symbols-outlined text-brand-muted text-base" data-icon="add" id="faq-icon-1">add</span>
+</button>
+<div class="hidden px-3.5 pb-3.5 text-[11px] font-body text-brand-muted leading-relaxed" id="faq-answer-1">
+              No. AuraPass ingests standard ONVIF and RTSP video feeds from existing Axis, Hanwha, Hikvision, or generic IP security cameras over your local switch.
+            </div>
+</div>
+<!-- FAQ 2 -->
+<div class="rounded-xl bg-brand-surface border border-white/[0.08] overflow-hidden">
+<button class="w-full p-3.5 text-left flex items-center justify-between text-xs font-medium text-brand-text min-h-[44px]" onclick="toggleFaq(2)">
+<span>02 • How does the system prevent photo and video spoofing?</span>
+<span class="material-symbols-outlined text-brand-muted text-base" data-icon="add" id="faq-icon-2">add</span>
+</button>
+<div class="hidden px-3.5 pb-3.5 text-[11px] font-body text-brand-muted leading-relaxed" id="faq-answer-2">
+              Active depth disparity, micro-texture reflection analysis, and multi-frame motion vectoring immediately flag 2D tablets, paper prints, or curved phone screens.
+            </div>
+</div>
+<!-- FAQ 3 -->
+<div class="rounded-xl bg-brand-surface border border-white/[0.08] overflow-hidden">
+<button class="w-full p-3.5 text-left flex items-center justify-between text-xs font-medium text-brand-text min-h-[44px]" onclick="toggleFaq(3)">
+<span>03 • Are employee photos saved on the server?</span>
+<span class="material-symbols-outlined text-brand-muted text-base" data-icon="add" id="faq-icon-3">add</span>
+</button>
+<div class="hidden px-3.5 pb-3.5 text-[11px] font-body text-brand-muted leading-relaxed" id="faq-answer-3">
+              Never. Optical frames are immediately destroyed in volatile RAM following vector extraction. Only one-way irreversible float numbers are retained.
+            </div>
+</div>
+<!-- FAQ 4 -->
+<div class="rounded-xl bg-brand-surface border border-white/[0.08] overflow-hidden">
+<button class="w-full p-3.5 text-left flex items-center justify-between text-xs font-medium text-brand-text min-h-[44px]" onclick="toggleFaq(4)">
+<span>04 • Does it function during wide-area internet outages?</span>
+<span class="material-symbols-outlined text-brand-muted text-base" data-icon="add" id="faq-icon-4">add</span>
+</button>
+<div class="hidden px-3.5 pb-3.5 text-[11px] font-body text-brand-muted leading-relaxed" id="faq-answer-4">
+              100% operation continues without interruptions. Verification and turnstile triggering occur entirely on the local LAN without internet dependencies.
+            </div>
+</div>
+<!-- FAQ 5 -->
+<div class="rounded-xl bg-brand-surface border border-white/[0.08] overflow-hidden">
+<button class="w-full p-3.5 text-left flex items-center justify-between text-xs font-medium text-brand-text min-h-[44px]" onclick="toggleFaq(5)">
+<span>05 • What are the minimum on-premise hardware requirements?</span>
+<span class="material-symbols-outlined text-brand-muted text-base" data-icon="add" id="faq-icon-5">add</span>
+</button>
+<div class="hidden px-3.5 pb-3.5 text-[11px] font-body text-brand-muted leading-relaxed" id="faq-answer-5">
+              A standard x86-64 server or edge box with an NVIDIA Jetson Orin or RTX 3060 handles up to 8 real-time turnstile streams at 30 fps.
+            </div>
+</div>
+<!-- FAQ 6 -->
+<div class="rounded-xl bg-brand-surface border border-white/[0.08] overflow-hidden">
+<button class="w-full p-3.5 text-left flex items-center justify-between text-xs font-medium text-brand-text min-h-[44px]" onclick="toggleFaq(6)">
+<span>06 • How does this comply with Illinois BIPA &amp; EU GDPR?</span>
+<span class="material-symbols-outlined text-brand-muted text-base" data-icon="add" id="faq-icon-6">add</span>
+</button>
+<div class="hidden px-3.5 pb-3.5 text-[11px] font-body text-brand-muted leading-relaxed" id="faq-answer-6">
+              Because raw photographs are discarded instantly and irreversibly on local memory, the system satisfies sovereign data processing exemptions with auditable privacy policies.
+            </div>
+</div>
+</div>
+</section>
+<!-- ========================================== -->
+<!-- TERMINAL DEPLOYMENT CTA                    -->
+<!-- ========================================== -->
+<section class="p-4 rounded-xl bg-brand-surface border border-white/[0.08] space-y-3 relative overflow-hidden">
+<div class="absolute -right-10 -bottom-10 w-36 h-36 bg-brand-emerald/10 rounded-full blur-2xl pointer-events-none"></div>
+<div class="flex items-center gap-1.5 text-brand-emerald font-mono text-[10px]">
+<span class="w-1.5 h-1.5 rounded-full bg-brand-emerald"></span>
+          DEPLOYMENT TIME: ~10 MINUTES
+        </div>
+<h3 class="text-base font-headline font-semibold text-brand-text">
+          Start verifying faces in about 10 minutes.
+        </h3>
+<!-- Terminal Snippet -->
+<div class="p-2.5 rounded-lg bg-brand-bg border border-white/[0.06] font-mono text-[10px] text-brand-text flex items-center justify-between">
+<span class="text-brand-muted truncate mr-2">docker run -p 8080:8080 aurapass/engine</span>
+<button class="text-brand-emerald hover:text-white shrink-0 p-1 min-h-[44px] flex items-center" onclick="copySnippet()" title="Copy">
+<span class="material-symbols-outlined text-base" data-icon="content_copy">content_copy</span>
+</button>
+</div>
+<button class="w-full h-12 bg-brand-emerald text-brand-bg font-headline text-xs font-semibold rounded-lg hover:bg-brand-emerald-hover transition-colors flex items-center justify-center gap-1.5 active:scale-[0.99] shadow-lg">
+<span>Create free account</span>
+<span class="material-symbols-outlined text-sm font-semibold" data-icon="arrow_forward">arrow_forward</span>
+</button>
+</section>
+<!-- ========================================== -->
+<!-- FOOTER                                     -->
+<!-- ========================================== -->
+<footer class="pt-6 pb-20 border-t border-white/[0.08] text-center space-y-3">
+<div class="flex justify-center items-center gap-2">
+<span class="material-symbols-outlined text-brand-emerald text-sm" data-icon="shield">shield</span>
+<span class="font-headline text-xs font-semibold text-brand-text uppercase tracking-wider">AuraPass</span>
+</div>
+<!-- Links as specified in JSON -->
+<div class="flex flex-wrap justify-center gap-x-4 gap-y-2 text-xs font-mono text-brand-muted">
+<a class="hover:text-brand-text transition-colors min-h-[44px] flex items-center" href="#">RTSP Specs</a>
+<a class="hover:text-brand-text transition-colors min-h-[44px] flex items-center" href="#">Vector Math Audit</a>
+<a class="hover:text-brand-text transition-colors min-h-[44px] flex items-center" href="#">SOC2 Compliance</a>
+<a class="hover:text-brand-text transition-colors min-h-[44px] flex items-center" href="#">Status</a>
+</div>
+<p class="font-body text-xs text-[#66726E] font-normal leading-relaxed max-w-xs mx-auto">
+          © 2025 AuraPass Security Systems. Zero-Knowledge Biometric Infrastructure.
+        </p>
+<div class="pt-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-brand-surface border border-white/[0.04] text-[9px] font-mono text-brand-faint">
+<span class="w-1.5 h-1.5 rounded-full bg-brand-emerald"></span>
+          On-premise engine v2026.2 | All systems operational
+        </div>
+</footer>
+</main>
+<!-- SHARED COMPONENT: BottomNavBar (Fixed Mobile Dock) -->
+<nav class="fixed bottom-0 left-0 w-full z-50 bg-[#0B1013]/95 backdrop-blur-lg border-t border-white/[0.08]">
+<div class="max-w-[390px] mx-auto flex justify-around items-center px-2 pb-safe h-16">
+<!-- Tab 1: Stream (Active) -->
+<a class="flex flex-col items-center justify-center text-[#3DDC97] py-1 min-h-[44px] w-1/4" href="#chapter-01">
+<span class="material-symbols-outlined text-lg" data-icon="videocam">videocam</span>
+<span class="font-label text-[11px] font-medium tracking-normal mt-0.5">Stream</span>
+</a>
+<!-- Tab 2: Vectors -->
+<a class="flex flex-col items-center justify-center text-[#9AA7A3] hover:text-[#F3F6F5] py-1 min-h-[44px] w-1/4 transition-colors duration-150" href="#chapter-04">
+<span class="material-symbols-outlined text-lg" data-icon="fingerprint">fingerprint</span>
+<span class="font-label text-[11px] font-medium tracking-normal mt-0.5">Vectors</span>
+</a>
+<!-- Tab 3: Audit -->
+<a class="flex flex-col items-center justify-center text-[#9AA7A3] hover:text-[#F3F6F5] py-1 min-h-[44px] w-1/4 transition-colors duration-150" href="#chapter-06">
+<span class="material-symbols-outlined text-lg" data-icon="verified_user">verified_user</span>
+<span class="font-label text-[11px] font-medium tracking-normal mt-0.5">Audit</span>
+</a>
+<!-- Tab 4: Scale -->
+<a class="flex flex-col items-center justify-center text-[#9AA7A3] hover:text-[#F3F6F5] py-1 min-h-[44px] w-1/4 transition-colors duration-150" href="#chapter-08">
+<span class="material-symbols-outlined text-lg" data-icon="terminal">terminal</span>
+<span class="font-label text-[11px] font-medium tracking-normal mt-0.5">Scale</span>
+</a>
+</div>
+</nav>
+</div>
+<!-- Interactive JavaScript -->
+<script>
+    // Liveness Switcher simulation
+    function switchMode(mode) {
+      const btnNormal = document.getElementById('btn-normal');
+      const btnSpoof = document.getElementById('btn-spoof');
+      const btnMask = document.getElementById('btn-mask');
+      const badge = document.getElementById('readout-badge');
+      const time = document.getElementById('readout-time');
+      const text = document.getElementById('readout-text');
+      const card = document.getElementById('readout-card');
+
+      // Reset tabs
+      [btnNormal, btnSpoof, btnMask].forEach(b => {
+        b.className = 'h-11 rounded-md text-[11px] font-mono font-medium text-brand-muted hover:text-white transition-all duration-150';
+      });
+
+      if (mode === 'normal') {
+        btnNormal.className = 'h-11 rounded-md text-[11px] font-mono font-medium bg-brand-emerald text-brand-bg shadow-sm';
+        badge.textContent = 'GENUINE MATCH';
+        badge.className = 'font-mono text-[10px] px-2 py-0.5 rounded bg-brand-emerald text-brand-bg font-semibold';
+        time.textContent = '268 ms';
+        time.className = 'font-mono text-[11px] text-brand-emerald font-semibold';
+        text.textContent = 'Status: Verified authenticated employee. Turnstile dry contact fires at 268 ms.';
+        card.className = 'p-3 rounded-lg bg-brand-raised border border-brand-emerald/40 space-y-2';
+      } else if (mode === 'spoof') {
+        btnSpoof.className = 'h-11 rounded-md text-[11px] font-mono font-medium bg-brand-danger text-white shadow-sm';
+        badge.textContent = 'ATTACK REJECTED';
+        badge.className = 'font-mono text-[10px] px-2 py-0.5 rounded bg-brand-danger text-white font-semibold';
+        time.textContent = '34 ms';
+        time.className = 'font-mono text-[11px] text-brand-danger font-semibold';
+        text.textContent = 'Status: 2D Screen Reflection detected. Security gate locks immediately, alert dispatched.';
+        card.className = 'p-3 rounded-lg bg-brand-raised border border-brand-danger/40 space-y-2';
+      } else if (mode === 'mask') {
+        btnMask.className = 'h-11 rounded-md text-[11px] font-mono font-medium bg-brand-emerald text-brand-bg shadow-sm';
+        badge.textContent = 'PERIOCULAR MATCH';
+        badge.className = 'font-mono text-[10px] px-2 py-0.5 rounded bg-brand-emerald text-brand-bg font-semibold';
+        time.textContent = '291 ms';
+        time.className = 'font-mono text-[11px] text-brand-emerald font-semibold';
+        text.textContent = 'Status: N95 mask detected. Upper periocular landmarks verified successfully.';
+        card.className = 'p-3 rounded-lg bg-brand-raised border border-brand-emerald/40 space-y-2';
+      }
+    }
+
+    // Pricing Billing Toggle
+    function toggleBilling(cycle) {
+      const mBtn = document.getElementById('toggle-monthly');
+      const aBtn = document.getElementById('toggle-annual');
+      const price = document.getElementById('business-price');
+
+      if (cycle === 'annual') {
+        aBtn.className = 'flex-1 h-9 rounded text-xs font-medium font-headline bg-brand-raised text-brand-text transition-colors flex items-center justify-center gap-1';
+        mBtn.className = 'flex-1 h-9 rounded text-xs font-medium font-headline text-brand-muted transition-colors';
+        price.textContent = '$319';
+      } else {
+        mBtn.className = 'flex-1 h-9 rounded text-xs font-medium font-headline bg-brand-raised text-brand-text transition-colors';
+        aBtn.className = 'flex-1 h-9 rounded text-xs font-medium font-headline text-brand-muted transition-colors flex items-center justify-center gap-1';
+        price.textContent = '$399';
+      }
+    }
+
+    // FAQ Accordion
+    function toggleFaq(id) {
+      const ans = document.getElementById(`faq-answer-${id}`);
+      const icon = document.getElementById(`faq-icon-${id}`);
+      if (ans.classList.contains('hidden')) {
+        ans.classList.remove('hidden');
+        icon.textContent = 'remove';
+      } else {
+        ans.classList.add('hidden');
+        icon.textContent = 'add';
+      }
+    }
+
+    // Scroll stage indicator detection
+    window.addEventListener('scroll', () => {
+      const scrollY = window.scrollY;
+      const stageEl = document.getElementById('stage-number');
+      let currentStage = 1;
+
+      if (scrollY > 2800) currentStage = 6;
+      else if (scrollY > 2300) currentStage = 5;
+      else if (scrollY > 1700) currentStage = 4;
+      else if (scrollY > 1100) currentStage = 3;
+      else if (scrollY > 500) currentStage = 2;
+      else currentStage = 1;
+
+      if (stageEl) {
+        stageEl.textContent = `0${currentStage}`;
+      }
+
+      for (let i = 1; i <= 6; i++) {
+        const bar = document.getElementById(`step-bar-${i}`);
+        if (bar) {
+          if (i <= currentStage) {
+            bar.className = 'bg-brand-emerald h-full rounded-full transition-all duration-300';
+          } else {
+            bar.className = 'bg-white/[0.1] h-full rounded-full transition-all duration-300';
+          }
+        }
+      }
+    });
+
+    // Copy snippet feedback
+    function copySnippet() {
+      navigator.clipboard.writeText('docker run -p 8080:8080 aurapass/engine');
+      alert('Copied Docker start command to clipboard.');
+    }
+  </script>
+</body></html>

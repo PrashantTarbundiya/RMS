@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>AuraPass Enterprise Documentation - Shifts &amp; Grace Periods</title>
+<!-- Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500;600&amp;family=Geist:wght@400;500;600&amp;family=Public+Sans:wght@400;500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              bg: '#06090B',
+              surface: '#0B1013',
+              raised: '#10171B',
+              accent: '#3DDC97',
+              accentHover: '#5FE8AD',
+              danger: '#FF6B6B',
+              muted: '#9AA7A3',
+              faint: '#66726E',
+              primary: '#F3F6F5',
+            }
+          },
+          fontFamily: {
+            headline: ["Geist", "sans-serif"],
+            display: ["Geist", "sans-serif"],
+            body: ["Geist", "sans-serif"],
+            label: ["Public Sans", "sans-serif"],
+            mono: ["Geist Mono", "monospace"]
+          },
+          borderRadius: {
+            "DEFAULT": "0.5rem",
+            "lg": "1rem",
+            "xl": "1.5rem",
+            "full": "9999px"
+          }
+        },
+      },
+    }
+  </script>
+<style>
+    body {
+      background-color: #06090B;
+      color: #F3F6F5;
+      font-family: 'Geist', sans-serif;
+      text-rendering: optimizeLegibility;
+      -webkit-font-smoothing: antialiased;
+    }
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 20;
+      line-height: 1;
+      display: inline-block;
+      vertical-align: middle;
+    }
+    /* Thin custom scrollbar */
+    ::-webkit-scrollbar {
+      width: 4px;
+      height: 4px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #06090B;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.12);
+      border-radius: 2px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(255, 255, 255, 0.24);
+    }
+  </style>
+</head>
+<body class="bg-[#06090B] text-[#F3F6F5] min-h-screen selection:bg-[#3DDC97]/20 selection:text-[#3DDC97] flex flex-col">
+<!-- Top Bar / Header -->
+<header class="fixed top-0 left-0 w-full z-50 bg-[#06090B]/90 backdrop-blur-md border-b border-white/[0.08]">
+<div class="h-14 px-4 lg:px-6 w-full max-w-[1440px] mx-auto flex items-center justify-between gap-4">
+<!-- Left: Brand & Breadcrumbs -->
+<div class="flex items-center gap-3 min-w-max">
+<a class="flex items-center gap-2 group" href="#">
+<div class="w-6 h-6 rounded bg-[#3DDC97]/10 border border-[#3DDC97]/30 flex items-center justify-center text-[#3DDC97]">
+<span class="material-symbols-outlined text-[16px]">shield</span>
+</div>
+<span class="font-headline text-sm font-semibold tracking-wider text-[#F3F6F5] uppercase">AuraPass</span>
+</a>
+<span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-mono font-medium tracking-tight bg-white/[0.05] text-[#9AA7A3] border border-white/[0.08]">DOCS</span>
+<div class="hidden sm:flex items-center gap-1.5 text-xs text-[#66726E] font-mono ml-2 pl-3 border-l border-white/[0.08]">
+<span class="hover:text-[#9AA7A3] cursor-pointer transition-colors">Docs</span>
+<span>/</span>
+<span class="hover:text-[#9AA7A3] cursor-pointer transition-colors">Rostering</span>
+<span>/</span>
+<span class="text-[#9AA7A3] truncate max-w-[160px] md:max-w-none">Shifts &amp; grace periods</span>
+</div>
+</div>
+<!-- Center & Right: Search & Badges -->
+<div class="flex items-center gap-3">
+<!-- Quick Search Bar -->
+<button class="flex items-center justify-between w-48 md:w-72 px-3 py-1.5 rounded-lg bg-[#0B1013] border border-white/[0.08] hover:border-white/[0.16] text-[#9AA7A3] text-xs transition-colors group">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[16px] text-[#66726E] group-hover:text-[#9AA7A3]">search</span>
+<span class="truncate">Search documentation...</span>
+</div>
+<kbd class="hidden md:inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] font-mono text-[#66726E] bg-white/[0.04] border border-white/[0.06] rounded">⌘K</kbd>
+</button>
+<!-- Version & External Links -->
+<div class="hidden lg:flex items-center gap-4 text-xs font-mono text-[#9AA7A3]">
+<span class="px-2 py-0.5 rounded bg-white/[0.04] border border-white/[0.08] text-[11px] text-[#3DDC97]">v2026.2 (LTS)</span>
+<a class="hover:text-[#F3F6F5] transition-colors" href="#">API Reference</a>
+<a class="flex items-center gap-1.5 hover:text-[#F3F6F5] transition-colors" href="#">
+<span class="w-1.5 h-1.5 rounded-full bg-[#3DDC97]"></span>
+<span>Status</span>
+</a>
+<a class="flex items-center gap-1 hover:text-[#F3F6F5] transition-colors pl-2 border-l border-white/[0.08]" href="#">
+<span class="material-symbols-outlined text-[15px]">terminal</span>
+<span>Docker Hub</span>
+</a>
+</div>
+</div>
+</div>
+</header>
+<!-- 3-Column Main Layout Container -->
+<div class="w-full max-w-[1440px] mx-auto pt-14 flex-1 flex">
+<!-- COLUMN A: Left Sidebar (~260px) -->
+<aside class="w-[260px] hidden md:block shrink-0 sticky top-14 h-[calc(100vh-3.5rem)] overflow-y-auto border-r border-white/[0.08] bg-[#06090B] px-3 py-6 text-xs">
+<div class="space-y-6">
+<!-- Group: Getting Started -->
+<div>
+<h4 class="px-2 mb-2 text-[10px] font-mono uppercase tracking-wider text-[#66726E] font-medium">Getting started</h4>
+<ul class="space-y-0.5">
+<li><a class="block px-2.5 py-1.5 rounded-md text-[#9AA7A3] hover:text-[#F3F6F5] hover:bg-white/[0.02] transition-colors" href="#">Architecture overview</a></li>
+<li><a class="block px-2.5 py-1.5 rounded-md text-[#9AA7A3] hover:text-[#F3F6F5] hover:bg-white/[0.02] transition-colors" href="#">Hardware requirements</a></li>
+<li><a class="block px-2.5 py-1.5 rounded-md text-[#9AA7A3] hover:text-[#F3F6F5] hover:bg-white/[0.02] transition-colors" href="#">5-minute quickstart</a></li>
+<li><a class="block px-2.5 py-1.5 rounded-md text-[#9AA7A3] hover:text-[#F3F6F5] hover:bg-white/[0.02] transition-colors" href="#">Core concepts</a></li>
+</ul>
+</div>
+<!-- Group: Cameras -->
+<div>
+<h4 class="px-2 mb-2 text-[10px] font-mono uppercase tracking-wider text-[#66726E] font-medium">Cameras</h4>
+<ul class="space-y-0.5">
+<li><a class="block px-2.5 py-1.5 rounded-md text-[#9AA7A3] hover:text-[#F3F6F5] hover:bg-white/[0.02] transition-colors" href="#">RTSP / ONVIF configuration</a></li>
+<li><a class="block px-2.5 py-1.5 rounded-md text-[#9AA7A3] hover:text-[#F3F6F5] hover:bg-white/[0.02] transition-colors" href="#">USB webcams &amp; UVC</a></li>
+<li><a class="block px-2.5 py-1.5 rounded-md text-[#9AA7A3] hover:text-[#F3F6F5] hover:bg-white/[0.02] transition-colors" href="#">Camera troubleshooting</a></li>
+</ul>
+</div>
+<!-- Group: Enrollment -->
+<div>
+<h4 class="px-2 mb-2 text-[10px] font-mono uppercase tracking-wider text-[#66726E] font-medium">Enrollment</h4>
+<ul class="space-y-0.5">
+<li><a class="block px-2.5 py-1.5 rounded-md text-[#9AA7A3] hover:text-[#F3F6F5] hover:bg-white/[0.02] transition-colors" href="#">3-shot enrollment protocol</a></li>
+<li><a class="block px-2.5 py-1.5 rounded-md text-[#9AA7A3] hover:text-[#F3F6F5] hover:bg-white/[0.02] transition-colors" href="#">Image quality standards</a></li>
+</ul>
+</div>
+<!-- Group: Rostering (ACTIVE) -->
+<div>
+<h4 class="px-2 mb-2 text-[10px] font-mono uppercase tracking-wider text-[#66726E] font-medium">Rostering</h4>
+<ul class="space-y-0.5">
+<li><a class="block px-2.5 py-1.5 rounded-md text-[#9AA7A3] hover:text-[#F3F6F5] hover:bg-white/[0.02] transition-colors" href="#">Shifts and schedules</a></li>
+<li>
+<a class="flex items-center justify-between px-2.5 py-1.5 rounded-md bg-[#3DDC97]/[0.08] text-[#3DDC97] font-medium border-l-2 border-[#3DDC97]" href="#">
+<span>Shifts &amp; Grace periods</span>
+<span class="w-1.5 h-1.5 rounded-full bg-[#3DDC97]"></span>
+</a>
+</li>
+<li><a class="block px-2.5 py-1.5 rounded-md text-[#9AA7A3] hover:text-[#F3F6F5] hover:bg-white/[0.02] transition-colors" href="#">Roster synchronization</a></li>
+</ul>
+</div>
+<!-- Group: Hardware & Relays -->
+<div>
+<h4 class="px-2 mb-2 text-[10px] font-mono uppercase tracking-wider text-[#66726E] font-medium">Hardware &amp; Relays</h4>
+<ul class="space-y-0.5">
+<li><a class="block px-2.5 py-1.5 rounded-md text-[#9AA7A3] hover:text-[#F3F6F5] hover:bg-white/[0.02] transition-colors" href="#">Kiosk &amp; Relays</a></li>
+<li><a class="block px-2.5 py-1.5 rounded-md text-[#9AA7A3] hover:text-[#F3F6F5] hover:bg-white/[0.02] transition-colors" href="#">Dry-contact triggers</a></li>
+<li><a class="block px-2.5 py-1.5 rounded-md text-[#9AA7A3] hover:text-[#F3F6F5] hover:bg-white/[0.02] transition-colors" href="#">Turnstile wiring</a></li>
+</ul>
+</div>
+<!-- Group: Security & Sovereignty -->
+<div>
+<h4 class="px-2 mb-2 text-[10px] font-mono uppercase tracking-wider text-[#66726E] font-medium">Security &amp; Sovereignty</h4>
+<ul class="space-y-0.5">
+<li><a class="block px-2.5 py-1.5 rounded-md text-[#9AA7A3] hover:text-[#F3F6F5] hover:bg-white/[0.02] transition-colors" href="#">Zero-knowledge vectors</a></li>
+<li><a class="block px-2.5 py-1.5 rounded-md text-[#9AA7A3] hover:text-[#F3F6F5] hover:bg-white/[0.02] transition-colors" href="#">Air-gapped deployment</a></li>
+<li><a class="block px-2.5 py-1.5 rounded-md text-[#9AA7A3] hover:text-[#F3F6F5] hover:bg-white/[0.02] transition-colors" href="#">SOC2 &amp; BIPA compliance</a></li>
+</ul>
+</div>
+<!-- Group: API Reference & SDKs -->
+<div>
+<h4 class="px-2 mb-2 text-[10px] font-mono uppercase tracking-wider text-[#66726E] font-medium">API Reference &amp; SDKs</h4>
+<ul class="space-y-0.5">
+<li><a class="block px-2.5 py-1.5 rounded-md text-[#9AA7A3] hover:text-[#F3F6F5] hover:bg-white/[0.02] transition-colors" href="#">RTSP stream ingest API</a></li>
+<li><a class="block px-2.5 py-1.5 rounded-md text-[#9AA7A3] hover:text-[#F3F6F5] hover:bg-white/[0.02] transition-colors" href="#">Local webhook dispatch</a></li>
+<li><a class="block px-2.5 py-1.5 rounded-md text-[#9AA7A3] hover:text-[#F3F6F5] hover:bg-white/[0.02] transition-colors" href="#">GraphQL schema</a></li>
+</ul>
+</div>
+<!-- Group: Operations -->
+<div>
+<h4 class="px-2 mb-2 text-[10px] font-mono uppercase tracking-wider text-[#66726E] font-medium">Operations</h4>
+<ul class="space-y-0.5">
+<li><a class="block px-2.5 py-1.5 rounded-md text-[#9AA7A3] hover:text-[#F3F6F5] hover:bg-white/[0.02] transition-colors" href="#">FAQ &amp; Runbooks</a></li>
+<li><a class="block px-2.5 py-1.5 rounded-md text-[#9AA7A3] hover:text-[#F3F6F5] hover:bg-white/[0.02] transition-colors" href="#">Disaster recovery</a></li>
+</ul>
+</div>
+</div>
+</aside>
+<!-- COLUMN B: Center Article (max-w-[760px] centered) -->
+<main class="flex-1 px-4 sm:px-8 lg:px-12 py-10 min-w-0 max-w-full">
+<div class="max-w-[760px] mx-auto">
+<!-- Article Header -->
+<header class="mb-10 pb-8 border-b border-white/[0.08]">
+<div class="flex items-center gap-2 mb-3">
+<span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-mono font-medium tracking-wide bg-[#3DDC97]/10 text-[#3DDC97] border border-[#3DDC97]/20">ROSTERING &amp; SHIFTS</span>
+<span class="text-xs text-[#66726E] font-mono">• Section 4.2</span>
+</div>
+<h1 class="text-2xl sm:text-3xl lg:text-4xl font-semibold tracking-tight text-[#F3F6F5] mb-4 text-balance">
+            Shifts, Schedules &amp; Grace Period Resolution
+          </h1>
+<div class="flex flex-wrap items-center gap-3 text-xs font-mono text-[#9AA7A3]">
+<span class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[14px] text-[#66726E]">schedule</span>
+              Updated October 2026
+            </span>
+<span class="text-white/[0.2]">•</span>
+<span>4 min read</span>
+<span class="text-white/[0.2]">•</span>
+<span class="px-2 py-0.5 rounded bg-white/[0.04] border border-white/[0.08] text-[11px] text-[#9AA7A3]">Target: Enterprise v2026.2+</span>
+</div>
+</header>
+<!-- Article Content -->
+<article class="space-y-10 text-[#9AA7A3] text-sm leading-relaxed">
+<!-- Section: Overview -->
+<section class="space-y-4" id="overview">
+<p class="text-base text-[#F3F6F5] leading-relaxed text-pretty">
+              AuraPass sovereign on-prem edge inferencing reconciles sub-300ms facial recognition timestamps against active shift boundaries locally on node clusters. Rather than relying on cloud round-trips to evaluate attendance status, edge workers evaluate punch validity against deterministic roster schedules in microsecond intervals.
+            </p>
+<p>
+              When a subject presents at an access node, their 512-dimensional zero-knowledge vector is reconciled against the enrolled partition. Concurrently, the exact ingest time instant is tested against shift definitions, applying grace window arithmetic prior to triggering dry contacts and dispatching authenticated state payloads.
+            </p>
+</section>
+<!-- Section: Mathematical Model -->
+<section class="space-y-4 pt-2" id="mathematical-model">
+<h2 class="text-xl font-medium tracking-tight text-[#F3F6F5] flex items-center gap-2">
+<span>Mathematical Model</span>
+<a class="text-[#66726E] hover:text-[#3DDC97] transition-colors" href="#mathematical-model"><span class="material-symbols-outlined text-[16px]">tag</span></a>
+</h2>
+<p>
+              Grace buffers guarantee operational resilience across heavy worker shift changeovers. An arrival punch $T_{\text{arrival}}$ is classified as timely using strict sub-second comparator boundaries:
+            </p>
+<div class="p-4 rounded-xl bg-[#0B1013] border border-white/[0.08] font-mono text-xs sm:text-sm text-[#F3F6F5] flex items-center justify-between overflow-x-auto">
+<code>T_effective = T_arrival &lt;= (T_shift_start + T_grace)</code>
+<span class="text-[10px] text-[#3DDC97] bg-[#3DDC97]/10 px-2 py-0.5 rounded border border-[#3DDC97]/20 uppercase">Deterministic</span>
+</div>
+<!-- Note Callout -->
+<div class="p-4 rounded-xl bg-[#0B1013] border border-white/[0.08] flex items-start gap-3">
+<span class="material-symbols-outlined text-[#9AA7A3] text-[20px] shrink-0 mt-0.5">info</span>
+<div class="text-xs leading-relaxed text-[#9AA7A3]">
+<strong class="text-[#F3F6F5] font-medium">Note:</strong> Grace buffers are evaluated at the local edge node before any webhook or payroll dispatch is emitted, preventing transient network lag from penalizing employees.
+              </div>
+</div>
+</section>
+<!-- Section: Worked Grace Period Matrix -->
+<section class="space-y-4 pt-2" id="worked-grace-period-matrix">
+<h2 class="text-xl font-medium tracking-tight text-[#F3F6F5] flex items-center gap-2">
+<span>Worked Grace Period Matrix</span>
+<a class="text-[#66726E] hover:text-[#3DDC97] transition-colors" href="#worked-grace-period-matrix"><span class="material-symbols-outlined text-[16px]">tag</span></a>
+</h2>
+<p>
+              The state machine reconciles punch events into immutable attendance codes. Below is an evaluation breakdown for a standard 09:00:00 morning shift across varied arrival stamps:
+            </p>
+<!-- Table Container -->
+<div class="rounded-xl border border-white/[0.08] bg-[#0B1013] overflow-hidden">
+<div class="overflow-x-auto">
+<table class="w-full text-left text-xs">
+<thead class="bg-[#10171B] border-b border-white/[0.08] font-mono text-[11px] text-[#66726E]">
+<tr>
+<th class="py-3 px-4 font-medium">Shift Start</th>
+<th class="py-3 px-4 font-medium">Grace Buffer</th>
+<th class="py-3 px-4 font-medium">Actual Ingest Punch</th>
+<th class="py-3 px-4 font-medium">Status Recorded</th>
+<th class="py-3 px-4 font-medium">Payroll Dispatch Tag</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-white/[0.04] font-mono text-[12px]">
+<tr class="hover:bg-white/[0.02] transition-colors">
+<td class="py-3 px-4 text-[#F3F6F5]">09:00:00</td>
+<td class="py-3 px-4 text-[#9AA7A3]">15 min</td>
+<td class="py-3 px-4 text-[#9AA7A3]">08:54:12</td>
+<td class="py-3 px-4">
+<span class="inline-flex items-center gap-1.5 text-[#3DDC97]">
+<span class="w-1.5 h-1.5 rounded-full bg-[#3DDC97]"></span>
+                          ON TIME (EARLY)
+                        </span>
+</td>
+<td class="py-3 px-4 text-[#F3F6F5]"><code>ON_TIME_PUNCH</code></td>
+</tr>
+<tr class="hover:bg-white/[0.02] transition-colors">
+<td class="py-3 px-4 text-[#F3F6F5]">09:00:00</td>
+<td class="py-3 px-4 text-[#9AA7A3]">15 min</td>
+<td class="py-3 px-4 text-[#9AA7A3]">09:12:44</td>
+<td class="py-3 px-4">
+<span class="inline-flex items-center gap-1.5 text-[#3DDC97]">
+<span class="w-1.5 h-1.5 rounded-full bg-[#3DDC97]"></span>
+                          ON TIME (GRACE)
+                        </span>
+</td>
+<td class="py-3 px-4 text-[#F3F6F5]"><code>ON_TIME_WITHIN_GRACE</code></td>
+</tr>
+<tr class="hover:bg-white/[0.02] transition-colors">
+<td class="py-3 px-4 text-[#F3F6F5]">09:00:00</td>
+<td class="py-3 px-4 text-[#9AA7A3]">15 min</td>
+<td class="py-3 px-4 text-[#9AA7A3]">09:18:03</td>
+<td class="py-3 px-4">
+<span class="inline-flex items-center gap-1.5 text-[#FF6B6B]">
+<span class="w-1.5 h-1.5 rounded-full bg-[#FF6B6B]"></span>
+                          LATE (+3m)
+                        </span>
+</td>
+<td class="py-3 px-4 text-[#9AA7A3]"><code>TARDY_EXCEEDED_GRACE</code></td>
+</tr>
+<tr class="hover:bg-white/[0.02] transition-colors">
+<td class="py-3 px-4 text-[#F3F6F5]">09:00:00</td>
+<td class="py-3 px-4 text-[#9AA7A3]">0 min (Strict)</td>
+<td class="py-3 px-4 text-[#9AA7A3]">09:01:10</td>
+<td class="py-3 px-4">
+<span class="inline-flex items-center gap-1.5 text-[#FF6B6B]">
+<span class="w-1.5 h-1.5 rounded-full bg-[#FF6B6B]"></span>
+                          LATE (+1m)
+                        </span>
+</td>
+<td class="py-3 px-4 text-[#9AA7A3]"><code>TARDY_ZERO_TOLERANCE</code></td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<!-- Important Callout -->
+<div class="p-4 rounded-xl bg-[#0B1013] border border-[#3DDC97]/30 flex items-start gap-3">
+<span class="material-symbols-outlined text-[#3DDC97] text-[20px] shrink-0 mt-0.5">verified_user</span>
+<div class="text-xs leading-relaxed text-[#9AA7A3]">
+<strong class="text-[#F3F6F5] font-medium">Important:</strong> Turnstile relay dry-contacts fire immediately upon valid biometric match (sub-300ms) regardless of grace status; late arrivals are logged to timesheet databases but do not block entry unless physical lockout rules are enabled.
+              </div>
+</div>
+</section>
+<!-- Section: Turnstile & Relay Behavior -->
+<section class="space-y-4 pt-2" id="turnstile-relay-behavior">
+<h2 class="text-xl font-medium tracking-tight text-[#F3F6F5] flex items-center gap-2">
+<span>Turnstile &amp; Relay Behavior</span>
+<a class="text-[#66726E] hover:text-[#3DDC97] transition-colors" href="#turnstile-relay-behavior"><span class="material-symbols-outlined text-[16px]">tag</span></a>
+</h2>
+<p>
+              Physical turnstile solenoids operate on independent micro-controller hardware watchdog loops. This guarantees zero perceptible pedestrian latency at high throughput perimeter checkpoints. Biometric authorization and attendance classification remain decoupled at the physical layer.
+            </p>
+<!-- Warning Callout -->
+<div class="p-4 rounded-xl bg-[#0B1013] border border-amber-500/30 flex items-start gap-3">
+<span class="material-symbols-outlined text-amber-400 text-[20px] shrink-0 mt-0.5">warning</span>
+<div class="text-xs leading-relaxed text-[#9AA7A3]">
+<strong class="text-[#F3F6F5] font-medium">Warning:</strong> Shifts crossing midnight (24:00) require ISO 8601 full UTC epoch timestamps in your roster sync payload to prevent roll-over index collisions.
+              </div>
+</div>
+</section>
+<!-- Section: Configuration Reference -->
+<section class="space-y-4 pt-2" id="configuration-reference">
+<h2 class="text-xl font-medium tracking-tight text-[#F3F6F5] flex items-center gap-2">
+<span>Configuration Reference</span>
+<a class="text-[#66726E] hover:text-[#3DDC97] transition-colors" href="#configuration-reference"><span class="material-symbols-outlined text-[16px]">tag</span></a>
+</h2>
+<p>
+              Declare shift policies within your node's declarative configuration manifest or stream updates via the gRPC Rostering Bridge:
+            </p>
+<!-- JSON Code Block -->
+<div class="rounded-xl border border-white/[0.08] bg-[#0B1013] overflow-hidden">
+<div class="flex items-center justify-between px-4 py-2.5 bg-[#10171B] border-b border-white/[0.08]">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[14px] text-[#66726E]">data_object</span>
+<span class="font-mono text-xs text-[#F3F6F5]">roster-config.json</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="text-[10px] font-mono uppercase text-[#66726E] bg-white/[0.04] px-1.5 py-0.5 rounded">JSON</span>
+<button class="flex items-center gap-1 text-[11px] font-mono text-[#9AA7A3] hover:text-[#F3F6F5] transition-colors" onclick="navigator.clipboard.writeText(document.getElementById('code-content').innerText)">
+<span class="material-symbols-outlined text-[13px]">content_copy</span>
+<span>Copy</span>
+</button>
+</div>
+</div>
+<pre class="p-4 font-mono text-xs overflow-x-auto text-[#9AA7A3] leading-relaxed"><code id="code-content">{
+  <span class="text-[#3DDC97]">"shift_id"</span>: <span class="text-[#F3F6F5]">"shift_morn_tier1"</span>,
+  <span class="text-[#3DDC97]">"start_time"</span>: <span class="text-[#F3F6F5]">"09:00:00"</span>,
+  <span class="text-[#3DDC97]">"grace_period_minutes"</span>: <span class="text-[#3DDC97]">15</span>,
+  <span class="text-[#3DDC97]">"lockout_on_late"</span>: <span class="text-[#FF6B6B]">false</span>,
+  <span class="text-[#3DDC97]">"dispatch_target"</span>: <span class="text-[#F3F6F5]">"SAP_SUCCESSFACTORS"</span>,
+  <span class="text-[#3DDC97]">"relay_trigger_policy"</span>: {
+    <span class="text-[#3DDC97]">"mode"</span>: <span class="text-[#F3F6F5]">"FAIL_OPEN_AUTHENTICATED"</span>,
+    <span class="text-[#3DDC97]">"contact_dwell_ms"</span>: <span class="text-[#3DDC97]">280</span>
+  }
+}</code></pre>
+</div>
+</section>
+<!-- Section: Edge CLI Simulation -->
+<section class="space-y-4 pt-2" id="edge-cli-simulation">
+<h2 class="text-xl font-medium tracking-tight text-[#F3F6F5] flex items-center gap-2">
+<span>Edge CLI Simulation</span>
+<a class="text-[#66726E] hover:text-[#3DDC97] transition-colors" href="#edge-cli-simulation"><span class="material-symbols-outlined text-[16px]">tag</span></a>
+</h2>
+<p>
+              Verify shift rules against synthetic arrivals locally without tripping turnstile hardware or polluting live audit logs:
+            </p>
+<!-- Terminal Snippet -->
+<div class="rounded-xl border border-white/[0.08] bg-[#0B1013] overflow-hidden">
+<div class="flex items-center justify-between px-4 py-2.5 bg-[#10171B] border-b border-white/[0.08]">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[14px] text-[#66726E]">terminal</span>
+<span class="font-mono text-xs text-[#9AA7A3]">aurapass-cli</span>
+</div>
+<span class="text-[10px] font-mono text-[#66726E]">zsh / bash</span>
+</div>
+<pre class="p-4 font-mono text-xs overflow-x-auto leading-relaxed"><span class="text-[#66726E]">$</span> <span class="text-[#F3F6F5]">aurapass-cli verify --shift morning_a --test-time "09:12:00"</span>
+<span class="text-[#3DDC97]">[OK]</span> Vector match evaluated in 242ms (ZKP vector: 0x8f4b...19e)
+<span class="text-[#3DDC97]">[OK]</span> Schedule comparator: 09:12:00 &lt;= 09:15:00
+<span class="text-[#F3F6F5]">Status:</span> ON_TIME_WITHIN_GRACE (Buffer remaining: 3m 00s)
+<span class="text-[#66726E]">Dry-contact:</span> NO-PULSE (Simulation dry-run active)</pre>
+</div>
+</section>
+<!-- Section: Next Steps & Feedback -->
+<section class="pt-6 space-y-8" id="next-steps">
+<!-- Feedback widget -->
+<div class="p-4 rounded-xl bg-[#0B1013] border border-white/[0.08] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+<div class="text-xs">
+<p class="font-medium text-[#F3F6F5]">Was this documentation helpful?</p>
+<p class="text-[#66726E]">Help us refine the AuraPass infrastructure documentation.</p>
+</div>
+<div class="flex items-center gap-2">
+<button class="px-3 py-1.5 rounded-lg bg-white/[0.04] border border-white/[0.08] hover:border-white/[0.16] hover:text-[#3DDC97] text-xs font-mono flex items-center gap-1.5 transition-colors">
+<span class="material-symbols-outlined text-[15px]">thumb_up</span>
+<span>Yes</span>
+</button>
+<button class="px-3 py-1.5 rounded-lg bg-white/[0.04] border border-white/[0.08] hover:border-white/[0.16] hover:text-[#FF6B6B] text-xs font-mono flex items-center gap-1.5 transition-colors">
+<span class="material-symbols-outlined text-[15px]">thumb_down</span>
+<span>No</span>
+</button>
+</div>
+</div>
+<!-- Previous / Next Navigation Cards -->
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+<a class="p-4 rounded-xl border border-white/[0.08] bg-[#0B1013] hover:border-white/[0.16] transition-all group" href="#">
+<span class="text-[10px] font-mono uppercase tracking-wider text-[#66726E] group-hover:text-[#3DDC97] transition-colors">Previous</span>
+<p class="text-sm font-medium text-[#F3F6F5] mt-1 group-hover:text-[#3DDC97] transition-colors">← 3-Shot Enrollment Protocol</p>
+<p class="text-xs text-[#66726E] mt-0.5">Vector generation and anti-spoof checks</p>
+</a>
+<a class="p-4 rounded-xl border border-white/[0.08] bg-[#0B1013] hover:border-white/[0.16] transition-all text-right group" href="#">
+<span class="text-[10px] font-mono uppercase tracking-wider text-[#66726E] group-hover:text-[#3DDC97] transition-colors">Next</span>
+<p class="text-sm font-medium text-[#F3F6F5] mt-1 group-hover:text-[#3DDC97] transition-colors">Turnstile Relay &amp; Hardware Controls →</p>
+<p class="text-xs text-[#66726E] mt-0.5">Dry-contact relay wiring specifications</p>
+</a>
+</div>
+</section>
+</article>
+</div>
+</main>
+<!-- COLUMN C: Right Rail (~220px) -->
+<aside class="w-[220px] hidden xl:block shrink-0 sticky top-14 h-[calc(100vh-3.5rem)] overflow-y-auto px-4 py-8 text-xs border-l border-white/[0.08]">
+<div class="space-y-6">
+<div>
+<h4 class="text-[11px] font-mono font-medium text-[#F3F6F5] uppercase tracking-wider mb-3">On this page</h4>
+<nav class="space-y-2 text-[#9AA7A3]">
+<a class="block hover:text-[#3DDC97] transition-colors" href="#overview">Overview</a>
+<a class="block hover:text-[#3DDC97] transition-colors" href="#mathematical-model">Mathematical model</a>
+<a class="block hover:text-[#3DDC97] transition-colors" href="#worked-grace-period-matrix">Worked grace period matrix</a>
+<a class="block hover:text-[#3DDC97] transition-colors" href="#turnstile-relay-behavior">Turnstile &amp; Relay behavior</a>
+<a class="block hover:text-[#3DDC97] transition-colors" href="#configuration-reference">Configuration reference</a>
+<a class="block hover:text-[#3DDC97] transition-colors" href="#edge-cli-simulation">Edge CLI simulation</a>
+<a class="block hover:text-[#3DDC97] transition-colors" href="#next-steps">Next steps</a>
+</nav>
+</div>
+<div class="pt-6 border-t border-white/[0.08] space-y-2.5 text-[#9AA7A3]">
+<a class="flex items-center gap-2 hover:text-[#F3F6F5] transition-colors" href="#">
+<span class="material-symbols-outlined text-[15px] text-[#66726E]">edit</span>
+<span>Edit this page on GitHub</span>
+</a>
+<a class="flex items-center gap-2 hover:text-[#F3F6F5] transition-colors" href="#">
+<span class="material-symbols-outlined text-[15px] text-[#66726E]">bug_report</span>
+<span>Report an issue</span>
+</a>
+<a class="flex items-center gap-2 hover:text-[#F3F6F5] transition-colors" href="#">
+<span class="material-symbols-outlined text-[15px] text-[#66726E]">forum</span>
+<span>Join Enterprise Slack</span>
+</a>
+</div>
+<div class="p-3 rounded-lg bg-[#0B1013] border border-white/[0.08] space-y-1.5">
+<div class="flex items-center gap-1.5 text-[#3DDC97] text-[11px] font-mono">
+<span class="w-1.5 h-1.5 rounded-full bg-[#3DDC97]"></span>
+<span>Zero-Knowledge Node</span>
+</div>
+<p class="text-[11px] text-[#66726E] leading-relaxed">
+            All biometrics are hashed into sovereign mathematical vectors. No raw imagery persists.
+          </p>
+</div>
+</div>
+</aside>
+</div>
+<!-- Footer Component (Shared Anchor) -->
+<footer class="w-full border-t border-white/[0.08] bg-[#06090B] mt-auto">
+<div class="flex flex-col md:flex-row justify-between items-center gap-4 py-8 px-4 max-w-[1160px] mx-auto w-full font-body text-xs text-[#66726E] font-normal leading-relaxed">
+<div>
+        © 2025 AuraPass Security Systems. Zero-Knowledge Biometric Infrastructure.
+      </div>
+<div class="flex flex-wrap gap-6 items-center">
+<a class="hover:text-[#F3F6F5] transition-colors duration-150" href="#">RTSP Specs</a>
+<a class="hover:text-[#F3F6F5] transition-colors duration-150" href="#">Vector Math Audit</a>
+<a class="hover:text-[#F3F6F5] transition-colors duration-150" href="#">SOC2 Compliance</a>
+<a class="hover:text-[#F3F6F5] transition-colors duration-150" href="#">Status</a>
+</div>
+</div>
+</footer>
+</body></html>

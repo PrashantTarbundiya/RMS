@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>404 — Route Not Found | AuraPass Enterprise Security</title>
+<!-- Google Fonts: Geist, Public Sans & JetBrains Mono for telemetry -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500;600&amp;family=Geist:wght@400;500;600&amp;family=Public+Sans:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              bg: "#06090B",
+              surface: "#0B1013",
+              raised: "#10171B",
+              line: "rgba(255, 255, 255, 0.08)",
+              "line-strong": "rgba(255, 255, 255, 0.16)",
+              primary: "#F3F6F5",
+              muted: "#9AA7A3",
+              faint: "#66726E",
+              accent: "#3DDC97",
+              "accent-hover": "#5FE8AD",
+              "accent-tint": "rgba(61, 220, 151, 0.12)",
+              danger: "#FF6B6B"
+            }
+          },
+          borderRadius: {
+            "DEFAULT": "0.5rem",
+            "lg": "1rem",
+            "xl": "1.5rem",
+            "full": "9999px"
+          },
+          fontFamily: {
+            headline: ["Geist", "sans-serif"],
+            display: ["Geist", "sans-serif"],
+            body: ["Geist", "sans-serif"],
+            label: ["Public Sans", "sans-serif"],
+            mono: ["Geist Mono", "monospace"]
+          }
+        },
+      },
+    }
+  </script>
+<style>
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      display: inline-block;
+      vertical-align: middle;
+      line-height: 1;
+    }
+    
+    /* Precision grid background */
+    .bg-grid-subtle {
+      background-size: 32px 32px;
+      background-image: 
+        linear-gradient(to right, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+    }
+    
+    .technical-scanline {
+      background: linear-gradient(180deg, rgba(61, 220, 151, 0.04) 0%, rgba(6, 9, 11, 0) 100%);
+    }
+  </style>
+</head>
+<body class="bg-[#06090B] text-[#F3F6F5] font-body min-h-screen flex flex-col justify-between selection:bg-[#3DDC97]/20 selection:text-[#3DDC97] antialiased bg-grid-subtle relative overflow-x-hidden">
+<!-- Ambient Technical Vignette -->
+<div class="pointer-events-none fixed inset-0 z-0 bg-[radial-gradient(circle_at_50%_20%,rgba(61,220,151,0.035),transparent_70%)]"></div>
+<!-- Header / Top Navigation -->
+<header class="fixed top-0 left-0 w-full z-50 bg-[#06090B]/90 backdrop-blur-md border-b border-white/[0.08]">
+<div class="flex justify-between items-center h-14 px-6 max-w-[1160px] mx-auto w-full">
+<!-- Logo + Version Badge -->
+<div class="flex items-center gap-3">
+<a class="flex items-center gap-2 text-[#F3F6F5] hover:opacity-90 transition-opacity" href="/">
+<span class="material-symbols-outlined text-[#3DDC97] text-xl" data-icon="shield">shield</span>
+<span class="font-headline text-sm font-semibold tracking-wider uppercase text-[#F3F6F5]">AuraPass</span>
+</a>
+<span class="h-3 w-px bg-white/[0.12]"></span>
+<span class="font-mono text-[11px] text-[#9AA7A3] bg-[#10171B] px-2 py-0.5 rounded border border-white/[0.08]">LTS v2026.2</span>
+</div>
+<!-- Center Links (Desktop) -->
+<nav class="hidden md:flex items-center gap-6">
+<a class="font-headline text-sm text-[#9AA7A3] hover:text-[#F3F6F5] transition-colors duration-150" href="/docs">Docs Hub</a>
+<a class="font-headline text-sm text-[#9AA7A3] hover:text-[#F3F6F5] transition-colors duration-150" href="/support">Help Center</a>
+<a class="font-headline text-sm text-[#9AA7A3] hover:text-[#F3F6F5] transition-colors duration-150" href="/api">API Reference</a>
+</nav>
+<!-- Status Indicator & Audit Stream Action -->
+<div class="flex items-center gap-4">
+<div class="hidden sm:flex items-center gap-2 px-2.5 py-1 rounded-full bg-[#0B1013] border border-white/[0.08]">
+<span class="relative flex h-2 w-2">
+<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#3DDC97] opacity-75"></span>
+<span class="relative inline-flex rounded-full h-2 w-2 bg-[#3DDC97]"></span>
+</span>
+<span class="font-mono text-[11px] text-[#9AA7A3] tracking-tight">All Nodes Operational (38/38)</span>
+</div>
+<button class="font-headline text-xs font-medium text-[#3DDC97] hover:text-[#5FE8AD] transition-colors px-2.5 py-1 rounded border border-[#3DDC97]/30 hover:border-[#3DDC97]/60 active:scale-[0.99]">
+          Audit Stream
+        </button>
+</div>
+</div>
+</header>
+<!-- Main Content Container -->
+<main class="flex-grow pt-28 pb-16 px-4 max-w-[1160px] mx-auto w-full relative z-10 flex flex-col items-center">
+<!-- Classification Pill -->
+<div class="mb-6 inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#10171B] border border-[#3DDC97]/25 shadow-[0_0_15px_rgba(61,220,151,0.06)]">
+<span class="inline-block w-1.5 h-1.5 rounded-full bg-[#3DDC97]"></span>
+<span class="font-mono text-xs text-[#3DDC97] tracking-wider uppercase">ERROR_CODE: 404 // NON_ROUTABLE_COORDINATE</span>
+</div>
+<!-- Monumental Technical 404 Monolith Card -->
+<div class="w-full max-w-[760px] bg-[#0B1013] border border-white/[0.08] rounded-xl relative overflow-hidden p-8 sm:p-12 mb-8">
+<!-- Precision Crosshair Corner Accents -->
+<div class="absolute top-2 left-2 font-mono text-[9px] text-[#66726E] select-none">+ 0x00</div>
+<div class="absolute top-2 right-2 font-mono text-[9px] text-[#66726E] select-none">0x0F +</div>
+<div class="absolute bottom-2 left-2 font-mono text-[9px] text-[#66726E] select-none">+ 0xF0</div>
+<div class="absolute bottom-2 right-2 font-mono text-[9px] text-[#66726E] select-none">0xFF +</div>
+<!-- Hairline Status Subhead inside card -->
+<div class="flex items-center justify-between border-b border-white/[0.06] pb-3 mb-8">
+<div class="flex items-center gap-2 font-mono text-[11px] text-[#66726E]">
+<span class="material-symbols-outlined text-sm text-[#9AA7A3]" data-icon="route">route</span>
+<span>LAT: 0x0000 | ROUTE: UNMAPPED</span>
+</div>
+<div class="font-mono text-[11px] text-[#FF6B6B] tracking-wide flex items-center gap-1.5">
+<span class="inline-block w-1 h-1 rounded-full bg-[#FF6B6B]"></span>
+<span>TCP_EGRESS_BLOCKED: ZERO_HOP_DROP</span>
+</div>
+</div>
+<!-- The 404 Monolith Graphic -->
+<div class="flex flex-col items-center justify-center py-4 relative">
+<div class="font-mono text-7xl sm:text-8xl md:text-9xl font-semibold tracking-tighter text-[#F3F6F5] select-none relative">
+          4<span class="text-[#3DDC97]/80">0</span>4
+          <!-- Overlay Crosshair Marker -->
+<div class="absolute inset-0 flex items-center justify-center pointer-events-none opacity-20">
+<div class="w-full h-px bg-gradient-to-r from-transparent via-[#3DDC97] to-transparent"></div>
+</div>
+</div>
+<p class="font-mono text-xs text-[#9AA7A3] mt-2 tracking-widest uppercase">Null Vector Ingress Point</p>
+</div>
+<!-- Editorial Headline & Copy -->
+<div class="text-center mt-6 max-w-[560px] mx-auto">
+<h1 class="font-headline text-xl sm:text-2xl font-semibold text-[#F3F6F5] tracking-tight mb-2 text-balance">
+          This node does not exist in the routing table.
+        </h1>
+<p class="font-body text-sm text-[#9AA7A3] leading-relaxed text-pretty">
+          The requested route or document could not be resolved on the local on-premise engine. Verify the target URI syntax or return to sovereign endpoints.
+        </p>
+</div>
+<!-- Interactive Quick Filter / Search Bar -->
+<div class="mt-8 max-w-[520px] mx-auto">
+<div class="relative flex items-center">
+<span class="absolute left-3.5 material-symbols-outlined text-[#66726E] text-lg pointer-events-none" data-icon="search">search</span>
+<input class="w-full bg-[#10171B] border border-white/[0.12] rounded-lg py-2.5 pl-10 pr-14 text-xs font-mono text-[#F3F6F5] placeholder-[#66726E] focus:outline-none focus:border-[#3DDC97] focus:ring-1 focus:ring-[#3DDC97] transition-all" placeholder="Search documentation, API endpoints, or help guides..." type="text"/>
+<div class="absolute right-3 px-1.5 py-0.5 rounded bg-[#0B1013] border border-white/[0.08] text-[10px] font-mono text-[#9AA7A3] select-none">
+            ⌘K
+          </div>
+</div>
+</div>
+<!-- Primary Action Buttons -->
+<div class="mt-6 flex flex-col sm:flex-row items-center justify-center gap-3">
+<a class="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded bg-[#3DDC97] hover:bg-[#5FE8AD] text-[#06090B] font-headline text-xs font-semibold tracking-wide transition-colors active:scale-[0.99]" href="/">
+<span class="material-symbols-outlined text-sm font-semibold" data-icon="arrow_back">arrow_back</span>
+<span>Return to Homepage</span>
+</a>
+<a class="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded bg-transparent hover:bg-white/[0.04] text-[#F3F6F5] border border-white/[0.12] hover:border-white/[0.2] font-headline text-xs font-medium tracking-wide transition-colors active:scale-[0.99]" href="/docs">
+<span class="material-symbols-outlined text-sm text-[#9AA7A3]" data-icon="menu_book">menu_book</span>
+<span>Open Documentation</span>
+</a>
+</div>
+</div>
+<!-- Quick Recovery Route Bento Cards (3 in 1 row) -->
+<div class="w-full max-w-[1040px] grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+<!-- Card 1 -->
+<a class="group bg-[#0B1013] hover:bg-[#10171B] border border-white/[0.08] hover:border-white/[0.16] rounded-xl p-5 transition-all duration-150 flex flex-col justify-between" href="/">
+<div>
+<div class="flex items-center justify-between mb-3">
+<span class="font-mono text-[10px] text-[#3DDC97] bg-[#3DDC97]/10 px-2 py-0.5 rounded border border-[#3DDC97]/20">GET /</span>
+<span class="material-symbols-outlined text-[#66726E] text-base group-hover:text-[#F3F6F5] transition-colors" data-icon="home">home</span>
+</div>
+<h3 class="font-headline text-sm font-semibold text-[#F3F6F5] mb-1.5 group-hover:text-[#3DDC97] transition-colors">Product Story &amp; Landing</h3>
+<p class="font-body text-xs text-[#9AA7A3] leading-relaxed">
+            Return to sovereign system overview, hardware architecture, and feature specs.
+          </p>
+</div>
+<div class="mt-4 pt-3 border-t border-white/[0.04] flex items-center text-xs font-headline font-medium text-[#9AA7A3] group-hover:text-[#F3F6F5] transition-colors">
+<span>Go to Overview</span>
+<span class="material-symbols-outlined text-sm ml-1 group-hover:translate-x-0.5 transition-transform" data-icon="arrow_forward">arrow_forward</span>
+</div>
+</a>
+<!-- Card 2 -->
+<a class="group bg-[#0B1013] hover:bg-[#10171B] border border-white/[0.08] hover:border-white/[0.16] rounded-xl p-5 transition-all duration-150 flex flex-col justify-between" href="/docs">
+<div>
+<div class="flex items-center justify-between mb-3">
+<span class="font-mono text-[10px] text-[#3DDC97] bg-[#3DDC97]/10 px-2 py-0.5 rounded border border-[#3DDC97]/20">GET /docs</span>
+<span class="material-symbols-outlined text-[#66726E] text-base group-hover:text-[#F3F6F5] transition-colors" data-icon="developer_mode_tv">developer_mode_tv</span>
+</div>
+<h3 class="font-headline text-sm font-semibold text-[#F3F6F5] mb-1.5 group-hover:text-[#3DDC97] transition-colors">Documentation Hub</h3>
+<p class="font-body text-xs text-[#9AA7A3] leading-relaxed">
+            Browse 3-shot enrollment setup, RTSP ingestion, and GraphQL API references.
+          </p>
+</div>
+<div class="mt-4 pt-3 border-t border-white/[0.04] flex items-center text-xs font-headline font-medium text-[#9AA7A3] group-hover:text-[#F3F6F5] transition-colors">
+<span>Browse Docs</span>
+<span class="material-symbols-outlined text-sm ml-1 group-hover:translate-x-0.5 transition-transform" data-icon="arrow_forward">arrow_forward</span>
+</div>
+</a>
+<!-- Card 3 -->
+<a class="group bg-[#0B1013] hover:bg-[#10171B] border border-white/[0.08] hover:border-white/[0.16] rounded-xl p-5 transition-all duration-150 flex flex-col justify-between" href="/support">
+<div>
+<div class="flex items-center justify-between mb-3">
+<span class="font-mono text-[10px] text-[#3DDC97] bg-[#3DDC97]/10 px-2 py-0.5 rounded border border-[#3DDC97]/20">GET /support</span>
+<span class="material-symbols-outlined text-[#66726E] text-base group-hover:text-[#F3F6F5] transition-colors" data-icon="support_agent">support_agent</span>
+</div>
+<h3 class="font-headline text-sm font-semibold text-[#F3F6F5] mb-1.5 group-hover:text-[#3DDC97] transition-colors">Help &amp; Support Center</h3>
+<p class="font-body text-xs text-[#9AA7A3] leading-relaxed">
+            Search troubleshooting runbooks or dispatch an on-premise priority engineering ticket.
+          </p>
+</div>
+<div class="mt-4 pt-3 border-t border-white/[0.04] flex items-center text-xs font-headline font-medium text-[#9AA7A3] group-hover:text-[#F3F6F5] transition-colors">
+<span>Open Support</span>
+<span class="material-symbols-outlined text-sm ml-1 group-hover:translate-x-0.5 transition-transform" data-icon="arrow_forward">arrow_forward</span>
+</div>
+</a>
+</div>
+<!-- Diagnostic Telemetry Terminal Drawer -->
+<div class="w-full max-w-[1040px]">
+<details class="group bg-[#080D0F] border border-white/[0.08] rounded-xl overflow-hidden transition-all duration-200">
+<summary class="cursor-pointer px-4 py-3 bg-[#0B1013] hover:bg-[#10171B] flex items-center justify-between select-none list-none text-xs font-mono text-[#9AA7A3]">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-sm text-[#3DDC97]" data-icon="terminal">terminal</span>
+<span class="text-[#F3F6F5] font-medium">Diagnostic Telemetry Output</span>
+<span class="text-[10px] text-[#66726E]">(Click to inspect route trace)</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="text-[10px] text-[#66726E]">ISO-8601 UTC</span>
+<span class="material-symbols-outlined text-sm group-open:rotate-180 transition-transform" data-icon="expand_more">expand_more</span>
+</div>
+</summary>
+<div class="p-4 font-mono text-[11px] leading-relaxed text-[#9AA7A3] bg-[#06090B] border-t border-white/[0.06] space-y-1.5 overflow-x-auto">
+<div class="text-[#66726E]">$ aurapass-cli route-lookup --uri $REQUEST_URI --strict-resolution</div>
+<div class="text-[#FF6B6B] flex items-center gap-2">
+<span class="px-1 bg-[#FF6B6B]/10 rounded border border-[#FF6B6B]/20">ERR_ROUTE_TABLE_MISS</span>
+<span>Target node has no active binding in local ledger.</span>
+</div>
+<div class="text-[#3DDC97] flex items-center gap-2">
+<span class="px-1 bg-[#3DDC97]/10 rounded border border-[#3DDC97]/20">INFO</span>
+<span>Ingress interface: eth0 (Air-gapped) | Status: 404 Dropped safely</span>
+</div>
+<div class="text-[#66726E] text-[10px]">
+            &gt; Vector cluster zero-hop integrity: PASS [38/38 nodes synced] | Hash: 0x9f4a...88e1
+          </div>
+</div>
+</details>
+</div>
+</main>
+<!-- Technical Footer (Shared Component Pattern aligned) -->
+<footer class="w-full bg-[#06090B] border-t border-white/[0.08] relative z-10">
+<div class="flex flex-col md:flex-row justify-between items-center gap-4 py-8 px-6 max-w-[1160px] mx-auto w-full">
+<!-- Brand & Build specs -->
+<div class="flex flex-col items-center md:items-start gap-1">
+<p class="font-body text-xs text-[#66726E] font-normal leading-relaxed text-center md:text-left">
+          © 2025 AuraPass Security Systems. Zero-Knowledge Biometric Infrastructure.
+        </p>
+<p class="font-mono text-[11px] text-[#66726E]">
+          AuraPass On-Premise Engine v2026.2 (Air-gapped)
+        </p>
+</div>
+<!-- Links adhering to JSON footer -->
+<div class="flex flex-wrap items-center justify-center gap-6">
+<a class="font-body text-xs text-[#9AA7A3] hover:text-[#F3F6F5] transition-colors duration-150" href="#rtsp">RTSP Specs</a>
+<a class="font-body text-xs text-[#9AA7A3] hover:text-[#F3F6F5] transition-colors duration-150" href="#vector">Vector Math Audit</a>
+<a class="font-body text-xs text-[#9AA7A3] hover:text-[#F3F6F5] transition-colors duration-150" href="#soc2">SOC2 Compliance</a>
+<a class="font-body text-xs text-[#9AA7A3] hover:text-[#F3F6F5] transition-colors duration-150 flex items-center gap-1.5" href="#status">
+<span class="inline-block w-1.5 h-1.5 rounded-full bg-[#3DDC97]"></span>
+<span>Status</span>
+</a>
+</div>
+</div>
+</footer>
+<script>
+    // Lightweight keyboard shortcut listener for search focus
+    document.addEventListener('keydown', function(e) {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        const searchInput = document.querySelector('input[type="text"]');
+        if (searchInput) {
+          searchInput.focus();
+        }
+      }
+    });
+  </script>
+</body></html>

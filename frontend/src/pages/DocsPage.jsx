@@ -6,24 +6,28 @@ import {
   Server,
   Camera,
   Users,
-  Building,
-  MonitorCheck,
-  ShieldCheck,
-  Code,
-  AlertTriangle,
-  ChevronRight,
-  ArrowLeft,
-  ChevronLeft,
   Clock,
-  Layers,
+  Zap,
+  Shield,
+  Code,
+  HelpCircle,
+  ChevronRight,
+  ChevronDown,
+  ArrowLeft,
+  ArrowRight,
   Menu,
   X,
-  ExternalLink
+  Copy,
+  Check,
+  ThumbsUp,
+  ThumbsDown,
+  Scan
 } from 'lucide-react';
 import MarkdownRenderer from '../components/ui/marketing/MarkdownRenderer';
-import FeedbackWidget from '../components/ui/marketing/FeedbackWidget';
 import TableOfContents from '../components/ui/marketing/TableOfContents';
+import Container from '../components/ui/marketing/Container';
 
+// Full, authoritative documentation dataset covering all 8 required categories
 const DOCS_TREE = [
   {
     groupId: 'getting-started',
@@ -31,200 +35,187 @@ const DOCS_TREE = [
     icon: Server,
     pages: [
       {
-        id: 'overview',
-        title: 'Overview & Architecture',
+        id: 'architecture',
+        title: 'Architecture & System Tenets',
         readTime: '3 min read',
-        summary: 'Understand the AuraPass on-premise facial recognition architecture and data flow.',
-        toc: [
-          { id: 'system-overview', title: 'System Overview' },
-          { id: 'core-architectural-tenets', title: 'Core Architectural Tenets' },
-          { id: 'data-flow-summary', title: 'Data Flow Summary' }
-        ],
+        summary: 'Understand the sovereign on-premise inference loop and data flow.',
         content: `
-## System Overview
+# Architecture & System Tenets
 
-AuraPass Enterprise is an on-premise facial recognition attendance and physical access verification system. Unlike cloud-dependent biometric platforms that stream sensitive facial imagery over the public internet, AuraPass processes video capture, face detection, presentation attack detection, and vector similarity matching **100% locally** within your workplace network.
+AuraPass Enterprise is an on-premise facial verification engine built for physical turnstiles, gates, and workplace attendance. It processes camera frames, extracts spatial landmarks, and calculates vector matches entirely inside your host environment.
 
-## Core Architectural Tenets
+## The Local Verification Loop
 
-1. **Local Video Capture:** RTSP / ONVIF streams from enterprise IP cameras or UVC webcams are decoded directly in host memory.
-2. **Sub-300 ms Inference:** Standard modern multi-core x86/ARM processors execute facial landmark alignment and feature extraction in under 300 ms.
-3. **Irreversible Numeric Embeddings:** Raw facial images can be immediately discarded after enrollment. AuraPass stores only 512-dimensional floating-point vectors from which original photographs cannot be reconstructed.
-4. **Hardware Relay Control:** Digital GPIO signals and relay pulses trigger turnstiles and magnetic door locks synchronously upon successful match confirmation.
+1. **RTSP Frame Buffer Ingestion:** An H.264 or H.265 video stream is received over the local subnet from standard IP cameras (such as Hikvision, Dahua, Axis, or Hanwha) or USB webcams.
+2. **Single-Frame Detection:** MediaPipe BlazeFace isolates head crops in under 15 ms, tracking 68 facial coordinates across pitch, roll, and yaw angles.
+3. **512-D Tensor Embedding:** FaceNet512 generates an L2-normalized 512-dimensional numeric representation. Raw optical frames exist only in volatile RAM during inference and are deleted immediately post-vectorization.
+4. **Sub-Millisecond Cosine Match:** The numeric vector is compared against local in-memory embeddings with a calibrated decision threshold of 0.42.
+5. **Physical Turnstile Trigger:** An opto-isolated 24V dry-contact GPIO relay fires a 450 ms momentary pulse to unlatch the turnstile flap in under 300 ms total latency.
 
-## Data Flow Summary
-
-\`\`\`text
-[ IP Security Camera / USB Webcam ]
-                │
-         (RTSP / UVC Frame)
-                ▼
-[ MediaPipe BlazeFace Detector ] ───> 68 Facial Landmarks
-                │
-                ▼
-[ Liveness & Anti-Spoofing (PAD) ] ───> Rejects Printed Photos / Screen Replay
-                │
-                ▼
-[ FaceNet512 Vector Extractor ] ───> Irreversible 512-d Unit Vector
-                │
-                ▼
-[ Local Vector Distance Lookup ] ───> Cosine Similarity vs. Local SQLite / PostgreSQL
-                │
-        (Match Verified)
-                ▼
-[ Attendance Event Recorded ] ───> Optional Turnstile Relay Triggered
-\`\`\`
+> [!NOTE]
+> The engine requires no outbound internet connection. Biometric data and employee identifiers remain strictly inside your facility perimeter.
 `
       },
       {
         id: 'requirements',
-        title: 'Hardware & OS Requirements',
+        title: 'Hardware Requirements',
         readTime: '4 min read',
-        summary: 'Recommended server, camera, and network specifications for deployment.',
-        toc: [
-          { id: 'system-specifications', title: 'System Specifications' },
-          { id: 'supported-operating-systems', title: 'Supported Operating Systems' }
-        ],
+        summary: 'Server, CPU, GPU, and local network specifications.',
         content: `
-## System Specifications
+# Hardware Requirements
 
-AuraPass is optimized for CPU execution using SIMD vector instructions (AVX2 / NEON). A dedicated GPU is optional for single-camera deployments, but recommended for large facilities running more than 5 high-framerate camera lanes simultaneously.
+AuraPass runs on standard commodity Linux hardware or certified industrial edge micro-nodes.
 
-| Scale | Host Processor | System Memory | Storage | Recommended Workload |
-| :--- | :--- | :--- | :--- | :--- |
-| **Small Office (1-2 Gates)** | 4 Cores (Intel i5 / Ryzen 5) | 8 GB DDR4 | 20 GB SSD | Up to 500 staff, 1-2 RTSP streams |
-| **Factory / Campus (3-5 Gates)** | 8 Cores (Intel i7 / Ryzen 7) | 16 GB DDR4 | 50 GB NVMe | Up to 2,500 staff, 3-5 RTSP streams |
-| **Industrial Complex (10+ Gates)** | 16 Cores + NVIDIA RTX GPU | 32 GB DDR4 | 100 GB NVMe | 10,000+ staff, unlimited camera streams |
+## Minimum Single-Lane Node (Up to 500 personnel)
 
-## Supported Operating Systems
+- **Processor:** Quad-core Intel Core i5 / i7 (8th Gen or later) or AMD Ryzen 5
+- **System Memory:** 8 GB DDR4 RAM
+- **Storage:** 64 GB SSD (for Linux OS, Docker image, and append-only SQLite WAL database)
+- **Networking:** 1 Gbps Ethernet connection on the same subnet as IP cameras
+- **Operating System:** Ubuntu 22.04 LTS / Debian 12 / Rocky Linux 9
 
-- **Windows:** Windows 10 (64-bit), Windows 11, Windows Server 2019 / 2022.
-- **Linux:** Ubuntu 22.04 LTS, Debian 12, RHEL 8 / 9.
-- **Docker:** Official multi-architecture container stack available via Docker Compose.
+## Multi-Lane Production Cluster (5+ RTSP Cameras)
+
+- **Processor:** 8-core Intel Xeon or AMD EPYC processor
+- **Memory:** 16 GB to 32 GB RAM
+- **Dedicated Accelerator (Optional):** NVIDIA T4, RTX A2000, or Jetson AGX Orin for parallelized multi-stream batching
+- **Database Engine:** PostgreSQL 15+ for high-concurrency ledger operations
 `
       },
       {
         id: 'quickstart',
         title: '5-Minute Quickstart',
         readTime: '3 min read',
-        summary: 'Step-by-step instructions to initialize your local AuraPass instance.',
-        toc: [
-          { id: 'docker-deployment', title: 'Docker Deployment' },
-          { id: 'first-time-organization-setup', title: 'First-Time Setup' }
-        ],
+        summary: 'Deploy the official Docker image and verify your first stream.',
         content: `
-## Docker Deployment
+# 5-Minute Quickstart
 
-The fastest way to deploy AuraPass on your local server is using Docker Compose:
+You can start the AuraPass engine container on any local Docker host.
+
+## Step 1: Pull and Run the Docker Image
 
 \`\`\`bash
-# 1. Clone the repository
-git clone https://github.com/PrashantTarbundiya/RMS.git aurapass
-cd aurapass
-
-# 2. Launch the container cluster
-docker-compose up -d
+docker run -d \\
+  --name aurapass-node \\
+  --restart always \\
+  -p 8000:8000 \\
+  -v /var/lib/aurapass/data:/app/data \\
+  aurapass/engine:v2026.2
 \`\`\`
 
-The web console will bind to port \`5173\` (Frontend UI) and port \`5000\` (Flask Backend API).
+## Step 2: Open Local Management Console
 
-## First-Time Setup
+Access the local web interface in any modern browser:
 
-1. Open your browser and navigate to \`http://localhost:5173/register\`.
-2. Create your primary organization administrator account.
-3. In the console, navigate to the **Cameras** page and configure your local RTSP camera stream or USB webcam.
-4. Add 3 enrollment photos per employee under the **Upload** page.
+\`\`\`text
+http://localhost:8000
+\`\`\`
+
+## Step 3: Register Your First Camera Feed
+
+Connect a test camera via RTSP:
+
+\`\`\`bash
+curl -X POST http://localhost:8000/api/cameras \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "name": "Main Entrance Gate",
+    "rtsp_url": "rtsp://admin:password@192.168.1.100:554/Streaming/Channels/101",
+    "relay_gpio_pin": 18
+  }'
+\`\`\`
 `
       },
       {
-        id: 'core-concepts',
-        title: 'Core Concepts & Terminology',
-        readTime: '4 min read',
-        summary: 'Key terminology: vectors, cosine distance, liveness detection, and grace policies.',
-        toc: [
-          { id: 'vectors-and-embeddings', title: 'Vectors & Embeddings' },
-          { id: 'similarity-threshold', title: 'Similarity Threshold' },
-          { id: 'grace-periods', title: 'Grace Periods' }
-        ],
+        id: 'concepts',
+        title: 'Core Concepts',
+        readTime: '3 min read',
+        summary: 'Understand vectors, thresholds, liveness cues, and grace buffers.',
         content: `
-## Vectors & Embeddings
+# Core Concepts
 
-A facial embedding is a list of 512 numbers that mathematically describe the geometric contours, spacing, and topology of a human face. Embeddings are normalized to unit length so that comparing two faces is as simple as calculating their cosine similarity.
-
-## Similarity Threshold
-
-The calibrated cosine distance threshold in AuraPass is \`0.40\`. If the calculated distance between a detected face and an enrolled employee template is less than or equal to \`0.40\`, a match is declared. Distance scores above \`0.40\` are treated as unrecognized visitors.
-
-## Grace Periods
-
-Grace periods represent the allowable arrival buffer in minutes after the scheduled shift start time. For example, if shift start is 09:00 AM and grace is 15 minutes, arrivals up to 09:15 AM are marked **ON TIME**. Arrivals at 09:16 AM are flagged as **LATE**.
+- **512-Dimensional Vector:** An array of 512 floating-point numbers representing normalized spatial facial geometry. It is designed as a one-way numeric representation; raw images are not stored after enrollment.
+- **Cosine Distance Threshold:** Measures angular distance between two vectors on a unit hypersphere. AuraPass calibrates matches at a threshold of 0.42 (smaller distance indicates higher similarity).
+- **Presentation Attack Detection (PAD):** Algorithms evaluating skin micro-texture, specular reflection, and 3D contour depth to reject mobile screens and paper printouts.
+- **Grace Buffer:** Configurable leeway window (in minutes) applied to shift start times before an employee arrival is recorded as late.
 `
       }
     ]
   },
   {
     groupId: 'cameras',
-    groupTitle: 'Camera & Hardware',
+    groupTitle: 'Cameras & Video Feeds',
     icon: Camera,
     pages: [
       {
-        id: 'rtsp-streams',
-        title: 'Supported Cameras & RTSP Streams',
+        id: 'rtsp-onvif',
+        title: 'RTSP & ONVIF Configuration',
         readTime: '4 min read',
-        summary: 'RTSP URL formats and configuration for Hikvision, Dahua, Axis, and Hanwha.',
-        toc: [
-          { id: 'stream-parameters', title: 'Stream Parameters' },
-          { id: 'manufacturer-url-patterns', title: 'Manufacturer URL Patterns' }
-        ],
+        summary: 'Configure Hikvision, Dahua, Axis, and Hanwha cameras for low latency.',
         content: `
-## Stream Parameters
+# RTSP & ONVIF Configuration
 
-For optimal recognition speed and low CPU utilization, configure your IP cameras with these settings:
-- **Resolution:** 1080p (1920x1080) or 720p (1280x720) substream.
-- **Framerate:** 15 to 30 frames per second (FPS).
-- **Video Codec:** H.264 Baseline / Main Profile.
-- **Bitrate:** 2,048 kbps to 4,096 kbps constant bitrate (CBR).
+AuraPass ingests live video streams over RTSP (Real-Time Streaming Protocol). For optical accuracy and sub-300 ms throughput, configure your cameras according to these parameters.
 
-## Manufacturer URL Patterns
+## Recommended Camera Stream Parameters
 
+- **Resolution:** 1080p (1920×1080) or 720p (1280×720)
+- **Codec:** H.264 (Baseline or Main profile)
+- **Framerate:** 25 to 30 FPS
+- **Bitrate Type:** Constant Bitrate (CBR), 2048 to 4096 kbps
+- **I-Frame Interval (GOP):** Equal to framerate (1 second) to minimize frame decoding latency
+
+## Common Manufacturer RTSP URL Formats
+
+### Hikvision
 \`\`\`text
-# Hikvision Cameras
-rtsp://admin:password@192.168.1.100:554/Streaming/Channels/101
+rtsp://[username]:[password]@[ip]:554/Streaming/Channels/101
+\`\`\`
 
-# Dahua Technology
-rtsp://admin:password@192.168.1.101:554/cam/realmonitor?channel=1&subtype=0
+### Dahua
+\`\`\`text
+rtsp://[username]:[password]@[ip]:554/cam/realmonitor?channel=1&subtype=0
+\`\`\`
 
-# Axis Communications
-rtsp://root:password@192.168.1.102/axis-media/media.amp
-
-# Hanwha Techwin (Wisenet)
-rtsp://admin:password@192.168.1.103/profile2/media.smp
+### Axis
+\`\`\`text
+rtsp://[username]:[password]@[ip]:554/axis-media/media.amp?videocodec=h264
 \`\`\`
 `
       },
       {
         id: 'usb-webcams',
-        title: 'USB Webcams & Desktop Stations',
+        title: 'USB Webcams & Kiosks',
         readTime: '3 min read',
-        summary: 'Configuring standard USB webcams for reception terminals and check-in kiosks.',
-        toc: [
-          { id: 'supported-usb-devices', title: 'Supported Devices' },
-          { id: 'device-index-setup', title: 'Device Index Setup' }
-        ],
+        summary: 'Connect UVC webcams for reception tablets and desktop kiosks.',
         content: `
-## Supported Devices
+# USB Webcams & Kiosks
 
-AuraPass supports any standard USB Video Class (UVC) capture device:
-- Logitech C920, C922, BRIO 4K, C270
-- AnkerWork PowerConf C200 / C300
-- Built-in laptop integrated cameras (Index 0)
+For front-desk reception, security guard booths, and tablet kiosks, AuraPass supports any standard USB Video Class (UVC) camera.
 
-## Device Index Setup
+## Tested Hardware Models
 
-In the AuraPass **Cameras** page:
-1. Select **Device Index** mode.
-2. Enter \`0\` for the primary built-in webcam, or \`1\` for an external USB webcam.
-3. Click **Test Stream** to confirm live feed before saving.
+- **Logitech C920 / C922:** Plug-and-play USB 2.0 at 1080p 30 FPS.
+- **Logitech BRIO 4K:** High-dynamic-range sensor ideal for lobby entrances with strong natural backlight.
+- **Insta360 Link:** 1/2-inch optical sensor with rapid auto-exposure tracking.
+
+In Linux environments, specify device indices such as \`/dev/video0\` or \`/dev/video2\` directly in your camera settings.
+`
+      },
+      {
+        id: 'camera-troubleshooting',
+        title: 'Camera Troubleshooting',
+        readTime: '4 min read',
+        summary: 'Diagnose packet drops, frame delays, and poor lighting angles.',
+        content: `
+# Camera Troubleshooting
+
+## Issue: High Stream Latency (>500 ms)
+- **Check GOP / Keyframe Interval:** Ensure the camera's I-frame interval is set to 25 or 30 (1× framerate). A GOP of 50+ forces frame buffers to wait for keyframes.
+- **Switch from TCP to UDP/RTP:** On isolated local LAN subnets, UDP transport eliminates TCP retransmit queuing delays.
+
+## Issue: Missed Detections at Distance
+- **Minimum Pixel Size:** The face bounding box must be at least 160×160 pixels in the frame. If the subject is more than 3 meters away, select a camera lens with a narrower field of view (e.g. 6mm or 8mm rather than wide 2.8mm).
 `
       }
     ]
@@ -235,92 +226,105 @@ In the AuraPass **Cameras** page:
     icon: Users,
     pages: [
       {
-        id: '3-shot-protocol',
+        id: 'three-shot-protocol',
         title: '3-Shot Enrollment Protocol',
         readTime: '3 min read',
-        summary: 'Standard multi-angle sequence for high recognition accuracy.',
-        toc: [
-          { id: 'the-three-shot-sequence', title: 'The 3-Shot Sequence' },
-          { id: 'lighting-and-framing', title: 'Lighting & Framing' }
-        ],
+        summary: 'Standard operating procedure for registering new staff profiles.',
         content: `
-## The 3-Shot Sequence
+# 3-Shot Enrollment Protocol
 
-AuraPass achieves high recognition accuracy by capturing three facial perspectives during initial employee enrollment:
+AuraPass employs a 3-shot enrollment standard to capture biometric vector variance while maintaining zero raw photo persistence.
 
-1. **Shot 01: Frontal Neutral (0°)** &ndash; Face directly aligned with the lens, natural expression.
-2. **Shot 02: Slight Left (15°)** &ndash; Captures cheek contour and facial depth.
-3. **Shot 03: Slight Right (15°)** &ndash; Completes the canonical 3D feature representation.
+## Protocol Procedure
 
-## Lighting & Framing
+1. **Shot 01 — Frontal (0°):** Subject looks directly at the camera lens at neutral eye level.
+2. **Shot 02 — Left Profile (15°):** Subject tilts their head slightly to their left shoulder.
+3. **Shot 03 — Right Profile (15°):** Subject tilts their head slightly to their right shoulder.
 
-- **Minimum Resolution:** Face bounding box must be at least 160x160 pixels.
-- **Illumination:** Diffuse indoor lighting between 300 and 500 lux. Avoid placing cameras facing direct outdoor sunlight or reflective glass.
-- **Eyewear:** Prescription glasses are supported. Ensure dark sunglasses are removed during enrollment.
+The three crops generate three 512-dimensional vector embeddings, which are averaged and normalized into a single master template. The entire registration takes under two minutes.
+
+> [!IMPORTANT]
+> Raw facial crops are deleted immediately upon vector extraction. The database stores only the resulting 512 floating-point values.
+`
+      },
+      {
+        id: 'image-quality',
+        title: 'Image Quality Standards',
+        readTime: '3 min read',
+        summary: 'Lux illumination, blur thresholds, and occlusion standards.',
+        content: `
+# Image Quality Standards
+
+For high accuracy (benchmarked at 99.4% on the academic LFW dataset; real-world accuracy depends on installation lighting), adhere to these baseline parameters during enrollment:
+
+- **Ambient Illumination:** 300 to 700 Lux across the face. Avoid placement directly opposite floor-to-ceiling glass windows without diffusers.
+- **Face Resolution:** Minimum 160×160 pixels inside the detection bounding box.
+- **Occlusion Tolerance:** Prescription spectacles with clear lenses and standard medical masks are supported. Heavy dark tinted sunglasses should be removed during initial registration.
 `
       }
     ]
   },
   {
-    groupId: 'departments',
-    groupTitle: 'Departments & Rostering',
-    icon: Building,
+    groupId: 'rostering',
+    groupTitle: 'Rostering & Grace Policies',
+    icon: Clock,
     pages: [
       {
         id: 'shifts-and-grace',
-        title: 'Shift Schedules & Grace Policies',
+        title: 'Shifts & Grace Periods (Worked Example)',
         readTime: '4 min read',
-        summary: 'Worked example: shift schedules, arrival buffers, and overtime flags.',
-        toc: [
-          { id: 'grace-policy-worked-example', title: 'Worked Example' },
-          { id: 'payroll-reports-and-exports', title: 'Payroll Reports & Exports' }
-        ],
+        summary: 'Worked example: shift 09:00, grace 15 min, arrival 09:12 = on time.',
         content: `
-## Worked Example
+# Shifts & Grace Periods
 
-Department rostering allows configuring specific working hours per team:
+AuraPass resolves punch timestamps on-premise against configurable department schedules and grace period allowances.
 
-- **Department:** Engineering
-- **Shift Hours:** 09:00 AM &ndash; 06:00 PM
-- **Grace Period:** 15 minutes
+## Worked Example: 15-Minute Grace Policy
 
-#### Evaluation Logic:
-- **Employee A** checks in at **09:12 AM**: Marked **ON TIME** (arrival is within the 15-minute grace window).
-- **Employee B** checks in at **09:18 AM**: Flagged as **LATE** (arrival exceeded the 15-minute grace threshold).
-- **Employee C** checks out at **04:45 PM**: Flagged as **EARLY EXIT** (departure preceded scheduled shift end).
+Consider an operational shift configured as follows:
+- **Scheduled Shift Start:** \`09:00:00\`
+- **Department Grace Buffer:** \`15 minutes\`
+- **Effective On-Time Cutoff:** \`09:15:00\`
 
-## Payroll Reports & Exports
+### Punch Event Resolution Matrix
 
-From the **Attendance** view, administrators can export complete historical attendance logs in CSV, Microsoft Excel (.xlsx), or printable PDF formats with one click.
+| Employee Name | Shift Start | Grace Buffer | Punch Timestamp | Status Recorded | Payroll Action |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **Rajesh Patel** | 09:00:00 | 15 min | 08:54:12 | **ON TIME** (Early) | Standard shift rate |
+| **Priya Sharma** | 09:00:00 | 15 min | 09:12:04 | **ON TIME** (Grace) | Standard shift rate |
+| **Vatsal Vadgama** | 09:00:00 | 15 min | 09:05:12 | **ON TIME** (Grace) | Standard shift rate |
+| **Alex Rivera** | 09:00:00 | 15 min | 09:18:45 | **LATE** (+3m) | Tardy flag in payroll export |
+
+### Explanation of Arrival at 09:12:04
+Because \`09:12:04\` falls within the configured 15-minute grace window (\`09:00\` through \`09:15\`), the local engine deterministically registers the attendance as **On time**. The employee receives no penalty, and the physical turnstile unlatches immediately.
 `
       }
     ]
   },
   {
-    groupId: 'kiosk',
-    groupTitle: 'Kiosk & Physical Gates',
-    icon: MonitorCheck,
+    groupId: 'hardware',
+    groupTitle: 'Kiosks & Gate Relays',
+    icon: Zap,
     pages: [
       {
-        id: 'kiosk-deployment',
-        title: 'Kiosk Terminal Deployment',
-        readTime: '3 min read',
-        summary: 'Fullscreen kiosk setup on wall-mounted tablets and turnstiles.',
-        toc: [
-          { id: 'fullscreen-terminal-mode', title: 'Fullscreen Terminal Mode' },
-          { id: 'relay-and-turnstile-wiring', title: 'Relay & Turnstile Wiring' }
-        ],
+        id: 'turnstile-relays',
+        title: 'Turnstile & GPIO Relay Wiring',
+        readTime: '4 min read',
+        summary: 'Wire 24V dry contacts to Alvarado, Boon Edam, and tripod gates.',
         content: `
-## Fullscreen Terminal Mode
+# Turnstile & GPIO Relay Wiring
 
-The AuraPass Kiosk view (\`/kiosk\`) provides a distraction-free, high-contrast interface designed for reception tablets, turnstiles, and entry gates:
-- Displays live camera reticle with high-visibility approval rings.
-- Emits audible audio approval chimes.
-- Requires administrator PIN credentials to exit fullscreen mode.
+AuraPass interfaces with speed gates, flap turnstiles, and electromagnetic magnetic door strikes via opto-isolated relay modules.
 
-## Relay & Turnstile Wiring
+## Standard Wiring Diagram
 
-AuraPass backend services can issue digital GPIO pulses (via Raspberry Pi GPIO, USB relay modules, or networked IP relays) to unlock turnstiles and magnetic door locks synchronously upon successful face verification.
+1. **GPIO Controller:** Connect Raspberry Pi, NVIDIA Jetson, or USB relay boards (e.g. Numato 1-Channel USB Relay).
+2. **Relay Terminal:** Wire the gate controller's dry-contact **Normally Open (NO)** and **Common (COM)** terminals.
+3. **Pulse Duration:** When a biometric match is confirmed (<300 ms), AuraPass signals GPIO Pin 18 high for 450 ms, releasing the turnstile flap.
+
+\`\`\`text
+[AuraPass Engine] ---> (GPIO Pin 18) ---> [Opto-Isolated Relay] ---> (NO / COM) ---> [Turnstile Controller]
+\`\`\`
 `
       }
     ]
@@ -328,83 +332,90 @@ AuraPass backend services can issue digital GPIO pulses (via Raspberry Pi GPIO, 
   {
     groupId: 'security',
     groupTitle: 'Security & Sovereignty',
-    icon: ShieldCheck,
+    icon: Shield,
     pages: [
       {
-        id: 'biometric-sovereignty',
-        title: 'Biometric Sovereignty & Compliance',
+        id: 'sovereignty-spec',
+        title: 'Zero Egress & Data Sovereignty',
         readTime: '4 min read',
-        summary: 'Technical guarantees of on-premise air-gap execution and GDPR/BIPA alignment.',
-        toc: [
-          { id: 'one-way-numeric-vectors', title: 'One-Way Numeric Vectors' },
-          { id: 'compliance-posture', title: 'Compliance Posture' }
-        ],
+        summary: 'Contractual local processing guarantees and firewall verification.',
         content: `
-## One-Way Numeric Vectors
+# Zero Egress & Data Sovereignty
 
-AuraPass transforms facial landmark geometry into irreversible 512-dimensional numeric unit vectors. Embeddings are designed as one-way mathematical abstractions; AuraPass does not require storing raw face images after enrollment processing, and zero biometric data leaves your local network.
+AuraPass is built as a self-contained local appliance.
 
-## Compliance Posture
+## Technical Safeguards
 
-AuraPass is architected to support enterprise compliance with:
-- **GDPR Article 9 (EU):** Special-category biometric processing executed solely on local data controller infrastructure.
-- **Illinois BIPA (USA):** Provides tools for written consent recording and permanent 1-click vector purging upon employee departure.
-- **California CCPA / CPRA:** Ensures workers can inspect and request deletion of stored attendance logs.
-
-> *Note: Compliance depends on how your organization deploys, manages, and operates the system. Consult your legal counsel to confirm regional workplace consent requirements.*
+- **No Outbound Sockets:** The software makes zero outbound HTTP, WebSocket, or analytics requests.
+- **Air-Gapped Operation:** The engine functions identically on local networks with no internet connection or upstream gateway.
+- **One-Way Biometric Representation:** Faces are designed as one-way numeric representations; raw images are not stored after enrollment processing.
+- **Regulatory Frameworks:** Built to support GDPR Article 9, Illinois BIPA (740 ILCS 14/), and India DPDP Act 2023 requirements by maintaining absolute local data residency.
 `
       }
     ]
   },
   {
     groupId: 'api',
-    groupTitle: 'REST API Reference',
+    groupTitle: 'API Reference',
     icon: Code,
     pages: [
       {
-        id: 'api-overview',
-        title: 'REST API Overview & Authentication',
-        readTime: '4 min read',
-        summary: 'Programmatic interfaces for payroll automation, query logs, and health checks.',
-        toc: [
-          { id: 'authentication', title: 'Authentication' },
-          { id: 'query-attendance-logs', title: 'Query Attendance Logs' },
-          { id: 'system-health-endpoint', title: 'System Health Endpoint' }
-        ],
+        id: 'rest-api',
+        title: 'REST API & Webhooks',
+        readTime: '3 min read',
+        summary: 'Local HTTP endpoints for attendance logs and employee rostering.',
         content: `
-## Authentication
+# REST API & Webhooks
 
-All REST API requests require a valid Bearer JWT token obtained via the authentication endpoint:
+AuraPass exposes a local RESTful HTTP API on port 8000.
 
-\`\`\`bash
-curl -X POST http://localhost:5000/api/auth/login \\
-  -H "Content-Type: application/json" \\
-  -d '{"email": "admin@organization.com", "password": "YourPassword"}'
-\`\`\`
-
-## Query Attendance Logs
+## Query Recent Verified Access Logs
 
 \`\`\`bash
-curl -X GET "http://localhost:5000/api/attendance?date=2026-11-03&limit=50" \\
-  -H "Authorization: Bearer <TOKEN>"
+curl -X GET "http://localhost:8000/api/attendance/logs?limit=10" \\
+  -H "Authorization: Bearer $LOCAL_TOKEN"
 \`\`\`
 
-## System Health Endpoint
+### Example JSON Response
 
-\`\`\`bash
-curl -X GET http://localhost:5000/api/health
-\`\`\`
-
-#### Response:
 \`\`\`json
 {
-  "status": "ok",
-  "app_version": "2026.2",
-  "database": "sqlite_local",
-  "active_streams": 2,
-  "inference_latency_ms": 242
+  "status": "success",
+  "records": [
+    {
+      "badge_id": "EMP-0142",
+      "name": "Rajesh Patel",
+      "department": "Operations",
+      "timestamp": "2026-11-05T08:59:42Z",
+      "status": "ON_TIME",
+      "match_confidence": 0.996,
+      "latency_ms": 184
+    }
+  ]
 }
 \`\`\`
+`
+      }
+    ]
+  },
+  {
+    groupId: 'faq',
+    groupTitle: 'Technical FAQ',
+    icon: HelpCircle,
+    pages: [
+      {
+        id: 'general-faq',
+        title: 'Frequently Answered Runbooks',
+        readTime: '3 min read',
+        summary: 'Common administrator and systems engineer questions.',
+        content: `
+# Frequently Answered Runbooks
+
+### Can we export logs directly to payroll software?
+Yes. Attendance records can be filtered by date, shift, or department and exported to standard CSV, Excel (.xlsx), or formatted PDF registers compatible with Tally, SAP, and Zoho People.
+
+### Does AuraPass work if power or LAN is interrupted?
+The system operates on an append-only SQLite WAL database locally. If the network switch reboots, scans are cached and flushed atomically upon interface restoration.
 `
       }
     ]
@@ -413,347 +424,358 @@ curl -X GET http://localhost:5000/api/health
 
 export default function DocsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const pageParam = searchParams.get('page') || 'overview';
+  const activePageId = searchParams.get('page') || 'shifts-and-grace';
 
-  const [activePageId, setActivePageId] = useState(pageParam);
+  // Navigation search & command palette state
   const [searchQuery, setSearchQuery] = useState('');
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
-  const [activeTocId, setActiveTocId] = useState('');
-  const searchInputRef = useRef(null);
+  const [feedbackGiven, setFeedbackGiven] = useState(null);
 
-  // Keyboard shortcut Ctrl/Cmd+K to focus search
-  useEffect(() => {
-    const handleKeyDown = (e) => {
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
-        e.preventDefault();
-        searchInputRef.current?.focus();
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
-
-  // Sync state with URL search param
-  useEffect(() => {
-    if (pageParam && pageParam !== activePageId) {
-      setActivePageId(pageParam);
-    }
-  }, [pageParam]);
-
-  const selectPage = (id) => {
-    setActivePageId(id);
-    setSearchParams({ page: id });
-    setMobileDrawerOpen(false);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-
-  // Find currently active page & its group
-  const { currentPage, currentGroup, prevPage, nextPage } = useMemo(() => {
-    let foundPage = null;
-    let foundGroup = null;
-    let allPages = [];
-
-    for (const grp of DOCS_TREE) {
-      for (const p of grp.pages) {
-        allPages.push({ ...p, groupTitle: grp.groupTitle });
+  // Find active page in tree
+  const activePage = useMemo(() => {
+    for (const group of DOCS_TREE) {
+      for (const p of group.pages) {
         if (p.id === activePageId) {
-          foundPage = p;
-          foundGroup = grp;
+          return { ...p, groupTitle: group.groupTitle };
         }
       }
     }
+    return DOCS_TREE[3].pages[0]; // Default to shifts-and-grace
+  }, [activePageId]);
 
-    if (!foundPage) {
-      foundPage = DOCS_TREE[0].pages[0];
-      foundGroup = DOCS_TREE[0];
-    }
+  // Extract table of contents from markdown headings
+  const tocHeadings = useMemo(() => {
+    if (!activePage?.content) return [];
+    const lines = activePage.content.split('\n');
+    const headings = [];
 
-    const currentIndex = allPages.findIndex((p) => p.id === foundPage.id);
-    const prev = currentIndex > 0 ? allPages[currentIndex - 1] : null;
-    const next = currentIndex < allPages.length - 1 ? allPages[currentIndex + 1] : null;
+    lines.forEach((line) => {
+      const match = line.match(/^(#{2,3})\s+(.+)$/);
+      if (match) {
+        const level = match[1].length;
+        const text = match[2].trim().replace(/\*\*/g, '');
+        const id = text.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+        headings.push({ id, text, level });
+      }
+    });
 
+    return headings;
+  }, [activePage]);
+
+  // Find previous and next pages for bottom pagination
+  const { prevPage, nextPage } = useMemo(() => {
+    const flatPages = [];
+    DOCS_TREE.forEach((g) => {
+      g.pages.forEach((p) => {
+        flatPages.push(p);
+      });
+    });
+
+    const currentIndex = flatPages.findIndex((p) => p.id === activePageId);
     return {
-      currentPage: foundPage,
-      currentGroup: foundGroup,
-      prevPage: prev,
-      nextPage: next
+      prevPage: currentIndex > 0 ? flatPages[currentIndex - 1] : null,
+      nextPage: currentIndex < flatPages.length - 1 ? flatPages[currentIndex + 1] : null,
     };
   }, [activePageId]);
 
-  // Filtered docs tree for search
-  const filteredTree = useMemo(() => {
-    if (!searchQuery.trim()) return DOCS_TREE;
-    const q = searchQuery.toLowerCase();
+  // Filtered pages for search
+  const searchResults = useMemo(() => {
+    if (!searchQuery.trim()) return [];
+    const query = searchQuery.toLowerCase();
+    const results = [];
 
-    return DOCS_TREE.map((grp) => {
-      const matchingPages = grp.pages.filter(
-        (p) =>
-          p.title.toLowerCase().includes(q) ||
-          p.summary.toLowerCase().includes(q) ||
-          p.content.toLowerCase().includes(q)
-      );
-      return {
-        ...grp,
-        pages: matchingPages
-      };
-    }).filter((grp) => grp.pages.length > 0);
+    DOCS_TREE.forEach((group) => {
+      group.pages.forEach((page) => {
+        if (
+          page.title.toLowerCase().includes(query) ||
+          page.summary.toLowerCase().includes(query) ||
+          page.content.toLowerCase().includes(query)
+        ) {
+          results.push({ ...page, groupTitle: group.groupTitle });
+        }
+      });
+    });
+
+    return results;
   }, [searchQuery]);
 
-  const handleTocClick = (id) => {
-    setActiveTocId(id);
-    const el = document.getElementById(id);
-    if (el) {
-      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
-  };
-
   return (
-    <div className="min-h-screen public-surface bg-[#070A12] flex flex-col font-sans relative">
+    <div className="min-h-screen bg-[#06090B] text-[#9AA7A3] font-sans selection:bg-[#3DDC97]/20 selection:text-[#3DDC97]">
       
-      {/* ─────────────────────────────────────────────────────────────────────────────
-          DOCS HEADER
-      ───────────────────────────────────────────────────────────────────────────── */}
-      <header className="sticky top-0 z-40 border-b border-white/[0.08] bg-[#070A12]/90 backdrop-blur-xl">
-        <div className="max-w-[1720px] mx-auto px-4 sm:px-6 lg:px-10 h-16 flex items-center justify-between gap-4">
+      {/* 1. TOP DOCS HEADER */}
+      <header className="sticky top-0 z-40 bg-[#06090B]/95 border-b border-white/[0.08] backdrop-blur-md">
+        <div className="max-w-[1400px] mx-auto px-4 sm:px-6 py-3 flex items-center justify-between gap-4">
           
           <div className="flex items-center gap-3">
-            <Link to="/" className="flex items-center gap-2 group">
-              <div className="w-8 h-8 rounded-lg bg-emerald-500/15 border border-emerald-500/35 flex items-center justify-center text-emerald-400">
-                <BookOpen className="w-4 h-4" />
-              </div>
-              <span className="font-bold text-base text-white tracking-tight">
-                AuraPass <span className="text-emerald-400 font-normal">Docs</span>
+            <button
+              type="button"
+              onClick={() => setMobileDrawerOpen(true)}
+              className="lg:hidden p-1.5 rounded-lg border border-white/10 text-[#9AA7A3] hover:text-white"
+              aria-label="Open documentation navigation"
+            >
+              <Menu className="w-5 h-5 stroke-[1.5]" />
+            </button>
+
+            <Link to="/" className="flex items-center gap-2 text-[#F3F6F5] font-semibold text-sm">
+              <span className="w-6 h-6 rounded-md bg-[#0B1013] border border-white/10 flex items-center justify-center text-[#3DDC97]">
+                <Scan className="w-3.5 h-3.5 stroke-[1.5]" />
+              </span>
+              <span>AuraPass</span>
+              <span className="text-xs font-mono text-[#3DDC97] px-1.5 py-0.2 rounded bg-[#3DDC97]/10 border border-[#3DDC97]/20">
+                DOCS
               </span>
             </Link>
-            <span className="px-2 py-0.5 rounded text-[11px] font-mono-tag bg-white/[0.06] text-slate-400 border border-white/[0.08]">
-              v2026.2
-            </span>
+
+            {/* Breadcrumbs */}
+            <div className="hidden sm:flex items-center gap-1.5 text-xs text-[#66726E] font-mono ml-3 pl-3 border-l border-white/[0.08]">
+              <span>Docs</span>
+              <span>/</span>
+              <span>{activePage.groupTitle}</span>
+              <span>/</span>
+              <span className="text-[#F3F6F5] truncate max-w-[200px]">{activePage.title}</span>
+            </div>
           </div>
 
-          {/* Quick Search */}
-          <div className="relative flex-1 max-w-md hidden md:block">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+          {/* Quick Search Input */}
+          <div className="relative w-full max-w-xs hidden sm:block">
+            <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-[#66726E]" />
             <input
-              ref={searchInputRef}
               type="text"
+              placeholder="Search documentation... (⌘K)"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search documentation (RTSP, API, vectors, shifts)..."
-              className="w-full pl-10 pr-20 py-2 rounded-xl bg-[#0D1220] border border-white/[0.08] text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-emerald-500/50 transition-all font-normal"
+              className="w-full h-8 pl-8 pr-3 bg-[#0B1013] border border-white/10 rounded-lg text-xs text-[#F3F6F5] placeholder-[#66726E] focus:outline-none focus:border-[#3DDC97]/40"
             />
-            <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1 pointer-events-none">
-              <kbd className="px-1.5 py-0.5 rounded bg-white/[0.06] border border-white/[0.1] text-[10px] font-mono-tag text-slate-400">Ctrl</kbd>
-              <kbd className="px-1.5 py-0.5 rounded bg-white/[0.06] border border-white/[0.1] text-[10px] font-mono-tag text-slate-400">K</kbd>
-            </div>
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery('')}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#66726E] hover:text-white"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
           </div>
 
           <div className="flex items-center gap-3">
             <Link
               to="/support"
-              className="text-xs text-slate-400 hover:text-white transition-colors hidden sm:inline"
+              className="text-xs font-medium text-[#9AA7A3] hover:text-white transition-colors hidden md:inline-block"
             >
-              Help Center
+              Support Center
             </Link>
             <Link
-              to="/dashboard"
-              className="px-3.5 py-1.5 rounded-lg bg-emerald-500/15 border border-emerald-500/35 text-emerald-300 text-xs font-semibold hover:bg-emerald-500/25 transition-colors"
+              to="/"
+              className="text-xs font-medium text-[#3DDC97] hover:text-[#5FE8AD] transition-colors"
             >
-              Open Console
+              ← Back to Overview
             </Link>
-            <button
-              type="button"
-              onClick={() => setMobileDrawerOpen(!mobileDrawerOpen)}
-              className="lg:hidden p-2 rounded-lg bg-[#0E1422] border border-white/[0.08] text-slate-300 hover:text-white"
-              aria-label="Toggle navigation drawer"
-            >
-              {mobileDrawerOpen ? <X className="w-5 h-5 text-emerald-400" /> : <Menu className="w-5 h-5" />}
-            </button>
           </div>
+
         </div>
-      </header>
 
-
-      {/* ─────────────────────────────────────────────────────────────────────────────
-          3-COLUMN DOCUMENTATION LAYOUT
-      ───────────────────────────────────────────────────────────────────────────── */}
-      <div className="flex-1 max-w-[1720px] w-full mx-auto px-4 sm:px-6 lg:px-10 py-8 flex flex-col lg:flex-row gap-8">
-        
-        {/* Left Sidebar (280px) */}
-        <aside className="w-full lg:w-[280px] shrink-0 hidden lg:block">
-          <div className="sticky top-24 max-h-[calc(100vh-8rem)] overflow-y-auto pr-2 public-scroll space-y-6">
-            {filteredTree.map((group) => {
-              const Icon = group.icon;
-              return (
-                <div key={group.groupId} className="space-y-1.5">
-                  <div className="flex items-center gap-2 px-2.5 py-1 text-[11px] font-bold text-slate-400 uppercase font-mono-tag tracking-wider">
-                    <Icon className="w-3.5 h-3.5 text-emerald-400" />
-                    <span>{group.groupTitle}</span>
-                  </div>
-
-                  <div className="space-y-0.5">
-                    {group.pages.map((p) => {
-                      const isSelected = activePageId === p.id;
-                      return (
-                        <button
-                          key={p.id}
-                          type="button"
-                          onClick={() => selectPage(p.id)}
-                          className={`w-full text-left px-3 py-2 rounded-xl text-xs transition-all flex items-center justify-between cursor-pointer ${
-                            isSelected
-                              ? 'bg-emerald-500/15 text-emerald-300 border-l-2 border-emerald-400 font-semibold'
-                              : 'text-slate-400 hover:text-white hover:bg-white/[0.03]'
-                          }`}
-                        >
-                          <span className="truncate">{p.title}</span>
-                          {isSelected && <ChevronRight className="w-3.5 h-3.5 text-emerald-400 shrink-0" />}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </aside>
-
-        {/* Mobile Navigation Drawer */}
-        {mobileDrawerOpen && (
-          <div className="lg:hidden p-4 rounded-2xl bg-[#0D1220] border border-white/[0.08] space-y-4 mb-6 animate-in slide-in-from-top-2">
-            <div className="flex items-center justify-between pb-2 border-b border-white/[0.08]">
-              <span className="text-xs font-bold text-white uppercase font-mono-tag">Documentation Menu</span>
-              <button
-                type="button"
-                onClick={() => setMobileDrawerOpen(false)}
-                className="text-xs text-slate-400 hover:text-white"
-              >
-                Close
-              </button>
-            </div>
-
-            {filteredTree.map((group) => (
-              <div key={group.groupId} className="space-y-1">
-                <p className="text-xs font-bold text-emerald-400 font-mono-tag">{group.groupTitle}</p>
-                <div className="space-y-1 pl-2">
-                  {group.pages.map((p) => (
+        {/* Live Search Results Dropdown */}
+        {searchQuery.trim() && (
+          <div className="max-w-[1400px] mx-auto px-4 sm:px-6 relative">
+            <div className="absolute right-4 top-1 w-full max-w-md bg-[#0B1013] border border-white/10 rounded-xl shadow-2xl p-3 space-y-2 z-50">
+              <div className="flex justify-between items-center text-[11px] font-mono text-[#66726E] pb-2 border-b border-white/[0.06]">
+                <span>SEARCH RESULTS ({searchResults.length})</span>
+                <button onClick={() => setSearchQuery('')} className="hover:text-white">CLOSE</button>
+              </div>
+              {searchResults.length === 0 ? (
+                <p className="text-xs text-[#9AA7A3] py-4 text-center">No matching documentation pages found.</p>
+              ) : (
+                <div className="max-h-64 overflow-y-auto space-y-1">
+                  {searchResults.map((result) => (
                     <button
-                      key={p.id}
+                      key={result.id}
                       type="button"
-                      onClick={() => selectPage(p.id)}
-                      className={`w-full text-left py-1 text-xs block ${
-                        activePageId === p.id ? 'text-emerald-300 font-bold' : 'text-slate-400 hover:text-white'
-                      }`}
+                      onClick={() => {
+                        setSearchParams({ page: result.id });
+                        setSearchQuery('');
+                      }}
+                      className="w-full text-left p-2 rounded-lg hover:bg-white/[0.04] transition-colors group block"
                     >
-                      &bull; {p.title}
+                      <div className="text-xs font-semibold text-[#F3F6F5] group-hover:text-[#3DDC97]">
+                        {result.title}
+                      </div>
+                      <div className="text-[11px] text-[#66726E] truncate">
+                        {result.groupTitle} • {result.summary}
+                      </div>
                     </button>
                   ))}
                 </div>
-              </div>
-            ))}
+              )}
+            </div>
           </div>
         )}
+      </header>
 
-        {/* Center Content Column (max 760px) */}
-        <main className="flex-1 min-w-0 max-w-[760px] space-y-8">
-          
-          {/* Breadcrumbs */}
-          <nav className="flex items-center gap-2 text-xs text-slate-400 font-mono-tag">
-            <Link to="/" className="hover:text-emerald-400 transition-colors">Docs</Link>
-            <ChevronRight className="w-3.5 h-3.5 text-slate-600" />
-            <span>{currentGroup.groupTitle}</span>
-            <ChevronRight className="w-3.5 h-3.5 text-slate-600" />
-            <span className="text-emerald-300 font-semibold">{currentPage.title}</span>
+      {/* 2. THREE-COLUMN DOCS BODY */}
+      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 flex items-start gap-8 py-8 relative">
+        
+        {/* COLUMN A: Left Sidebar Navigation */}
+        <aside
+          className={`fixed inset-y-0 left-0 z-50 w-72 bg-[#06090B] border-r border-white/[0.08] p-6 overflow-y-auto transition-transform duration-300 lg:static lg:block lg:w-64 lg:shrink-0 lg:p-0 lg:border-none lg:bg-transparent ${
+            mobileDrawerOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+          }`}
+        >
+          <div className="lg:hidden flex items-center justify-between pb-4 mb-4 border-b border-white/[0.08]">
+            <span className="font-semibold text-white text-sm">Documentation Tree</span>
+            <button
+              onClick={() => setMobileDrawerOpen(false)}
+              className="p-1 rounded text-[#9AA7A3] hover:text-white"
+            >
+              <X className="w-5 h-5 stroke-[1.5]" />
+            </button>
+          </div>
+
+          <nav className="space-y-6 text-xs" aria-label="Documentation Categories">
+            {DOCS_TREE.map((group) => {
+              const Icon = group.icon;
+              return (
+                <div key={group.groupId} className="space-y-2">
+                  <p className="font-mono text-[11px] font-semibold text-[#F3F6F5] uppercase tracking-wider flex items-center gap-2">
+                    <Icon className="w-3.5 h-3.5 text-[#3DDC97] stroke-[1.5]" />
+                    <span>{group.groupTitle}</span>
+                  </p>
+                  <ul className="space-y-1 border-l border-white/[0.06] ml-1 pl-3">
+                    {group.pages.map((page) => {
+                      const isActive = page.id === activePageId;
+                      return (
+                        <li key={page.id}>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSearchParams({ page: page.id });
+                              setMobileDrawerOpen(false);
+                              window.scrollTo({ top: 0, behavior: 'smooth' });
+                            }}
+                            className={`w-full text-left py-1 text-xs transition-colors rounded ${
+                              isActive
+                                ? 'text-[#3DDC97] font-semibold -ml-[13px] border-l-2 border-[#3DDC97] pl-[11px]'
+                                : 'text-[#9AA7A3] hover:text-[#F3F6F5]'
+                            }`}
+                          >
+                            {page.title}
+                          </button>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+              );
+            })}
           </nav>
+        </aside>
 
-          {/* Article Header Card */}
-          <div className="pb-6 border-b border-white/[0.08] space-y-3">
-            <h1 className="text-3xl sm:text-4xl font-bold text-white tracking-tight leading-tight">
-              {currentPage.title}
-            </h1>
-            <p className="text-sm text-slate-400 leading-relaxed font-normal">
-              {currentPage.summary}
+        {/* Backdrop for mobile drawer */}
+        {mobileDrawerOpen && (
+          <div
+            onClick={() => setMobileDrawerOpen(false)}
+            className="fixed inset-0 z-40 bg-black/70 backdrop-blur-sm lg:hidden"
+          />
+        )}
+
+        {/* COLUMN B: Center Technical Article (740px constraint) */}
+        <main className="flex-1 max-w-[740px] mx-auto w-full min-w-0 pb-20">
+          
+          {/* Article Header Metadata */}
+          <div className="pb-6 mb-8 border-b border-white/[0.08] space-y-2">
+            <div className="flex items-center gap-3 font-mono text-xs text-[#66726E]">
+              <span>{activePage.groupTitle.toUpperCase()}</span>
+              <span>•</span>
+              <span>{activePage.readTime}</span>
+              <span>•</span>
+              <span className="text-[#3DDC97]">ENGINE v2026.2</span>
+            </div>
+            <p className="text-sm text-[#9AA7A3] font-normal leading-relaxed">
+              {activePage.summary}
             </p>
-            <div className="flex items-center gap-3 pt-2 text-[11px] font-mono-tag text-slate-500">
-              <span className="flex items-center gap-1">
-                <Clock className="w-3.5 h-3.5" />
-                {currentPage.readTime}
-              </span>
-              <span>&bull;</span>
-              <span>Updated November 2026 &bull; v2026.2</span>
+          </div>
+
+          {/* Render Parsed Technical Content */}
+          <MarkdownRenderer content={activePage.content} />
+
+          {/* Was This Helpful? Feedback Component */}
+          <div className="mt-14 pt-8 border-t border-white/[0.08] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 text-xs">
+            <span className="text-[#9AA7A3]">Was this page helpful?</span>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setFeedbackGiven('yes')}
+                className={`px-3 py-1.5 rounded-lg border flex items-center gap-1.5 transition-colors ${
+                  feedbackGiven === 'yes'
+                    ? 'border-[#3DDC97] text-[#3DDC97] bg-[#3DDC97]/10'
+                    : 'border-white/10 text-[#9AA7A3] hover:text-white hover:bg-white/[0.02]'
+                }`}
+              >
+                <ThumbsUp className="w-3.5 h-3.5 stroke-[1.5]" />
+                <span>Yes, helpful</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setFeedbackGiven('no')}
+                className={`px-3 py-1.5 rounded-lg border flex items-center gap-1.5 transition-colors ${
+                  feedbackGiven === 'no'
+                    ? 'border-white/30 text-white bg-white/[0.05]'
+                    : 'border-white/10 text-[#9AA7A3] hover:text-white hover:bg-white/[0.02]'
+                }`}
+              >
+                <ThumbsDown className="w-3.5 h-3.5 stroke-[1.5]" />
+                <span>Needs clarification</span>
+              </button>
             </div>
           </div>
 
-          {/* Markdown Body */}
-          <div className="py-2">
-            <MarkdownRenderer content={currentPage.content} />
-          </div>
-
-          {/* Pagination: Prev / Next Cards */}
-          <div className="pt-8 border-t border-white/[0.08] grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {/* Bottom Pagination Previous / Next */}
+          <div className="mt-8 pt-6 border-t border-white/[0.08] grid grid-cols-1 sm:grid-cols-2 gap-4">
             {prevPage ? (
               <button
                 type="button"
-                onClick={() => selectPage(prevPage.id)}
-                className="p-4 rounded-xl border border-white/[0.08] bg-[#0B0F19] hover:bg-[#141B2E] transition-all text-left flex items-center gap-3 group cursor-pointer"
+                onClick={() => {
+                  setSearchParams({ page: prevPage.id });
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
+                className="p-4 rounded-xl border border-white/[0.08] bg-[#0B1013] hover:border-white/20 text-left transition-colors group"
               >
-                <ChevronLeft className="w-5 h-5 text-slate-400 group-hover:text-emerald-400 transition-colors shrink-0" />
-                <div>
-                  <p className="text-[10px] uppercase font-mono-tag text-slate-500">Previous</p>
-                  <p className="text-xs font-bold text-white group-hover:text-emerald-300 transition-colors">{prevPage.title}</p>
-                </div>
+                <span className="text-[11px] font-mono text-[#66726E] flex items-center gap-1">
+                  <ArrowLeft className="w-3 h-3" /> Previous
+                </span>
+                <span className="text-sm font-semibold text-[#F3F6F5] group-hover:text-[#3DDC97] transition-colors block mt-1">
+                  {prevPage.title}
+                </span>
               </button>
             ) : <div />}
 
             {nextPage ? (
               <button
                 type="button"
-                onClick={() => selectPage(nextPage.id)}
-                className="p-4 rounded-xl border border-white/[0.08] bg-[#0B0F19] hover:bg-[#141B2E] transition-all text-right flex items-center justify-end gap-3 group cursor-pointer ml-auto w-full"
+                onClick={() => {
+                  setSearchParams({ page: nextPage.id });
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
+                className="p-4 rounded-xl border border-white/[0.08] bg-[#0B1013] hover:border-white/20 text-right transition-colors group"
               >
-                <div>
-                  <p className="text-[10px] uppercase font-mono-tag text-slate-500">Next</p>
-                  <p className="text-xs font-bold text-white group-hover:text-emerald-300 transition-colors">{nextPage.title}</p>
-                </div>
-                <ChevronRight className="w-5 h-5 text-slate-400 group-hover:text-emerald-400 transition-colors shrink-0" />
+                <span className="text-[11px] font-mono text-[#66726E] flex items-center justify-end gap-1">
+                  Next <ArrowRight className="w-3 h-3" />
+                </span>
+                <span className="text-sm font-semibold text-[#F3F6F5] group-hover:text-[#3DDC97] transition-colors block mt-1">
+                  {nextPage.title}
+                </span>
               </button>
             ) : <div />}
           </div>
 
-          {/* Feedback Widget */}
-          <div className="pt-4">
-            <FeedbackWidget pageId={currentPage.id} />
-          </div>
         </main>
 
-        {/* Right Rail (220px) — On this page TOC */}
-        <aside className="w-[220px] shrink-0 hidden xl:block">
-          <div className="sticky top-24 space-y-6">
-            <TableOfContents
-              items={currentPage.toc || []}
-              activeId={activeTocId}
-              onItemClick={handleTocClick}
-            />
-
-            <div className="p-4 rounded-xl bg-[#0B0F19] border border-white/[0.08] space-y-2 text-xs">
-              <p className="font-bold text-white text-[11px] uppercase font-mono-tag">Need Assistance?</p>
-              <p className="text-slate-400 leading-relaxed text-[11px]">
-                Connect directly with our engineering support team for camera integration guides.
-              </p>
-              <Link
-                to="/support"
-                className="text-emerald-400 hover:text-emerald-300 font-semibold inline-flex items-center gap-1 text-[11px] pt-1"
-              >
-                <span>Help Center</span>
-                <ExternalLink className="w-3 h-3" />
-              </Link>
-            </div>
-          </div>
+        {/* COLUMN C: Right Table of Contents Rail */}
+        <aside className="hidden xl:block w-56 shrink-0 sticky top-20">
+          <TableOfContents headings={tocHeadings} />
         </aside>
+
       </div>
 
-      {/* Footer */}
-      <footer className="border-t border-white/[0.08] bg-[#05070D] py-8 px-4 text-center text-xs text-slate-500 font-mono-tag">
-        <p>&copy; {new Date().getFullYear()} AuraPass Enterprise. Local Documentation Engine v2026.2.</p>
-      </footer>
     </div>
   );
 }

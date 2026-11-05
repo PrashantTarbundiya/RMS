@@ -335,29 +335,25 @@ function AppContent() {
 
   const { isAuthenticated, isMultiTenant } = useAuth();
 
-  const isOuterPage = [
-
-    '/login',
-
-    '/register',
-
-    '/',
-
-    '/kiosk',
-
-    '/privacy-policy',
-
-    '/privacy',
-
-    '/terms',
-
-    '/terms-and-conditions',
-    '/support',
-    '/docs'
-
-  ].includes(location.pathname);
-
-  const showNavbar = !isOuterPage && (isAuthenticated || isMultiTenant === false);
+  const consoleRoutes = [
+    '/dashboard',
+    '/cameras',
+    '/attendance',
+    '/attendance/live',
+    '/upload',
+    '/test',
+    '/training',
+    '/models',
+    '/logs',
+    '/audit',
+    '/mosaic',
+    '/analytics',
+    '/departments',
+    '/profile',
+    '/onboarding'
+  ];
+  const isConsoleRoute = consoleRoutes.includes(location.pathname) || location.pathname.startsWith('/persons/edit/');
+  const showNavbar = isConsoleRoute && (isAuthenticated || isMultiTenant === false);
 
 
 
