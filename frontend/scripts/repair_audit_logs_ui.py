@@ -19,3 +19,4 @@ with open('frontend/src/pages/AuditLogsPage.jsx', 'w', encoding='utf-8') as f:
     f.write(text)
 
 print("AuditLogsPage.jsx updated successfully!")
+

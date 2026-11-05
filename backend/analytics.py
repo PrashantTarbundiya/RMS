@@ -95,6 +95,7 @@ def get_department_breakdown(org_id, start_date=None, end_date=None):
                 total_checkins = dept_checkins.get(dept_name, 0)
                 confs = dept_confidences.get(dept_name, [])
                 distinct_attendances = len(dept_emp_days.get(dept_name, set()))
+                unique_present_emps = len(set(emp_id for emp_id, _ in dept_emp_days.get(dept_name, set())))
 
                 # Actual attendance rate cannot exceed 100%
                 raw_rate = (distinct_attendances / (total_emp * total_days) * 100) if (total_emp > 0 and total_days > 0) else 0
@@ -103,7 +104,8 @@ def get_department_breakdown(org_id, start_date=None, end_date=None):
                     'name': dept_name if dept_name != '_unassigned' else 'Unassigned',
                     'total_employees': total_emp,
                     'total_checkins': total_checkins,
-                    'avg_attendance_rate': round(min(100.0, raw_rate), 1),
+                    'unique_present': unique_present_emps,
+                    'avg_attendance_rate': round(min(100.0, max(0.0, raw_rate)), 1),
                     'avg_confidence': round(sum(confs) / len(confs), 3) if confs else 0,
                     'working_days': total_days,
                 }
@@ -388,7 +390,8 @@ def generate_report_data(org_id, start_date=None, end_date=None,
 
 
 def generate_pdf_report(org_id, start_date=None, end_date=None,
-                        work_start_hour=9, work_start_minute=0):
+                        work_start_hour=9, work_start_minute=0,
+                        report_period=None):
     """
     Generates a PDF analytics report as bytes using ReportLab.
     """
@@ -465,7 +468,13 @@ def generate_pdf_report(org_id, start_date=None, end_date=None,
     gen_time = report_data.get('generated_at', '')[:19].replace('T', ' ')
     date_str = f"Date Range: {start_date.strftime('%Y-%m-%d') if start_date else 'All Time'} to {end_date.strftime('%Y-%m-%d') if end_date else 'Present'}"
 
-    elements.append(Paragraph(f"AuraPass™ Enterprise — Executive Analytics Report", title_style))
+    period_titles = {
+        'daily': 'Daily Attendance & Verification Register',
+        'monthly': 'Monthly Workforce & Department Reconciliation',
+        'yearly': 'Annual Biometric Compliance & Audit Summary'
+    }
+    report_title = f"AuraPass™ Enterprise — {period_titles.get(report_period, 'Executive Analytics Report')}"
+    elements.append(Paragraph(report_title, title_style))
     elements.append(Paragraph(f"Organization: <b>{org_name}</b> | Generated: {gen_time} | {date_str}", subtitle_style))
     elements.append(Spacer(1, 10))
 
@@ -557,6 +566,22 @@ def generate_pdf_report(org_id, start_date=None, end_date=None,
         ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.HexColor('#F8FAFC'), colors.HexColor('#FFFFFF')])
     ]))
     elements.append(t_late)
+    elements.append(Spacer(1, 20))
+
+    # Formal Signature Block
+    sig_data = [
+        [
+            Paragraph("<b>Biometric Verification Standard:</b> ISO/IEC 19794-5 Compliant<br/><b>Data Sovereignty:</b> On-Premise Air-Gapped Local LAN", cell_style),
+            Paragraph("<b>Authorized HR / Security Signatory:</b><br/><br/>____________________________________<br/>Date: ________________________", cell_style)
+        ]
+    ]
+    t_sig = Table(sig_data, colWidths=[300, 240])
+    t_sig.setStyle(TableStyle([
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ('TOPPADDING', (0, 0), (-1, -1), 4),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+    ]))
+    elements.append(t_sig)
 
     def add_page_number(canvas, doc):
         canvas.saveState()

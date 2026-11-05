@@ -143,30 +143,30 @@ export default function AuditLogsPage() {
         )}
       </div>
 
-      {/* Filters Bar - High Contrast Segmented Control */}
-      <div className="card-linear p-3.5 flex flex-wrap items-center gap-3 bg-white dark:bg-[#0F1011] border border-slate-200 dark:border-[#23252A] rounded-xl shadow-sm">
-        {/* Search Input */}
-        <div className="flex items-center gap-2 bg-slate-50 dark:bg-[#141518] border border-slate-200 dark:border-[#2B2F38] rounded-xl h-9.5 px-3 flex-1 min-w-[220px] focus-within:border-emerald-500/60 focus-within:ring-1 focus-within:ring-emerald-500/20 transition-all">
-          <Search size={14} className="text-zinc-400 shrink-0" />
+      {/* Filters Bar - Neutral SaaS Segmented Control */}
+      <div className="p-3 flex flex-wrap items-center gap-2.5 bg-card border border-border rounded-xl shadow-sm">
+        {/* Search Input - Clean Single Neutral Element */}
+        <div className="relative flex items-center flex-1 min-w-[220px]">
+          <Search size={14} className="absolute left-3 text-muted-foreground pointer-events-none" />
           <input
             type="text"
             placeholder="Search audit trail by actor, action, or details..."
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
-            className="bg-transparent border-none text-slate-900 dark:text-zinc-100 text-xs w-full focus:outline-none placeholder:text-slate-400 dark:placeholder:text-zinc-500"
+            className="w-full h-9 pl-9 pr-3 rounded-lg bg-secondary/60 border border-border text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 transition-all"
           />
         </div>
 
         {/* Type Filter Tabs - Distinct High-Contrast Pills */}
-        <div className="flex items-center gap-1 bg-slate-100 dark:bg-[#141518] border border-slate-200 dark:border-[#2B2F38] rounded-xl p-1 shadow-inner">
+        <div className="flex items-center gap-1 bg-secondary/80 border border-border rounded-lg p-1">
           {filterTabs.map(opt => (
             <button
               key={opt.value}
               onClick={() => { setLogType(opt.value); setPage(1); updateParam('type', opt.value, 'all'); updateParam('page', 1); }}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+              className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all cursor-pointer ${
                 logType === opt.value 
-                  ? 'bg-emerald-600 text-white font-bold shadow-sm' 
-                  : 'text-slate-600 dark:text-zinc-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/60 dark:hover:bg-white/5'
+                  ? 'bg-emerald-600 text-white shadow-sm' 
+                  : 'text-muted-foreground hover:text-foreground hover:bg-background/60'
               }`}
             >
               {opt.label}
@@ -174,28 +174,40 @@ export default function AuditLogsPage() {
           ))}
         </div>
 
-        {/* Date Range */}
+        {/* Date Range - Strictly Max Today */}
         <div className="flex items-center gap-2">
-          <Calendar size={14} className="text-zinc-400 shrink-0" />
+          <Calendar size={14} className="text-muted-foreground shrink-0" />
           <input 
             type="date" 
+            max={new Date().toISOString().split('T')[0]}
             value={dateStart} 
-            onChange={e => { setDateStart(e.target.value); setPage(1); }}
-            className="h-9 px-3 rounded-lg bg-white dark:bg-[#141518] border border-slate-300 dark:border-[#2B2F38] text-xs text-slate-900 dark:text-zinc-100 font-mono focus:border-emerald-500 focus:outline-none transition-colors"
+            onChange={e => {
+              const val = e.target.value;
+              const maxDate = new Date().toISOString().split('T')[0];
+              setDateStart(val > maxDate ? maxDate : val);
+              setPage(1);
+            }}
+            className="h-9 px-2.5 rounded-lg bg-secondary/60 border border-border text-xs text-foreground font-mono focus:border-emerald-500 focus:outline-none transition-colors"
           />
-          <span className="text-xs text-zinc-400 font-medium">to</span>
+          <span className="text-xs text-muted-foreground font-medium">to</span>
           <input 
             type="date" 
+            max={new Date().toISOString().split('T')[0]}
             value={dateEnd} 
-            onChange={e => { setDateEnd(e.target.value); setPage(1); }}
-            className="h-9 px-3 rounded-lg bg-white dark:bg-[#141518] border border-slate-300 dark:border-[#2B2F38] text-xs text-slate-900 dark:text-zinc-100 font-mono focus:border-emerald-500 focus:outline-none transition-colors"
+            onChange={e => {
+              const val = e.target.value;
+              const maxDate = new Date().toISOString().split('T')[0];
+              setDateEnd(val > maxDate ? maxDate : val);
+              setPage(1);
+            }}
+            className="h-9 px-2.5 rounded-lg bg-secondary/60 border border-border text-xs text-foreground font-mono focus:border-emerald-500 focus:outline-none transition-colors"
           />
         </div>
 
         {/* Sort Toggle */}
         <button
           onClick={() => setSortOrder(prev => prev === 'desc' ? 'asc' : 'desc')}
-          className="h-9 px-3 rounded-lg bg-white dark:bg-[#141518] border border-slate-200 dark:border-[#2B2F38] text-xs font-semibold text-slate-700 dark:text-zinc-200 hover:text-slate-900 dark:hover:text-white hover:border-slate-400 dark:hover:border-zinc-500 transition-colors flex items-center gap-1.5 cursor-pointer shadow-sm"
+          className="h-9 px-3 rounded-lg bg-secondary/60 border border-border text-xs font-semibold text-foreground hover:bg-secondary hover:border-border transition-colors flex items-center gap-1.5 cursor-pointer shadow-sm"
         >
           {sortOrder === 'desc' ? '↓ Newest' : '↑ Oldest'}
         </button>
@@ -203,7 +215,7 @@ export default function AuditLogsPage() {
         {/* Refresh */}
         <button
           onClick={fetchLogs}
-          className="h-9 w-9 rounded-lg bg-white dark:bg-[#141518] border border-slate-200 dark:border-[#2B2F38] text-slate-600 dark:text-zinc-300 hover:text-slate-900 dark:hover:text-white hover:border-slate-400 dark:hover:border-zinc-500 flex items-center justify-center transition-colors cursor-pointer shadow-sm"
+          className="h-9 w-9 rounded-lg bg-secondary/60 border border-border text-muted-foreground hover:text-foreground hover:bg-secondary flex items-center justify-center transition-colors cursor-pointer shadow-sm"
           aria-label="Refresh audit logs"
         >
           <RefreshCw size={15} />

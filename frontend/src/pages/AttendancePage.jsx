@@ -8,7 +8,7 @@ import { useToast } from '../context/ToastContext';
 
 import { motion } from 'framer-motion';
 
-import { Download, Calendar, Search, RefreshCw, ClipboardList, Users, Plus, Trash2, X, CheckCircle2, AlertCircle, UserCheck } from 'lucide-react';
+import { Download, Calendar, Search, RefreshCw, ClipboardList, Users, Plus, Trash2, X, CheckCircle2, AlertCircle, UserCheck, FileText } from 'lucide-react';
 
 import { API_BASE } from '../config';
 
@@ -527,6 +527,26 @@ export default function AttendancePage() {
   };
 
 
+
+  const downloadServerReport = async (period = 'daily') => {
+    try {
+      toast.info(`Generating ${period} enterprise audit report...`);
+      const res = await apiClient.get(`${API_BASE}/analytics/export/pdf?period=${period}`, {
+        responseType: 'blob'
+      });
+      const blob = new Blob([res.data], { type: 'application/pdf' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `aurapass_${period}_attendance_report_${new Date().toISOString().slice(0, 10)}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.success(`${period.toUpperCase()} report downloaded successfully.`);
+    } catch (err) {
+      console.warn('Server PDF report failed, falling back to printable register:', err);
+      exportPDF();
+    }
+  };
 
   const exportPDF = () => {
 
@@ -1066,13 +1086,19 @@ export default function AttendancePage() {
 
                 type="date"
 
+                max={new Date().toISOString().split('T')[0]}
+
                 className="bg-transparent border-none text-ink text-caption font-mono focus:outline-none p-0 accent-emerald-500 w-full"
 
                 value={dateFilter === 'last_7_days' ? '' : dateFilter}
 
-                onChange={(e) => { setDateFilter(e.target.value); updateParam('date', e.target.value); }}
-
-                
+                onChange={(e) => { 
+                  const v = e.target.value;
+                  const today = new Date().toISOString().split('T')[0];
+                  const clamped = v > today ? today : v;
+                  setDateFilter(clamped); 
+                  updateParam('date', clamped); 
+                }}
 
               />
 
@@ -1166,18 +1192,22 @@ export default function AttendancePage() {
 
           {/* Export Actions */}
 
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex items-center gap-1.5 shrink-0 flex-wrap">
 
-            <button onClick={exportCSV} className="button-secondary flex-1 sm:flex-none flex items-center justify-center gap-2 h-10 text-caption py-1.5 px-3">
-
+            <button onClick={exportCSV} className="button-secondary flex items-center justify-center gap-1.5 h-10 text-caption px-3">
               <Download className="w-4 h-4" /> CSV
-
             </button>
 
-            <button onClick={exportPDF} className="button-primary text-white flex-1 sm:flex-none flex items-center justify-center gap-2 h-10 text-caption py-1.5 px-4">
+            <button onClick={() => downloadServerReport('daily')} className="button-secondary flex items-center justify-center gap-1 h-10 text-xs px-2.5" title="Generate Today's Daily Attendance PDF">
+              <FileText className="w-3.5 h-3.5 text-emerald-500" /> Daily
+            </button>
 
-              <Download className="w-4 h-4 text-white" /> PDF
+            <button onClick={() => downloadServerReport('monthly')} className="button-secondary flex items-center justify-center gap-1 h-10 text-xs px-2.5" title="Generate Monthly Reconciliation PDF">
+              <FileText className="w-3.5 h-3.5 text-emerald-500" /> Monthly
+            </button>
 
+            <button onClick={exportPDF} className="button-primary bg-emerald-600 hover:bg-emerald-500 text-white flex items-center justify-center gap-1.5 h-10 text-caption px-3.5 shadow-sm" title="Printable Detailed Register">
+              <Download className="w-4 h-4 text-white" /> Register PDF
             </button>
 
           </div>
@@ -1656,13 +1686,17 @@ export default function AttendancePage() {
 
                     required
 
+                    max={new Date().toISOString().split('T')[0]}
+
                     value={manualForm.date}
 
-                    onChange={(e) => setManualForm({ ...manualForm, date: e.target.value })}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      const today = new Date().toISOString().split('T')[0];
+                      setManualForm({ ...manualForm, date: v > today ? today : v });
+                    }}
 
                     className="input-linear w-full h-10 px-3 text-caption text-ink bg-secondary border border-border text-foreground rounded-lg focus:outline-none"
-
-                    
 
                   />
 

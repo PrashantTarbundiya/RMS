@@ -357,9 +357,9 @@ function DepartmentTable({ data, deptConfigs }) {
 
                   <td className="text-right py-2.5 px-3">
 
-                    <span className={dept.avg_attendance_rate >= 80 ? 'text-[#34d399]' : dept.avg_attendance_rate >= 50 ? 'text-[#fbbf24]' : 'text-[#f87171]'}>
+                    <span className={dept.avg_attendance_rate >= 80 ? 'text-emerald-500 dark:text-emerald-400 font-semibold' : dept.avg_attendance_rate >= 50 ? 'text-amber-500 dark:text-amber-400 font-semibold' : 'text-red-500 dark:text-red-400 font-semibold'}>
 
-                      {dept.avg_attendance_rate}%
+                      {Math.min(100, Math.max(0, dept.avg_attendance_rate || 0))}%
 
                     </span>
 
@@ -690,15 +690,18 @@ export default function AnalyticsPage() {
 
 
 
-  const exportPDF = async () => {
+  const exportPDF = async (period = null) => {
 
     try {
 
       const params = new URLSearchParams();
 
-      if (dateRange.start) params.set('start_date', dateRange.start);
-
-      if (dateRange.end) params.set('end_date', dateRange.end);
+      if (period) {
+        params.set('period', period);
+      } else {
+        if (dateRange.start) params.set('start_date', dateRange.start);
+        if (dateRange.end) params.set('end_date', dateRange.end);
+      }
 
       const res = await apiClient.get(`${API_BASE}/analytics/export/pdf?${params}`, {
 
@@ -768,11 +771,20 @@ export default function AnalyticsPage() {
 
           </button>
 
-          <button onClick={exportPDF} className="button-primary flex items-center justify-center gap-1.5 text-caption h-8 px-3">
-
-            <Download size={13} /> PDF
-
-          </button>
+          <div className="flex items-center gap-1.5">
+            <button onClick={() => exportPDF('daily')} className="button-secondary flex items-center justify-center gap-1 text-[11px] h-8 px-2.5" title="Download Today's Daily Attendance Report">
+              <Download size={12} /> Daily
+            </button>
+            <button onClick={() => exportPDF('monthly')} className="button-secondary flex items-center justify-center gap-1 text-[11px] h-8 px-2.5" title="Download Current Month Summary Report">
+              <Download size={12} /> Monthly
+            </button>
+            <button onClick={() => exportPDF('yearly')} className="button-secondary flex items-center justify-center gap-1 text-[11px] h-8 px-2.5" title="Download Annual Audit Report">
+              <Download size={12} /> Yearly
+            </button>
+            <button onClick={() => exportPDF()} className="button-primary bg-emerald-600 hover:bg-emerald-500 text-white flex items-center justify-center gap-1.5 text-caption h-8 px-3" title="Download Custom Filtered PDF">
+              <Download size={13} className="text-white" /> Filtered PDF
+            </button>
+          </div>
 
         </div>
 
@@ -792,11 +804,17 @@ export default function AnalyticsPage() {
 
             type="date"
 
+            max={new Date().toISOString().split('T')[0]}
+
             value={dateRange.start}
 
-            onChange={e => updateFilters(e.target.value, dateRange.end, workStart)}
+            onChange={e => {
+              const today = new Date().toISOString().split('T')[0];
+              const val = e.target.value > today ? today : e.target.value;
+              updateFilters(val, dateRange.end, workStart);
+            }}
 
-            className="h-8 px-3 rounded-md bg-[#010102] border border-[#23252A] text-caption text-ink focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none accent-emerald-500 w-full"
+            className="h-8 px-3 rounded-md bg-secondary/70 border border-border text-caption text-foreground focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none accent-emerald-500 w-full"
 
           />
 
@@ -810,11 +828,17 @@ export default function AnalyticsPage() {
 
             type="date"
 
+            max={new Date().toISOString().split('T')[0]}
+
             value={dateRange.end}
 
-            onChange={e => updateFilters(dateRange.start, e.target.value, workStart)}
+            onChange={e => {
+              const today = new Date().toISOString().split('T')[0];
+              const val = e.target.value > today ? today : e.target.value;
+              updateFilters(dateRange.start, val, workStart);
+            }}
 
-            className="h-8 px-3 rounded-md bg-[#010102] border border-[#23252A] text-caption text-ink focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none accent-emerald-500 w-full"
+            className="h-8 px-3 rounded-md bg-secondary/70 border border-border text-caption text-foreground focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none accent-emerald-500 w-full"
 
           />
 

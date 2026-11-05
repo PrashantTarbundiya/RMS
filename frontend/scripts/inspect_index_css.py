@@ -12,3 +12,4 @@ for i, l in enumerate(lines):
     if i > 250 and l.strip() == '}':
         print(f"Possible block close at line {i+1}")
         break
+

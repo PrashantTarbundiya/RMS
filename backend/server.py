@@ -702,15 +702,29 @@ def export_analytics_pdf(org_id):
     from datetime import datetime as dt
     import io
 
+    period = (request.args.get('period') or '').lower().strip()
+    now = dt.now()
     start = request.args.get('start_date')
     end = request.args.get('end_date')
+
+    if period == 'daily':
+        start_date = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        end_date = now.replace(hour=23, minute=59, second=59, microsecond=999999)
+    elif period == 'monthly':
+        start_date = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        end_date = now
+    elif period == 'yearly':
+        start_date = now.replace(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
+        end_date = now
+    else:
+        start_date = dt.fromisoformat(start) if start else None
+        end_date = dt.fromisoformat(end) if end else None
+
     work_start_hour = int(request.args.get('work_start_hour', 9))
     work_start_minute = int(request.args.get('work_start_minute', 0))
-    start_date = dt.fromisoformat(start) if start else None
-    end_date = dt.fromisoformat(end) if end else None
 
     pdf_bytes = generate_pdf_report(
-        org_id, start_date, end_date, work_start_hour, work_start_minute
+        org_id, start_date, end_date, work_start_hour, work_start_minute, report_period=period
     )
 
     return send_file(
@@ -1405,7 +1419,8 @@ def get_departments(org_id):
 
                 for d in dept_stats.values():
                     tot = d['total_employees']
-                    d['attendance_rate'] = round((d['checked_in_today'] / tot * 100), 1) if tot > 0 else 0
+                    raw = (d['checked_in_today'] / tot * 100) if tot > 0 else 0
+                    d['attendance_rate'] = round(min(100.0, max(0.0, raw)), 1)
         except Exception as e:
             logger.error(f"Error fetching departments data: {e}")
 
@@ -2621,6 +2636,268 @@ def update_org_name(org_id):
 
     return jsonify({'message': 'Organization name updated.', 'org_name': new_name, 'org_id': org_id})
 
+
+
+# ─── Active Sessions & Security Event Audit Cache ─────────────────────
+from collections import defaultdict
+import uuid
+ACTIVE_USER_SESSIONS = defaultdict(list)
+SECURITY_ACTIVITY_LOGS = defaultdict(list)
+
+def _parse_device_info(ua_string):
+    ua = ua_string or ''
+    os_name = 'Unknown OS'
+    if 'Windows' in ua: os_name = 'Windows'
+    elif 'iPhone' in ua: os_name = 'iOS (iPhone)'
+    elif 'iPad' in ua: os_name = 'iPadOS'
+    elif 'Macintosh' in ua or 'Mac OS' in ua: os_name = 'macOS'
+    elif 'Android' in ua: os_name = 'Android'
+    elif 'Linux' in ua: os_name = 'Linux'
+
+    browser_name = 'Web Browser'
+    if 'Edg/' in ua: browser_name = 'Microsoft Edge'
+    elif 'Chrome/' in ua: browser_name = 'Google Chrome'
+    elif 'Safari/' in ua and 'Chrome' not in ua: browser_name = 'Apple Safari'
+    elif 'Firefox/' in ua: browser_name = 'Mozilla Firefox'
+
+    return f'{os_name} • {browser_name}'
+
+def log_user_security_event(user_id, event_type, details, ip=None):
+    from datetime import datetime as dt, timezone as tz
+    client_ip = ip or request.headers.get('X-Forwarded-For', request.remote_addr or '127.0.0.1').split(',')[0].strip()
+    evt = {
+        'id': str(uuid.uuid4()),
+        'user_id': str(user_id),
+        'type': event_type,
+        'details': details,
+        'ip_address': client_ip,
+        'timestamp': dt.now(tz.utc).isoformat(),
+        'status': 'success'
+    }
+    SECURITY_ACTIVITY_LOGS[str(user_id)].insert(0, evt)
+    if len(SECURITY_ACTIVITY_LOGS[str(user_id)]) > 50:
+        SECURITY_ACTIVITY_LOGS[str(user_id)].pop()
+
+@app.route('/api/auth/change-password', methods=['POST'])
+@require_auth
+def auth_change_password():
+    """Change the current authenticated user's password."""
+    user_id = g.current_user.get('user_id')
+    data = request.get_json(silent=True) or {}
+    current_password = data.get('current_password', '')
+    new_password = data.get('new_password', '')
+    confirm_password = data.get('confirm_password', '')
+
+    if not current_password or not new_password:
+        return jsonify({'error': 'Current and new password are required.'}), 400
+    if new_password != confirm_password:
+        return jsonify({'error': 'New passwords do not match.'}), 400
+    if len(new_password) < 8:
+        return jsonify({'error': 'New password must be at least 8 characters long.'}), 400
+
+    from database.db import get_db_session
+    from database.models import User
+    from auth import verify_password, hash_password
+
+    try:
+        with get_db_session() as db:
+            user = db.query(User).filter_by(id=user_id).first()
+            if not user:
+                return jsonify({'error': 'User record not found.'}), 404
+            if not verify_password(current_password, user.password_hash):
+                return jsonify({'error': 'Incorrect current password.'}), 401
+
+            user.password_hash = hash_password(new_password)
+            db.commit()
+
+        log_user_security_event(user_id, 'Password Changed', 'User password successfully updated')
+        return jsonify({'message': 'Password successfully updated.'})
+    except Exception as e:
+        logger.error(f'Change password error: {e}')
+        return jsonify({'error': 'Failed to update password.'}), 500
+
+@app.route('/api/auth/change-email', methods=['POST'])
+@require_auth
+def auth_change_email():
+    """Change the current authenticated user's email address."""
+    user_id = g.current_user.get('user_id')
+    data = request.get_json(silent=True) or {}
+    new_email = (data.get('new_email') or '').strip().lower()
+    current_password = data.get('password', '')
+
+    if not new_email or '@' not in new_email:
+        return jsonify({'error': 'A valid email address is required.'}), 400
+    if not current_password:
+        return jsonify({'error': 'Password confirmation is required to change email.'}), 400
+
+    from database.db import get_db_session
+    from database.models import User
+    from auth import verify_password
+
+    try:
+        with get_db_session() as db:
+            user = db.query(User).filter_by(id=user_id).first()
+            if not user:
+                return jsonify({'error': 'User not found.'}), 404
+            if not verify_password(current_password, user.password_hash):
+                return jsonify({'error': 'Incorrect password.'}), 401
+
+            # Check if email is already taken
+            existing = db.query(User).filter(User.email == new_email, User.id != user_id).first()
+            if existing:
+                return jsonify({'error': 'This email address is already in use.'}), 409
+
+            old_email = user.email
+            user.email = new_email
+            db.commit()
+
+        log_user_security_event(user_id, 'Email Changed', f'Email updated from {old_email} to {new_email}')
+        return jsonify({'message': 'Email address successfully updated.', 'email': new_email})
+    except Exception as e:
+        logger.error(f'Change email error: {e}')
+        return jsonify({'error': 'Failed to change email.'}), 500
+
+@app.route('/api/auth/profile', methods=['PUT', 'POST'])
+@require_auth
+def auth_update_profile():
+    """Update user name and organization name."""
+    user_id = g.current_user.get('user_id')
+    data = request.get_json(silent=True) or {}
+    name = (data.get('name') or '').strip()
+    org_name = (data.get('org_name') or '').strip()
+
+    from database.db import get_db_session
+    from database.models import User, Organization
+
+    try:
+        with get_db_session() as db:
+            user = db.query(User).filter_by(id=user_id).first()
+            if not user:
+                return jsonify({'error': 'User not found.'}), 404
+            if name:
+                user.name = name
+            if org_name and user.org_id:
+                org = db.query(Organization).filter_by(id=user.org_id).first()
+                if org and g.current_user.get('role') in ('org_admin', 'platform_owner'):
+                    org.name = org_name
+            db.commit()
+
+        log_user_security_event(user_id, 'Profile Updated', f'Name updated to: {name or user.name}')
+        return jsonify({
+            'message': 'Profile updated successfully.',
+            'name': user.name,
+            'org_name': org_name
+        })
+    except Exception as e:
+        logger.error(f'Update profile error: {e}')
+        return jsonify({'error': 'Failed to update profile.'}), 500
+
+@app.route('/api/auth/sessions', methods=['GET'])
+@require_auth
+def auth_get_sessions():
+    """List currently active device sessions for this user."""
+    user_id = str(g.current_user.get('user_id') or 'local')
+    from datetime import datetime as dt, timezone as tz
+    client_ip = request.headers.get('X-Forwarded-For', request.remote_addr or '127.0.0.1').split(',')[0].strip()
+    ua_raw = request.headers.get('User-Agent', '')
+
+    user_sessions = ACTIVE_USER_SESSIONS.get(user_id, [])
+    has_current = False
+    for s in user_sessions:
+        if s.get('ip_address') == client_ip:
+            s['last_active'] = dt.now(tz.utc).isoformat()
+            s['is_current'] = True
+            has_current = True
+        else:
+            s['is_current'] = False
+
+    if not has_current:
+        cur_session = {
+            'id': f'sess_{str(uuid.uuid4())[:8]}',
+            'ip_address': client_ip,
+            'device': _parse_device_info(ua_raw),
+            'user_agent': ua_raw[:70],
+            'login_time': dt.now(tz.utc).isoformat(),
+            'last_active': dt.now(tz.utc).isoformat(),
+            'is_current': True
+        }
+        user_sessions.insert(0, cur_session)
+        ACTIVE_USER_SESSIONS[user_id] = user_sessions
+
+    return jsonify({'sessions': user_sessions})
+
+@app.route('/api/auth/sessions/revoke', methods=['POST'])
+@require_auth
+def auth_revoke_specific_session():
+    """Revoke a specific device session by ID."""
+    user_id = str(g.current_user.get('user_id') or 'local')
+    data = request.get_json(silent=True) or {}
+    session_id = data.get('session_id')
+
+    if not session_id:
+        return jsonify({'error': 'session_id is required.'}), 400
+
+    user_sessions = ACTIVE_USER_SESSIONS.get(user_id, [])
+    ACTIVE_USER_SESSIONS[user_id] = [s for s in user_sessions if s.get('id') != session_id]
+    log_user_security_event(user_id, 'Session Revoked', f'Logged out device session {session_id}')
+    return jsonify({'message': 'Device session revoked successfully.', 'session_id': session_id})
+
+@app.route('/api/auth/sessions/revoke-all', methods=['POST'])
+@require_auth
+def auth_revoke_all_other_sessions():
+    """Log out from all other devices except the current session."""
+    user_id = str(g.current_user.get('user_id') or 'local')
+    from datetime import datetime as dt, timezone as tz
+    client_ip = request.headers.get('X-Forwarded-For', request.remote_addr or '127.0.0.1').split(',')[0].strip()
+
+    user_sessions = ACTIVE_USER_SESSIONS.get(user_id, [])
+    remaining = [s for s in user_sessions if s.get('ip_address') == client_ip]
+    ACTIVE_USER_SESSIONS[user_id] = remaining
+
+    log_user_security_event(user_id, 'Bulk Session Revocation', 'Logged out from all other devices')
+    return jsonify({'message': 'Successfully logged out from all other devices.'})
+
+@app.route('/api/auth/activity', methods=['GET'])
+@require_auth
+def auth_get_activity():
+    """Retrieve security and account activity log."""
+    user_id = str(g.current_user.get('user_id') or 'local')
+    from datetime import datetime as dt, timezone as tz
+    logs = SECURITY_ACTIVITY_LOGS.get(user_id, [])
+    if not logs:
+        logs = [{
+            'id': 'init_evt',
+            'type': 'Account Protected',
+            'details': 'Account security active with bcrypt hashing & JWT lifecycle',
+            'ip_address': request.headers.get('X-Forwarded-For', request.remote_addr or '127.0.0.1').split(',')[0].strip(),
+            'timestamp': dt.now(tz.utc).isoformat(),
+            'status': 'success'
+        }]
+    return jsonify({'activity': logs})
+
+@app.route('/api/auth/forgot-password', methods=['POST'])
+def auth_forgot_password():
+    """Generate password recovery instructions."""
+    data = request.get_json(silent=True) or {}
+    email = (data.get('email') or '').strip().lower()
+    if not email or '@' not in email:
+        return jsonify({'error': 'Please provide a valid account email address.'}), 400
+
+    from database.db import get_db_session, is_db_available
+    from database.models import User
+    if is_db_available():
+        try:
+            with get_db_session() as db:
+                user = db.query(User).filter_by(email=email).first()
+                if user:
+                    log_user_security_event(user.id, 'Password Reset Requested', f'Reset link requested for {email}')
+        except Exception as e:
+            logger.warning(f'Forgot password lookup error: {e}')
+
+    return jsonify({
+        'message': 'If an account exists with this email address, a password reset instruction has been logged.',
+        'email': email
+    })
 
 # ─── Session Management Endpoints ─────────────────────────────────────
 

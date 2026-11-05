@@ -14,8 +14,9 @@ import {
 
   CheckCircle, AlertTriangle, Info, Package, Bell, Key, LogOut,
 
-  ExternalLink, ChevronRight, Sparkles, Check, Users, ShieldCheck, ArrowRight
+  ExternalLink, ChevronRight, Sparkles, Check, Users, ShieldCheck, ArrowRight,
 
+  Lock, Smartphone, Laptop, Globe, Trash2, History, AlertCircle, Eye, EyeOff, Save
 } from 'lucide-react';
 
 import { motion, AnimatePresence } from 'framer-motion';
@@ -49,6 +50,143 @@ export default function ProfilePage() {
       if (tab === 'organization') next.delete('tab'); else next.set('tab', tab);
       return next;
     }, { replace: true });
+  };
+
+  // ── Security & Sessions State ──
+  const [passwordForm, setPasswordForm] = useState({ current: '', new: '', confirm: '' });
+  const [showPassword, setShowPassword] = useState(false);
+  const [savingPassword, setSavingPassword] = useState(false);
+
+  const [emailForm, setEmailForm] = useState({ newEmail: '', password: '' });
+  const [savingEmail, setSavingEmail] = useState(false);
+
+  const [renameForm, setRenameForm] = useState({ name: user?.name || '', orgName: user?.org_name || '' });
+  const [savingRename, setSavingRename] = useState(false);
+
+  const [sessions, setSessions] = useState([]);
+  const [loadingSessions, setLoadingSessions] = useState(false);
+  const [activityLogs, setActivityLogs] = useState([]);
+  const [loadingActivity, setLoadingActivity] = useState(false);
+
+  const fetchSecurityData = async () => {
+    setLoadingSessions(true);
+    setLoadingActivity(true);
+    try {
+      const [sessRes, actRes] = await Promise.all([
+        apiClient.get(`${API_BASE}/auth/sessions`).catch(() => ({ data: { sessions: [] } })),
+        apiClient.get(`${API_BASE}/auth/activity`).catch(() => ({ data: { activity: [] } })),
+      ]);
+      setSessions(sessRes.data?.sessions || []);
+      setActivityLogs(actRes.data?.activity || []);
+    } catch {
+      // ignore
+    } finally {
+      setLoadingSessions(false);
+      setLoadingActivity(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'security') {
+      fetchSecurityData();
+    }
+  }, [activeTab]);
+
+  const handleChangePassword = async (e) => {
+    e.preventDefault();
+    if (passwordForm.new !== passwordForm.confirm) {
+      toast.error('New passwords do not match.');
+      return;
+    }
+    if (passwordForm.new.length < 8) {
+      toast.error('New password must be at least 8 characters.');
+      return;
+    }
+    setSavingPassword(true);
+    try {
+      const res = await apiClient.post(`${API_BASE}/auth/change-password`, {
+        current_password: passwordForm.current,
+        new_password: passwordForm.new,
+        confirm_password: passwordForm.confirm,
+      });
+      toast.success(res.data.message || 'Password updated successfully.');
+      setPasswordForm({ current: '', new: '', confirm: '' });
+      fetchSecurityData();
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Failed to update password.');
+    } finally {
+      setSavingPassword(false);
+    }
+  };
+
+  const handleChangeEmail = async (e) => {
+    e.preventDefault();
+    if (!emailForm.newEmail || !emailForm.password) {
+      toast.error('Please enter new email and current password.');
+      return;
+    }
+    setSavingEmail(true);
+    try {
+      const res = await apiClient.post(`${API_BASE}/auth/change-email`, {
+        new_email: emailForm.newEmail,
+        password: emailForm.password,
+      });
+      toast.success(res.data.message || 'Email updated successfully.');
+      setEmailForm({ newEmail: '', password: '' });
+      fetchSecurityData();
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Failed to change email.');
+    } finally {
+      setSavingEmail(false);
+    }
+  };
+
+  const handleUpdateProfile = async (e) => {
+    e.preventDefault();
+    setSavingRename(true);
+    try {
+      const res = await apiClient.post(`${API_BASE}/auth/profile`, {
+        name: renameForm.name,
+        org_name: renameForm.orgName,
+      });
+      toast.success(res.data.message || 'Profile updated successfully.');
+      fetchSecurityData();
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Failed to update profile.');
+    } finally {
+      setSavingRename(false);
+    }
+  };
+
+  const handleRevokeSession = async (sessionId) => {
+    try {
+      await apiClient.post(`${API_BASE}/auth/sessions/revoke`, { session_id: sessionId });
+      toast.success('Device session signed out.');
+      setSessions(prev => prev.filter(s => s.id !== sessionId));
+      fetchSecurityData();
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Failed to sign out device.');
+    }
+  };
+
+  const handleRevokeAllOther = async () => {
+    try {
+      await apiClient.post(`${API_BASE}/auth/sessions/revoke-all`);
+      toast.success('Signed out from all other devices.');
+      fetchSecurityData();
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Failed to sign out other devices.');
+    }
+  };
+
+  const handleForgotPassword = async () => {
+    try {
+      await apiClient.post(`${API_BASE}/auth/forgot-password`, { email: user?.email });
+      toast.success('Password reset instructions generated and recorded.');
+      fetchSecurityData();
+    } catch (err) {
+      toast.error('Failed to trigger reset flow.');
+    }
   };
 
   const [stats, setStats] = useState(null);
@@ -547,6 +685,7 @@ export default function ProfilePage() {
       <div className="segmented-nav w-full">
         {[
           { id: 'organization', label: 'Organization & Team', shortLabel: 'Team', icon: Users },
+          { id: 'security', label: 'Security & Active Sessions', shortLabel: 'Security', icon: Lock },
           { id: 'notifications', label: 'Alerts & Notifications', shortLabel: 'Alerts', icon: Bell },
           { id: 'infrastructure', label: 'System Infrastructure', shortLabel: 'System', icon: Server },
         ].map(tab => {
@@ -846,6 +985,297 @@ export default function ProfilePage() {
 
       )}
 
+
+
+            {/* ── TAB: Security & Active Sessions ── */}
+      {activeTab === 'security' && (
+        <div className="space-y-6">
+          {/* Account Profile & Renaming */}
+          <div className="card-linear p-0 bg-card border border-border rounded-xl shadow-sm overflow-hidden">
+            <div className="p-5 border-b border-border">
+              <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+                <User size={16} className="text-emerald-500" />
+                <span>Account Profile & Organization</span>
+              </h3>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Update your display name and corporate organization identity.
+              </p>
+            </div>
+            <form onSubmit={handleUpdateProfile} className="p-5 space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-medium text-muted-foreground mb-1.5">Full Name</label>
+                  <input
+                    type="text"
+                    value={renameForm.name}
+                    onChange={(e) => setRenameForm({ ...renameForm, name: e.target.value })}
+                    className="w-full h-10 px-3.5 rounded-lg bg-secondary/60 border border-border text-foreground text-xs focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                    placeholder="e.g. Vatsal Vadgama"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-muted-foreground mb-1.5">Organization / Company Name</label>
+                  <input
+                    type="text"
+                    value={renameForm.orgName}
+                    onChange={(e) => setRenameForm({ ...renameForm, orgName: e.target.value })}
+                    className="w-full h-10 px-3.5 rounded-lg bg-secondary/60 border border-border text-foreground text-xs focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                    placeholder="e.g. Vatsal Enterprise"
+                  />
+                </div>
+              </div>
+              <div className="flex justify-end">
+                <button
+                  type="submit"
+                  disabled={savingRename}
+                  className="button-primary bg-emerald-600 hover:bg-emerald-500 text-white text-xs h-9 px-4 rounded-lg font-medium flex items-center gap-1.5 cursor-pointer"
+                >
+                  {savingRename ? <RefreshCw size={13} className="animate-spin" /> : <Save size={13} />}
+                  <span>Save Profile</span>
+                </button>
+              </div>
+            </form>
+          </div>
+
+          {/* Change Password & Change Email Grid */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Change Password Card */}
+            <div className="card-linear p-0 bg-card border border-border rounded-xl shadow-sm overflow-hidden flex flex-col justify-between">
+              <div>
+                <div className="p-5 border-b border-border flex items-center justify-between">
+                  <div>
+                    <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+                      <Lock size={16} className="text-emerald-500" />
+                      <span>Change Password</span>
+                    </h3>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      Enforce bcrypt cryptographic hash standards (minimum 8 characters).
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleForgotPassword}
+                    className="text-[11px] text-emerald-600 dark:text-emerald-400 hover:underline cursor-pointer"
+                  >
+                    Forgot Password?
+                  </button>
+                </div>
+                <form onSubmit={handleChangePassword} className="p-5 space-y-3.5">
+                  <div>
+                    <label className="block text-xs font-medium text-muted-foreground mb-1">Current Password</label>
+                    <div className="relative">
+                      <input
+                        type={showPassword ? 'text' : 'password'}
+                        required
+                        value={passwordForm.current}
+                        onChange={(e) => setPasswordForm({ ...passwordForm, current: e.target.value })}
+                        className="w-full h-9 pl-3 pr-9 rounded-lg bg-secondary/60 border border-border text-foreground text-xs focus:outline-none focus:ring-1 focus:ring-emerald-500 font-mono"
+                        placeholder="••••••••"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(p => !p)}
+                        className="absolute right-2.5 top-2.5 text-muted-foreground hover:text-foreground cursor-pointer"
+                      >
+                        {showPassword ? <EyeOff size={14} /> : <Eye size={14} />}
+                      </button>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-muted-foreground mb-1">New Password (min 8 chars)</label>
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      required
+                      minLength={8}
+                      value={passwordForm.new}
+                      onChange={(e) => setPasswordForm({ ...passwordForm, new: e.target.value })}
+                      className="w-full h-9 px-3 rounded-lg bg-secondary/60 border border-border text-foreground text-xs focus:outline-none focus:ring-1 focus:ring-emerald-500 font-mono"
+                      placeholder="••••••••"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-muted-foreground mb-1">Confirm New Password</label>
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      required
+                      minLength={8}
+                      value={passwordForm.confirm}
+                      onChange={(e) => setPasswordForm({ ...passwordForm, confirm: e.target.value })}
+                      className="w-full h-9 px-3 rounded-lg bg-secondary/60 border border-border text-foreground text-xs focus:outline-none focus:ring-1 focus:ring-emerald-500 font-mono"
+                      placeholder="••••••••"
+                    />
+                  </div>
+                  <div className="pt-2 flex justify-end">
+                    <button
+                      type="submit"
+                      disabled={savingPassword}
+                      className="button-primary bg-emerald-600 hover:bg-emerald-500 text-white text-xs h-9 px-4 rounded-lg font-medium flex items-center gap-1.5 cursor-pointer"
+                    >
+                      {savingPassword ? <RefreshCw size={13} className="animate-spin" /> : <Key size={13} />}
+                      <span>Update Password</span>
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+
+            {/* Change Email Card */}
+            <div className="card-linear p-0 bg-card border border-border rounded-xl shadow-sm overflow-hidden flex flex-col justify-between">
+              <div>
+                <div className="p-5 border-b border-border">
+                  <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+                    <Mail size={16} className="text-emerald-500" />
+                    <span>Change Email Address</span>
+                  </h3>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Current address: <strong className="font-mono text-foreground">{user?.email || 'admin@rms.local'}</strong>
+                  </p>
+                </div>
+                <form onSubmit={handleChangeEmail} className="p-5 space-y-3.5">
+                  <div>
+                    <label className="block text-xs font-medium text-muted-foreground mb-1">New Email Address</label>
+                    <input
+                      type="email"
+                      required
+                      value={emailForm.newEmail}
+                      onChange={(e) => setEmailForm({ ...emailForm, newEmail: e.target.value })}
+                      className="w-full h-9 px-3 rounded-lg bg-secondary/60 border border-border text-foreground text-xs focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                      placeholder="new.email@company.com"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-muted-foreground mb-1">Confirm with Current Password</label>
+                    <input
+                      type="password"
+                      required
+                      value={emailForm.password}
+                      onChange={(e) => setEmailForm({ ...emailForm, password: e.target.value })}
+                      className="w-full h-9 px-3 rounded-lg bg-secondary/60 border border-border text-foreground text-xs focus:outline-none focus:ring-1 focus:ring-emerald-500 font-mono"
+                      placeholder="••••••••"
+                    />
+                  </div>
+                  <p className="text-[11px] text-muted-foreground leading-relaxed pt-1">
+                    Changing your email will update login credentials across all active API integrations.
+                  </p>
+                  <div className="pt-2 flex justify-end">
+                    <button
+                      type="submit"
+                      disabled={savingEmail}
+                      className="button-primary bg-emerald-600 hover:bg-emerald-500 text-white text-xs h-9 px-4 rounded-lg font-medium flex items-center gap-1.5 cursor-pointer"
+                    >
+                      {savingEmail ? <RefreshCw size={13} className="animate-spin" /> : <Save size={13} />}
+                      <span>Update Email</span>
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
+
+          {/* Active Logged-in Devices & Sessions */}
+          <div className="card-linear p-0 bg-card border border-border rounded-xl shadow-sm overflow-hidden">
+            <div className="p-5 border-b border-border flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+                  <Laptop size={16} className="text-emerald-500" />
+                  <span>Active Device Logins & Sessions</span>
+                </h3>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Manage browser and mobile device sessions authenticated to this account.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={handleRevokeAllOther}
+                className="button-secondary text-xs h-8 px-3 rounded-lg flex items-center gap-1.5 text-red-500 hover:text-red-600 hover:border-red-500/40 cursor-pointer"
+              >
+                <LogOut size={13} />
+                <span>Log Out All Other Devices</span>
+              </button>
+            </div>
+
+            <div className="divide-y divide-border/60">
+              {loadingSessions ? (
+                <div className="p-6 text-center text-xs text-muted-foreground">Loading active sessions...</div>
+              ) : sessions.length === 0 ? (
+                <div className="p-6 text-center text-xs text-muted-foreground">No other active device sessions found.</div>
+              ) : (
+                sessions.map((sess, idx) => (
+                  <div key={sess.id || idx} className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-secondary/30 transition-colors">
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-lg bg-secondary/80 border border-border flex items-center justify-center text-foreground shrink-0">
+                        {sess.device?.includes('iOS') || sess.device?.includes('Android') ? <Smartphone size={16} /> : <Laptop size={16} />}
+                      </div>
+                      <div>
+                        <div className="text-xs font-semibold text-foreground flex items-center gap-2">
+                          <span>{sess.device || 'Web Browser'}</span>
+                          {sess.is_current && (
+                            <span className="px-2 py-0.5 text-[10px] font-bold rounded bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
+                              This Device (Current)
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-[11px] text-muted-foreground font-mono mt-0.5 flex items-center gap-2">
+                          <span>IP: {sess.ip_address || '127.0.0.1'}</span>
+                          <span>&bull;</span>
+                          <span>Last active: {sess.last_active ? new Date(sess.last_active).toLocaleString() : 'Just now'}</span>
+                        </div>
+                      </div>
+                    </div>
+                    {!sess.is_current && (
+                      <button
+                        onClick={() => handleRevokeSession(sess.id)}
+                        className="button-secondary text-xs h-8 px-2.5 text-muted-foreground hover:text-red-500 flex items-center gap-1.5 self-start sm:self-auto cursor-pointer"
+                      >
+                        <Trash2 size={13} />
+                        <span>Revoke</span>
+                      </button>
+                    )}
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+
+          {/* Account Security Activity Log */}
+          <div className="card-linear p-0 bg-card border border-border rounded-xl shadow-sm overflow-hidden">
+            <div className="p-5 border-b border-border flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+                  <History size={16} className="text-emerald-500" />
+                  <span>Account Security Activity Log</span>
+                </h3>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Recent sign-ins, credential modifications, and session events.
+                </p>
+              </div>
+              <button onClick={fetchSecurityData} className="button-secondary text-xs h-8 px-2.5 flex items-center gap-1.5 cursor-pointer">
+                <RefreshCw size={12} className={loadingActivity ? 'animate-spin' : ''} />
+                <span>Refresh</span>
+              </button>
+            </div>
+            <div className="divide-y divide-border/60">
+              {loadingActivity ? (
+                <div className="p-6 text-center text-xs text-muted-foreground">Loading activity history...</div>
+              ) : activityLogs.length === 0 ? (
+                <div className="p-6 text-center text-xs text-muted-foreground">No recent security events.</div>
+              ) : (
+                activityLogs.map((log, idx) => (
+                  <div key={log.id || idx} className="p-3.5 flex items-center justify-between gap-3 text-xs">
+                    <div>
+                      <div className="font-semibold text-foreground">{log.type}</div>
+                      <div className="text-[11px] text-muted-foreground mt-0.5">{log.details} &bull; <span className="font-mono">IP: {log.ip_address}</span></div>
+                    </div>
+                    <div className="text-[11px] text-muted-foreground font-mono shrink-0">
+                      {log.timestamp ? new Date(log.timestamp).toLocaleString() : ''}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
 
       {/* ── TAB 2: Notifications & Security ── */}

@@ -3,7 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { API_BASE } from '../config';
 import { io } from 'socket.io-client';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Shield, ShieldCheck, ShieldAlert, ShieldX, Scan, Wifi, WifiOff, Clock, ChevronLeft, Settings, Maximize, Minimize, Eye, Volume2, Users, RotateCw, AlertTriangle, Sliders } from 'lucide-react';
+import { Shield, ShieldCheck, ShieldAlert, ShieldX, Scan, Wifi, WifiOff, Clock, ChevronLeft, Settings, Maximize, Minimize, Eye, Volume2, Users, RotateCw, AlertTriangle, Sliders, FlipHorizontal } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { formatPersonName } from '../utils/format';
 
@@ -45,6 +45,10 @@ export default function KioskPage() {
   const [isPaused, setIsPaused] = useState(false);
   const [facesDetected, setFacesDetected] = useState(0);
   const [facingMode, setFacingMode] = useState('user');
+  const [isMirrored, setIsMirrored] = useState(() => {
+    const saved = localStorage.getItem('rms_cam_mirrored');
+    return saved !== null ? saved === 'true' : true;
+  });
 
   // Toggle real confidence score (Default: false per enterprise privacy standard)
   const [showConfidence, setShowConfidence] = useState(() => {
@@ -143,6 +147,10 @@ export default function KioskPage() {
         }
         return;
       }
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(t => t.stop());
+        streamRef.current = null;
+      }
       let stream;
       try {
         stream = await navigator.mediaDevices.getUserMedia({
@@ -151,9 +159,6 @@ export default function KioskPage() {
       } catch (constraintErr) {
         console.warn('Kiosk ideal constraints failed, falling back to video: true', constraintErr);
         stream = await navigator.mediaDevices.getUserMedia({ video: true });
-      }
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach(t => t.stop());
       }
       streamRef.current = stream;
       if (videoRef.current) {
@@ -175,6 +180,9 @@ export default function KioskPage() {
   const toggleCameraFacingMode = useCallback(async () => {
     const nextFacing = facingMode === 'user' ? 'environment' : 'user';
     setFacingMode(nextFacing);
+    const newMirror = nextFacing === 'user';
+    setIsMirrored(newMirror);
+    localStorage.setItem('rms_cam_mirrored', String(newMirror));
     await startWebcam(nextFacing);
   }, [facingMode, startWebcam]);
 
@@ -325,6 +333,26 @@ export default function KioskPage() {
     const currentCandidate = (!isUncertain && ensemble.is_confirmed) ? ensemble.label : null;
     const cleanName = currentCandidate ? formatPersonName(currentCandidate) : '';
     const targetThresh = kioskThresholdRef.current || 70;
+
+    // Rule 0: Intentional Tap-to-Punch Mode (Single Tap Immediate Verification)
+    if (triggerModeRef.current === 'tap' && currentCandidate && confScore >= targetThresh) {
+      candidateBufferRef.current = { candidate: null, hits: 0, firstSeen: 0 };
+      setStatus(STATUS.GRANTED);
+      setRecognizedName(cleanName);
+      setConfidence(confScore);
+      setConsecutiveUnknowns(0);
+      recordAttendance(cleanName, confScore);
+
+      if (resultTimerRef.current) clearTimeout(resultTimerRef.current);
+      resultTimerRef.current = setTimeout(() => {
+        setStatus(STATUS.IDLE);
+        setRecognizedName('');
+        setConfidence(0);
+        setAttendanceEvent(null);
+        isRequestInFlightRef.current = false;
+      }, RESULT_DISPLAY_MS);
+      return;
+    }
 
     // Rule 1: Ultra-high confidence (>= 90%) → Instant Confirmed Access
     if (currentCandidate && confScore >= 90) {
@@ -755,6 +783,18 @@ export default function KioskPage() {
             <Sliders size={15} />
           </button>
           <button 
+            onClick={() => {
+              const next = !isMirrored;
+              setIsMirrored(next);
+              localStorage.setItem('rms_cam_mirrored', String(next));
+            }} 
+            className={`kiosk-icon-btn ${isMirrored ? 'text-emerald-400 border-emerald-500/40 bg-emerald-500/10' : 'text-ink-tertiary'}`} 
+            title={`Mirror Orientation: ${isMirrored ? 'Mirrored (Left/Right Inverted)' : 'Natural (True Direction)'} - Click to toggle`}
+            aria-label="Toggle Mirror View"
+          >
+            <FlipHorizontal size={16} />
+          </button>
+          <button 
             onClick={toggleCameraFacingMode} 
             className="kiosk-icon-btn" 
             title={`Switch Camera (Current: ${facingMode === 'user' ? 'Front' : 'Back'})`}
@@ -904,6 +944,7 @@ export default function KioskPage() {
                 autoPlay
                 playsInline
                 muted
+                style={{ transform: isMirrored ? 'scaleX(-1)' : 'scaleX(1)' }}
                 className="kiosk-video"
               />
             )}

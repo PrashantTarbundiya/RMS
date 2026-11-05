@@ -11,3 +11,4 @@ with open('frontend/src/pages/DashboardPage.jsx', 'w', encoding='utf-8') as f:
     f.write(text)
 
 print("DashboardPage.jsx updated successfully!")
+

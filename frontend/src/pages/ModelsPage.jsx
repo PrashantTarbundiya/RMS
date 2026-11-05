@@ -210,11 +210,11 @@ export default function ModelsPage() {
       {/* ── Executive Header ── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-white tracking-tight flex items-center gap-2.5">
+          <h1 className="text-xl sm:text-2xl font-bold text-foreground tracking-tight flex items-center gap-2.5">
             <SettingsIcon className="w-6 h-6 text-emerald-400" />
             <span>Platform & Recognition Settings</span>
           </h1>
-          <p className="mt-1 text-xs sm:text-sm text-zinc-400">
+          <p className="mt-1 text-xs sm:text-sm text-muted-foreground">
             Configure facial recognition backbones, confidence thresholds, offline exports, and data snapshots.
           </p>
         </div>
@@ -249,58 +249,58 @@ export default function ModelsPage() {
         <div className="space-y-6">
           {/* Active Model Backbones Card */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="card-linear p-5 bg-[#0F1011] border-[#23252A] space-y-3">
+            <div className="card-linear p-5 bg-card border-border space-y-3">
               <div className="flex items-center gap-3.5">
                 <div className="w-11 h-11 rounded-xl bg-emerald-500/10 border border-emerald-500/25 flex items-center justify-center text-emerald-400">
                   <Cpu size={20} />
                 </div>
                 <div>
-                  <h3 className="text-sm font-semibold text-white">GhostFaceNet / Facenet512</h3>
+                  <h3 className="text-sm font-semibold text-foreground">GhostFaceNet / Facenet512</h3>
                   <div className="flex items-center gap-1.5 text-xs text-emerald-400 font-mono mt-0.5">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
                     <span>Primary Authoritative Engine</span>
                   </div>
                 </div>
               </div>
-              <p className="text-xs text-zinc-400 leading-relaxed">
+              <p className="text-xs text-muted-foreground leading-relaxed">
                 512-dimensional Euclidean metric vector embeddings. Primary authoritative backbone for instant, touchless kiosk identity verification.
               </p>
             </div>
 
-            <div className="card-linear p-5 bg-[#0F1011] border-[#23252A] space-y-3">
+            <div className="card-linear p-5 bg-card border-border space-y-3">
               <div className="flex items-center gap-3.5">
-                <div className="w-11 h-11 rounded-xl bg-indigo-500/10 border border-indigo-500/25 flex items-center justify-center text-indigo-400">
+                <div className="w-11 h-11 rounded-xl bg-secondary border border-border flex items-center justify-center text-emerald-500 dark:text-emerald-400">
                   <Layers size={20} />
                 </div>
                 <div>
-                  <h3 className="text-sm font-semibold text-white">InsightFace ArcFace</h3>
-                  <div className="flex items-center gap-1.5 text-xs text-indigo-400 font-mono mt-0.5">
-                    <span className="w-1.5 h-1.5 rounded-full bg-indigo-400" />
+                  <h3 className="text-sm font-semibold text-foreground">InsightFace ArcFace</h3>
+                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-mono mt-0.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground" />
                     <span>Multi-Angle Secondary Verifier</span>
                   </div>
                 </div>
               </div>
-              <p className="text-xs text-zinc-400 leading-relaxed">
+              <p className="text-xs text-muted-foreground leading-relaxed">
                 ONNX-accelerated secondary confirmation engine. Provides angular pose invariance (profile & tilted angle scans) to prevent false rejections.
               </p>
             </div>
           </div>
 
           {/* Configuration Controls Card */}
-          <div className="card-linear p-0 bg-[#0F1011] border-[#23252A] overflow-hidden">
-            <div className="p-5 border-b border-[#23252A]">
-              <h3 className="text-sm font-semibold text-white">Recognition & Gate Controls</h3>
-              <p className="text-xs text-zinc-400 mt-0.5">Configure live inference parameters and confidence scoring.</p>
+          <div className="card-linear p-0 bg-card border-border overflow-hidden">
+            <div className="p-5 border-b border-border">
+              <h3 className="text-sm font-semibold text-foreground">Recognition & Gate Controls</h3>
+              <p className="text-xs text-muted-foreground mt-0.5">Configure live inference parameters and confidence scoring.</p>
             </div>
 
             <div className="p-5 space-y-4">
               {/* Facenet512 Toggle */}
-              <div className="flex items-center justify-between p-4 bg-[#0A0B0D] border border-[#23252A] rounded-xl">
+              <div className="flex items-center justify-between p-4 bg-secondary/50 border border-border rounded-xl">
                 <div>
-                  <label htmlFor="facenet512-toggle" className="text-xs sm:text-sm font-medium text-white cursor-pointer block">
+                  <label htmlFor="facenet512-toggle" className="text-xs sm:text-sm font-medium text-foreground cursor-pointer block">
                     Facenet512 Primary Recognition
                   </label>
-                  <p className="text-[11px] text-zinc-400 mt-0.5">
+                  <p className="text-[11px] text-muted-foreground mt-0.5">
                     High-accuracy 512-d metric vector classification for all attendance scans.
                   </p>
                 </div>
@@ -317,12 +317,12 @@ export default function ModelsPage() {
               </div>
 
               {/* InsightFace Toggle */}
-              <div className="flex items-center justify-between p-4 bg-[#0A0B0D] border border-[#23252A] rounded-xl">
+              <div className="flex items-center justify-between p-4 bg-secondary/50 border border-border rounded-xl">
                 <div>
-                  <label htmlFor="insightface-toggle" className="text-xs sm:text-sm font-medium text-white cursor-pointer block">
+                  <label htmlFor="insightface-toggle" className="text-xs sm:text-sm font-medium text-foreground cursor-pointer block">
                     InsightFace ArcFace Auxiliary Gate
                   </label>
-                  <p className="text-[11px] text-zinc-400 mt-0.5">
+                  <p className="text-[11px] text-muted-foreground mt-0.5">
                     Multi-angle pose confirmation verifier for challenging camera perspectives.
                   </p>
                 </div>
@@ -339,12 +339,12 @@ export default function ModelsPage() {
               </div>
 
               {/* Show Confidence Scores Toggle */}
-              <div className="flex items-center justify-between p-4 bg-[#0A0B0D] border border-[#23252A] rounded-xl">
+              <div className="flex items-center justify-between p-4 bg-secondary/50 border border-border rounded-xl">
                 <div>
-                  <label htmlFor="confidence-toggle" className="text-xs sm:text-sm font-medium text-white cursor-pointer block">
+                  <label htmlFor="confidence-toggle" className="text-xs sm:text-sm font-medium text-foreground cursor-pointer block">
                     Display Confidence Percentages
                   </label>
-                  <p className="text-[11px] text-zinc-400 mt-0.5">
+                  <p className="text-[11px] text-muted-foreground mt-0.5">
                     Show exact AI match confidence percentages (e.g., 94.2%) on live monitors and kiosks.
                   </p>
                 </div>
@@ -361,11 +361,11 @@ export default function ModelsPage() {
               </div>
 
               {/* Confirmation Threshold Slider */}
-              <div className="p-5 rounded-xl bg-[#0A0B0D] border border-[#23252A] space-y-4">
+              <div className="p-5 rounded-xl bg-secondary/50 border border-border space-y-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h4 className="text-xs sm:text-sm font-medium text-white">Recognition Confirmation Threshold</h4>
-                    <p className="text-[11px] text-zinc-400 mt-0.5">
+                    <h4 className="text-xs sm:text-sm font-medium text-foreground">Recognition Confirmation Threshold</h4>
+                    <p className="text-[11px] text-muted-foreground mt-0.5">
                       Controls cosine distance cutoff. Stricter thresholds eliminate false positives; balanced values optimize user throughput.
                     </p>
                   </div>
@@ -375,7 +375,7 @@ export default function ModelsPage() {
                 </div>
 
                 <div className="flex items-center gap-4 pt-2">
-                  <span className="text-[11px] text-zinc-400 font-mono">0.15 (Strict - Zero False Positives)</span>
+                  <span className="text-[11px] text-muted-foreground font-mono">0.15 (Strict - Zero False Positives)</span>
                   <input
                     type="range"
                     min="0.15"
@@ -383,9 +383,9 @@ export default function ModelsPage() {
                     step="0.01"
                     value={threshold}
                     onChange={(e) => setThreshold(parseFloat(e.target.value))}
-                    className="flex-1 accent-emerald-500 h-2 bg-[#18191C] rounded-lg appearance-none cursor-pointer"
+                    className="flex-1 accent-emerald-500 h-2 bg-secondary rounded-lg appearance-none cursor-pointer"
                   />
-                  <span className="text-[11px] text-zinc-400 font-mono">0.50 (Permissive)</span>
+                  <span className="text-[11px] text-muted-foreground font-mono">0.50 (Permissive)</span>
                 </div>
 
                 <div className="pt-2 flex justify-end">
@@ -406,14 +406,14 @@ export default function ModelsPage() {
 
       {/* ── TAB 2: Edge Models & Artifacts ── */}
       {activeTab === 'exports' && (
-        <div className="card-linear p-0 bg-[#0F1011] border-[#23252A] overflow-hidden">
-          <div className="p-5 border-b border-[#23252A] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="card-linear p-0 bg-card border-border overflow-hidden">
+          <div className="p-5 border-b border-border flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
-              <h3 className="text-sm font-semibold text-white flex items-center gap-2">
+              <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
                 <HardDrive size={16} className="text-emerald-400" />
                 <span>Edge & Offline Model Exports</span>
               </h3>
-              <p className="text-xs text-zinc-400 mt-0.5">
+              <p className="text-xs text-muted-foreground mt-0.5">
                 Download neural network weights, vector indices, and ONNX models for Raspberry Pi 4/5, Jetson, or air-gapped attendance hardware.
               </p>
             </div>
@@ -437,17 +437,17 @@ export default function ModelsPage() {
               return (
                 <div
                   key={idx}
-                  className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 bg-[#0A0B0D] rounded-xl border border-[#23252A] hover:border-[#34343A] transition-all"
+                  className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 bg-secondary/50 rounded-xl border border-border hover:border-foreground/30 transition-all"
                 >
                   <div className="space-y-1">
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className="text-xs sm:text-sm font-semibold text-white">{item.title}</span>
+                      <span className="text-xs sm:text-sm font-semibold text-foreground">{item.title}</span>
                       <code className="text-[11px] font-mono text-emerald-400 bg-[#059669]/15 px-2 py-0.5 rounded border border-[#059669]/25">
                         {item.name}
                       </code>
-                      {sizeStr && <span className="text-[11px] font-mono text-zinc-400">({sizeStr})</span>}
+                      {sizeStr && <span className="text-[11px] font-mono text-muted-foreground">({sizeStr})</span>}
                     </div>
-                    <p className="text-[11px] text-zinc-400">{item.desc}</p>
+                    <p className="text-[11px] text-muted-foreground">{item.desc}</p>
                   </div>
 
                   <button
@@ -474,14 +474,14 @@ export default function ModelsPage() {
       {activeTab === 'snapshots' && (
         <div className="space-y-6">
           {/* Snapshots & Backup */}
-          <div className="card-linear p-0 bg-[#0F1011] border-[#23252A] overflow-hidden">
-            <div className="p-5 border-b border-[#23252A] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="card-linear p-0 bg-card border-border overflow-hidden">
+            <div className="p-5 border-b border-border flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
-                <h3 className="text-sm font-semibold text-white flex items-center gap-2">
+                <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
                   <Archive size={16} className="text-emerald-400" />
                   <span>State Snapshots & Recovery</span>
                 </h3>
-                <p className="text-xs text-zinc-400 mt-0.5">
+                <p className="text-xs text-muted-foreground mt-0.5">
                   Create point-in-time archives of trained neural weights and employee biometric vectors.
                 </p>
               </div>
@@ -506,7 +506,7 @@ export default function ModelsPage() {
                   {backups.map((b, i) => {
                     const name = typeof b === 'string' ? b : b.filename || b.name;
                     return (
-                      <div key={i} className="flex items-center justify-between p-3.5 bg-[#0A0B0D] rounded-xl border border-[#23252A] text-xs">
+                      <div key={i} className="flex items-center justify-between p-3.5 bg-secondary/50 rounded-xl border border-border text-xs">
                         <span className="font-mono text-zinc-300">{name}</span>
                         <div className="flex items-center gap-2">
                           <a
@@ -534,14 +534,14 @@ export default function ModelsPage() {
           </div>
 
           {/* Model Retraining Audit Table */}
-          <div className="card-linear p-0 bg-[#0F1011] border-[#23252A] overflow-hidden">
-            <div className="p-5 border-b border-[#23252A] flex items-center justify-between">
+          <div className="card-linear p-0 bg-card border-border overflow-hidden">
+            <div className="p-5 border-b border-border flex items-center justify-between">
               <div>
-                <h3 className="text-sm font-semibold text-white flex items-center gap-2">
+                <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
                   <History size={16} className="text-emerald-400" />
                   <span>Model Training & Fine-Tuning Audit Log</span>
                 </h3>
-                <p className="text-xs text-zinc-400 mt-0.5">Telemetry log of neural network retraining sessions.</p>
+                <p className="text-xs text-muted-foreground mt-0.5">Telemetry log of neural network retraining sessions.</p>
               </div>
 
               <button
@@ -557,7 +557,7 @@ export default function ModelsPage() {
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse text-xs">
                 <thead>
-                  <tr className="border-b border-[#23252A] bg-[#0A0B0D] text-zinc-400 uppercase text-[10px] tracking-wider font-semibold">
+                  <tr className="border-b border-border bg-secondary/50 text-muted-foreground uppercase text-[10px] tracking-wider font-semibold">
                     <th className="py-2.5 px-4">Timestamp</th>
                     <th className="py-2.5 px-4">Model</th>
                     <th className="py-2.5 px-4">Subject</th>
@@ -568,12 +568,12 @@ export default function ModelsPage() {
                 <tbody className="divide-y divide-[#23252A]/50 font-mono text-[11px]">
                   {trainingHistory.map((item, idx) => (
                     <tr key={idx} className="hover:bg-white/[0.02] transition-colors">
-                      <td className="py-2.5 px-4 text-zinc-400">
+                      <td className="py-2.5 px-4 text-muted-foreground">
                         {item.created_at ? new Date(item.created_at).toLocaleString() : 'Recent'}
                       </td>
-                      <td className="py-2.5 px-4 text-white font-sans font-medium">{item.model_name}</td>
+                      <td className="py-2.5 px-4 text-foreground font-sans font-medium">{item.model_name}</td>
                       <td className="py-2.5 px-4 text-emerald-400">{item.person_name || 'All'}</td>
-                      <td className="py-2.5 px-4 text-zinc-400">{item.samples_count || 'Batch'}</td>
+                      <td className="py-2.5 px-4 text-muted-foreground">{item.samples_count || 'Batch'}</td>
                       <td className="py-2.5 px-4">
                         <span className="px-2 py-0.5 rounded text-[10px] bg-emerald-500/15 text-emerald-400 border border-emerald-500/25">
                           {item.status || 'SUCCESS'}
@@ -602,14 +602,14 @@ export default function ModelsPage() {
             <AlertTriangle size={20} />
             <h3 className="text-sm font-semibold">Factory Model Reset & Vector Space Purge</h3>
           </div>
-          <p className="text-xs text-zinc-400 leading-relaxed max-w-2xl">
+          <p className="text-xs text-muted-foreground leading-relaxed max-w-2xl">
             This operation will permanently purge all compiled embedding matrices and fine-tuned weights for {user?.org_name || 'this organization'}.
             Reference photos will remain in storage, but all models must be retrained before kiosk recognition will function.
           </p>
 
           <div className="pt-2">
             {showConfirm ? (
-              <div className="p-4 rounded-xl border border-red-500/30 bg-[#0A0B0D] flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+              <div className="p-4 rounded-xl border border-red-500/30 bg-secondary/50 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
                 <span className="text-xs text-red-300 font-medium">Are you certain you want to purge all active AI weights?</span>
                 <div className="flex items-center gap-2">
                   <button
@@ -621,7 +621,7 @@ export default function ModelsPage() {
                   <button
                     onClick={handleReset}
                     disabled={isResetting}
-                    className="button-primary bg-red-600 hover:bg-red-700 text-white text-xs h-8 px-4 font-semibold"
+                    className="button-primary bg-red-600 hover:bg-red-700 text-foreground text-xs h-8 px-4 font-semibold"
                   >
                     {isResetting ? 'Purging...' : 'Yes, Purge Model Weights'}
                   </button>
