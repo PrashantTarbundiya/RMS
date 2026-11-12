@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import AuraPassBrand from '../ui/AuraPassBrand';
 import {
   Shield,
   ArrowRight,
@@ -63,18 +64,8 @@ export default function PublicHeader() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           
           {/* ── Brand Logo ── */}
-          <Link to="/" className="flex items-center gap-2.5 group cursor-pointer" aria-label="AuraPass Home">
-            <img 
-              src="/logo.svg" 
-              alt="AuraPass" 
-              className="w-7 h-7 object-contain group-hover:scale-105 transition-transform duration-150 drop-shadow-[0_0_8px_rgba(16,185,129,0.4)]" 
-            />
-            <div className="flex items-center gap-1.5">
-              <span className="font-bold text-base tracking-tight text-foreground">AuraPass</span>
-              <span className="text-[10px] font-mono font-semibold uppercase px-1.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20">
-                v2026.2
-              </span>
-            </div>
+          <Link to="/" className="flex items-center group cursor-pointer" aria-label="AuraPass Home">
+            <AuraPassBrand size={28} showBadge={true} badgeText="ENTERPRISE" />
           </Link>
 
           {/* ── Desktop Navigation Links ── */}

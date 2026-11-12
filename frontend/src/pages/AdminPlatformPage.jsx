@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import AuraPassBrand from '../components/ui/AuraPassBrand';
 import {
   ShieldCheck,
   ShieldAlert,
@@ -475,12 +476,8 @@ ${selectedTicket.admin_notes || 'None'}`;
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[#202024] pb-6">
         <div>
           <div className="flex items-center gap-2.5 mb-1.5 flex-wrap">
-            <img
-              src="/logo.svg"
-              alt="AuraPass"
-              className="w-7 h-7 object-contain drop-shadow-[0_0_8px_rgba(16,185,129,0.35)] shrink-0 select-none pointer-events-none"
-            />
-            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">
+            <AuraPassBrand size={30} variant="symbol" />
+            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white font-display">
               AuraPass™ Platform Control Center
             </h1>
             <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-mono text-[11px] font-bold">

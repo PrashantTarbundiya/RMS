@@ -3,6 +3,7 @@ import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { API_BASE } from '../config';
+import AuraPassBrand from '../components/ui/AuraPassBrand';
 import {
   Scan,
   Eye,
@@ -122,21 +123,8 @@ export default function LoginPage() {
         <div className="w-full max-w-md mx-auto">
           {/* Brand Header */}
           <div className="flex items-center justify-between mb-8">
-            <Link to="/" className="flex items-center gap-2.5 group">
-              <div className="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 group-hover:scale-105 transition-transform">
-                <Scan className="w-4 h-4" />
-              </div>
-              <div className="flex flex-col">
-                <div className="flex items-center gap-1.5">
-                  <span className="font-bold text-base tracking-tight text-white">AuraPass</span>
-                  <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-950/70 text-emerald-400 border border-emerald-800/40">
-                    Attendance
-                  </span>
-                </div>
-                <span className="text-[9px] tracking-wider text-neutral-500 font-mono uppercase">
-                  FACE RECOGNITION ATTENDANCE
-                </span>
-              </div>
+            <Link to="/" className="flex items-center group">
+              <AuraPassBrand size={32} showBadge={true} badgeText="ENTERPRISE" />
             </Link>
 
             <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-[#111111] border border-[#262626] text-neutral-300">

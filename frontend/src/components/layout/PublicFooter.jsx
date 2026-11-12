@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Shield, ArrowUpRight, Terminal, Lock, CheckCircle2 } from 'lucide-react';
+import AuraPassBrand from '../ui/AuraPassBrand';
 
 export default function PublicFooter() {
   return (
@@ -12,13 +13,8 @@ export default function PublicFooter() {
           
           {/* Col 1 & 2: Brand & Trust Statement */}
           <div className="lg:col-span-2 space-y-4">
-            <Link to="/" className="flex items-center gap-2.5">
-              <img 
-                src="/logo.svg" 
-                alt="AuraPass" 
-                className="w-7 h-7 object-contain drop-shadow-[0_0_8px_rgba(16,185,129,0.35)]" 
-              />
-              <span className="font-bold text-base tracking-tight text-foreground">AuraPass™ Enterprise</span>
+            <Link to="/" className="inline-flex items-center">
+              <AuraPassBrand size={26} showBadge={true} badgeText="ENTERPRISE" />
             </Link>
             
             <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed max-w-sm prose-readable">

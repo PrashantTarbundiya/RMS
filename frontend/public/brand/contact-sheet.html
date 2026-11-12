@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AuraPass™ Enterprise — Brand Identity Contact Sheet</title>
+  <link rel="icon" type="image/svg+xml" href="/brand/favicon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #09090B;
+      --card: #121215;
+      --card-border: rgba(255, 255, 255, 0.08);
+      --text: #FAFAFA;
+      --text-muted: #A1A1AA;
+      --emerald: #10B981;
+      --cyan: #00E5FF;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      padding: 40px 24px;
+      line-height: 1.5;
+    }
+    .container { max-width: 1200px; margin: 0 auto; }
+    header {
+      border-bottom: 1px solid var(--card-border);
+      padding-bottom: 32px;
+      margin-bottom: 48px;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 12px;
+      border-radius: 999px;
+      background: rgba(16, 185, 129, 0.12);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      color: var(--emerald);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      margin-bottom: 16px;
+    }
+    h1 { font-size: 32px; font-weight: 800; letter-spacing: -0.03em; margin-bottom: 8px; }
+    p.lead { color: var(--text-muted); font-size: 15px; max-width: 700px; }
+    
+    .section-title {
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .section-title::before {
+      content: '';
+      width: 4px;
+      height: 18px;
+      background: var(--emerald);
+      border-radius: 2px;
+    }
+    
+    .grid { display: grid; gap: 24px; margin-bottom: 48px; }
+    .grid-3 { grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); }
+    .grid-2 { grid-template-columns: repeat(auto-fit, minmax(460px, 1fr)); }
+    
+    .card {
+      background: var(--card);
+      border: 1px solid var(--card-border);
+      border-radius: 14px;
+      padding: 32px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 200px;
+      position: relative;
+    }
+    .card.light {
+      background: #FFFFFF;
+      border-color: #E2E8F0;
+      color: #0F172A;
+    }
+    .card-label {
+      position: absolute;
+      top: 14px;
+      left: 18px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+      text-transform: uppercase;
+    }
+    .card.light .card-label { color: #64748B; }
+    
+    /* Scale row */
+    .scale-row {
+      display: flex;
+      align-items: flex-end;
+      gap: 32px;
+      flex-wrap: wrap;
+      justify-content: center;
+      padding: 24px 0;
+    }
+    .scale-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+    }
+    .scale-label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      color: var(--text-muted);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="badge">Master Brand Specification v2026.2</div>
+      <h1>AuraPass™ Enterprise Brand Identity System</h1>
+      <p class="lead">Visual Contact Sheet & Multi-Surface Scaling Audit. Direction 1: The Sovereign Gateway & Biometric Aperture.</p>
+    </header>
+
+    <!-- SECTION 1: MASTER LOGO FAMILY -->
+    <div class="section-title">Master Logo Family Lockups</div>
+    <div class="grid grid-2">
+      <!-- Primary Lockup -->
+      <div class="card">
+        <span class="card-label">Primary Lockup (Dark)</span>
+        <img src="/brand/aurapass-primary.svg" alt="Primary Lockup" style="max-width: 320px; height: auto;">
+      </div>
+
+      <!-- Horizontal Lockup -->
+      <div class="card">
+        <span class="card-label">Horizontal Lockup (Navbar)</span>
+        <img src="/brand/aurapass-horizontal.svg" alt="Horizontal Lockup" style="max-width: 240px; height: auto;">
+      </div>
+
+      <!-- Stacked Lockup -->
+      <div class="card">
+        <span class="card-label">Stacked Vertical (Marketing / Social)</span>
+        <img src="/brand/aurapass-stacked.svg" alt="Stacked Lockup" style="max-width: 140px; height: auto;">
+      </div>
+
+      <!-- Light Background Lockup -->
+      <div class="card light">
+        <span class="card-label">Light Mode / Print (Obsidian Silhouette)</span>
+        <img src="/brand/aurapass-black.svg" alt="Black Monochrome" style="max-width: 240px; height: auto;">
+      </div>
+    </div>
+
+    <!-- SECTION 2: SCALABILITY & MULTI-RESOLUTION AUDIT -->
+    <div class="section-title">Optical Symbol Scalability & Silhouette Legibility</div>
+    <div class="card" style="margin-bottom: 48px;">
+      <span class="card-label">Multi-Size Silhouette Test (16px to 128px)</span>
+      <div class="scale-row">
+        <div class="scale-item">
+          <img src="/brand/aurapass-symbol.svg" width="16" height="16" alt="16px">
+          <span class="scale-label">16px (Favicon)</span>
+        </div>
+        <div class="scale-item">
+          <img src="/brand/aurapass-symbol.svg" width="24" height="24" alt="24px">
+          <span class="scale-label">24px (Mobile)</span>
+        </div>
+        <div class="scale-item">
+          <img src="/brand/aurapass-symbol.svg" width="32" height="32" alt="32px">
+          <span class="scale-label">32px (Navbar)</span>
+        </div>
+        <div class="scale-item">
+          <img src="/brand/aurapass-symbol.svg" width="48" height="48" alt="48px">
+          <span class="scale-label">48px (Card)</span>
+        </div>
+        <div class="scale-item">
+          <img src="/brand/aurapass-symbol.svg" width="64" height="64" alt="64px">
+          <span class="scale-label">64px (Kiosk)</span>
+        </div>
+        <div class="scale-item">
+          <img src="/brand/aurapass-symbol.svg" width="128" height="128" alt="128px">
+          <span class="scale-label">128px (Hero)</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- SECTION 3: MONOCHROME & CONTRAST MODES -->
+    <div class="section-title">Monochrome & High-Contrast Performance</div>
+    <div class="grid grid-3">
+      <div class="card">
+        <span class="card-label">Pure White Silhouette (Video / Camera Overlay)</span>
+        <img src="/brand/aurapass-white.svg" alt="White Lockup" style="max-width: 200px; height: auto;">
+      </div>
+      <div class="card">
+        <span class="card-label">Laser Emerald Monochrome</span>
+        <img src="/brand/aurapass-monochrome.svg" alt="Emerald Monochrome" style="max-width: 200px; height: auto;">
+      </div>
+      <div class="card light">
+        <span class="card-label">Obsidian Black on Paper / Invoices</span>
+        <img src="/brand/aurapass-black.svg" alt="Black Monochrome" style="max-width: 200px; height: auto;">
+      </div>
+    </div>
+  </div>
+</body>
+</html>

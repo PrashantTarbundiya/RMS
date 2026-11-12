@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Shield, ShieldCheck, ShieldAlert, ShieldX, Scan, Wifi, WifiOff, Clock, ChevronLeft, Settings, Maximize, Minimize, Eye, Volume2, Users, RotateCw, AlertTriangle, Sliders, FlipHorizontal } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { formatPersonName } from '../utils/format';
+import AuraPassBrand from '../components/ui/AuraPassBrand';
 
 // ─── Constants ─────────────────────────────────────────────────────────
 const IDLE_TIMEOUT_MS = 30000;       // 30s until screensaver
@@ -760,11 +761,9 @@ export default function KioskPage() {
             <ChevronLeft size={16} />
             <span>Console</span>
           </Link>
-          <div className="kiosk-brand">
-            <div className="kiosk-brand-icon">
-              <span>A</span>
-            </div>
-            <span className="kiosk-brand-text">AuraPass™ Kiosk</span>
+          <div className="kiosk-brand flex items-center gap-2">
+            <AuraPassBrand size={24} variant="symbol" />
+            <span className="kiosk-brand-text font-display font-bold">AuraPass™ Kiosk</span>
           </div>
         </div>
         <div className="kiosk-header-center flex items-center gap-2">

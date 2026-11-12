@@ -1,0 +1,111 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 310 48" fill="none">
+  <defs>
+    <!-- Sovereign Cyan-to-Emerald Laser Gradient -->
+    <linearGradient id="apPriGrad" x1="6" y1="3" x2="42" y2="47" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stopColor="#00E5FF" />
+      <stop offset="48%" stopColor="#10B981" />
+      <stop offset="100%" stopColor="#059669" />
+    </linearGradient>
+
+    <!-- Subtle Optical Bloom -->
+    <filter id="apPriBloom" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="1.2" result="blur" />
+      <feMerge>
+        <feMergeNode in="blur" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- ── 1. The Sovereign Gateway & Biometric Aperture Symbol ── -->
+  <g transform="translate(0, 0)">
+    <!-- Outer Sovereign Gateway Arch -->
+    <path
+      d="M24 3L6 11V23C6 34.2 13.8 44.5 24 47C34.2 44.5 42 34.2 42 23V11L24 3Z"
+      stroke="url(#apPriGrad)"
+      stroke-width="3.2"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      filter="url(#apPriBloom)"
+    />
+
+    <!-- Dynamic Transit Chevron (The 'A' Crossbeam) -->
+    <path
+      d="M14 26L24 16L34 26"
+      stroke="#00E5FF"
+      stroke-width="2.8"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    />
+
+    <!-- Biometric Concentric Iris Scanning Arc -->
+    <path
+      d="M17 31C18.8 33.2 21.3 34.5 24 34.5C26.7 34.5 29.2 33.2 31 31"
+      stroke="#34D399"
+      stroke-width="2.2"
+      stroke-linecap="round"
+    />
+
+    <!-- Verification Pulse Core -->
+    <circle cx="24" cy="24" r="4" fill="#FAFAFA" />
+    <circle cx="24" cy="24" r="2" fill="#10B981" />
+
+    <!-- Precision Optical Reticle Ticks -->
+    <path d="M24 9V12" stroke="#00E5FF" stroke-width="2" stroke-linecap="round" />
+    <path d="M24 36V39" stroke="#10B981" stroke-width="2" stroke-linecap="round" />
+    <path d="M11 23H14" stroke="#00E5FF" stroke-width="2" stroke-linecap="round" />
+    <path d="M34 23H37" stroke="#00E5FF" stroke-width="2" stroke-linecap="round" />
+  </g>
+
+  <!-- ── 2. The AuraPass Wordmark & Enterprise Lockup ── -->
+  <g transform="translate(62, 0)">
+    <!-- Primary Wordmark -->
+    <text
+      x="0"
+      y="31"
+      font-family="'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
+      font-size="25"
+      font-weight="800"
+      letter-spacing="-0.03em"
+      fill="#FAFAFA"
+    >
+      AuraPass
+    </text>
+
+    <!-- Trademark Glyph -->
+    <text
+      x="118"
+      y="19"
+      font-family="'Plus Jakarta Sans', -apple-system, sans-serif"
+      font-size="9"
+      font-weight="700"
+      fill="#10B981"
+    >
+      TM
+    </text>
+
+    <!-- Enterprise Status Pill -->
+    <rect
+      x="138"
+      y="16"
+      width="96"
+      height="18"
+      rx="9"
+      fill="rgba(16, 185, 129, 0.12)"
+      stroke="rgba(16, 185, 129, 0.32)"
+      stroke-width="1"
+    />
+    <circle cx="147" cy="25" r="2.5" fill="#10B981" />
+    <text
+      x="154"
+      y="28"
+      font-family="'JetBrains Mono', ui-monospace, SFMono-Regular, monospace"
+      font-size="8.5"
+      font-weight="700"
+      letter-spacing="0.12em"
+      fill="#34D399"
+    >
+      ENTERPRISE
+    </text>
+  </g>
+</svg>

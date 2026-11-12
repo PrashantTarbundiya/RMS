@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none">
+  <defs>
+    <!-- Sovereign Cyan-to-Emerald Laser Gradient -->
+    <linearGradient id="apSymbolGrad" x1="6" y1="3" x2="42" y2="47" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stopColor="#00E5FF" />
+      <stop offset="48%" stopColor="#10B981" />
+      <stop offset="100%" stopColor="#059669" />
+    </linearGradient>
+
+    <!-- Subtle Optical Bloom -->
+    <filter id="apBloom" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="1.2" result="blur" />
+      <feMerge>
+        <feMergeNode in="blur" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Outer Sovereign Gateway Arch (The Architectural 'A' & Physical Barrier) -->
+  <path
+    d="M24 3L6 11V23C6 34.2 13.8 44.5 24 47C34.2 44.5 42 34.2 42 23V11L24 3Z"
+    stroke="url(#apSymbolGrad)"
+    stroke-width="3.2"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    filter="url(#apBloom)"
+  />
+
+  <!-- Dynamic Transit Chevron (The 'A' Crossbeam & Forward Transit Clearance) -->
+  <path
+    d="M14 26L24 16L34 26"
+    stroke="#00E5FF"
+    stroke-width="2.8"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+
+  <!-- Biometric Concentric Iris Scanning Arc -->
+  <path
+    d="M17 31C18.8 33.2 21.3 34.5 24 34.5C26.7 34.5 29.2 33.2 31 31"
+    stroke="#34D399"
+    stroke-width="2.2"
+    stroke-linecap="round"
+  />
+
+  <!-- Verification Pulse Core (Real Person Identification Lock) -->
+  <circle cx="24" cy="24" r="4" fill="#FAFAFA" />
+  <circle cx="24" cy="24" r="2" fill="#10B981" />
+
+  <!-- Precision Optical Reticle Ticks -->
+  <path d="M24 9V12" stroke="#00E5FF" stroke-width="2" stroke-linecap="round" />
+  <path d="M24 36V39" stroke="#10B981" stroke-width="2" stroke-linecap="round" />
+  <path d="M11 23H14" stroke="#00E5FF" stroke-width="2" stroke-linecap="round" />
+  <path d="M34 23H37" stroke="#00E5FF" stroke-width="2" stroke-linecap="round" />
+</svg>

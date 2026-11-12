@@ -1,6 +1,7 @@
 import React from 'react';
 import { AlertTriangle, Home, RotateCcw, Bug } from 'lucide-react';
 import { motion } from 'framer-motion';
+import AuraPassBrand from './ui/AuraPassBrand';
 
 /**
  * ErrorBoundary - Catches unhandled JavaScript errors in child components.
@@ -46,9 +47,14 @@ function ErrorFallback({ error, errorInfo, onReset }) {
         transition={{ duration: 0.5, ease: [0.4, 0, 0.2, 1] }}
         className="w-full max-w-lg text-center"
       >
+        {/* Brand Lockup */}
+        <div className="flex justify-center mb-6">
+          <AuraPassBrand size={32} showBadge={true} badgeText="ERROR RECOVERY" />
+        </div>
+
         {/* Error Icon */}
-        <div className="mx-auto mb-6 w-20 h-20 rounded-xl bg-[#F87171]/10 border border-[#F87171]/20 flex items-center justify-center">
-          <AlertTriangle className="w-9 h-9 text-[#F87171]" />
+        <div className="mx-auto mb-6 w-16 h-16 rounded-xl bg-[#F87171]/10 border border-[#F87171]/20 flex items-center justify-center">
+          <AlertTriangle className="w-8 h-8 text-[#F87171]" />
         </div>
 
         {/* Heading */}

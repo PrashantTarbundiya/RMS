@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import { usePwa } from '../context/PwaContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import { API_BASE } from '../config';
+import AuraPassBrand from './ui/AuraPassBrand';
 
 // Role hierarchy: platform_owner > org_admin > manager > viewer > kiosk
 const ROLE_HIERARCHY = ['platform_owner', 'org_admin', 'manager', 'viewer', 'kiosk'];
@@ -124,11 +125,7 @@ export function Navbar() {
               {isMobileOpen ? <X size={20} /> : <Menu size={20} />}
             </button>
             <Link to="/" className="brand flex items-center gap-2">
-              <img 
-                src="/logo.svg" 
-                alt="AuraPass" 
-                className="w-6 h-6 object-contain shrink-0 drop-shadow-[0_0_6px_rgba(16,185,129,0.35)]" 
-              />
+              <AuraPassBrand size="xs" variant="symbol" />
               <div className="flex flex-col">
                 <span className="text-ink font-semibold tracking-tight text-xs font-display">AuraPass™</span>
                 {user?.org_name && (
@@ -176,11 +173,7 @@ export function Navbar() {
               {/* Drawer Header */}
               <div className="flex items-center justify-between pb-4 border-b border-[#262626] mb-4">
                 <div className="flex items-center gap-2">
-                  <img
-                    src="/logo.svg"
-                    alt="AuraPass"
-                    className="w-7 h-7 object-contain shrink-0 drop-shadow-[0_0_8px_rgba(16,185,129,0.35)]"
-                  />
+                  <AuraPassBrand size="sm" variant="symbol" />
                   <div className="brand-text">
                     <span className="text-ink font-semibold tracking-tight text-xs font-display">AuraPass™</span>
                     {user && <span className="block text-[10px] text-ink-subtle font-mono truncate max-w-[120px]">{user.org_name}</span>}
@@ -251,14 +244,10 @@ export function Navbar() {
         <div className="sidebar-header">
           <div className="flex items-center justify-between w-full gap-2">
             {!isCollapsed ? (
-              <Link to="/" className="brand flex-1 min-w-0 flex items-center gap-2">
-                <img
-                  src="/logo.svg"
-                  alt="AuraPass"
-                  className="w-7 h-7 object-contain shrink-0 drop-shadow-[0_0_8px_rgba(16,185,129,0.35)]"
-                />
+              <Link to="/" className="brand flex-1 min-w-0 flex items-center gap-2.5">
+                <AuraPassBrand size={26} variant="symbol" />
                 <div className="brand-text truncate">
-                  <h1 className="truncate">AuraPass™</h1>
+                  <h1 className="truncate font-display font-extrabold text-foreground">AuraPass™</h1>
                   {user && (
                     <div className="user-org">
                       <span className="org-name truncate max-w-[120px] block">{user.org_name || 'System Admin'}</span>
@@ -267,12 +256,8 @@ export function Navbar() {
                 </div>
               </Link>
             ) : (
-              <Link to="/" className="brand justify-center mx-auto" title="AuraPass">
-                <img
-                  src="/logo.svg"
-                  alt="AuraPass"
-                  className="w-7 h-7 object-contain shrink-0 drop-shadow-[0_0_8px_rgba(16,185,129,0.35)]"
-                />
+              <Link to="/" className="brand justify-center mx-auto" title="AuraPass Enterprise">
+                <AuraPassBrand size={26} variant="symbol" />
               </Link>
             )}
             <button 
