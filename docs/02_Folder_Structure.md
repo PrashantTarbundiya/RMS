@@ -183,8 +183,12 @@ This document explains the purpose, responsibility, and important files within e
 ---
 
 ## `/docs`
-**Purpose:** Enterprise technical documentation.
-**Responsibility:** Onboarding new engineers, preserving architectural knowledge, and serving as reference for client presentations.
-- `00–15_*.md`: Numbered documentation covering all aspects of the system.
-- `PPT/`: Presentation materials.
-- `Paper/`: Research paper references.
+**Purpose:** Enterprise technical documentation and governance.
+**Responsibility:** Architecture blueprints, security audits, financial unit economics, and brand guidelines.
+- `00–15_*.md`: Numbered engineering documentation covering all aspects of the system.
+- `brand/`: Enterprise brand identity guidelines, clear space rules, and asset specifications.
+- `reports/`: Active unit economics, competitor pricing research, and ROI methodology reports.
+- `security/`: Cryptographic, DPDP Act compliance, and multi-tenant security audit reports.
+- `ai-engineering/`: Governance standards, agent roles, and engineering protocols.
+- `PPT/`: Executive presentation materials.
+- `Paper/`: Research paper references and academic foundations.
