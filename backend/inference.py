@@ -201,54 +201,48 @@ def apply_clahe(image):
 from model import get_embedding
 
 
-def compute_match_confidence(dist, confirm_threshold=0.40, yaw=0.0):
+def compute_match_confidence(dist, confirm_threshold=0.34, yaw=0.0):
     """
-    Compute a realistic, smoothly calibrated confidence score (0.0 to 0.99).
-    If dist <= confirm_threshold, returns confirmed confidence [0.75, 0.98].
-    If dist > confirm_threshold, returns rejected/uncertain confidence [0.0, 0.55].
-    Dynamically accounts for head yaw angle to avoid penalizing genuine sideface entries.
-    Never returns hardcoded 1.0 (100%) so false positives cannot report 100% certainty.
+    Monotonically calibrated enterprise confidence function.
+    Strictly maps cosine distance to honest confidence [0.0, 0.99].
+    Never gives artificial 75%+ jumps for marginal or unconfirmed matches.
     """
     if dist is None or dist >= 1.0:
         return 0.0
-    thresh_val = float(confirm_threshold) if confirm_threshold is not None else 0.40
+    thresh_val = float(confirm_threshold) if confirm_threshold is not None else 0.34
     if thresh_val > 1.0:
         thresh_val /= 100.0
 
-    # Continuous yaw angle awareness
-    yaw_mag = 0.0
-    if yaw is not None:
-        try:
-            yaw_mag = abs(float(yaw))
-        except (ValueError, TypeError):
-            yaw_mag = 0.0
-
-    profile_factor = min(1.0, max(0.0, (yaw_mag - 12.0) / 45.0)) if yaw_mag > 12.0 else 0.0
-
-    # If thresh_val is >= 0.50, it is a confidence threshold (e.g. 0.70 / 0.60).
-    # Convert confidence target to distance threshold:
-    # 70% confidence target -> 0.40 distance
-    # 60% confidence target -> 0.44 distance
-    # 85% confidence target -> 0.32 distance
+    # If thresh_val is >= 0.50, convert confidence target to distance threshold:
+    # 70% confidence target -> 0.34 distance
+    # 80% confidence target -> 0.28 distance
+    # 85% confidence target -> 0.24 distance
     if thresh_val >= 0.50:
-        dist_thresh = 0.40 - (thresh_val - 0.70) * 0.25
-        dist_thresh = max(0.26, min(0.48, dist_thresh))
+        dist_thresh = 0.34 - (thresh_val - 0.70) * 0.20
+        dist_thresh = max(0.20, min(0.36, dist_thresh))
     else:
-        dist_thresh = max(0.20, thresh_val)
+        dist_thresh = max(0.18, min(0.36, thresh_val))
 
-    # Dynamic profile expansion
-    if profile_factor > 0.0:
-        dist_thresh += 0.10 * profile_factor
-
-    if dist <= dist_thresh:
-        # Match confirmed: map [0.0, dist_thresh] -> [0.98, 0.75]
-        ratio = max(0.0, min(1.0, dist / dist_thresh))
-        conf = 0.75 + 0.23 * ((1.0 - ratio) ** 1.05)
+    # Monotonic mapping
+    if dist <= 0.24:
+        # Exceptional match: [0.85, 0.99]
+        ratio = max(0.0, dist / 0.24)
+        conf = 0.85 + 0.14 * ((1.0 - ratio) ** 1.05)
+        return round(float(conf), 3)
+    elif dist <= dist_thresh:
+        # Confirmed match: [0.70, 0.85]
+        ratio = max(0.0, (dist - 0.24) / max(0.01, dist_thresh - 0.24))
+        conf = 0.70 + 0.15 * (1.0 - ratio)
+        return round(float(conf), 3)
+    elif dist <= (dist_thresh + 0.06):
+        # Uncertain transition zone: [0.45, 0.69]
+        ratio = max(0.0, (dist - dist_thresh) / 0.06)
+        conf = 0.45 + 0.24 * (1.0 - ratio)
         return round(float(conf), 3)
     else:
-        # Match rejected / uncertain: map (dist_thresh, 1.0] -> [0.55, 0.0]
-        excess = min(1.0, (dist - dist_thresh) / max(0.01, 1.0 - dist_thresh))
-        conf = max(0.0, 0.55 * (1.0 - excess))
+        # Rejected / Unknown: [0.0, 0.44]
+        excess = min(1.0, (dist - (dist_thresh + 0.06)) / 0.25)
+        conf = max(0.0, 0.44 * (1.0 - excess))
         return round(float(conf), 3)
 
 
@@ -351,7 +345,7 @@ def find_match_knn(embedding, known_encodings, known_names, k=KNN_K, max_dist=No
     # If the candidate match is ambiguous (best_dist close to second_best_dist),
     # reject as Unknown to prevent cross-person misattribution (e.g. Vatsal vs Shivam in dim light)
     if second_best_dist is not None:
-        if best_dist > 0.24 and best_dist > (0.84 * second_best_dist):
+        if best_dist > 0.20 and best_dist > (0.80 * second_best_dist):
             return "Unknown", best_dist, "rejected"
 
     # --- Gate 3: KNN Majority Vote ---

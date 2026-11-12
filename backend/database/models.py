@@ -460,3 +460,54 @@ class ModelTrainingLog(Base):
             'triggered_by': self.triggered_by,
             'created_at': self.created_at.isoformat() if self.created_at else None,
         }
+
+
+# ──────────────────────────────────────────────────────────────────────
+# SupportTicket — Enterprise Engineering Cases & Incident Reports
+# ──────────────────────────────────────────────────────────────────────
+
+class SupportTicket(Base):
+    """
+    Engineering support case submitted via /support or in-app diagnostics.
+    Persisted for platform accountability and managed via Platform Admin Panel.
+    """
+    __tablename__ = "support_tickets"
+
+    id = Column(String(36), primary_key=True, default=_uuid)
+    ticket_code = Column(String(30), nullable=False, unique=True, index=True)
+    name = Column(String(150), nullable=False)
+    email = Column(String(255), nullable=False, index=True)
+    organization = Column(String(255), nullable=False)
+    hardware_model = Column(String(200), nullable=True)
+    priority = Column(String(50), nullable=False, default="medium")  # low, medium, high, critical
+    status = Column(String(50), nullable=False, default="open", index=True)  # open, in_progress, resolved, closed
+    description = Column(Text, nullable=False)
+    admin_notes = Column(Text, nullable=True)
+    assigned_to = Column(String(100), nullable=True)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), index=True)
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc),
+                        onupdate=lambda: datetime.now(timezone.utc))
+    resolved_at = Column(DateTime, nullable=True)
+
+    __table_args__ = (
+        Index("ix_support_tickets_status_priority", "status", "priority"),
+    )
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'ticket_code': self.ticket_code,
+            'name': self.name,
+            'email': self.email,
+            'organization': self.organization,
+            'hardware_model': self.hardware_model,
+            'priority': self.priority,
+            'status': self.status,
+            'description': self.description,
+            'admin_notes': self.admin_notes,
+            'assigned_to': self.assigned_to,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None,
+            'resolved_at': self.resolved_at.isoformat() if self.resolved_at else None,
+        }
+

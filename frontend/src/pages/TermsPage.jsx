@@ -7,6 +7,7 @@ import Button from '../components/ui/marketing/Button';
 import {
   Scale,
   Printer,
+  Download,
   Shield,
   AlertCircle,
   CheckCircle,
@@ -14,6 +15,7 @@ import {
   Lock,
   Server
 } from 'lucide-react';
+import { API_BASE } from '../config';
 
 const TERMS_SECTIONS = [
   { id: 'terms-01', title: '1. License Grant & Deployment Scope' },
@@ -57,6 +59,10 @@ export default function TermsPage() {
     window.print();
   };
 
+  const handleDownloadPDF = () => {
+    window.open(`${API_BASE}/legal/export-pdf?type=terms`, '_blank');
+  };
+
   return (
     <div className="min-h-screen public-surface flex flex-col font-sans transition-colors duration-200">
       {/* Precision Print Styles */}
@@ -88,15 +94,25 @@ export default function TermsPage() {
               <Badge variant="zinc" dot>Enterprise Software Terms</Badge>
               <span className="text-xs font-mono text-muted-foreground">Version: 2026.2 LTS</span>
             </div>
-            <Button
-              variant="outline"
-              size="sm"
-              icon={Printer}
-              onClick={handlePrint}
-              className="no-print"
-            >
-              Print Terms / Save PDF
-            </Button>
+            <div className="flex items-center gap-2 no-print">
+              <Button
+                variant="primary"
+                size="sm"
+                icon={Download}
+                onClick={handleDownloadPDF}
+                className="bg-emerald-600 hover:bg-emerald-500 text-white font-medium"
+              >
+                Download Official PDF
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                icon={Printer}
+                onClick={handlePrint}
+              >
+                Print
+              </Button>
+            </div>
           </div>
 
           <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-foreground">

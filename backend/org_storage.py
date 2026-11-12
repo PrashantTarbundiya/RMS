@@ -188,8 +188,24 @@ def load_encodings(org_id=None, model_name="Facenet512"):
     """
     path = get_encodings_path(org_id, model_name=model_name)
     if not os.path.exists(path):
-        # Organizations maintain strict isolation: never auto-seed external benchmark data
-        return None, None
+        # Fallback for default-org in multi-tenant mode: if tenant-specific encodings don't exist yet,
+        # check global data directory and mirror them across so future reads are isolated.
+        if is_default_org(org_id):
+            filename = f'encodings_{model_name}.pickle' if model_name != "Facenet512" else 'encodings.pickle'
+            global_path = os.path.join(_GLOBAL_DATA_DIR, filename)
+            if os.path.exists(global_path):
+                try:
+                    import shutil
+                    os.makedirs(os.path.dirname(path), exist_ok=True)
+                    shutil.copy2(global_path, path)
+                    logger.info(f"Mirrored global encodings to default-org: {path}")
+                except Exception as e:
+                    logger.warning(f"Could not mirror global encodings to default-org: {e}")
+                    path = global_path
+            else:
+                return None, None
+        else:
+            return None, None
     try:
         with open(path, 'rb') as f:
             data = pickle.load(f)
@@ -214,10 +230,21 @@ def save_encodings(encodings, names, org_id=None, model_name="Facenet512"):
     """
     path = get_encodings_path(org_id, model_name=model_name)
     os.makedirs(os.path.dirname(path), exist_ok=True)
-    data = {'encodings': encodings, 'names': names}
+    data = {'encodings': encodings, 'names': names, 'model_used': model_name, 'version': '4.0_canonical_aligned'}
     with open(path, 'wb') as f:
         pickle.dump(data, f)
     logger.info(f"Saved {len(encodings)} encodings for model={model_name}, org={org_id or 'global'}")
+
+    # If default-org, also mirror to global data dir so standalone scripts and default-org stay in sync
+    if is_default_org(org_id):
+        filename = f'encodings_{model_name}.pickle' if model_name != "Facenet512" else 'encodings.pickle'
+        global_path = os.path.join(_GLOBAL_DATA_DIR, filename)
+        if os.path.abspath(path) != os.path.abspath(global_path):
+            try:
+                import shutil
+                shutil.copy2(path, global_path)
+            except Exception as e:
+                logger.warning(f"Failed to mirror encodings to global path: {e}")
 
 
 # ──────────────────────────────────────────────────────────────────────

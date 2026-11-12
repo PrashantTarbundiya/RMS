@@ -1,6 +1,6 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { Camera, Image as ImageIcon, Video, Maximize, Play, X, AlertCircle, ThumbsUp, ThumbsDown, Check, Loader2, UploadCloud, Sliders, ShieldAlert, Copy, RotateCw } from 'lucide-react';
+import { Camera, Image as ImageIcon, Video, Maximize, Play, X, AlertCircle, ThumbsUp, ThumbsDown, Check, Loader2, UploadCloud, Sliders, ShieldAlert, Copy, RotateCw, FlipHorizontal } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { API_BASE } from '../config';
 import { io } from 'socket.io-client';
@@ -25,6 +25,7 @@ export default function TestPage() {
   const [webcamError, setWebcamError] = useState('');
   const [webcamReady, setWebcamReady] = useState(false);
   const [facingMode, setFacingMode] = useState('user');
+  const [isMirrored, setIsMirrored] = useState(() => localStorage.getItem('rms_test_cam_mirrored') === 'true');
   const [isDragActive, setIsDragActive] = useState(false);
   const [feedbackState, setFeedbackState] = useState({}); // track feedback status per prediction_id
   const [personsList, setPersonsList] = useState([]);
@@ -959,6 +960,7 @@ export default function TestPage() {
                         <div className="relative w-full flex-1 flex items-center justify-center overflow-hidden rounded-lg bg-[#010102]/20 h-full min-h-[350px]">
                           <video 
                             ref={videoRef} autoPlay playsInline muted 
+                            style={{ transform: isMirrored ? 'scaleX(-1)' : 'none' }}
                             className="max-w-full max-h-full object-contain pointer-events-none"
                             onPlay={() => {
                               setTimeout(() => {
@@ -979,15 +981,34 @@ export default function TestPage() {
                               <span className="absolute top-3 left-3 px-2 py-0.5 rounded-full text-[9px] font-mono tracking-wider bg-red-500/10 text-red-500 border border-red-500/20 uppercase animate-pulse">
                                 Live Stream Active
                               </span>
-                              <button
-                                type="button"
-                                onClick={toggleCameraFacingMode}
-                                className="absolute top-3 right-3 z-20 px-2.5 py-1 rounded-md text-[11px] font-medium bg-black/80 hover:bg-black text-white border border-[#262626] hover:border-emerald-500/40 shadow-lg flex items-center gap-1.5 transition-all"
-                                title="Switch Camera (Front / Back)"
-                              >
-                                <RotateCw className="w-3.5 h-3.5 text-emerald-400" />
-                                <span>Switch ({facingMode === 'user' ? 'Front' : 'Back'})</span>
-                              </button>
+                              <div className="absolute top-3 right-3 z-20 flex items-center gap-1.5">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const next = !isMirrored;
+                                    setIsMirrored(next);
+                                    localStorage.setItem('rms_test_cam_mirrored', String(next));
+                                  }}
+                                  className={`px-2.5 py-1 rounded-md text-[11px] font-medium border shadow-lg flex items-center gap-1.5 transition-all ${
+                                    isMirrored
+                                      ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
+                                      : 'bg-black/80 hover:bg-black text-white border-[#262626] hover:border-emerald-500/40'
+                                  }`}
+                                  title={`Mirror View: ${isMirrored ? 'Mirrored (Inverted)' : 'Natural (Direct)'}`}
+                                >
+                                  <FlipHorizontal className="w-3.5 h-3.5" />
+                                  <span>{isMirrored ? 'Mirrored' : 'Natural'}</span>
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={toggleCameraFacingMode}
+                                  className="px-2.5 py-1 rounded-md text-[11px] font-medium bg-black/80 hover:bg-black text-white border border-[#262626] hover:border-emerald-500/40 shadow-lg flex items-center gap-1.5 transition-all"
+                                  title="Switch Camera (Front / Back)"
+                                >
+                                  <RotateCw className="w-3.5 h-3.5 text-emerald-400" />
+                                  <span>Switch ({facingMode === 'user' ? 'Front' : 'Back'})</span>
+                                </button>
+                              </div>
                             </>
                           )}
                           
@@ -1002,16 +1023,23 @@ export default function TestPage() {
                              const offsetX = (containerProps.width - imgRenderProps.width) / 2;
                              const offsetY = (containerProps.height - imgRenderProps.height) / 2;
                              
-                              const displayConf = face.ensemble?.confidence || 0;
-                              const displayLabel = face.ensemble?.label || 'Unknown';
-                              const isConfirmed = face.ensemble?.is_confirmed || false;
+                             const boxW = face.bbox.w * scaleX;
+                             const boxH = face.bbox.h * scaleY;
+                             const boxLeft = isMirrored
+                               ? offsetX + (previewSize.width - (face.bbox.x * scaleX + boxW))
+                               : offsetX + (face.bbox.x * scaleX);
+                             const boxTop = offsetY + (face.bbox.y * scaleY);
+
+                             const displayConf = face.ensemble?.confidence || 0;
+                             const displayLabel = face.ensemble?.label || 'Unknown';
+                             const isConfirmed = face.ensemble?.is_confirmed || false;
                              const spoofed = face.liveness?.is_live === false || displayLabel === 'SPOOF DETECTED';
                              const boxColor = spoofed ? '#FBBF24' : (isConfirmed ? '#27A644' : '#F87171');
 
                              return (
                                 <div key={idx} className="absolute pointer-events-none" style={{
-                                   left: offsetX + (face.bbox.x * scaleX), top: offsetY + (face.bbox.y * scaleY),
-                                   width: face.bbox.w * scaleX, height: face.bbox.h * scaleY
+                                   left: boxLeft, top: boxTop,
+                                   width: boxW, height: boxH
                                  }}>
                                    {/* Corners (Aperture Reticle style) */}
                                    <div className="absolute top-0 left-0 w-3.5 h-3.5 border-t-2 border-l-2 rounded-tl-sm" style={{ borderColor: boxColor }} />

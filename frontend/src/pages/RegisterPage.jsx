@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
+import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
+import AuthLegalModal from '../components/ui/AuthLegalModal';
+import { API_BASE } from '../config';
 import {
   Scan,
   Eye,
@@ -64,6 +67,7 @@ export default function RegisterPage() {
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [consentTimestamp, setConsentTimestamp] = useState(null);
   const [consentError, setConsentError] = useState(false);
+  const [legalModalType, setLegalModalType] = useState(null);
 
   const [error, setError] = useState('');
   const [conflict, setConflict] = useState(null);
@@ -154,6 +158,23 @@ export default function RegisterPage() {
       }
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleGoogleAuth = async () => {
+    setError('');
+    try {
+      const res = await axios.get(`${API_BASE}/auth/sso/login`, { timeout: 6000 });
+      if (res.data?.auth_url) {
+        window.location.href = res.data.auth_url;
+      } else {
+        setError('Google Sign-Up is not enabled on this server. Please enter your work email and password below.');
+      }
+    } catch (err) {
+      const errorMsg =
+        err.response?.data?.error ||
+        'Google Workspace Sign-Up is not configured yet. Please register with your email and password below.';
+      setError(errorMsg);
     }
   };
 
@@ -251,23 +272,21 @@ export default function RegisterPage() {
               />
               <div className="text-xs text-neutral-300 leading-relaxed">
                 <span>I have read and agree to the </span>
-                <Link
-                  to="/terms"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-emerald-400 hover:text-emerald-300 font-medium underline underline-offset-2"
+                <button
+                  type="button"
+                  onClick={() => setLegalModalType('terms')}
+                  className="text-emerald-400 hover:text-emerald-300 font-medium underline underline-offset-2 cursor-pointer inline-block"
                 >
                   Terms of Service
-                </Link>
+                </button>
                 <span> and </span>
-                <Link
-                  to="/privacy-policy"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-emerald-400 hover:text-emerald-300 font-medium underline underline-offset-2"
+                <button
+                  type="button"
+                  onClick={() => setLegalModalType('privacy')}
+                  className="text-emerald-400 hover:text-emerald-300 font-medium underline underline-offset-2 cursor-pointer inline-block"
                 >
                   Privacy Policy
-                </Link>
+                </button>
                 <span>.</span>
                 {termsAccepted && consentTimestamp && (
                   <p className="text-[10px] text-emerald-400 font-mono mt-1">
@@ -281,9 +300,7 @@ export default function RegisterPage() {
           {/* Google Workspace SSO Button */}
           <button
             type="button"
-            onClick={() => {
-              setError('Google Workspace sign-in requires SAML configuration inside organization settings.');
-            }}
+            onClick={handleGoogleAuth}
             className="w-full h-11 flex items-center justify-center gap-3 bg-[#171717] hover:bg-[#262626] border border-[#262626] hover:border-[#404040] rounded-xl text-xs sm:text-sm font-medium text-neutral-200 transition-all cursor-pointer shadow-sm"
           >
             <svg className="w-4 h-4" viewBox="0 0 24 24">
@@ -333,7 +350,7 @@ export default function RegisterPage() {
                   value={orgName}
                   onChange={(e) => setOrgName(e.target.value)}
                   placeholder="Acme Manufacturing"
-                  className="w-full h-11 pl-10 pr-4 bg-[#171717] border border-[#262626] hover:border-[#404040] focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 rounded-xl text-xs sm:text-sm text-white placeholder-neutral-500 transition-colors outline-none"
+                  className="w-full h-11 !pl-11 pr-4 bg-[#171717] border border-[#262626] hover:border-[#404040] focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 rounded-xl text-xs sm:text-sm text-white placeholder-neutral-500 transition-colors outline-none"
                   required
                 />
               </div>
@@ -354,7 +371,7 @@ export default function RegisterPage() {
                   value={adminName}
                   onChange={(e) => setAdminName(e.target.value)}
                   placeholder="Alex Chen"
-                  className="w-full h-11 pl-10 pr-4 bg-[#171717] border border-[#262626] hover:border-[#404040] focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 rounded-xl text-xs sm:text-sm text-white placeholder-neutral-500 transition-colors outline-none"
+                  className="w-full h-11 !pl-11 pr-4 bg-[#171717] border border-[#262626] hover:border-[#404040] focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 rounded-xl text-xs sm:text-sm text-white placeholder-neutral-500 transition-colors outline-none"
                 />
               </div>
             </div>
@@ -374,7 +391,7 @@ export default function RegisterPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="name@example.com"
-                  className="w-full h-11 pl-10 pr-4 bg-[#171717] border border-[#262626] hover:border-[#404040] focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 rounded-xl text-xs sm:text-sm text-white placeholder-neutral-500 transition-colors outline-none"
+                  className="w-full h-11 !pl-11 pr-4 bg-[#171717] border border-[#262626] hover:border-[#404040] focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 rounded-xl text-xs sm:text-sm text-white placeholder-neutral-500 transition-colors outline-none"
                   required
                 />
               </div>
@@ -396,7 +413,7 @@ export default function RegisterPage() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••"
-                    className="w-full h-11 pl-9 pr-9 bg-[#171717] border border-[#262626] hover:border-[#404040] focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 rounded-xl text-xs text-white placeholder-neutral-500 transition-colors outline-none"
+                    className="w-full h-11 !pl-10 pr-9 bg-[#171717] border border-[#262626] hover:border-[#404040] focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 rounded-xl text-xs text-white placeholder-neutral-500 transition-colors outline-none"
                     required
                   />
                   <button
@@ -423,7 +440,7 @@ export default function RegisterPage() {
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     placeholder="••••••••"
-                    className="w-full h-11 pl-9 pr-9 bg-[#171717] border border-[#262626] hover:border-[#404040] focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 rounded-xl text-xs text-white placeholder-neutral-500 transition-colors outline-none"
+                    className="w-full h-11 !pl-10 pr-9 bg-[#171717] border border-[#262626] hover:border-[#404040] focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 rounded-xl text-xs text-white placeholder-neutral-500 transition-colors outline-none"
                     required
                   />
                   <button
@@ -586,6 +603,19 @@ export default function RegisterPage() {
           </div>
         </div>
       </div>
+
+      {/* Inline Legal Modal (Never triggers PWA external application) */}
+      <AuthLegalModal
+        isOpen={!!legalModalType}
+        type={legalModalType}
+        onClose={() => setLegalModalType(null)}
+        onAccept={() => {
+          setTermsAccepted(true);
+          setConsentTimestamp(new Date().toISOString());
+          setConsentError(false);
+          setLegalModalType(null);
+        }}
+      />
     </div>
   );
 }

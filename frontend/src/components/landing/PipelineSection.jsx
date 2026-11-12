@@ -5,20 +5,20 @@ const steps = [
   {
     num: '01',
     icon: Camera,
-    title: 'Multi-Angle Enrollment',
-    desc: 'Upload frontal and lateral profile photos. The pre-processor crops images, aligns facial landmarks, and computes initial quality metrics locally.',
+    title: '1. Quick Photo Setup',
+    desc: 'Take or upload 3 quick photos of each employee (straight and slight side angle) directly using any webcam or phone.',
   },
   {
     num: '02',
     icon: Brain,
-    title: 'Local Embedding Generation',
-    desc: 'Extract 512-dimensional vector representations using high-precision convolutional architectures, indexed directly in your local vector store.',
+    title: '2. Instant Face Enrollment',
+    desc: 'The system creates a private mathematical face signature and saves it directly onto your computer with zero cloud upload.',
   },
   {
     num: '03',
     icon: CheckCircle2,
-    title: 'Real-Time Consensus Verification',
-    desc: 'Incoming camera frames are compared against enrolled templates in milliseconds, validating liveness and confirming identity with sub-second latency.',
+    title: '3. Walk Past to Punch In',
+    desc: 'Employees simply walk past the entrance camera or tablet kiosk. Their attendance is marked in under a second with exact time.',
   },
 ];
 
@@ -28,13 +28,13 @@ export default function PipelineSection() {
       <div className="max-w-5xl mx-auto">
         <div className="text-center mb-14">
           <p className="text-xs font-semibold uppercase tracking-wider text-emerald-400 mb-2">
-            Technical Architecture
+            Simple 3-Step Process
           </p>
           <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-white">
-            Three-Stage Local Processing Pipeline
+            How AuraPass Works in Your Workplace
           </h2>
           <p className="text-sm text-zinc-400 mt-2 max-w-xl mx-auto">
-            From enrollment to real-time verification, all computation executes on your host hardware.
+            Easy setup, instant daily check-ins, and all records stay on your office computer.
           </p>
         </div>
 

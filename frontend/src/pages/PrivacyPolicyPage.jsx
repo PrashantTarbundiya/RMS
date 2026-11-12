@@ -7,6 +7,7 @@ import Button from '../components/ui/marketing/Button';
 import {
   Shield,
   Printer,
+  Download,
   FileText,
   Lock,
   Server,
@@ -16,6 +17,7 @@ import {
   HelpCircle,
   ArrowRight
 } from 'lucide-react';
+import { API_BASE } from '../config';
 
 const TOC_SECTIONS = [
   { id: 'section-01', title: '1. Introduction & Architectural Scope' },
@@ -60,6 +62,10 @@ export default function PrivacyPolicyPage() {
     window.print();
   };
 
+  const handleDownloadPDF = () => {
+    window.open(`${API_BASE}/legal/export-pdf?type=privacy`, '_blank');
+  };
+
   return (
     <div className="min-h-screen public-surface flex flex-col font-sans transition-colors duration-200">
       {/* Precision Print Styles */}
@@ -91,15 +97,25 @@ export default function PrivacyPolicyPage() {
               <Badge variant="emerald" dot>Biometric Data Sovereignty</Badge>
               <span className="text-xs font-mono text-muted-foreground">Version: 2026.2 LTS</span>
             </div>
-            <Button
-              variant="outline"
-              size="sm"
-              icon={Printer}
-              onClick={handlePrint}
-              className="no-print"
-            >
-              Print Policy / Save PDF
-            </Button>
+            <div className="flex items-center gap-2 no-print">
+              <Button
+                variant="primary"
+                size="sm"
+                icon={Download}
+                onClick={handleDownloadPDF}
+                className="bg-emerald-600 hover:bg-emerald-500 text-white font-medium"
+              >
+                Download Official PDF
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                icon={Printer}
+                onClick={handlePrint}
+              >
+                Print
+              </Button>
+            </div>
           </div>
 
           <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-foreground">

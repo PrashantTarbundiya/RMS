@@ -247,6 +247,20 @@ class SideFaceDetector:
                 for idx in keypoint_indices
             ]
 
+            # Canonical 5 key points for Umeyama affine alignment (left pupil, right pupil, nose, mouth corners)
+            num_lm = len(landmarks)
+            left_eye_x = landmarks[468].x * w if num_lm > 468 else (landmarks[33].x + landmarks[133].x) * 0.5 * w
+            left_eye_y = landmarks[468].y * h if num_lm > 468 else (landmarks[33].y + landmarks[133].y) * 0.5 * h
+            right_eye_x = landmarks[473].x * w if num_lm > 473 else (landmarks[263].x + landmarks[362].x) * 0.5 * w
+            right_eye_y = landmarks[473].y * h if num_lm > 473 else (landmarks[263].y + landmarks[362].y) * 0.5 * h
+            five_points = [
+                {'x': float(left_eye_x), 'y': float(left_eye_y)},
+                {'x': float(right_eye_x), 'y': float(right_eye_y)},
+                {'x': float(landmarks[1].x * w), 'y': float(landmarks[1].y * h)},
+                {'x': float(landmarks[61].x * w), 'y': float(landmarks[61].y * h)},
+                {'x': float(landmarks[291].x * w), 'y': float(landmarks[291].y * h)},
+            ]
+
             face = {
                 'bbox': {
                     'x': x1,
@@ -260,6 +274,7 @@ class SideFaceDetector:
                 'angle_label': direction,  # Alias for inference.py compatibility
                 'profile_confidence': profile_conf,
                 'keypoints': keypoints,
+                'five_points': five_points,
                 'soft_biometrics': soft_metrics,
                 'yaw': round(yaw, 2),
                 'pitch': round(pitch, 2),

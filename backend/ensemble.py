@@ -10,11 +10,10 @@ agreement bonuses, and raw weighted-score output for informative confidence.
 """
 
 
-# Default model weights for ensemble voting (Modernized: Facenet512 primary, InsightFace verifier, GhostFaceNet edge, VGG-Face deprecated)
-# Default model weights for ensemble voting (Modernized: Facenet512 primary, InsightFace verifier, GhostFaceNet & VGGFace disabled)
+# Default model weights for ensemble voting (ArcFace Primary, FaceNet512 Secondary Consensus)
 DEFAULT_WEIGHTS = {
-    'facenet512': 1.0,    # Primary — Highly accurate FaceNet512
-    'insightface': 0.35,  # Optional Secondary — Fast ArcFace model
+    'insightface': 1.0,   # Primary — SOTA 512-d ArcFace ONNX model (~9.8ms)
+    'facenet512': 0.85,   # Secondary Verifier — FaceNet512 consensus
     'ghostfacenet': 0.00, # Disabled/Removed
     'vggface': 0.00,      # Disabled/Removed
 }
@@ -163,9 +162,16 @@ def ensemble_predict(predictions, weights=None, custom_threshold=None):
     else:
         # Single model or disagreement
         if num_valid > 1:
-            best_score = max(0, best_score - DISAGREEMENT_PENALTY)
-            effective_hard_threshold = min(0.90, base_hard + 0.10)
-            effective_soft_threshold = base_soft + 0.05
+            # Dual-model disagreement: models predicted DIFFERENT people.
+            # Strict enterprise security: immediately reject to eliminate false cross-attribution.
+            return {
+                'label': UNKNOWN_LABEL,
+                'confidence': round(max(0.0, best_score - 0.35), 3),
+                'method': 'disagreement_rejection',
+                'agreement': f"0/{num_valid}",
+                'is_recognized': False,
+                'details': predictions,
+            }
         else:
             # Single model fallback — if it is a Tier-1 deep model (facenet512 or insightface),
             # DO NOT penalize with +0.15! Keep effective_hard_threshold at base_hard (70%)!

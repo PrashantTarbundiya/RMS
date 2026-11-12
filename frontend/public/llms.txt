@@ -1,0 +1,34 @@
+# AuraPass™ Enterprise — On-Premise Facial Recognition Attendance & Access Control System
+
+> AuraPass™ Enterprise is an on-premise, privacy-first computer vision attendance and physical access control platform engineered in India. It transforms standard IP CCTV cameras, webcams, and tablets into sub-300 millisecond biometric entrance gates with zero cloud data egress.
+
+## Quick Facts
+- **Product Type**: On-Premise Enterprise Facial Recognition & Attendance Software
+- **Operating Modes**: Local On-Premise (100% Air-Gapped LAN), Hybrid Sync, Edge Mini-PC
+- **Headquarters & Engineering**: Ahmedabad / Gandhinagar, Gujarat, India
+- **Primary Currency**: Indian Rupee (INR ₹)
+- **Compliance Standards**: India Digital Personal Data Protection (DPDP) Act 2023, ISO/IEC 30107-3 Presentation Attack Detection, GDPR Article 9 (Air-gapped biometric template protection)
+- **Supported Camera Protocols**: RTSP (H.264 / H.265), ONVIF Profile S/T, USB Video Class (UVC Webcams), HTTP MJPEG
+- **Camera Brands Tested**: Hikvision, Dahua, CP Plus, Axis Communications, Hanwha, Uniview, Honeywell
+- **Turnstile Gate Integration**: 24V DC opto-isolated dry-contact relays, 450ms momentary pulse calibration (Alvarado, Boon Edam, Gunnebo, Dormakaba)
+
+## Key Technical Specifications
+- **Verification Latency**: 280ms end-to-end (face detection + 512-D neural feature extraction + vector similarity lookup)
+- **Recognition Accuracy**: 99.65% on Labeled Faces in the Wild (LFW); 99.83% on CFP-FP wide-angle pose benchmark
+- **Multi-Backbone Consensus Routing**: FaceNet-512 (primary frontal engine), InsightFace ArcFace (wide-angle ±45° specialist), GhostFaceNet (4.2ms edge engine for tablets), MiniVision Anti-Spoof (ISO 30107-3 liveness filter)
+- **Biometric Sovereignty**: Stores non-invertible 512-dimensional floating-point embeddings encrypted with AES-256 GCM. Never stores raw facial photographs. Mathematical reconstruction of original photos from vectors is mathematically impossible.
+- **Offline Reliability**: Operates at 100% capacity during complete internet or WAN outages using local SQLite WAL or PostgreSQL LAN databases.
+
+## Pricing in Indian Rupees (INR)
+- **Starter Trial**: ₹0 / month flat. Includes up to 25 staff members, 1 webcam or laptop feed, local vector enclave, standard reporting.
+- **Business Pro**: ₹1,999 / month flat (₹23,988 billed annually). Includes unlimited staff members, unlimited multi-RTSP CCTV streams, real-time anti-spoofing defense, late arrival analytics, automated PDF/Excel exports, priority email support.
+- **Enterprise Custom**: ₹14,999+ / month. Includes multi-facility site clustering, physical turnstile relay dry contacts, dedicated SLA, on-call engineer dispatch, custom payroll API integrations (SAP, Zoho People, Darwinbox).
+
+## Canonical URLs & Documentation
+- **Homepage**: https://13-60-225-165.sslip.io/
+- **Documentation & Runbooks**: https://13-60-225-165.sslip.io/docs
+- **Engineering Support**: https://13-60-225-165.sslip.io/support
+- **Privacy Policy (DPDP 2023)**: https://13-60-225-165.sslip.io/privacy-policy
+- **Terms of Service**: https://13-60-225-165.sslip.io/terms
+- **XML Sitemap**: https://13-60-225-165.sslip.io/sitemap.xml
+

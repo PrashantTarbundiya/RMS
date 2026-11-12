@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
+import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
+import { API_BASE } from '../config';
 import {
   Scan,
   Eye,
@@ -94,6 +96,23 @@ export default function LoginPage() {
     }
   };
 
+  const handleGoogleAuth = async () => {
+    setError('');
+    try {
+      const res = await axios.get(`${API_BASE}/auth/sso/login`, { timeout: 6000 });
+      if (res.data?.auth_url) {
+        window.location.href = res.data.auth_url;
+      } else {
+        setError('Google Sign-In is not enabled on this server. Please enter your work email and password below.');
+      }
+    } catch (err) {
+      const errorMsg =
+        err.response?.data?.error ||
+        'Google Sign-In is not configured yet. Please sign in with your email and password below.';
+      setError(errorMsg);
+    }
+  };
+
   const currentTestimonial = SECURITY_TESTIMONIALS[activeTestimonial];
 
   return (
@@ -149,9 +168,7 @@ export default function LoginPage() {
           {/* Google Workspace SSO Button */}
           <button
             type="button"
-            onClick={() => {
-              setError('Google Workspace sign-in requires SAML configuration inside organization settings.');
-            }}
+            onClick={handleGoogleAuth}
             className="w-full h-11 flex items-center justify-center gap-3 bg-[#171717] hover:bg-[#262626] border border-[#262626] hover:border-[#404040] rounded-xl text-xs sm:text-sm font-medium text-neutral-200 transition-all cursor-pointer shadow-sm"
           >
             <svg className="w-4 h-4" viewBox="0 0 24 24">
@@ -201,7 +218,7 @@ export default function LoginPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="name@company.com"
-                  className="w-full h-11 pl-10 pr-4 bg-[#171717] border border-[#262626] hover:border-[#404040] focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 rounded-xl text-xs sm:text-sm text-white placeholder-neutral-500 transition-colors outline-none"
+                  className="w-full h-11 !pl-11 pr-4 bg-[#171717] border border-[#262626] hover:border-[#404040] focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 rounded-xl text-xs sm:text-sm text-white placeholder-neutral-500 transition-colors outline-none"
                   required
                 />
               </div>
@@ -224,7 +241,7 @@ export default function LoginPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full h-11 pl-10 pr-10 bg-[#171717] border border-[#262626] hover:border-[#404040] focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 rounded-xl text-xs sm:text-sm text-white placeholder-neutral-500 transition-colors outline-none"
+                  className="w-full h-11 !pl-11 pr-10 bg-[#171717] border border-[#262626] hover:border-[#404040] focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 rounded-xl text-xs sm:text-sm text-white placeholder-neutral-500 transition-colors outline-none"
                   required
                 />
                 <button

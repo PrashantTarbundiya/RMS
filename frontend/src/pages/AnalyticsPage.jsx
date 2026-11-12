@@ -48,6 +48,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { API_BASE } from '../config';
 
 import { SkeletonStatCards } from '../components/ui/Skeleton';
+import ExportModal from '../components/ui/ExportModal';
 
 
 
@@ -571,8 +572,12 @@ export default function AnalyticsPage() {
   });
 
   const [workStart, setWorkStart] = useState(searchParams.get('work_start') || '09:00');
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
 
   const updateFilters = (newStart, newEnd, newWorkStart) => {
+    if (newStart && newEnd && newStart > newEnd) {
+      toast.warning('Start date cannot be after end date.');
+    }
     setDateRange({ start: newStart, end: newEnd });
     setWorkStart(newWorkStart);
     const p = new URLSearchParams(searchParams);
@@ -653,82 +658,58 @@ export default function AnalyticsPage() {
 
 
   const exportReport = async () => {
-
     try {
-
       const params = new URLSearchParams();
-
+      params.set('format', 'json');
       if (dateRange.start) params.set('start_date', dateRange.start);
-
       if (dateRange.end) params.set('end_date', dateRange.end);
+      const [h, m] = workStart.split(':').map(Number);
+      params.set('work_start_hour', h || 9);
+      params.set('work_start_minute', m || 0);
 
-      const res = await apiClient.get(`${API_BASE}/analytics/report?${params}`);
-
-      const blob = new Blob([JSON.stringify(res.data, null, 2)], { type: 'application/json' });
-
+      const res = await apiClient.get(`${API_BASE}/reports/analytics/export?${params}`, {
+        responseType: 'blob'
+      });
+      const blob = new Blob([res.data], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
-
       const a = document.createElement('a');
-
       a.href = url;
-
-      a.download = `aurapass_report_${new Date().toISOString().slice(0, 10)}.json`;
-
+      a.download = `aurapass_analytics_report_${new Date().toISOString().slice(0, 10)}.json`;
       a.click();
-
       URL.revokeObjectURL(url);
-
-      toast.success('JSON report exported.');
-
+      toast.success('Canonical JSON report exported.');
     } catch (err) {
-
       toast.error('Failed to export JSON report.');
-
     }
-
   };
 
-
-
   const exportPDF = async (period = null) => {
-
     try {
-
       const params = new URLSearchParams();
-
+      params.set('format', 'pdf');
       if (period) {
         params.set('period', period);
       } else {
         if (dateRange.start) params.set('start_date', dateRange.start);
         if (dateRange.end) params.set('end_date', dateRange.end);
       }
+      const [h, m] = workStart.split(':').map(Number);
+      params.set('work_start_hour', h || 9);
+      params.set('work_start_minute', m || 0);
 
-      const res = await apiClient.get(`${API_BASE}/analytics/export/pdf?${params}`, {
-
+      const res = await apiClient.get(`${API_BASE}/reports/analytics/export?${params}`, {
         responseType: 'blob'
-
       });
-
       const url = URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }));
-
       const a = document.createElement('a');
-
       a.href = url;
-
-      a.download = `aurapass_analytics_report_${new Date().toISOString().slice(0, 10)}.pdf`;
-
+      a.download = `aurapass_analytics_report_${period || 'custom'}_${new Date().toISOString().slice(0, 10)}.pdf`;
       a.click();
-
       URL.revokeObjectURL(url);
-
-      toast.success('PDF report downloaded.');
-
+      toast.success('Executive PDF report downloaded.');
     } catch (err) {
-
       toast.error('Failed to export PDF report.');
-
     }
-
   };
 
 
@@ -756,110 +737,75 @@ export default function AnalyticsPage() {
         </div>
 
         <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+          <Link to="/departments?tab=schedules" className="button-secondary flex-1 sm:flex-none flex items-center justify-center gap-1.5 text-caption h-8 px-3 border-[#262626] hover:border-emerald-500/50">
+            <Building2 size={13} className="text-emerald-400" /> Departments
+          </Link>
 
-          <Link to="/departments?tab=schedules" className="button-secondary flex-1 sm:flex-none flex items-center justify-center gap-1.5 text-caption h-8 px-3 border-[#262626] hover:border-emerald-500/50"><Building2 size={13} className="text-emerald-400" /> Departments</Link>
-
-
-
-          <button onClick={exportReport} className="button-secondary flex items-center justify-center gap-1.5 text-caption h-8 px-3">
-
-            <Download size={13} /> JSON
-
+          <button
+            onClick={() => setIsExportModalOpen(true)}
+            className="button-primary bg-emerald-600 hover:bg-emerald-500 text-white flex items-center justify-center gap-1.5 text-caption h-8 px-3.5 shadow-sm font-medium"
+            title="Open Unified Export & Reporting Dialog"
+          >
+            <Download size={13} className="text-white" /> Export Reports
           </button>
 
-          <div className="flex items-center gap-1.5">
-            <button onClick={() => exportPDF('daily')} className="button-secondary flex items-center justify-center gap-1 text-[11px] h-8 px-2.5" title="Download Today's Daily Attendance Report">
-              <Download size={12} /> Daily
+          <div className="flex items-center gap-1">
+            <button onClick={() => exportPDF('daily')} className="button-secondary flex items-center justify-center gap-1 text-[11px] h-8 px-2" title="Download Today's Daily Attendance Report">
+              <Download size={11} /> Daily
             </button>
-            <button onClick={() => exportPDF('monthly')} className="button-secondary flex items-center justify-center gap-1 text-[11px] h-8 px-2.5" title="Download Current Month Summary Report">
-              <Download size={12} /> Monthly
+            <button onClick={() => exportPDF('monthly')} className="button-secondary flex items-center justify-center gap-1 text-[11px] h-8 px-2" title="Download Current Month Summary Report">
+              <Download size={11} /> Monthly
             </button>
-            <button onClick={() => exportPDF('yearly')} className="button-secondary flex items-center justify-center gap-1 text-[11px] h-8 px-2.5" title="Download Annual Audit Report">
-              <Download size={12} /> Yearly
-            </button>
-            <button onClick={() => exportPDF()} className="button-primary bg-emerald-600 hover:bg-emerald-500 text-white flex items-center justify-center gap-1.5 text-caption h-8 px-3" title="Download Custom Filtered PDF">
-              <Download size={13} className="text-white" /> Filtered PDF
+            <button onClick={exportReport} className="button-secondary flex items-center justify-center gap-1 text-[11px] h-8 px-2" title="Download Canonical JSON Report">
+              <Download size={11} /> JSON
             </button>
           </div>
-
         </div>
-
       </div>
 
-
-
       {/* Filters */}
-
       <div className="card-linear p-3.5 sm:p-4 bg-[#111111] border-[#262626] grid grid-cols-1 sm:grid-cols-2 lg:flex lg:flex-wrap items-end gap-3 sm:gap-4">
-
         <div className="w-full sm:w-auto">
-
           <label className="text-[11px] text-ink-subtle uppercase tracking-wider block mb-1">Start Date</label>
-
           <input
-
             type="date"
-
             max={new Date().toISOString().split('T')[0]}
-
             value={dateRange.start}
-
             onChange={e => {
               const today = new Date().toISOString().split('T')[0];
               const val = e.target.value > today ? today : e.target.value;
               updateFilters(val, dateRange.end, workStart);
             }}
-
-            className="h-8 px-3 rounded-md bg-secondary/70 border border-border text-caption text-foreground focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none accent-emerald-500 w-full"
-
+            className="h-8 px-3 rounded-md bg-[#171717] border border-[#262626] text-caption text-ink focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none accent-emerald-500 w-full"
           />
-
         </div>
 
         <div className="w-full sm:w-auto">
-
           <label className="text-[11px] text-ink-subtle uppercase tracking-wider block mb-1">End Date</label>
-
           <input
-
             type="date"
-
             max={new Date().toISOString().split('T')[0]}
-
             value={dateRange.end}
-
             onChange={e => {
               const today = new Date().toISOString().split('T')[0];
               const val = e.target.value > today ? today : e.target.value;
               updateFilters(dateRange.start, val, workStart);
             }}
-
-            className="h-8 px-3 rounded-md bg-secondary/70 border border-border text-caption text-foreground focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none accent-emerald-500 w-full"
-
+            className="h-8 px-3 rounded-md bg-[#171717] border border-[#262626] text-caption text-ink focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none accent-emerald-500 w-full"
           />
-
         </div>
 
         <div className="w-full sm:w-auto">
-
           <label className="text-[11px] text-ink-subtle uppercase tracking-wider block mb-1">Default Work Start</label>
-
           <input
-
             type="time"
-
             value={workStart}
-
             onChange={e => updateFilters(dateRange.start, dateRange.end, e.target.value)}
-
             className="h-8 px-3 rounded-md bg-[#171717] border border-[#262626] text-caption text-ink focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none accent-emerald-500 w-full"
-
           />
-
         </div>
 
         <button onClick={fetchAll} className="button-secondary h-8 px-4 text-caption w-full sm:w-auto">Apply</button>
-
       </div>
 
 
@@ -983,17 +929,26 @@ export default function AnalyticsPage() {
 
 
           {/* Heatmap (full width) */}
-
           <HeatmapGrid data={heatmap} />
-
         </>
-
       )}
 
-
-
-
-
+      {/* Unified Enterprise Export Modal */}
+      <ExportModal
+        isOpen={isExportModalOpen}
+        onClose={() => setIsExportModalOpen(false)}
+        category="analytics"
+        title="Export Analytics & Executive Reports"
+        appliedFilters={{
+          startDate: dateRange.start,
+          endDate: dateRange.end,
+          workStart: {
+            hour: parseInt((workStart || '09:00').split(':')[0] || '9', 10),
+            minute: parseInt((workStart || '09:00').split(':')[1] || '0', 10)
+          }
+        }}
+        departments={deptConfigs}
+      />
     </motion.div>
 
   );

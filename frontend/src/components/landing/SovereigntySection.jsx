@@ -4,27 +4,27 @@ import { Cpu, ShieldCheck, Database, Scale, Shield } from 'lucide-react';
 const COMPLIANCE_SPECS = [
   {
     icon: Cpu,
-    tag: 'LOCAL-COMPUTE',
-    title: 'Air-Gapped Local Inference',
-    desc: 'All neural backbone extraction and cosine similarity matching executes strictly on your server compute with zero telemetry or outbound traffic.'
+    tag: '100% LOCAL',
+    title: 'Runs 100% Locally',
+    desc: 'Face recognition runs directly on your computer or local network. It never needs an internet connection or cloud server.'
   },
   {
     icon: ShieldCheck,
-    tag: 'AES-GCM-256',
-    title: 'Cryptographic Vector Isolation',
-    desc: 'Biometric embeddings are encrypted at rest and separated into isolated organization namespaces to guarantee zero cross-tenant contamination.'
+    tag: 'AES-256',
+    title: 'Private Company Encryption',
+    desc: 'Your employee attendance records and face templates are locked with bank-grade encryption (AES-256).'
   },
   {
     icon: Database,
-    tag: 'APPEND-ONLY',
-    title: 'Immutable Audit Trail',
-    desc: 'Every access granted or spoof attempt creates a tamper-resistant record with hardware timestamps, camera identifiers, and confidence values.'
+    tag: 'TAMPER-PROOF',
+    title: 'Clean & Accurate Logs',
+    desc: 'Every punch, late check-in, or blocked attempt is safely recorded with date, time, and camera name.'
   },
   {
     icon: Scale,
-    tag: 'GDPR-ART-9',
-    title: 'Global Compliance Governance',
-    desc: 'Designed around GDPR Article 9 special category data requirements and Illinois BIPA standards with customizable data retention policies.'
+    tag: 'PRIVACY-READY',
+    title: 'Privacy Law Compliant',
+    desc: 'Fully adheres to Indian DPDP Act and international biometric data protection rules.'
   }
 ];
 
@@ -36,13 +36,13 @@ export default function SovereigntySection() {
           <div className="max-w-3xl mb-10">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-md bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-semibold uppercase tracking-wider mb-3">
               <Shield className="w-3.5 h-3.5" />
-              <span>Biometric Data Sovereignty</span>
+              <span>100% Data Privacy</span>
             </div>
             <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-white mb-4">
-              Complete Control Over Biometric Templates & Personnel Data
+              Your Employee Data Stays Safely Inside Your Company
             </h2>
             <p className="text-sm text-zinc-400 leading-relaxed">
-              Unlike cloud biometric vendors that transmit sensitive human identity markers across public networks, AuraPass™ retains all raw images and mathematical vectors within your secured perimeter.
+              Unlike cloud software that sends your staff photos to external servers, AuraPass runs on your own office computer or local network. No photos or face records ever leave your building.
             </p>
           </div>
 

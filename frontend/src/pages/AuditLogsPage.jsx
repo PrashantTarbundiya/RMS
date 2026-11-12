@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { API_BASE } from '../config';
 import EmptyState from '../components/ui/EmptyState';
 import { SkeletonTable } from '../components/ui/Skeleton';
+import ExportModal from '../components/ui/ExportModal';
 
 export default function AuditLogsPage() {
   const { apiClient, user } = useAuth();
@@ -24,6 +25,7 @@ export default function AuditLogsPage() {
   const [error, setError] = useState(null);
   const [dateStart, setDateStart] = useState(() => searchParams.get('start') || '');
   const [dateEnd, setDateEnd] = useState(() => searchParams.get('end') || '');
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
 
   const updateParam = useCallback((key, val, defaultVal = '') => {
     setSearchParams(prev => {
@@ -134,11 +136,11 @@ export default function AuditLogsPage() {
         </div>
         {logs.length > 0 && (
           <button
-            onClick={exportCSV}
-            className="button-secondary flex items-center gap-1.5 text-caption h-9 px-3"
-            aria-label="Export audit logs as CSV"
+            onClick={() => setIsExportModalOpen(true)}
+            className="button-primary bg-emerald-600 hover:bg-emerald-500 text-white flex items-center gap-1.5 text-caption h-9 px-3.5 shadow-sm font-medium"
+            aria-label="Export official audit trail"
           >
-            <Download size={14} /> Export CSV
+            <Download size={14} className="text-white" /> Export Audit Trail
           </button>
         )}
       </div>
@@ -509,6 +511,19 @@ export default function AuditLogsPage() {
           </button>
         </div>
       )}
+
+      {/* Unified Enterprise Audit Trail Export Modal */}
+      <ExportModal
+        isOpen={isExportModalOpen}
+        onClose={() => setIsExportModalOpen(false)}
+        category="audit"
+        title="Export Security & Compliance Audit Trail"
+        appliedFilters={{
+          startDate: dateStart,
+          endDate: dateEnd,
+          eventType: logType
+        }}
+      />
     </motion.div>
   );
 }

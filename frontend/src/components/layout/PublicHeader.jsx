@@ -51,6 +51,8 @@ export default function PublicHeader() {
     { label: 'Features', href: '/#features', isAnchor: true },
     { label: 'How It Works', href: '/#how-it-works', isAnchor: true },
     { label: 'Pricing', href: '/#pricing', isAnchor: true },
+    { label: 'Case Studies', href: '/#case-studies', isAnchor: true },
+    { label: 'Compare', href: '/#competitors', isAnchor: true },
     { label: 'Docs', href: '/docs', isAnchor: false },
     { label: 'Support', href: '/support', isAnchor: false },
   ];

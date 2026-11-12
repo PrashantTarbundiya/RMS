@@ -1,10 +1,10 @@
 import React from 'react';
 
 const stats = [
-  { value: '84ms', label: 'Average Inference Latency', detail: 'Measured on standard quad-core CPU, zero dedicated GPU required' },
-  { value: '60°', label: 'Supported Rotation Angle', detail: 'Side-profile alignment and verification built into detector' },
-  { value: '512-d', label: 'Embedding Vector Size', detail: 'High-dimensional feature space for precise discrimination' },
-  { value: '3-5', label: 'Minimum Enrollment Photos', detail: 'Frontal and lateral profile views for baseline registration' },
+  { value: '<0.1s', label: 'Instant Check-In', detail: 'Super fast recognition on normal office computers' },
+  { value: '60°', label: 'Wide-Angle View', detail: 'Recognizes staff walking past even if looking slightly sideways' },
+  { value: '100%', label: 'Private & Local', detail: 'Your photos and attendance stay safe on your own office computer' },
+  { value: '3-5', label: 'Quick Photo Setup', detail: 'Just 3 quick photos to register each new staff member' },
 ];
 
 export default function StatsSection() {
@@ -13,13 +13,13 @@ export default function StatsSection() {
       <div className="max-w-5xl mx-auto">
         <div className="text-center mb-14">
           <p className="text-xs font-semibold uppercase tracking-wider text-emerald-400 mb-2">
-            Engineering Specifications
+            Built for Real-World Speed
           </p>
           <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-white">
-            Performance Benchmarks on Standard Hardware
+            Fast & Smooth on Normal Computers
           </h2>
           <p className="text-sm text-zinc-400 mt-2 max-w-xl mx-auto">
-            Engineered for edge deployment without requiring proprietary cloud accelerators.
+            Runs on regular office laptops or desktop PCs without buying expensive hardware.
           </p>
         </div>
 

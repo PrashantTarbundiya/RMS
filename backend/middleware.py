@@ -244,14 +244,38 @@ def require_api_key_or_auth(f):
             else:
                 token = request.args.get('token')
 
-            if not token or token == 'single-tenant-token':
-                g.auth_type = 'user'
-                g.current_user = {
-                    'user_id': 'local-admin',
-                    'org_id': 'default-org',
-                    'role': 'org_admin',
-                }
-                return f(*args, **kwargs)
+            allow_dev_anon = (
+                os.environ.get('RMS_ALLOW_DEV_ANON', '').lower() in ('1', 'true', 'yes')
+                or os.environ.get('FLASK_ENV') == 'development'
+            )
+
+            if not token:
+                if allow_dev_anon:
+                    g.auth_type = 'user'
+                    g.current_user = {
+                        'user_id': 'local-dev-user',
+                        'org_id': 'default-org',
+                        'role': 'org_admin',
+                    }
+                    return f(*args, **kwargs)
+                return jsonify({
+                    'error': 'Authentication required. Provide X-API-Key header or Bearer token.',
+                    'code': 'AUTH_REQUIRED'
+                }), 401
+
+            if token == 'single-tenant-token':
+                if allow_dev_anon:
+                    g.auth_type = 'user'
+                    g.current_user = {
+                        'user_id': 'local-admin',
+                        'org_id': 'default-org',
+                        'role': 'org_admin',
+                    }
+                    return f(*args, **kwargs)
+                return jsonify({
+                    'error': 'Single-tenant token is not permitted in multi-tenant mode.',
+                    'code': 'INVALID_TOKEN'
+                }), 401
 
             from auth import decode_token
             payload = decode_token(token)

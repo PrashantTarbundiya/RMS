@@ -1,7 +1,52 @@
+# ==============================================================================
+# AuraPass™ Enterprise — Search, Answer & Generative Engine Robots Manifest
+# Target Protocols: Googlebot, Bingbot, GPTBot, ClaudeBot, PerplexityBot, Applebot
+# ==============================================================================
+
+# ── 1. Modern Generative AI & Answer Engine Crawlers (AEO / GEO Optimization) ──
+User-agent: GPTBot
+User-agent: ChatGPT-User
+User-agent: ClaudeBot
+User-agent: anthropic-ai
+User-agent: PerplexityBot
+User-agent: Google-Extended
+User-agent: Applebot-Extended
+User-agent: OAI-SearchBot
+User-agent: cohere-ai
+User-agent: Diffbot
+User-agent: CCBot
+Allow: /
+Allow: /llms.txt
+Allow: /llms-full.txt
+Allow: /docs
+Allow: /support
+Allow: /case-studies
+Allow: /research
+Allow: /pricing
+Allow: /privacy-policy
+Allow: /terms
+Disallow: /api/
+Disallow: /dashboard
+Disallow: /attendance
+Disallow: /cameras
+Disallow: /kiosk
+Disallow: /mosaic
+Disallow: /models
+Disallow: /logs
+Disallow: /audit
+Disallow: /analytics
+Disallow: /departments
+Disallow: /profile
+Disallow: /admin
+
+# ── 2. Standard Search Engine Crawlers ──
 User-agent: *
 Allow: /
 Allow: /docs
 Allow: /support
+Allow: /case-studies
+Allow: /research
+Allow: /pricing
 Allow: /privacy-policy
 Allow: /terms
 Allow: /login
@@ -18,6 +63,8 @@ Disallow: /audit
 Disallow: /analytics
 Disallow: /departments
 Disallow: /profile
+Disallow: /admin
 
+# ── 3. Canonical Sitemaps & Machine-Readable AI Indices ──
 Sitemap: https://13-60-225-165.sslip.io/sitemap.xml
-
+# LLM Manifest: https://13-60-225-165.sslip.io/llms.txt

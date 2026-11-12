@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { Camera, Monitor, RefreshCw, Wifi, WifiOff, Users, AlertCircle, Settings2, RotateCw } from 'lucide-react';
+import { Camera, Monitor, RefreshCw, Wifi, WifiOff, Users, AlertCircle, Settings2, RotateCw, FlipHorizontal } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { API_BASE } from '../config';
 
@@ -17,6 +17,7 @@ function CameraFeedTile({ camera, apiClient, columns }) {
   const [results, setResults] = useState(null);
   const [isLive, setIsLive] = useState(false);
   const [facingMode, setFacingMode] = useState('user');
+  const [isMirrored, setIsMirrored] = useState(false);
   const [error, setError] = useState(null);
   const [fps, setFps] = useState(0);
   const lastFrameTime = useRef(Date.now());
@@ -132,13 +133,15 @@ function CameraFeedTile({ camera, apiClient, columns }) {
       const w = box.w * sx;
       const h = box.h * sy;
 
+      const drawX = isMirrored ? (vw - (x + w)) : x;
+
       const ens = face.ensemble || {};
       const isRecognized = ens.is_recognized;
       const color = isRecognized ? '#4ade80' : '#f87171';
 
       ctx.strokeStyle = color;
       ctx.lineWidth = 2;
-      ctx.strokeRect(x, y, w, h);
+      ctx.strokeRect(drawX, y, w, h);
 
       // Label
       const label = ens.label || 'Unknown';
@@ -147,11 +150,11 @@ function CameraFeedTile({ camera, apiClient, columns }) {
       ctx.font = `bold ${Math.max(11, Math.min(14, vw / 40))}px Inter, sans-serif`;
       const text = conf ? `${label} (${conf})` : label;
       const tm = ctx.measureText(text);
-      ctx.fillRect(x, y - 18, tm.width + 8, 18);
+      ctx.fillRect(drawX, y - 18, tm.width + 8, 18);
       ctx.fillStyle = '#000';
-      ctx.fillText(text, x + 4, y - 4);
+      ctx.fillText(text, drawX + 4, y - 4);
     });
-  }, [results]);
+  }, [results, isMirrored]);
 
   return (
     <div style={{
@@ -165,7 +168,12 @@ function CameraFeedTile({ camera, apiClient, columns }) {
         autoPlay
         muted
         playsInline
-        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+        style={{
+          width: '100%',
+          height: '100%',
+          objectFit: 'cover',
+          transform: isMirrored ? 'scaleX(-1)' : 'none'
+        }}
       />
 
       {/* Overlay Canvas */}
@@ -193,33 +201,52 @@ function CameraFeedTile({ camera, apiClient, columns }) {
         </span>
       </div>
 
-      {/* FPS Counter */}
-      {isLive && fps > 0 && (
+      {/* Camera Controls: Mirror & Facing */}
+      {isLive && (
         <div style={{
           position: 'absolute', top: '8px', right: '8px',
-          background: 'rgba(0,0,0,0.7)', borderRadius: '4px',
-          padding: '2px 6px', fontSize: '10px', color: '#888',
+          display: 'flex', alignItems: 'center', gap: '4px'
         }}>
-          ~{fps} fps
-        </div>
-      )}
+          <button
+            type="button"
+            onClick={() => setIsMirrored(m => !m)}
+            style={{
+              background: isMirrored ? 'rgba(16, 185, 129, 0.25)' : 'rgba(0,0,0,0.7)',
+              borderRadius: '4px', border: isMirrored ? '1px solid rgba(16, 185, 129, 0.5)' : '1px solid #262626',
+              padding: '2px 6px', fontSize: '10px', color: isMirrored ? '#34d399' : '#d4d4d4', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', gap: '3px',
+            }}
+            title={`Toggle Mirror Preview (Current: ${isMirrored ? 'Mirrored' : 'Natural'})`}
+          >
+            <FlipHorizontal size={11} />
+            <span>{isMirrored ? 'Mirror' : 'Natural'}</span>
+          </button>
 
-      {/* Camera Toggle Button */}
-      {isLive && !camera.device_id && (
-        <button
-          type="button"
-          onClick={() => setFacingMode(prev => prev === 'user' ? 'environment' : 'user')}
-          style={{
-            position: 'absolute', top: '8px', right: fps > 0 ? '60px' : '8px',
-            background: 'rgba(0,0,0,0.7)', borderRadius: '4px', border: '1px solid #262626',
-            padding: '2px 6px', fontSize: '10px', color: '#34d399', cursor: 'pointer',
-            display: 'flex', alignItems: 'center', gap: '4px',
-          }}
-          title="Toggle Front/Back Camera"
-        >
-          <RotateCw size={11} />
-          <span>{facingMode === 'user' ? 'Front' : 'Back'}</span>
-        </button>
+          {!camera.device_id && (
+            <button
+              type="button"
+              onClick={() => setFacingMode(prev => prev === 'user' ? 'environment' : 'user')}
+              style={{
+                background: 'rgba(0,0,0,0.7)', borderRadius: '4px', border: '1px solid #262626',
+                padding: '2px 6px', fontSize: '10px', color: '#34d399', cursor: 'pointer',
+                display: 'flex', alignItems: 'center', gap: '3px',
+              }}
+              title="Toggle Front/Back Camera"
+            >
+              <RotateCw size={11} />
+              <span>{facingMode === 'user' ? 'Front' : 'Back'}</span>
+            </button>
+          )}
+
+          {fps > 0 && (
+            <div style={{
+              background: 'rgba(0,0,0,0.7)', borderRadius: '4px',
+              padding: '2px 6px', fontSize: '10px', color: '#888',
+            }}>
+              ~{fps} fps
+            </div>
+          )}
+        </div>
       )}
       {results?.faces && results.faces.length > 0 && (
         <div style={{

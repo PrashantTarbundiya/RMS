@@ -19,42 +19,42 @@ export default function RoiCalculator() {
   const [gateCount, setGateCount] = useState(3);
   const [systemType, setSystemType] = useState('rfid'); // 'rfid' | 'fingerprint' | 'cloud'
 
-  // System parameters in Indian Rupees (₹ INR)
+  // Realistic system cost parameters grounded in Indian enterprise operations
   const SYSTEM_CONFIGS = {
     rfid: {
       name: 'Plastic RFID Badges',
       icon: CreditCard,
-      description: 'Physical badge wear, card loss (18%/yr), badge ribbons & turnstile readers.',
-      baseMonthlyCostPerStaff: 280, // Cards, printer ribbons, reader maintenance in ₹
-      hardwareCostPerGate: 65000,   // Reader purchase & turnstile wiring in ₹
-      queueSecPerCheckin: 14.5,     // Swiping, fumbling, lost card lookups
-      buddyPunchLossRate: 0.021     // 2.1% payroll leakage from proxy badge passing
+      description: 'Card printing, replacements (lost/broken cards), turnstile readers & proxy card swiping.',
+      monthlyMaintenancePerStaff: 18,   // ₹18/month per employee (~₹200/yr for cards, ribbons, lanyards)
+      monthlyMaintenancePerGate: 1200,  // ₹1,200/month reader/turnstile maintenance & AMC
+      queueSecPerCheckin: 6.5,          // Card tap, wallet fumbling, forgotten card delays
+      proxyLossRate: 0.007              // 0.7% payroll leakage from coworkers swiping for each other
     },
     fingerprint: {
-      name: 'Fingerprint Hardware Clocks',
+      name: 'Fingerprint Machines',
       icon: Fingerprint,
-      description: 'Sensor smudges, dirty finger rejects, maintenance contracts & manual corrections.',
-      baseMonthlyCostPerStaff: 350, // Maintenance contracts, repair, HR adjustments in ₹
-      hardwareCostPerGate: 85000,   // Dedicated biometric wall clocks in ₹
-      queueSecPerCheckin: 18.0,     // Finger placement, retry on oily/dry hands
-      buddyPunchLossRate: 0.005     // Rare proxy, but frequent clock-in failures
+      description: 'Sensor smudges, rough/dry finger retries, hardware AMC & manual HR log correction hours.',
+      monthlyMaintenancePerStaff: 28,   // ₹28/month per employee in HR time fixing failed/missed thumb scans
+      monthlyMaintenancePerGate: 2200,  // ₹2,200/month biometric clock AMC, repairs & network line
+      queueSecPerCheckin: 9.0,          // Finger placement, retry on dirty/dry fingers
+      proxyLossRate: 0.002              // Rare proxy, but frequent clock-in failures and queue delays
     },
     cloud: {
       name: 'Cloud Facial SaaS',
       icon: Cloud,
-      description: 'Per-user recurring subscription, cloud egress, internet bandwidth & lock-in.',
-      baseMonthlyCostPerStaff: 249, // Standard per-seat cloud SaaS fee in ₹
-      hardwareCostPerGate: 25000,   // Tablet/camera mounts in ₹
-      queueSecPerCheckin: 2.5,      // Cloud latency, network delays
-      buddyPunchLossRate: 0.002     // Minimal buddy punch, high recurring seat cost
+      description: 'Monthly per-employee software subscription fees, internet line dependency & recurring bills.',
+      monthlyMaintenancePerStaff: 45,   // Standard Indian cloud attendance fee (₹45/user/month)
+      monthlyMaintenancePerGate: 1000,  // Tablet hardware & internet connection per gate
+      queueSecPerCheckin: 2.5,          // Cloud latency and network delays
+      proxyLossRate: 0.001              // Minimal proxy, but high per-seat recurring fees
     }
   };
 
   const currentSys = SYSTEM_CONFIGS[systemType];
 
-  // Mathematical modeling in Indian context
+  // Mathematical modeling in realistic Indian business context
   const workDaysPerMonth = 22;
-  const avgMonthlySalaryINR = 28000; // Benchmark Indian monthly staff cost
+  const avgMonthlySalaryINR = 22000; // Benchmark Indian monthly staff salary
 
   // 1. Time lost in queue vs AuraPass (<0.3s)
   const legacyQueueHoursPerMonth = Math.round(
@@ -65,29 +65,31 @@ export default function RoiCalculator() {
   );
   const queueHoursSaved = Math.max(1, legacyQueueHoursPerMonth - aurapassQueueHoursPerMonth);
 
-  // 2. Buddy punching / proxy leakage recovered in ₹
-  const monthlyPayrollRecoveredINR = Math.round(
-    staffCount * avgMonthlySalaryINR * currentSys.buddyPunchLossRate
+  // 2. Buddy punching / proxy attendance leakage recovered in ₹
+  const monthlyProxyRecoveredINR = Math.round(
+    staffCount * avgMonthlySalaryINR * currentSys.proxyLossRate
   );
 
-  // 3. Operational cost of current system in ₹
+  // 3. Realistic direct operational cost of current system in ₹
   const legacyMonthlyOperatingINR = Math.round(
-    staffCount * currentSys.baseMonthlyCostPerStaff +
-    (gateCount * currentSys.hardwareCostPerGate) / 24 // 2-year hardware amortization
+    staffCount * currentSys.monthlyMaintenancePerStaff +
+    gateCount * currentSys.monthlyMaintenancePerGate
   );
 
-  // 4. AuraPass On-Premise Cost in ₹
-  // Flat local license: ₹1,999/mo flat (matches Business Pro plan; ₹0 for <=25 staff starter tier), zero per-seat fees
+  // 4. AuraPass On-Premise Cost in ₹ (Flat software license: ₹0 for <=25 staff; ₹1,999/mo flat unlimited)
   const aurapassMonthlyINR = staffCount <= 25 ? 0 : 1999;
 
-  // 5. Total Net Monthly Savings (Direct software/hardware savings + payroll leakage recovered)
-  const netMonthlySavingsINR = (legacyMonthlyOperatingINR - aurapassMonthlyINR) + monthlyPayrollRecoveredINR;
+  // 5. Direct system cost saved (excluding payroll recovery)
+  const directMonthlySavingsINR = Math.max(0, legacyMonthlyOperatingINR - aurapassMonthlyINR);
+
+  // 6. Total Net Monthly Benefit (Direct savings + proxy attendance recovered)
+  const netMonthlySavingsINR = directMonthlySavingsINR + monthlyProxyRecoveredINR;
   const netAnnualSavingsINR = netMonthlySavingsINR * 12;
 
-  // Percentage cost cut on pure operational expenditure
-  const percentageSaved = Math.min(97, Math.round(
-    ((legacyMonthlyOperatingINR - aurapassMonthlyINR) / legacyMonthlyOperatingINR) * 100
-  ));
+  // Percentage cost cut on pure software & badge spend
+  const percentageSaved = Math.min(95, Math.max(10, Math.round(
+    ((legacyMonthlyOperatingINR - aurapassMonthlyINR) / Math.max(1, legacyMonthlyOperatingINR)) * 100
+  )));
 
   // Format currency helpers strictly in Indian Rupees (₹)
   const formatINR = (val) => {

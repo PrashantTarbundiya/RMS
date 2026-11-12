@@ -17,6 +17,7 @@ import { SkeletonTable, SkeletonStatCards } from '../components/ui/Skeleton';
 import EmptyState from '../components/ui/EmptyState';
 
 import { formatPersonName } from '../utils/format';
+import ExportModal from '../components/ui/ExportModal';
 
 
 
@@ -47,7 +48,7 @@ export default function AttendancePage() {
   const [minConf, setMinConf] = useState(Number(searchParams.get('min_conf')) || 0);
 
   const [currentPage, setCurrentPage] = useState(1);
-
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const pageSize = 15;
 
 
@@ -528,325 +529,43 @@ export default function AttendancePage() {
 
 
 
-  const downloadServerReport = async (period = 'daily') => {
+  const downloadAttendanceExport = async (exportFormat = 'pdf', periodPreset = null) => {
     try {
-      toast.info(`Generating ${period} enterprise audit report...`);
-      const res = await apiClient.get(`${API_BASE}/analytics/export/pdf?period=${period}`, {
+      const params = new URLSearchParams();
+      params.set('format', exportFormat);
+      if (periodPreset) {
+        params.set('period', periodPreset);
+      } else if (dateFilter) {
+        params.set('start_date', dateFilter);
+        params.set('end_date', dateFilter);
+      }
+      if (statusFilter && statusFilter !== 'all') {
+        params.set('status', statusFilter);
+      }
+
+      toast.info(`Generating ${exportFormat.toUpperCase()} attendance register...`);
+      const res = await apiClient.get(`${API_BASE}/reports/attendance/export?${params.toString()}`, {
         responseType: 'blob'
       });
-      const blob = new Blob([res.data], { type: 'application/pdf' });
+      const blob = new Blob([res.data]);
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `aurapass_${period}_attendance_report_${new Date().toISOString().slice(0, 10)}.pdf`;
+      a.download = `aurapass_attendance_register_${periodPreset || 'custom'}_${new Date().toISOString().slice(0, 10)}.${exportFormat}`;
+      document.body.appendChild(a);
       a.click();
+      document.body.removeChild(a);
       URL.revokeObjectURL(url);
-      toast.success(`${period.toUpperCase()} report downloaded successfully.`);
+      toast.success(`Downloaded attendance register (${exportFormat.toUpperCase()}).`);
     } catch (err) {
-      console.warn('Server PDF report failed, falling back to printable register:', err);
-      exportPDF();
+      console.error('Export error:', err);
+      toast.error('Failed to generate export file from server.');
     }
   };
 
   const exportPDF = () => {
-
-    if (filteredData.length === 0) {
-
-      toast.warning('No attendance records available to export.');
-
-      return;
-
-    }
-
-
-
-    const orgName = user?.org_name || 'Vatsal Enterprise';
-
-    const reportDate = new Date().toLocaleDateString('en-IN', {
-
-      year: 'numeric',
-
-      month: 'short',
-
-      day: 'numeric',
-
-      hour: '2-digit',
-
-      minute: '2-digit'
-
-    });
-
-    const filterLabel = dateFilter ? `Filtered Date: ${dateFilter}` : 'Complete Audit History';
-
-    const totalCount = filteredData.length;
-
-    const confirmedCount = filteredData.filter(r => r.status !== 'error' && r.label !== 'Unknown').length;
-
-    const unconfirmedCount = totalCount - confirmedCount;
-
-    const matchRatio = totalCount > 0 ? ((confirmedCount / totalCount) * 100).toFixed(1) : '100.0';
-
-
-
-    const tableRows = filteredData.map((record, idx) => {
-
-      const isConfirmed = record.status !== 'error' && record.label !== 'Unknown';
-
-      const confPercent = record.confidence !== undefined ? `${(record.confidence * 100).toFixed(1)}%` : 'N/A';
-
-      const timeStr = record.timestamp ? new Date(record.timestamp).toLocaleString('en-IN') : 'N/A';
-
-      const statusBadge = isConfirmed 
-
-        ? '<span style="display:inline-block;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;color:#047857;background:#D1FAE5;border:1px solid #A7F3D0;">CONFIRMED</span>'
-
-        : '<span style="display:inline-block;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;color:#B91C1C;background:#FEE2E2;border:1px solid #FECACA;">NOT MATCHED</span>';
-
-
-
-      return `
-
-        <tr style="background:${idx % 2 === 0 ? '#FFFFFF' : '#F9FAFB'};border-bottom:1px solid #E5E7EB;">
-
-          <td style="padding:7px 10px;font-size:11px;color:#6B7280;font-family:monospace;text-align:center;">${idx + 1}</td>
-
-          <td style="padding:7px 10px;font-size:11px;color:#000000;font-family:monospace;white-space:nowrap;">${timeStr}</td>
-
-          <td style="padding:7px 10px;font-size:11px;font-weight:600;color:#000000;">${record.label || 'Unknown'}</td>
-
-          <td style="padding:7px 10px;font-size:11px;color:#374151;">${record.department || 'General'}</td>
-
-          <td style="padding:7px 10px;font-size:11px;color:#4B5563;">${record.camera_name || 'Lane 01 (RTSP)'}</td>
-
-          <td style="padding:7px 10px;font-size:11px;font-family:monospace;color:#000000;text-align:right;">${confPercent}</td>
-
-          <td style="padding:7px 10px;font-size:11px;text-align:center;">${statusBadge}</td>
-
-        </tr>
-
-      `;
-
-    }).join('');
-
-
-
-    const htmlContent = `<!DOCTYPE html>
-
-<html>
-
-<head>
-
-  <meta charset="utf-8">
-
-  <title>AuraPass Enterprise Verified Attendance Register</title>
-
-  <style>
-
-    @page { size: A4 landscape; margin: 10mm; }
-
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color: #000000; margin: 0; padding: 16px; background: #fff; }
-
-    .header-box { border-bottom: 2px solid #10B981; padding-bottom: 12px; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: flex-start; }
-
-    .title { font-size: 19px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; color: #064E3B; margin: 0; }
-
-    .subtitle { font-size: 11px; color: #047857; margin-top: 2px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.8px; }
-
-    .meta-text { font-size: 11px; color: #4B5563; line-height: 1.4; text-align: right; }
-
-    .kpi-strip { display: flex; gap: 10px; margin-bottom: 14px; }
-
-    .kpi-card { flex: 1; padding: 8px 12px; border-radius: 6px; border: 1px solid #E5E7EB; background: #F9FAFB; }
-
-    .kpi-label { font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #6B7280; }
-
-    .kpi-value { font-size: 16px; font-weight: 800; color: #000000; margin-top: 2px; font-family: monospace; }
-
-    table { width: 100%; border-collapse: collapse; border: 1px solid #E5E7EB; margin-bottom: 16px; }
-
-    th { background: #F3F4F6; color: #374151; font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; padding: 8px 10px; border-bottom: 1px solid #D1D5DB; text-align: left; }
-
-    .footer-box { margin-top: 20px; padding-top: 12px; border-top: 1px solid #E5E7EB; display: flex; justify-content: space-between; font-size: 10px; color: #6B7280; page-break-inside: avoid; }
-
-    .sig-box { text-align: right; width: 240px; }
-
-    .sig-line { border-bottom: 1px solid #9CA3AF; height: 32px; margin-bottom: 4px; }
-
-    @media print {
-
-      body { padding: 0; }
-
-      .no-print { display: none !important; }
-
-    }
-
-  </style>
-
-</head>
-
-<body>
-
-  <div class="header-box">
-
-    <div>
-
-      <h1 class="title">AURAPASS™ ENTERPRISE BIOMETRIC ATTENDANCE REGISTER</h1>
-
-      <div class="subtitle">ISO/IEC 19794-5 & ISO 30107 Biometric Audit Standard &bull; Zero Cloud Egress</div>
-
-      <div style="font-size:11.5px;color:#374151;margin-top:5px;font-weight:600;">Organization: ${orgName} &bull; ${filterLabel}</div>
-
-    </div>
-
-    <div class="meta-text">
-
-      <div><strong>Document ID:</strong> AP-ATT-${Date.now().toString(36).toUpperCase()}</div>
-
-      <div><strong>Generated:</strong> ${reportDate}</div>
-
-      <div><strong>Hardware Sovereignty:</strong> Air-Gapped Local LAN Execution</div>
-
-    </div>
-
-  </div>
-
-
-
-  <div class="kpi-strip">
-
-    <div class="kpi-card">
-
-      <div class="kpi-label">Total Recorded Events</div>
-
-      <div class="kpi-value">${totalCount}</div>
-
-    </div>
-
-    <div class="kpi-card" style="border-left: 3px solid #10B981;">
-
-      <div class="kpi-label">Confirmed Biometric Matches</div>
-
-      <div class="kpi-value" style="color:#047857;">${confirmedCount} (${matchRatio}%)</div>
-
-    </div>
-
-    <div class="kpi-card" style="border-left: 3px solid #EF4444;">
-
-      <div class="kpi-label">Flagged / Unmatched Events</div>
-
-      <div class="kpi-value" style="color:#B91C1C;">${unconfirmedCount}</div>
-
-    </div>
-
-    <div class="kpi-card" style="border-left: 3px solid #3B82F6;">
-
-      <div class="kpi-label">Anti-Spoofing Pass Rate</div>
-
-      <div class="kpi-value" style="color:#1D4ED8;">99.4% (ISO PAD)</div>
-
-    </div>
-
-  </div>
-
-
-
-  <table>
-
-    <thead>
-
-      <tr>
-
-        <th style="width:35px;text-align:center;">#</th>
-
-        <th style="width:150px;">Date & Time</th>
-
-        <th>Employee / Subject</th>
-
-        <th>Department</th>
-
-        <th>Capture Gate</th>
-
-        <th style="width:85px;text-align:right;">Confidence</th>
-
-        <th style="width:120px;text-align:center;">Audit Status</th>
-
-      </tr>
-
-    </thead>
-
-    <tbody>
-
-      ${tableRows}
-
-    </tbody>
-
-  </table>
-
-
-
-  <div class="footer-box">
-
-    <div>
-
-      <div><strong>Inference Architecture:</strong> AuraPass Edge Neural Engine v2.0 (GhostFaceNet 512-d)</div>
-
-      <div><strong>Cryptographic Seal:</strong> SHA256:${Array.from({length: 16}, () => Math.floor(Math.random()*16).toString(16)).join('')}</div>
-
-      <div style="margin-top:3px;font-style:italic;">Certified compliant with Indian Digital Personal Data Protection (DPDP) Act 2023.</div>
-
-    </div>
-
-    <div class="sig-box">
-
-      <div class="sig-line"></div>
-
-      <div><strong>Authorized HR / Facility Signatory</strong></div>
-
-      <div style="font-size:9px;color:#9CA3AF;">AuraPass™ Enterprise Biometric Verification</div>
-
-    </div>
-
-  </div>
-
-
-
-  <script>
-
-    window.onload = function() {
-
-      setTimeout(function() { window.print(); }, 250);
-
-    };
-
-  </script>
-
-</body>
-
-</html>`;
-
-
-
-    const printWin = window.open('', '_blank', 'width=1100,height=850');
-
-    if (printWin) {
-
-      printWin.document.open();
-
-      printWin.document.write(htmlContent);
-
-      printWin.document.close();
-
-      toast.success('Generated professional printable PDF register.');
-
-    } else {
-
-      toast.error('Pop-up window blocked. Please allow pop-ups to print or save the PDF report.');
-
-    }
-
+    downloadAttendanceExport('pdf');
   };
-
-
 
   const getStatusStyle = (record) => {
 
@@ -1187,25 +906,38 @@ export default function AttendancePage() {
 
 
           {/* Export Actions */}
-
           <div className="flex items-center gap-1.5 shrink-0 flex-wrap">
-
-            <button onClick={exportCSV} className="button-secondary flex items-center justify-center gap-1.5 h-10 text-caption px-3">
-              <Download className="w-4 h-4" /> CSV
+            <button
+              onClick={() => setIsExportModalOpen(true)}
+              className="button-primary bg-emerald-600 hover:bg-emerald-500 text-white flex items-center justify-center gap-1.5 h-10 text-caption px-3.5 shadow-sm font-medium"
+              title="Open Unified Export Register Dialog"
+            >
+              <Download className="w-4 h-4 text-white" /> Export Register
             </button>
 
-            <button onClick={() => downloadServerReport('daily')} className="button-secondary flex items-center justify-center gap-1 h-10 text-xs px-2.5" title="Generate Today's Daily Attendance PDF">
-              <FileText className="w-3.5 h-3.5 text-emerald-500" /> Daily
+            <button
+              onClick={() => downloadAttendanceExport('csv')}
+              className="button-secondary flex items-center justify-center gap-1.5 h-10 text-caption px-3"
+              title="Download CSV Data Stream"
+            >
+              <Download className="w-3.5 h-3.5" /> CSV
             </button>
 
-            <button onClick={() => downloadServerReport('monthly')} className="button-secondary flex items-center justify-center gap-1 h-10 text-xs px-2.5" title="Generate Monthly Reconciliation PDF">
-              <FileText className="w-3.5 h-3.5 text-emerald-500" /> Monthly
+            <button
+              onClick={() => downloadAttendanceExport('xlsx')}
+              className="button-secondary flex items-center justify-center gap-1 h-10 text-xs px-2.5"
+              title="Download Excel Workbook (.xlsx)"
+            >
+              <FileText className="w-3.5 h-3.5 text-emerald-500" /> Excel
             </button>
 
-            <button onClick={exportPDF} className="button-primary bg-emerald-600 hover:bg-emerald-500 text-white flex items-center justify-center gap-1.5 h-10 text-caption px-3.5 shadow-sm" title="Printable Detailed Register">
-              <Download className="w-4 h-4 text-white" /> Register PDF
+            <button
+              onClick={() => downloadAttendanceExport('pdf', 'daily')}
+              className="button-secondary flex items-center justify-center gap-1 h-10 text-xs px-2.5"
+              title="Download Today's Attendance Register (PDF)"
+            >
+              <FileText className="w-3.5 h-3.5 text-emerald-500" /> Daily PDF
             </button>
-
           </div>
 
         </div>
@@ -1864,6 +1596,18 @@ export default function AttendancePage() {
 
       )}
 
+      {/* Unified Enterprise Attendance Export Modal */}
+      <ExportModal
+        isOpen={isExportModalOpen}
+        onClose={() => setIsExportModalOpen(false)}
+        category="attendance"
+        title="Export Official Attendance Register"
+        appliedFilters={{
+          startDate: dateFilter,
+          endDate: dateFilter,
+          status: statusFilter !== 'all' ? statusFilter : undefined
+        }}
+      />
     </motion.div>
 
   );

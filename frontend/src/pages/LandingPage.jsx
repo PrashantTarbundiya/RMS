@@ -11,6 +11,9 @@ import InteractiveDotGrid from '../components/landing/InteractiveDotGrid';
 import ModelRoutingArchitecture from '../components/landing/ModelRoutingArchitecture';
 import RoiCalculator from '../components/landing/RoiCalculator';
 import CustomerReviews from '../components/landing/CustomerReviews';
+import CompetitorComparison from '../components/landing/CompetitorComparison';
+import CaseStudiesSection from '../components/landing/CaseStudiesSection';
+import ResearchSection from '../components/landing/ResearchSection';
 import {
   Shield,
   CheckCircle,
@@ -58,59 +61,59 @@ import { motion, AnimatePresence } from 'framer-motion';
 const TELEMETRY_SCENARIOS = [
   {
     id: 'auth_pass',
-    title: 'Authorized Staff Check-In',
-    badge: 'VERIFIED MATCH',
+    title: 'Staff Morning Check-In',
+    badge: 'VERIFIED',
     badgeVariant: 'emerald',
-    outcome: 'ACCESS GRANTED',
-    totalTime: '84.2 ms',
+    outcome: 'ATTENDANCE MARKED',
+    totalTime: '84 ms',
     subject: 'Alice Smith (EMP-4092)',
     department: 'Engineering & DevOps',
-    confidence: '94.8%',
-    livenessScore: '0.992 (Human Confirmed)',
+    confidence: '95%',
+    livenessScore: 'Real Person Confirmed',
     stages: [
-      { name: '1. RTSP Frame Ingest', detail: '1080p stream over LAN (Camera 01)', latency: '12.4 ms', status: 'PASS' },
-      { name: '2. 68-Pt Landmark Alignment', detail: '3D facial mesh affine normalization (Yaw: +4°, Pitch: -2°)', latency: '24.1 ms', status: 'PASS' },
-      { name: '3. Multi-Spectral Liveness', detail: 'Specular reflectance & natural ocular micro-motion confirmed', latency: '18.6 ms', status: 'PASS' },
-      { name: '4. 512-D Embedding Match', detail: 'Cosine distance: 0.948 against organization vector gallery', latency: '26.8 ms', status: 'PASS' },
-      { name: '5. Relay & Shift Dispatch', detail: 'Dry-contact door relay pulsed; attendance logged to PostgreSQL', latency: '2.3 ms', status: 'DISPATCHED' },
+      { name: '1. Camera Ingest', detail: 'Video frame received from Entrance Camera 01', latency: '12 ms', status: 'PASS' },
+      { name: '2. Face Detection', detail: '3D face found and aligned, even with head turned', latency: '24 ms', status: 'PASS' },
+      { name: '3. Real Human Check', detail: 'Real person confirmed (blocks screen and photo fakes)', latency: '18 ms', status: 'PASS' },
+      { name: '4. Employee Match', detail: 'Face matched against registered employee directory', latency: '27 ms', status: 'PASS' },
+      { name: '5. Attendance Saved', detail: 'Entry logged to database & turnstile door unlocked', latency: '3 ms', status: 'DISPATCHED' },
     ]
   },
   {
     id: 'spoof_reject',
-    title: 'Presentation Attack / 2D Screen Spoof',
-    badge: 'ATTACK BLOCKED',
+    title: 'Phone Screen / Photo Cheat Attempt',
+    badge: 'CHEAT BLOCKED',
     badgeVariant: 'red',
-    outcome: 'ACCESS DENIED',
-    totalTime: '34.8 ms (Early Exit)',
-    subject: 'Unregistered Attacker',
-    department: 'Perimeter Intruder',
-    confidence: '0.0% (Terminated at Liveness)',
-    livenessScore: '0.041 (Paper/Screen Moiré Detected)',
+    outcome: 'ACCESS REJECTED',
+    totalTime: '35 ms (Instant Stop)',
+    subject: 'Unregistered Person',
+    department: 'Gate Security Alert',
+    confidence: '0% (Blocked at Liveness)',
+    livenessScore: 'Digital Screen Detected',
     stages: [
-      { name: '1. RTSP Frame Ingest', detail: '1080p stream over LAN (Camera 02)', latency: '11.8 ms', status: 'PASS' },
-      { name: '2. 68-Pt Landmark Alignment', detail: 'Planar surface detected (Zero depth parallax detected)', latency: '19.2 ms', status: 'PASS' },
-      { name: '3. Multi-Spectral Liveness', detail: 'FAIL: Screen bezel reflection & high-frequency pixel grid detected', latency: '3.8 ms', status: 'BLOCKED' },
-      { name: '4. 512-D Embedding Match', detail: 'Bypassed: Compute halted early to protect host CPU cycle budget', latency: '0.0 ms', status: 'SKIPPED' },
-      { name: '5. Security Incident Logged', detail: 'Forensic snapshot logged to Security Audit Trail with timestamp', latency: '2.1 ms', status: 'FLAGGED' },
+      { name: '1. Camera Ingest', detail: 'Video frame received from Camera 02', latency: '12 ms', status: 'PASS' },
+      { name: '2. Face Detection', detail: 'Flat image detected (no 3D face depth)', latency: '19 ms', status: 'PASS' },
+      { name: '3. Real Human Check', detail: 'REJECTED: Mobile screen glare & paper texture detected', latency: '4 ms', status: 'BLOCKED' },
+      { name: '4. Employee Match', detail: 'Skipped: Stopped immediately to protect security', latency: '0 ms', status: 'SKIPPED' },
+      { name: '5. Security Alert', detail: 'Alert photo saved in security audit log with exact time', latency: '2 ms', status: 'FLAGGED' },
     ]
   },
   {
     id: 'profile_pose',
-    title: 'Walking Profile Pose Check-In',
-    badge: 'MULTI-ANGLE OK',
+    title: 'Side-Walking Check-In (Walking Past)',
+    badge: 'SIDE-ANGLE OK',
     badgeVariant: 'blue',
-    outcome: 'ACCESS GRANTED',
-    totalTime: '91.6 ms',
+    outcome: 'ATTENDANCE MARKED',
+    totalTime: '92 ms',
     subject: 'Marcus Vance (EMP-1883)',
     department: 'Logistics Operations',
-    confidence: '89.4%',
-    livenessScore: '0.984 (Human Confirmed)',
+    confidence: '91%',
+    livenessScore: 'Real Person Confirmed',
     stages: [
-      { name: '1. RTSP Frame Ingest', detail: '1080p stream over LAN (Turnstile Gate B)', latency: '13.1 ms', status: 'PASS' },
-      { name: '2. 68-Pt Landmark Alignment', detail: 'Profile alignment active (Yaw: +46° lateral head angle)', latency: '28.4 ms', status: 'PASS' },
-      { name: '3. Multi-Spectral Liveness', detail: 'Sub-surface light diffusion & natural blink cadence confirmed', latency: '21.0 ms', status: 'PASS' },
-      { name: '4. 512-D Embedding Match', detail: 'Cosine similarity: 0.894 against multi-angle gallery vector', latency: '26.9 ms', status: 'PASS' },
-      { name: '5. Turnstile Gate Trigger', detail: 'Turnstile unlocked; check-in recorded under shift grace period', latency: '2.2 ms', status: 'DISPATCHED' },
+      { name: '1. Camera Ingest', detail: 'Video frame received from Gate B', latency: '13 ms', status: 'PASS' },
+      { name: '2. Face Detection', detail: 'Side-view face detected at 45° angle', latency: '28 ms', status: 'PASS' },
+      { name: '3. Real Human Check', detail: 'Natural facial movement confirmed', latency: '21 ms', status: 'PASS' },
+      { name: '4. Employee Match', detail: 'Side profile matched to employee record', latency: '27 ms', status: 'PASS' },
+      { name: '5. Attendance Saved', detail: 'Check-in recorded on time under morning grace period', latency: '3 ms', status: 'DISPATCHED' },
     ]
   }
 ];
@@ -217,7 +220,7 @@ export default function LandingPage() {
             {/* Status Chip */}
             <div className="inline-flex items-center gap-2 mb-6">
               <Badge variant="emerald" dot>
-                Sub-300ms On-Premise Face AI • Zero Cloud Egress
+                Fast Face AI • 100% Private (No Cloud Needed)
               </Badge>
             </div>
 
@@ -229,8 +232,7 @@ export default function LandingPage() {
 
             {/* Subheading */}
             <p className="text-base sm:text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-10 leading-relaxed text-balance">
-              Turn existing office CCTV cameras, USB webcams, or tablets into instant presence gates.
-              Eliminate proxy check-ins, buddy punching, and queue bottlenecks with local, air-gapped facial verification.
+              Use your existing office CCTV cameras, laptops, or tablets. Employees mark attendance in under 1 second by simply looking at the camera. No cards to carry, no fake punches, no morning lines.
             </p>
 
             {/* Primary Action Group */}
@@ -260,15 +262,15 @@ export default function LandingPage() {
             <div className="flex flex-wrap items-center justify-center gap-6 text-xs text-muted-foreground font-medium mb-14">
               <span className="flex items-center gap-1.5">
                 <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400 stroke-[2.5]" />
-                100% On-Premise & Local Execution
+                100% Private — Runs Inside Your Office
               </span>
               <span className="flex items-center gap-1.5">
                 <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400 stroke-[2.5]" />
-                Zero Hardware Lock-In (Any RTSP / USB Camera)
+                Works With Your Existing CCTV Cameras & Webcams
               </span>
               <span className="flex items-center gap-1.5">
                 <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400 stroke-[2.5]" />
-                Free Starter Tier (Up to 25 Staff)
+                Free for Up to 25 Staff
               </span>
             </div>
 
@@ -534,13 +536,13 @@ export default function LandingPage() {
           <div className="max-w-6xl mx-auto px-4 sm:px-6">
             <div className="text-center max-w-2xl mx-auto mb-16">
               <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">
-                Architecture & Workflow
+                How It Works
               </span>
               <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-foreground mt-2 mb-4">
-                The 5-Stage Deterministic Edge Pipeline
+                How AuraPass Verifies Faces in Less Than 0.3 Seconds
               </h2>
               <p className="text-muted-foreground text-sm sm:text-base leading-relaxed">
-                From incoming video frame to verified attendance logging in under 300 milliseconds — entirely on local edge compute with zero cloud roundtrips.
+                From camera frame to confirmed attendance in under 300 milliseconds — all calculated on your office PC with no internet cloud delays.
               </p>
             </div>
 
@@ -551,13 +553,13 @@ export default function LandingPage() {
                   <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 flex items-center justify-center font-mono font-bold text-xs mb-4">
                     01
                   </div>
-                  <h3 className="font-bold text-sm text-foreground mb-1.5">RTSP Stream Ingest</h3>
+                  <h3 className="font-bold text-sm text-foreground mb-1.5">Camera Ingest</h3>
                   <p className="text-xs text-muted-foreground leading-relaxed">
-                    Continuous 30 FPS video ingestion from standard IP cameras over your internal local network.
+                    Receives continuous smooth video from your standard CCTV cameras or USB webcams.
                   </p>
                 </div>
                 <div className="mt-4 pt-3 border-t border-border text-[11px] font-mono text-emerald-600 dark:text-emerald-400">
-                  ~12ms Latency
+                  ~12ms Speed
                 </div>
               </div>
 
@@ -567,13 +569,13 @@ export default function LandingPage() {
                   <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 flex items-center justify-center font-mono font-bold text-xs mb-4">
                     02
                   </div>
-                  <h3 className="font-bold text-sm text-foreground mb-1.5">Landmark Alignment</h3>
+                  <h3 className="font-bold text-sm text-foreground mb-1.5">Face Alignment</h3>
                   <p className="text-xs text-muted-foreground leading-relaxed">
-                    68-point facial mesh triangulation normalizes yaw, pitch, and roll up to 45° walking angle.
+                    Detects the face and aligns it automatically, even if the person walks past at an angle.
                   </p>
                 </div>
                 <div className="mt-4 pt-3 border-t border-border text-[11px] font-mono text-emerald-600 dark:text-emerald-400">
-                  ~24ms Latency
+                  ~24ms Speed
                 </div>
               </div>
 
@@ -583,13 +585,13 @@ export default function LandingPage() {
                   <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 flex items-center justify-center font-mono font-bold text-xs mb-4">
                     03
                   </div>
-                  <h3 className="font-bold text-sm text-foreground mb-1.5">Anti-Spoofing Filter</h3>
+                  <h3 className="font-bold text-sm text-foreground mb-1.5">Anti-Cheating Check</h3>
                   <p className="text-xs text-muted-foreground leading-relaxed">
-                    Evaluates specular reflectance, micro-texture, and screen frequency moiré to reject photos and screens.
+                    Confirms a real living person is present. Rejects printed photos and mobile phone screens.
                   </p>
                 </div>
                 <div className="mt-4 pt-3 border-t border-border text-[11px] font-mono text-emerald-600 dark:text-emerald-400">
-                  ~18ms Latency
+                  ~18ms Speed
                 </div>
               </div>
 
@@ -599,13 +601,13 @@ export default function LandingPage() {
                   <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 flex items-center justify-center font-mono font-bold text-xs mb-4">
                     04
                   </div>
-                  <h3 className="font-bold text-sm text-foreground mb-1.5">Vector Embedding</h3>
+                  <h3 className="font-bold text-sm text-foreground mb-1.5">Face Matching</h3>
                   <p className="text-xs text-muted-foreground leading-relaxed">
-                    FaceNet512 / GhostFaceNet generates a non-invertible 512-dimensional mathematical vector.
+                    Matches the face signature against registered staff in under 30 milliseconds.
                   </p>
                 </div>
                 <div className="mt-4 pt-3 border-t border-border text-[11px] font-mono text-emerald-600 dark:text-emerald-400">
-                  ~26ms Latency
+                  ~26ms Speed
                 </div>
               </div>
 
@@ -615,13 +617,13 @@ export default function LandingPage() {
                   <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 flex items-center justify-center font-mono font-bold text-xs mb-4">
                     05
                   </div>
-                  <h3 className="font-bold text-sm text-foreground mb-1.5">Match & Shift Dispatch</h3>
+                  <h3 className="font-bold text-sm text-foreground mb-1.5">Attendance Saved</h3>
                   <p className="text-xs text-muted-foreground leading-relaxed">
-                    Cosine distance matched against gallery; dry-contact relay triggers and attendance logs to database.
+                    Saves punch in database, calculates on-time grace period, and unlocks entrance gate.
                   </p>
                 </div>
                 <div className="mt-4 pt-3 border-t border-border text-[11px] font-mono text-emerald-600 dark:text-emerald-400">
-                  ~4ms Latency
+                  ~4ms Speed
                 </div>
               </div>
             </div>
@@ -635,13 +637,13 @@ export default function LandingPage() {
           <div className="max-w-5xl mx-auto px-4 sm:px-6">
             <div className="text-center max-w-xl mx-auto mb-14">
               <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">
-                Inference Telemetry Inspector
+                Live Verification Check
               </span>
               <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-foreground mt-2 mb-3">
-                Real-Time Decision Sequence
+                How AuraPass Checks Faces in Under 0.1 Seconds
               </h2>
               <p className="text-muted-foreground text-sm sm:text-base leading-relaxed">
-                Observe the exact deterministic multi-stage evaluation executed for every camera frame in under 100 milliseconds.
+                See what happens the moment an employee steps in front of the camera: face found, real person confirmed, attendance saved.
               </p>
             </div>
 
@@ -651,7 +653,7 @@ export default function LandingPage() {
               <div className="p-3 sm:p-4 border-b border-border bg-card/60 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div className="flex items-center gap-2">
                   <Activity size={16} className="text-emerald-600 dark:text-emerald-400" />
-                  <span className="font-bold text-xs sm:text-sm text-foreground">Select Ingestion Scenario:</span>
+                  <span className="font-bold text-xs sm:text-sm text-foreground">Choose an example:</span>
                 </div>
 
                 <div className="flex flex-wrap gap-2">
@@ -687,16 +689,16 @@ export default function LandingPage() {
                           <span className="font-bold text-sm text-foreground">{sc.subject}</span>
                         </div>
                         <div className="text-xs text-muted-foreground mt-1">
-                          Dept: {sc.department} • Liveness Score: {sc.livenessScore}
+                          Dept: {sc.department} • Status: {sc.livenessScore}
                         </div>
                       </div>
 
                       <div className="text-right">
                         <div className="text-xs font-mono font-bold text-emerald-600 dark:text-emerald-400">
-                          Total Execution: {sc.totalTime}
+                          Speed: {sc.totalTime}
                         </div>
                         <div className="text-[11px] text-muted-foreground mt-0.5">
-                          Cosine Match: {sc.confidence}
+                          Confidence: {sc.confidence}
                         </div>
                       </div>
                     </div>
@@ -704,7 +706,7 @@ export default function LandingPage() {
                     {/* Pipeline Stage Step Breakdown */}
                     <div className="space-y-2.5">
                       <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                        Micro-Execution Sequence:
+                        Behind-the-scenes steps:
                       </div>
                       {sc.stages.map((stage, sIdx) => (
                         <div
@@ -1042,13 +1044,13 @@ export default function LandingPage() {
           <div className="max-w-6xl mx-auto px-4 sm:px-6">
             <div className="text-center max-w-2xl mx-auto mb-16">
               <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">
-                Biometric Sovereignty
+                Data Privacy & Security
               </span>
               <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-foreground mt-2 mb-4">
-                Engineered for Zero Biometric Cloud Egress
+                100% Private — Your Data Stays in Your Office
               </h2>
               <p className="text-muted-foreground text-sm sm:text-base leading-relaxed">
-                AuraPass guarantees true privacy by design: Sensitive facial data remains air-gapped within your facility's physical perimeter.
+                AuraPass runs on your own office computer or local server. Employee photos and attendance records never touch external internet clouds.
               </p>
             </div>
 
@@ -1058,13 +1060,13 @@ export default function LandingPage() {
                   <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mb-4">
                     <Server size={20} />
                   </div>
-                  <h3 className="font-bold text-base text-foreground mb-2">100% On-Premise Execution</h3>
+                  <h3 className="font-bold text-base text-foreground mb-2">100% Private Local Setup</h3>
                   <p className="text-xs text-muted-foreground leading-relaxed">
-                    Operates completely offline on your internal server. No face crops, vectors, or employee records are ever sent to external cloud APIs.
+                    Runs on your office computer without needing internet. No photos, face records, or staff details are ever sent to external clouds.
                   </p>
                 </div>
                 <div className="mt-4 pt-3 border-t border-border text-[11px] font-mono text-emerald-600 dark:text-emerald-400">
-                  Air-Gapped Ready
+                  100% Offline Ready
                 </div>
               </div>
 
@@ -1073,13 +1075,13 @@ export default function LandingPage() {
                   <div className="w-10 h-10 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center mb-4">
                     <Cpu size={20} />
                   </div>
-                  <h3 className="font-bold text-base text-foreground mb-2">Non-Invertible Vectors</h3>
+                  <h3 className="font-bold text-base text-foreground mb-2">Safe Face Signatures</h3>
                   <p className="text-xs text-muted-foreground leading-relaxed">
-                    Faces are stored strictly as 512 mathematical coordinate floats. It is mathematically impossible to reconstruct a human face from an embedding.
+                    Faces are converted into secure math coordinates, not stored photos. Nobody can recreate an employee's face from the database.
                   </p>
                 </div>
                 <div className="mt-4 pt-3 border-t border-border text-[11px] font-mono text-blue-600 dark:text-blue-400">
-                  FaceNet512 Mathematical Vectors
+                  Secure Mathematical Numbers
                 </div>
               </div>
 
@@ -1088,13 +1090,13 @@ export default function LandingPage() {
                   <div className="w-10 h-10 rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center mb-4">
                     <Lock size={20} />
                   </div>
-                  <h3 className="font-bold text-base text-foreground mb-2">Cryptographic Tenant Isolation</h3>
+                  <h3 className="font-bold text-base text-foreground mb-2">Company Data Lock</h3>
                   <p className="text-xs text-muted-foreground leading-relaxed">
-                    Organization galleries are isolated and encrypted at rest with AES-256 and salted hash keys, preventing cross-tenant leakage.
+                    Your company records are locked with bank-grade encryption (AES-256). Only your authorized managers have access.
                   </p>
                 </div>
                 <div className="mt-4 pt-3 border-t border-border text-[11px] font-mono text-purple-600 dark:text-purple-400">
-                  AES-256 Vector Encryption
+                  Bank-Grade Encryption
                 </div>
               </div>
 
@@ -1103,13 +1105,13 @@ export default function LandingPage() {
                   <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center mb-4">
                     <ShieldCheck size={20} />
                   </div>
-                  <h3 className="font-bold text-base text-foreground mb-2">ISO/IEC 30107 Anti-Spoofing</h3>
+                  <h3 className="font-bold text-base text-foreground mb-2">Anti-Cheating Check</h3>
                   <p className="text-xs text-muted-foreground leading-relaxed">
-                    Multi-cue liveness detection analyzes specular reflection, micro-texture, and screen frequency moiré to block paper photo passes.
+                    Smart camera checks verify a real living human is present. Showing printed photos, ID cards, or phone screens is instantly blocked.
                   </p>
                 </div>
                 <div className="mt-4 pt-3 border-t border-border text-[11px] font-mono text-amber-600 dark:text-amber-400">
-                  Presentation Attack Hardened
+                  Anti-Proxy Protection
                 </div>
               </div>
             </div>
@@ -1303,6 +1305,21 @@ export default function LandingPage() {
         {/* ═══════════════════════════════════════════════════════════════════
             CHAPTER 10: FREQUENTLY ASKED QUESTIONS
             ═══════════════════════════════════════════════════════════════════ */}
+        {/* ═══════════════════════════════════════════════════════════════════
+            COMPETITOR COMPARISON (AEO & GEO BENCHMARK)
+            ═══════════════════════════════════════════════════════════════════ */}
+        <CompetitorComparison />
+
+        {/* ═══════════════════════════════════════════════════════════════════
+            ENTERPRISE CASE STUDIES (PROVEN ROI & CAMPUS DEPLOYMENTS)
+            ═══════════════════════════════════════════════════════════════════ */}
+        <CaseStudiesSection />
+
+        {/* ═══════════════════════════════════════════════════════════════════
+            BIOMETRIC AI RESEARCH & WHITEPAPER HIGHLIGHTS
+            ═══════════════════════════════════════════════════════════════════ */}
+        <ResearchSection />
+
         {/* ═══════════════════════════════════════════════════════════════════
             CUSTOMER REVIEWS (SOCIAL PROOF)
             ═══════════════════════════════════════════════════════════════════ */}

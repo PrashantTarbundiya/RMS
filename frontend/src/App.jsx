@@ -57,6 +57,7 @@ import MosaicPage from './pages/MosaicPage'
 
 import AnalyticsPage from './pages/AnalyticsPage'
 import DepartmentsPage from './pages/DepartmentsPage'
+import AdminPlatformPage from './pages/AdminPlatformPage'
 
 import OnboardingPage from './pages/OnboardingPage'
 
@@ -236,6 +237,8 @@ function AnimatedRoutes() {
 
         <Route path="/analytics" element={<ProtectedRoute><PageWrapper><AnalyticsPage /></PageWrapper></ProtectedRoute>} />
         <Route path="/departments" element={<ProtectedRoute><PageWrapper><DepartmentsPage /></PageWrapper></ProtectedRoute>} />
+        <Route path="/admin" element={<ProtectedRoute><PageWrapper><AdminPlatformPage /></PageWrapper></ProtectedRoute>} />
+        <Route path="/platform" element={<ProtectedRoute><PageWrapper><AdminPlatformPage /></PageWrapper></ProtectedRoute>} />
 
         <Route path="/support" element={<PageWrapper><SupportPage /></PageWrapper>} />
         <Route path="/help" element={<PageWrapper><SupportPage /></PageWrapper>} />

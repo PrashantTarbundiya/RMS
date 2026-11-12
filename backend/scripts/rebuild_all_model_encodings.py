@@ -22,13 +22,17 @@ sys.path.insert(0, BACKEND_DIR)
 
 from model import get_embedding, apply_clahe, warmup_models
 from org_storage import get_dataset_cleaned_dir, get_encodings_path
+from face_detection import SideFaceDetector
+from face_alignment import align_face_5point, align_face_from_bbox
 
 def main():
     print("="*70, flush=True)
-    print("  FAST MULTI-MODEL GENUINE EMBEDDINGS REBUILD", flush=True)
+    print("  CANONICAL 5-POINT ALIGNED MULTI-MODEL EMBEDDINGS REBUILD", flush=True)
     print("="*70, flush=True)
 
     warmup_models()
+    detector = SideFaceDetector(min_detection_confidence=0.40)
+
     dataset_dir = get_dataset_cleaned_dir(None)
     persons = sorted([d for d in os.listdir(dataset_dir) 
                       if os.path.isdir(os.path.join(dataset_dir, d)) 
@@ -54,16 +58,17 @@ def main():
 
     print(f"Total curated images to embed across {len(persons)} subjects: {total_imgs}", flush=True)
 
-    models = ['Facenet512', 'GhostFaceNet', 'InsightFace', 'VGG-Face']
+    models = ['InsightFace', 'Facenet512']
 
     for model_name in models:
         print("\n" + "-"*60, flush=True)
-        print(f"Generating genuine embeddings for: [{model_name}]...", flush=True)
+        print(f"Generating canonical aligned embeddings for: [{model_name}]...", flush=True)
         print("-"*60, flush=True)
         
         t0 = time.time()
         all_encodings = []
         all_names = []
+        target_size = (112, 112) if model_name == 'InsightFace' else (160, 160)
         
         for idx, (person_name, img_paths) in enumerate(person_images.items(), 1):
             count = 0
@@ -73,7 +78,19 @@ def main():
                     if img is None or img.size == 0:
                         continue
                     
-                    processed = apply_clahe(img)
+                    faces = detector.detect_faces(img, profile_only=False)
+                    if faces:
+                        face = max(faces, key=lambda f: f['bbox']['w'] * f['bbox']['h'])
+                        five_pts = face.get('five_points')
+                        if five_pts and len(five_pts) == 5:
+                            pts = np.array([[pt['x'], pt['y']] for pt in five_pts], dtype=np.float32)
+                            crop = align_face_5point(img, pts, output_size=target_size)
+                        else:
+                            crop = align_face_from_bbox(img, face['bbox'], output_size=target_size)
+                    else:
+                        crop = cv2.resize(img, target_size)
+
+                    processed = apply_clahe(crop)
                     emb = get_embedding(processed, model_name=model_name)
                     if emb is not None:
                         all_encodings.append(emb)
@@ -92,16 +109,16 @@ def main():
             'encodings': all_encodings,
             'names': all_names,
             'model_used': model_name,
-            'version': '3.0'
+            'version': '4.0_canonical_aligned'
         }
         with open(enc_path, 'wb') as f:
             pickle.dump(save_data, f)
             
         elapsed = time.time() - t0
-        print(f"[OK] Saved {len(all_encodings)} genuine {model_name} vectors -> {enc_path} ({elapsed:.1f}s)", flush=True)
+        print(f"[OK] Saved {len(all_encodings)} canonical aligned {model_name} vectors -> {enc_path} ({elapsed:.1f}s)", flush=True)
 
     print("\n" + "="*70, flush=True)
-    print("  ALL 4 MODELS REBUILT WITH GENUINE EMBEDDINGS SUCCESSFULLY!", flush=True)
+    print("  MODELS REBUILT WITH CANONICAL 5-POINT ALIGNED EMBEDDINGS!", flush=True)
     print("="*70, flush=True)
 
 if __name__ == '__main__':

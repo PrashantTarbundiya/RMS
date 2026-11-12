@@ -3,59 +3,59 @@ import { ShieldCheck, Lock, Eye, Smartphone, Users, Zap, Layers, Server } from '
 
 const CAPABILITIES = [
   {
-    category: 'Perceptual Verification Pipeline',
+    category: 'Fast & Accurate Face Detection',
     items: [
       {
         icon: ShieldCheck,
-        title: 'Multi-Stage Liveness Attestation',
-        desc: 'Real-time anti-spoof algorithms inspect micro-texture variance, specular reflection, and motion continuity to neutralize 2D printed photos, digital screen replays, and silicone masks.',
-        spec: 'Texture + Reflectance Analysis',
+        title: 'Real Human Check (Anti-Cheating)',
+        desc: 'Detects real people instantly. Blocks printed photos, mobile screen photos, and videos so nobody can punch in for someone else.',
+        spec: 'Real Person Detection',
         badge: 'Anti-Spoofing'
       },
       {
         icon: Eye,
-        title: 'Wide-Angle 3D Pose Alignment',
-        desc: '68-point facial landmark triangulation compensates for up to 60 degrees of lateral yaw and pitch, enabling seamless walk-through identification without requiring rigid stationary poses.',
-        spec: '60° Multi-Angle Yaw/Pitch',
-        badge: 'Computer Vision'
+        title: 'Works From Any Angle',
+        desc: 'Recognizes staff even if they walk past quickly or look sideways. No need to stop and stand rigidly still in front of the camera.',
+        spec: '60° Multi-Angle Recognition',
+        badge: 'Smart Vision'
       }
     ]
   },
   {
-    category: 'Enterprise Data Sovereignty & Scale',
+    category: 'Privacy & Standard Office Hardware',
     items: [
       {
         icon: Lock,
-        title: 'Strict Multi-Tenant Database Isolation',
-        desc: 'Every organization maintains logically and cryptographically partitioned facial feature databases, attendance registries, and role permissions with zero cross-tenant visibility.',
-        spec: 'Tenant-Isolated Embeddings',
+        title: '100% Private to Your Company',
+        desc: 'Your company employee data is kept completely private and locked. No other organization can ever view your records.',
+        spec: 'Locked Organization Records',
         badge: 'Data Security'
       },
       {
         icon: Zap,
-        title: 'Sub-100ms CPU-Optimized Inference',
-        desc: 'Highly quantized neural embedding backbones execute in sub-100ms on commodity multicore server CPUs, eliminating the need for expensive dedicated GPU clusters at every access gate.',
-        spec: '<85ms Execution on Standard CPUs',
-        badge: 'Performance'
+        title: 'Runs on Normal Office PCs',
+        desc: 'Super fast on any normal office desktop or laptop computer. You do not need to buy costly graphics cards or specialized servers.',
+        spec: '<85ms on Regular Computers',
+        badge: 'High Speed'
       }
     ]
   },
   {
-    category: 'Operational Deployment & Continuous Refinement',
+    category: 'Easy Setup & Admin Controls',
     items: [
       {
         icon: Smartphone,
-        title: 'Autonomous Kiosk & Hardware Acceleration',
-        desc: 'Deploy lightweight kiosk check-in stations directly to webcams, security tablets, or dedicated gate terminals with full local storage caching for zero-downtime attendance.',
-        spec: 'Offline-First Kiosk Mode',
-        badge: 'Field Operations'
+        title: 'Turn Any Tablet or Laptop into a Kiosk',
+        desc: 'Place an iPad, Android tablet, or old laptop at your reception or entrance gate. It keeps working smoothly even if the internet drops.',
+        spec: 'Works Even Without Internet',
+        badge: 'Touchless Kiosk'
       },
       {
         icon: Users,
-        title: 'Human-in-the-Loop Operator Labeling',
-        desc: 'Security controllers can review borderline similarity scores, inspect flagged mismatch attempts, and refine organization-specific threshold weights directly in the management console.',
-        spec: 'Audit & Threshold Calibration',
-        badge: 'Governance'
+        title: 'Easy HR & Admin Control Panel',
+        desc: 'HR managers can easily review attendance logs, check unknown visitors, and adjust recognition sensitivity in just a few clicks.',
+        spec: 'Simple Manager Controls',
+        badge: 'HR Console'
       }
     ]
   }
@@ -67,13 +67,13 @@ export default function BentoGrid() {
       <div className="max-w-6xl mx-auto">
         <div className="text-center mb-14">
           <p className="text-xs font-semibold uppercase tracking-wider text-emerald-400 mb-2">
-            System Architecture
+            Features & Capabilities
           </p>
           <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-white">
-            Enterprise Verification & Access Architecture
+            Everything You Need for Smooth Daily Attendance
           </h2>
           <p className="text-sm text-zinc-400 mt-2 max-w-xl mx-auto">
-            Engineered for high-throughput facility gates, defense perimeters, and sovereign corporate deployments.
+            Built for busy offices, factories, hospitals, and educational institutions.
           </p>
         </div>
 

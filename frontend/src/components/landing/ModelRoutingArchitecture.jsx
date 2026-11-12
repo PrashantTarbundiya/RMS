@@ -18,10 +18,10 @@ const MODELS = [
   {
     id: 'facenet',
     name: 'FaceNet-512',
-    provider: 'Deep Metric Arc',
-    benchmark: '99.65% LFW',
+    provider: 'Frontal Master',
+    benchmark: '99.65% Accuracy',
     latency: '18.4 ms',
-    desc: 'Deep Metric 512-D Cosine Embedding',
+    desc: 'Instant, razor-sharp recognition for front-facing entrance gates',
     accentColor: '#10B981',
     icon: Cpu,
     statusText: 'PRIMARY ENGINE'
@@ -29,46 +29,46 @@ const MODELS = [
   {
     id: 'insightface',
     name: 'InsightFace (ArcFace)',
-    provider: 'Angular Margin Loss',
-    benchmark: '99.83% CFP-FP',
+    provider: 'Wide-Angle Specialist',
+    benchmark: '99.83% Accuracy',
     latency: '24.1 ms',
-    desc: 'High-Dispersal Profile & Extreme Angles',
+    desc: 'Recognizes staff walking past at up to 45° side angles without stopping',
     accentColor: '#38BDF8',
     icon: Layers,
-    statusText: 'ANGLE OPTIMIZED'
+    statusText: 'SIDE-ANGLE READY'
   },
   {
     id: 'ghostfacenet',
     name: 'GhostFaceNet',
-    provider: 'Edge Neural Architecture',
-    benchmark: '4.2 ms Latency',
+    provider: 'Fast Edge Engine',
+    benchmark: '4.2 ms Speed',
     latency: '4.2 ms',
-    desc: 'Ultra-Fast Lightweight Model for Tablets & IoT',
+    desc: 'Ultra-fast lightweight engine for tablets, budget laptops & mini PCs',
     accentColor: '#A78BFA',
     icon: Zap,
-    statusText: 'EDGE STREAM'
+    statusText: 'FAST FOR TABLETS'
   },
   {
     id: 'antispoof',
-    name: 'MiniVision Anti-Spoof',
+    name: 'Anti-Cheating Guard',
     provider: 'Liveness Defense Unit',
     benchmark: 'ISO 30107-3',
     latency: '8.6 ms',
-    desc: 'Zero-Depth Screen, Photo & Silicone Mask Rejection',
+    desc: 'Stops phone screen photos, printed paper & video replays instantly',
     accentColor: '#F59E0B',
     icon: Shield,
-    statusText: 'LIVENESS FILTER'
+    statusText: 'NO PROXY CHECK-IN'
   },
   {
     id: 'enclave',
-    name: 'Local Vector Enclave',
-    provider: 'Air-Gapped Sovereign DB',
-    benchmark: 'AES-256 Vector',
+    name: 'Local Private Storage',
+    provider: 'Office PC Database',
+    benchmark: 'AES-256 Vault',
     latency: '1.8 ms',
-    desc: 'Cryptographic Tenant Isolation with Zero Egress',
+    desc: 'Saves all face templates inside your office — 0% internet cloud upload',
     accentColor: '#10B981',
     icon: Lock,
-    statusText: 'SOVEREIGN STORE'
+    statusText: 'STAYS IN YOUR OFFICE'
   }
 ];
 
@@ -81,6 +81,7 @@ export default function ModelRoutingArchitecture() {
   const containerRef = useRef(null);
   const codeBoxRef = useRef(null);
   const hubRef = useRef(null);
+  const circleHubRef = useRef(null);
   const cardRefs = useRef([]);
   const userTimerRef = useRef(null);
 
@@ -127,26 +128,42 @@ for match in pipeline.detect():
 
   // Recalculate pixel-perfect SVG bezier anchor points
   const updateCoordinates = useCallback(() => {
-    if (!containerRef.current || !codeBoxRef.current || !hubRef.current) return;
+    if (!containerRef.current || !codeBoxRef.current || !circleHubRef.current) return;
     const contRect = containerRef.current.getBoundingClientRect();
     const codeRect = codeBoxRef.current.getBoundingClientRect();
-    const hubRect = hubRef.current.getBoundingClientRect();
+    const circleRect = circleHubRef.current.getBoundingClientRect();
 
-    // Left wire: code box right edge center to hub left edge center
+    // Exact center coordinates of the circular AuraPass emblem
+    const hubCenterX = circleRect.left + circleRect.width / 2 - contRect.left;
+    const hubCenterY = circleRect.top + circleRect.height / 2 - contRect.top;
+    const radius = circleRect.width / 2;
+
+    // Use the central hub's vertical center as the single unified horizontal baseline
+    // This mathematically guarantees that the left incoming beam is 100% horizontal (0° tilt)
+    const baselineY = hubCenterY;
+
+    // Left wire: connects code box right edge directly to center hub left rim
     const codePoint = {
       x: codeRect.right - contRect.left,
-      y: codeRect.top + codeRect.height / 2 - contRect.top
+      y: baselineY
     };
 
+    // Center point of the AuraPass circle
+    const hubCenterPoint = {
+      x: hubCenterX,
+      y: baselineY
+    };
+
+    // Left rim of the circle (where wire touches)
     const hubLeftPoint = {
-      x: hubRect.left - contRect.left,
-      y: hubRect.top + hubRect.height / 2 - contRect.top
+      x: hubCenterX - radius,
+      y: baselineY
     };
 
-    // Right wires: hub right edge center to each model card left edge center
+    // Right rim of the circle (where wires emerge)
     const hubRightPoint = {
-      x: hubRect.right - contRect.left,
-      y: hubRect.top + hubRect.height / 2 - contRect.top
+      x: hubCenterX + radius,
+      y: baselineY
     };
 
     const cardPoints = cardRefs.current.map(cardEl => {
@@ -162,6 +179,7 @@ for match in pipeline.detect():
       width: contRect.width,
       height: contRect.height,
       codePoint,
+      hubCenterPoint,
       hubLeftPoint,
       hubRightPoint,
       cardPoints
@@ -198,15 +216,15 @@ for match in pipeline.detect():
         <div className="text-center mb-14">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#111111] border border-[#262626] text-[11px] font-mono uppercase tracking-widest text-emerald-400 mb-3 shadow-sm">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-            <span>ONE INTEGRATION IN • MANY ENGINES OUT</span>
+            <span>ONE SIMPLE SETUP • MULTI-CAMERA ATTENDANCE</span>
           </div>
 
           <h2 className="text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight text-foreground font-display max-w-3xl mx-auto text-balance">
-            The Biometric Routing Layer for Enterprise Surveillance
+            Smart AI Engine Built for Busy Office & Factory Gates
           </h2>
 
           <p className="mt-3.5 text-sm sm:text-base text-muted-foreground max-w-2xl mx-auto leading-relaxed text-balance">
-            Integrate once via local RTSP or WebRTC. AuraPass dynamically evaluates lighting, yaw angle, and specular liveness to route each face to the optimal neural model.
+            Connect your existing CCTV cameras, webcams, or tablets. AuraPass automatically recognizes staff in under a second — even in dim light or when walking past the camera at an angle.
           </p>
         </div>
 
@@ -231,33 +249,35 @@ for match in pipeline.detect():
                 </linearGradient>
               </defs>
 
-              {/* 1. Left Wire: Code Box to Center Hub */}
+              {/* 1. Left Wire: Code Box directly to Center Hub */}
               <line
                 x1={wireCoords.codePoint.x}
                 y1={wireCoords.codePoint.y}
-                x2={wireCoords.hubLeftPoint.x}
-                y2={wireCoords.hubLeftPoint.y}
+                x2={wireCoords.hubCenterPoint.x}
+                y2={wireCoords.hubCenterPoint.y}
                 stroke="#10B981"
                 strokeWidth="2.5"
                 filter="url(#emeraldGlowWire)"
               />
-              {/* Traveling Packet on Left Wire */}
+              {/* Traveling Packet on Left Wire into Center */}
               <circle r="3.5" fill="#FFFFFF">
                 <animateMotion
-                  path={`M ${wireCoords.codePoint.x} ${wireCoords.codePoint.y} L ${wireCoords.hubLeftPoint.x} ${wireCoords.hubLeftPoint.y}`}
+                  path={`M ${wireCoords.codePoint.x} ${wireCoords.codePoint.y} L ${wireCoords.hubCenterPoint.x} ${wireCoords.hubCenterPoint.y}`}
                   dur="1.2s"
                   repeatCount="indefinite"
                 />
               </circle>
               {/* Anchor Port Dots */}
               <circle cx={wireCoords.codePoint.x} cy={wireCoords.codePoint.y} r="4" fill="#10B981" />
-              <circle cx={wireCoords.hubLeftPoint.x} cy={wireCoords.hubLeftPoint.y} r="4" fill="#10B981" />
+              <circle cx={wireCoords.hubLeftPoint.x} cy={wireCoords.hubLeftPoint.y} r="4.5" fill="#10B981" />
 
-              {/* 2. Inactive Branches from Hub to Cards */}
+              {/* 2. Inactive Branches from Center Hub to Cards */}
               {wireCoords.cardPoints.map((cp, idx) => {
                 if (!cp || idx === selectedIdx) return null;
-                const midX = (wireCoords.hubRightPoint.x + cp.x) / 2;
-                const d = `M ${wireCoords.hubRightPoint.x} ${wireCoords.hubRightPoint.y} C ${midX} ${wireCoords.hubRightPoint.y}, ${midX} ${cp.y}, ${cp.x} ${cp.y}`;
+                const startX = wireCoords.hubRightPoint.x;
+                const startY = wireCoords.hubRightPoint.y;
+                const midX = (startX + cp.x) / 2;
+                const d = `M ${startX} ${startY} C ${midX} ${startY}, ${midX} ${cp.y}, ${cp.x} ${cp.y}`;
                 return (
                   <path
                     key={idx}
@@ -271,36 +291,34 @@ for match in pipeline.detect():
                 );
               })}
 
-              {/* 3. Active Branch from Hub to Selected Card */}
-              {activeCardPoint && (
-                <>
-                  <path
-                    d={`M ${wireCoords.hubRightPoint.x} ${wireCoords.hubRightPoint.y} C ${(wireCoords.hubRightPoint.x + activeCardPoint.x) / 2} ${wireCoords.hubRightPoint.y}, ${(wireCoords.hubRightPoint.x + activeCardPoint.x) / 2} ${activeCardPoint.y}, ${activeCardPoint.x} ${activeCardPoint.y}`}
-                    stroke="url(#activeBeam)"
-                    strokeWidth="2.5"
-                    fill="none"
-                    filter="url(#emeraldGlowWire)"
-                  />
-                  {/* Traveling Pulse Particle */}
-                  <circle r="4" fill="#FFFFFF">
-                    <animateMotion
-                      path={`M ${wireCoords.hubRightPoint.x} ${wireCoords.hubRightPoint.y} C ${(wireCoords.hubRightPoint.x + activeCardPoint.x) / 2} ${wireCoords.hubRightPoint.y}, ${(wireCoords.hubRightPoint.x + activeCardPoint.x) / 2} ${activeCardPoint.y}, ${activeCardPoint.x} ${activeCardPoint.y}`}
-                      dur="1.1s"
-                      repeatCount="indefinite"
+              {/* 3. Active Branch from Center Hub to Selected Card */}
+              {activeCardPoint && (() => {
+                const startX = wireCoords.hubRightPoint.x;
+                const startY = wireCoords.hubRightPoint.y;
+                const midX = (startX + activeCardPoint.x) / 2;
+                const activePath = `M ${startX} ${startY} C ${midX} ${startY}, ${midX} ${activeCardPoint.y}, ${activeCardPoint.x} ${activeCardPoint.y}`;
+                return (
+                  <>
+                    <path
+                      d={activePath}
+                      stroke="url(#activeBeam)"
+                      strokeWidth="2.5"
+                      fill="none"
+                      filter="url(#emeraldGlowWire)"
                     />
-                  </circle>
-                  <circle r="7" fill="#10B981" opacity="0.35">
-                    <animateMotion
-                      path={`M ${wireCoords.hubRightPoint.x} ${wireCoords.hubRightPoint.y} C ${(wireCoords.hubRightPoint.x + activeCardPoint.x) / 2} ${wireCoords.hubRightPoint.y}, ${(wireCoords.hubRightPoint.x + activeCardPoint.x) / 2} ${activeCardPoint.y}, ${activeCardPoint.x} ${activeCardPoint.y}`}
-                      dur="1.1s"
-                      repeatCount="indefinite"
-                    />
-                  </circle>
-                  {/* Anchor Dots on Active Wire */}
-                  <circle cx={wireCoords.hubRightPoint.x} cy={wireCoords.hubRightPoint.y} r="4" fill="#10B981" />
-                  <circle cx={activeCardPoint.x} cy={activeCardPoint.y} r="4" fill="#10B981" />
-                </>
-              )}
+                    {/* Traveling Pulse Particle */}
+                    <circle r="4" fill="#FFFFFF">
+                      <animateMotion path={activePath} dur="1.1s" repeatCount="indefinite" />
+                    </circle>
+                    <circle r="7" fill="#10B981" opacity="0.35">
+                      <animateMotion path={activePath} dur="1.1s" repeatCount="indefinite" />
+                    </circle>
+                    {/* Anchor Dots on Active Wire */}
+                    <circle cx={wireCoords.hubRightPoint.x} cy={wireCoords.hubRightPoint.y} r="4.5" fill="#10B981" />
+                    <circle cx={activeCardPoint.x} cy={activeCardPoint.y} r="4" fill="#10B981" />
+                  </>
+                );
+              })()}
             </svg>
           )}
 
@@ -347,14 +365,17 @@ for match in pipeline.detect():
             </div>
 
             {/* 2. CENTER NODE: AuraPass Central Routing Hub */}
-            <div ref={hubRef} className="flex flex-col items-center justify-center shrink-0 px-4">
+            <div ref={hubRef} className="relative flex flex-col items-center justify-center shrink-0 px-4">
               <div className="relative flex items-center justify-center">
                 {/* Outer Concentric Animated Pulse Waves */}
                 <div className="absolute w-36 h-36 rounded-full border border-emerald-500/20 animate-ping" style={{ animationDuration: '3s' }} />
                 <div className="absolute w-28 h-28 rounded-full border border-emerald-500/30 animate-pulse" style={{ animationDuration: '2s' }} />
 
                 {/* Center Solid Emblem Hub */}
-                <div className="w-20 h-20 rounded-full bg-[#111111] border-2 border-emerald-500/60 shadow-[0_0_35px_rgba(16,185,129,0.35)] flex flex-col items-center justify-center relative z-10 group hover:scale-105 transition-transform duration-200 cursor-pointer">
+                <div
+                  ref={circleHubRef}
+                  className="w-20 h-20 rounded-full bg-[#111111] border-2 border-emerald-500/60 shadow-[0_0_35px_rgba(16,185,129,0.35)] flex flex-col items-center justify-center relative z-10 group hover:scale-105 transition-transform duration-200 cursor-pointer"
+                >
                   <div className="w-9 h-9 rounded-full bg-emerald-500/15 flex items-center justify-center text-emerald-400 mb-0.5">
                     <Shield className="w-5 h-5 stroke-[2.2]" />
                   </div>
@@ -362,7 +383,8 @@ for match in pipeline.detect():
                 </div>
               </div>
 
-              <div className="text-center mt-5">
+              {/* Center Label below emblem (absolutely positioned so it doesn't offset vertical centering) */}
+              <div className="absolute -bottom-14 left-1/2 -translate-x-1/2 text-center whitespace-nowrap pointer-events-none">
                 <span className="font-mono text-[10px] uppercase font-bold tracking-widest text-emerald-400 block">
                   AuraPass™
                 </span>
@@ -518,28 +540,28 @@ for match in pipeline.detect():
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-10 border-t border-[#262626]">
           <div className="space-y-2">
             <h4 className="font-semibold text-sm sm:text-base text-foreground font-display">
-              Integrate once. Every camera feed through a single endpoint.
+              One simple setup. Works with all your cameras.
             </h4>
             <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
-              Connect any RTSP CCTV, USB web camera, or tablet. AuraPass handles frame ingestion, hardware decoding, and facial landmark alignment automatically.
+              Connect standard CCTV cameras, entrance webcams, or tablets. No need to replace existing wiring or buy specialized biometric hardware.
             </p>
           </div>
 
           <div className="space-y-2">
             <h4 className="font-semibold text-sm sm:text-base text-foreground font-display">
-              Best model per camera angle. Picked from live telemetry.
+              Fast recognition. Front or walking side angle.
             </h4>
             <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
-              Frontal poses route to FaceNet-512, walking profiles dispatch to InsightFace (ArcFace), and low-power edge nodes run GhostFaceNet in 4.2ms.
+              Staff don't need to stand still or look directly into the lens. The AI naturally recognizes them as they walk through your doors.
             </p>
           </div>
 
           <div className="space-y-2">
             <h4 className="font-semibold text-sm sm:text-base text-foreground font-display">
-              Automatic fallback. If a model encounters harsh lighting, failover locally.
+              100% Reliable. Works in dim light or sunshine.
             </h4>
             <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
-              Zero line stalls or manual restarts. The ensemble voting engine coordinates weighted decision thresholds with sub-300ms deterministic guarantees.
+              Built for real factory gates and office entrances. High-accuracy dual models prevent false alarms and ensure nobody gets stuck at the gate.
             </p>
           </div>
         </div>

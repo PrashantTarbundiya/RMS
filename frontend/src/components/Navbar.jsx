@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { NavLink, Link, useLocation, useNavigate } from 'react-router-dom';
-import { Activity, Box, Video, Home, Upload, ClipboardList, Radio, Settings, LogOut, Users, User, Menu, X, Terminal, Shield, Monitor, BarChart3, Play, Camera, Download, Building2, Sun, Moon } from 'lucide-react';
+import { Activity, Box, Video, Home, Upload, ClipboardList, Radio, Settings, LogOut, Users, User, Menu, X, Terminal, Shield, Monitor, BarChart3, Play, Camera, Download, Building2, Sun, Moon, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { usePwa } from '../context/PwaContext';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -77,6 +77,8 @@ export function Navbar() {
   };
 
   const userRole = user?.role || 'viewer';
+  const userEmail = (user?.email || '').toLowerCase().trim();
+  const isSuperAdmin = userEmail === 'vatsalvadgama04@gmail.com';
 
   // Nav items with minimum required role
   const allNavItems = [
@@ -91,14 +93,20 @@ export function Navbar() {
     { to: '/logs', label: 'Live Logs', icon: Terminal, minRole: 'manager' },
     { to: '/analytics', label: 'Analytics', icon: BarChart3, minRole: 'org_admin' },
     { to: '/departments', label: 'Departments', icon: Building2, minRole: 'org_admin' },
+    { to: '/admin', label: 'Platform Hub', icon: ShieldCheck, superAdminOnly: true },
     { to: '/audit', label: 'Audit Logs', icon: Shield, minRole: 'org_admin' },
     { to: '/profile', label: 'Profile', icon: User, minRole: 'viewer' },
     { to: '/models', label: 'Settings', icon: Settings, minRole: 'org_admin' },
   ];
 
   const navItems = useMemo(
-    () => allNavItems.filter(item => hasRole(userRole, item.minRole)),
-    [userRole]
+    () => allNavItems.filter(item => {
+      if (item.superAdminOnly) {
+        return isSuperAdmin;
+      }
+      return hasRole(userRole, item.minRole);
+    }),
+    [userRole, isSuperAdmin]
   );
 
   return (

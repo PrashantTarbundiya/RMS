@@ -29,11 +29,17 @@ export default function PublicFooter() {
               <span className="text-foreground font-medium">All Systems Operational</span>
               <span className="text-muted-foreground">• v2026.2 LTS</span>
             </div>
+
+            {/* Business Contact & NAP info */}
+            <div className="text-[11px] text-muted-foreground space-y-1 font-mono pt-2 border-t border-border/50">
+              <div>📍 Ahmedabad & Gandhinagar, Gujarat, India (382421)</div>
+              <div>✉️ <a href="mailto:support@aurapass.in" className="text-foreground hover:underline">support@aurapass.in</a> • Mon–Fri, 09:00–18:00 IST</div>
+            </div>
           </div>
 
           {/* Col 3: Product Navigation */}
           <div className="space-y-3">
-            <h4 className="text-xs font-semibold text-foreground uppercase tracking-wider">Product</h4>
+            <h4 className="text-xs font-semibold text-foreground uppercase tracking-wider">Product & Proof</h4>
             <ul className="space-y-2 text-xs text-muted-foreground">
               <li>
                 <a href="/#features" className="hover:text-foreground transition-colors">Features & Capabilities</a>
@@ -42,16 +48,19 @@ export default function PublicFooter() {
                 <a href="/#how-it-works" className="hover:text-foreground transition-colors">How It Works</a>
               </li>
               <li>
-                <a href="/#pricing" className="hover:text-foreground transition-colors">Pricing & Plans</a>
+                <a href="/#pricing" className="hover:text-foreground transition-colors">Pricing & Plans (INR)</a>
+              </li>
+              <li>
+                <a href="/#case-studies" className="hover:text-foreground transition-colors">Enterprise Case Studies</a>
+              </li>
+              <li>
+                <a href="/#competitors" className="hover:text-foreground transition-colors">Competitor Comparison</a>
               </li>
               <li>
                 <Link to="/kiosk" className="hover:text-foreground transition-colors flex items-center gap-1">
                   <span>Kiosk Gate Interface</span>
                   <ArrowUpRight size={11} className="opacity-70" />
                 </Link>
-              </li>
-              <li>
-                <Link to="/login" className="hover:text-foreground transition-colors">Console Login</Link>
               </li>
             </ul>
           </div>
@@ -64,6 +73,9 @@ export default function PublicFooter() {
                 <Link to="/docs" className="hover:text-foreground transition-colors">Architecture Overview</Link>
               </li>
               <li>
+                <a href="/#research" className="hover:text-foreground transition-colors">Biometric AI Research</a>
+              </li>
+              <li>
                 <Link to="/docs?page=requirements" className="hover:text-foreground transition-colors">Hardware Requirements</Link>
               </li>
               <li>
@@ -74,6 +86,12 @@ export default function PublicFooter() {
               </li>
               <li>
                 <Link to="/support" className="hover:text-foreground transition-colors">Engineering Support</Link>
+              </li>
+              <li>
+                <a href="/llms.txt" target="_blank" rel="noopener noreferrer" className="hover:text-emerald-400 transition-colors flex items-center gap-1 font-mono text-[11px]">
+                  <span>llms.txt (AI Manifest)</span>
+                  <ArrowUpRight size={11} />
+                </a>
               </li>
             </ul>
           </div>

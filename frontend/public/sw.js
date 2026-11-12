@@ -1,5 +1,5 @@
-// RMS Face AI - Enterprise Progressive Web App Service Worker
-const CACHE_NAME = 'aurapass-pwa-v3.0.0';
+// AuraPass™ Enterprise - Progressive Web App Service Worker
+const CACHE_NAME = 'aurapass-pwa-v3.1.0';
 
 const PRECACHE_ASSETS = [
   '/',

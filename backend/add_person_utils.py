@@ -173,30 +173,27 @@ def update_deepface_model(person_name, image_paths, model_name='Facenet512', org
                 print(f"   [Warning] Quality issues for {os.path.basename(img_path)}: {'; '.join(issues)}")
                 # Still process but warn — don't discard, as even noisy data helps with few-shot
 
-            # Detect face using our SideFaceDetector
+            # Detect face using our SideFaceDetector with 5-point landmark extraction
             faces = detector.detect_faces(image, profile_only=False)
+            from face_alignment import align_face_5point, align_face_from_bbox
+            target_size = (112, 112) if model_name == 'InsightFace' else (160, 160)
 
             if not faces:
-                face_crop = image
+                face_crop = cv2.resize(image, target_size)
             else:
-                # Take the largest face
+                # Take largest detected face and apply canonical 5-point affine alignment
                 face = max(faces, key=lambda x: x['bbox']['w'] * x['bbox']['h'])
-                x, y, w, h = face['bbox']['x'], face['bbox']['y'], face['bbox']['w'], face['bbox']['h']
-
-                # Wider margin (matching training pipeline)
-                h_img, w_img = image.shape[:2]
-                margin_x = int(w * 0.20)
-                margin_y = int(h * 0.20)
-                x1 = max(0, x - margin_x)
-                y1 = max(0, y - margin_y)
-                x2 = min(w_img, x + w + margin_x)
-                y2 = min(h_img, y + h + margin_y)
-                face_crop = image[y1:y2, x1:x2]
+                five_pts = face.get('five_points')
+                if five_pts and len(five_pts) == 5:
+                    pts_arr = np.array([[p['x'], p['y']] for p in five_pts], dtype=np.float32)
+                    face_crop = align_face_5point(image, pts_arr, output_size=target_size)
+                else:
+                    face_crop = align_face_from_bbox(image, face['bbox'], output_size=target_size)
 
             if face_crop.size == 0:
                 continue
 
-            # Apply CLAHE preprocessing (matching training pipeline)
+            # Apply CLAHE preprocessing (matching canonical pipeline)
             face_crop = apply_clahe(face_crop)
 
             # Generate embedding for the ORIGINAL image

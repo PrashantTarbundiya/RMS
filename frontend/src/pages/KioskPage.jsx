@@ -562,12 +562,12 @@ export default function KioskPage() {
       ctx.drawImage(videoRef.current, 0, 0, targetW, targetH);
 
       if (socketConnected && socketRef.current?.connected) {
-        const base64 = canvas.toDataURL('image/jpeg', 0.65);
+        const base64 = canvas.toDataURL('image/jpeg', 0.85);
         socketRef.current.emit('stream_frame', {
           image: base64,
           token: sessionStorage.getItem('rms_access_token') || localStorage.getItem('rms_access_token'),
           enable_facenet512: true,
-          enable_insightface: false,
+          enable_insightface: true,
           enable_ghostfacenet: false,
           enable_vggface: false,
           single_focus: true,
@@ -576,7 +576,7 @@ export default function KioskPage() {
         });
       } else {
         // HTTP fallback
-        const blob = await new Promise(r => canvas.toBlob(r, 'image/jpeg', 0.65));
+        const blob = await new Promise(r => canvas.toBlob(r, 'image/jpeg', 0.85));
         if (!blob) {
           isRequestInFlightRef.current = false;
           scheduleNextCapture(200);
@@ -587,6 +587,8 @@ export default function KioskPage() {
         formData.append('test_mode', 'true');
         formData.append('single_focus', 'true');
         formData.append('kiosk_mode', 'true');
+        formData.append('enable_insightface', 'true');
+        formData.append('enable_facenet512', 'true');
         formData.append('threshold', (kioskThresholdRef.current / 100).toFixed(2));
         const res = await apiClient.post(`${API_BASE}/predict`, formData, {
           headers: { 'Content-Type': 'multipart/form-data' },
