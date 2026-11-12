@@ -124,8 +124,8 @@ export function Navbar() {
               {isMobileOpen ? <X size={20} /> : <Menu size={20} />}
             </button>
             <Link to="/" className="brand flex items-center gap-2">
-              <div className="w-7 h-7 rounded-lg border border-border flex items-center justify-center bg-[#010102] shrink-0">
-                <span className="font-mono text-primary font-bold text-xs">A</span>
+              <div className="w-7 h-7 rounded-lg overflow-hidden border border-emerald-500/30 flex items-center justify-center bg-[#0B0F14] shrink-0 shadow-[0_0_10px_rgba(16,185,129,0.25)]">
+                <img src="/logo.svg" alt="AuraPass" className="w-full h-full object-cover" />
               </div>
               <div className="flex flex-col">
                 <span className="text-ink font-semibold tracking-tight text-xs font-display">AuraPass™</span>

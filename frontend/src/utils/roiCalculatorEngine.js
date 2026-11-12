@@ -45,9 +45,12 @@ export function calculateAttendanceRoi({
 
   // ─── 1. AURAPASS COST STRUCTURE ──────────────────────────────────────
   const auraTier = getAuraPassTier(staffCount);
+  const tierBasePrice = typeof auraTier.calculatePrice === 'function'
+    ? auraTier.calculatePrice(staffCount)
+    : auraTier.monthlyPriceINR;
   const extraGates = Math.max(0, gateCount - (auraTier.includedCameras || 0));
   const auraExtraGateMonthly = extraGates * ATTENDANCE_PRICING_CONFIG.aurapass.additionalCameraMonthlyINR;
-  const auraMonthlyBase = (auraTier.monthlyPriceINR + auraExtraGateMonthly) * taxMultiplier;
+  const auraMonthlyBase = (tierBasePrice + auraExtraGateMonthly) * taxMultiplier;
 
   // AuraPass optional hardware Capex (runs on existing cameras by default = ₹0)
   const auraInitialCapex = (newAuraPassCameras * ATTENDANCE_PRICING_CONFIG.aurapass.capexPerNewCameraINR) * taxMultiplier;

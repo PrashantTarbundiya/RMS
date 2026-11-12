@@ -32,9 +32,12 @@ def calculate_greythr_monthly(staff):
 
 def get_aurapass_tier_price(staff):
     if staff <= 25:
-        return 0, 'Starter Tier', 2
+        return 0, 'Starter Tier (Free)', 1
+    elif staff <= 100:
+        price = 599 if staff <= 50 else 599 + ((staff - 50) * 12)
+        return price, 'SMB Dynamic (₹12/user)', 2
     elif staff <= 250:
-        return 1999, 'Business Pro', 8
+        return 1999, 'Business Pro (Flat)', 5
     elif staff <= 1000:
         return 5999, 'Enterprise Enclave', 20
     else:
@@ -181,19 +184,29 @@ def test_aurapass_tier_pricing():
     """Verify AuraPass pricing tiers scale with employee count."""
     p20, t20, _ = get_aurapass_tier_price(20)
     assert p20 == 0
-    assert t20 == 'Starter Tier'
+    assert 'Starter' in t20
+
+    # SMB Dynamic tier for 50 staff (₹599 base, ₹11.98/emp)
+    p50, t50, _ = get_aurapass_tier_price(50)
+    assert p50 == 599
+    assert 'SMB Dynamic' in t50
+
+    # SMB Dynamic tier for 80 staff (₹599 + 30*12 = ₹959, ~₹12/emp)
+    p80, t80, _ = get_aurapass_tier_price(80)
+    assert p80 == 959
+    assert 'SMB Dynamic' in t80
 
     p150, t150, _ = get_aurapass_tier_price(150)
     assert p150 == 1999
-    assert t150 == 'Business Pro'
+    assert 'Business Pro' in t150
 
     p590, t590, _ = get_aurapass_tier_price(590)
     assert p590 == 5999
-    assert t590 == 'Enterprise Enclave'
+    assert 'Enterprise Enclave' in t590
 
     p1500, t1500, _ = get_aurapass_tier_price(1500)
     assert p1500 == 14999
-    assert t1500 == 'Enterprise Campus'
+    assert 'Enterprise Campus' in t1500
 
 
 def test_savings_reconciliation_monthly_and_annual():

@@ -319,7 +319,7 @@ export default function SupportPage() {
                   Open an Engineering Support Case
                 </h2>
                 <p className="text-xs sm:text-sm text-muted-foreground mt-1">
-                  Connect directly with specialized on-premise deployment engineers.
+                  Connect directly with specialized on-premise deployment engineers. You can also reach our primary desk at <a href="mailto:vatsalvadgama04@gmail.com" className="text-emerald-500 font-mono font-medium hover:underline">vatsalvadgama04@gmail.com</a>.
                 </p>
               </div>
 

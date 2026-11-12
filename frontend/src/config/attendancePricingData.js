@@ -213,19 +213,39 @@ export const ATTENDANCE_PRICING_CONFIG = {
     tiers: [
       {
         tierId: 'starter',
-        name: 'Starter Tier',
+        name: 'Starter Tier (Free)',
         maxStaff: 25,
-        includedCameras: 2,
+        includedCameras: 1,
         monthlyPriceINR: 0,        // Free Forever
-        description: 'Free forever for small offices & pilot tests'
+        dailyPunchLimit: 100,      // Max 100 punches / day
+        logRetentionDays: 30,      // 30 days log history
+        calculatePrice: (staff) => 0,
+        description: 'Free forever up to 25 staff with fair-use pilot limits'
+      },
+      {
+        tierId: 'smb_flex',
+        name: 'SMB Dynamic (₹12/user)',
+        maxStaff: 100,
+        includedCameras: 2,
+        basePriceINR: 599,         // Base ₹599 includes 50 staff
+        baseStaffIncluded: 50,
+        perExtraStaffINR: 12,       // ₹12/staff/month additional up to 100 staff
+        monthlyPriceINR: 599,
+        dailyPunchLimit: 500,
+        logRetentionDays: 180,
+        calculatePrice: (staff) => staff <= 50 ? 599 : 599 + ((staff - 50) * 12),
+        description: 'Flexible ~₹12/employee/mo for small businesses (26 to 100 staff)'
       },
       {
         tierId: 'business_pro',
-        name: 'Business Pro',
+        name: 'Business Pro (Flat)',
         maxStaff: 250,
-        includedCameras: 8,
+        includedCameras: 5,
         monthlyPriceINR: 1999,     // ₹1,999/month flat
-        description: 'Ideal for growing companies & commercial branches'
+        dailyPunchLimit: 2500,
+        logRetentionDays: 365,
+        calculatePrice: () => 1999,
+        description: 'Flat ₹1,999/mo for up to 250 staff (~₹8/employee at scale)'
       },
       {
         tierId: 'enterprise_enclave',
@@ -233,7 +253,10 @@ export const ATTENDANCE_PRICING_CONFIG = {
         maxStaff: 1000,
         includedCameras: 20,
         monthlyPriceINR: 5999,     // ₹5,999/month flat
-        description: 'Multi-lane factories, commercial towers & corporate plants'
+        dailyPunchLimit: 10000,
+        logRetentionDays: 2555,    // 7 years statutory audit compliant
+        calculatePrice: () => 5999,
+        description: 'Multi-lane factories, commercial towers & corporate plants (~₹6/employee)'
       },
       {
         tierId: 'enterprise_campus',
@@ -241,6 +264,9 @@ export const ATTENDANCE_PRICING_CONFIG = {
         maxStaff: Infinity,
         includedCameras: Infinity,
         monthlyPriceINR: 14999,    // ₹14,999/month flat
+        dailyPunchLimit: Infinity,
+        logRetentionDays: Infinity,
+        calculatePrice: () => 14999,
         description: 'Unlimited multi-site enterprise campuses & dedicated nodes'
       }
     ],

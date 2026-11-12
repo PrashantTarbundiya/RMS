@@ -240,7 +240,7 @@ for match in pipeline.detect():
               style={{ width: wireCoords.width, height: wireCoords.height }}
             >
               <defs>
-                <filter id="emeraldGlowWire" x="-30%" y="-30%" width="160%" height="160%">
+                <filter id="emeraldGlowWire" filterUnits="userSpaceOnUse" x="0" y="0" width="100%" height="100%">
                   <feDropShadow dx="0" dy="0" stdDeviation="3.5" floodColor="#10B981" floodOpacity="0.8" />
                 </filter>
                 <linearGradient id="activeBeam" x1="0%" y1="0%" x2="100%" y2="0%">
@@ -250,14 +250,22 @@ for match in pipeline.detect():
               </defs>
 
               {/* 1. Left Wire: Code Box directly to Center Hub */}
-              <line
-                x1={wireCoords.codePoint.x}
-                y1={wireCoords.codePoint.y}
-                x2={wireCoords.hubCenterPoint.x}
-                y2={wireCoords.hubCenterPoint.y}
+              {/* Outer glowing underlay */}
+              <path
+                d={`M ${wireCoords.codePoint.x} ${wireCoords.codePoint.y} L ${wireCoords.hubCenterPoint.x} ${wireCoords.hubCenterPoint.y}`}
+                stroke="#10B981"
+                strokeWidth="7"
+                strokeOpacity="0.28"
+                strokeLinecap="round"
+                fill="none"
+              />
+              {/* Core crisp emerald wire */}
+              <path
+                d={`M ${wireCoords.codePoint.x} ${wireCoords.codePoint.y} L ${wireCoords.hubCenterPoint.x} ${wireCoords.hubCenterPoint.y}`}
                 stroke="#10B981"
                 strokeWidth="2.5"
-                filter="url(#emeraldGlowWire)"
+                strokeLinecap="round"
+                fill="none"
               />
               {/* Traveling Packet on Left Wire into Center */}
               <circle r="3.5" fill="#FFFFFF">
@@ -267,9 +275,17 @@ for match in pipeline.detect():
                   repeatCount="indefinite"
                 />
               </circle>
+              {/* Pulse glow around packet */}
+              <circle r="6" fill="#10B981" opacity="0.45">
+                <animateMotion
+                  path={`M ${wireCoords.codePoint.x} ${wireCoords.codePoint.y} L ${wireCoords.hubCenterPoint.x} ${wireCoords.hubCenterPoint.y}`}
+                  dur="1.2s"
+                  repeatCount="indefinite"
+                />
+              </circle>
               {/* Anchor Port Dots */}
-              <circle cx={wireCoords.codePoint.x} cy={wireCoords.codePoint.y} r="4" fill="#10B981" />
-              <circle cx={wireCoords.hubLeftPoint.x} cy={wireCoords.hubLeftPoint.y} r="4.5" fill="#10B981" />
+              <circle cx={wireCoords.codePoint.x} cy={wireCoords.codePoint.y} r="4.5" fill="#10B981" />
+              <circle cx={wireCoords.hubLeftPoint.x} cy={wireCoords.hubLeftPoint.y} r="5" fill="#10B981" />
 
               {/* 2. Inactive Branches from Center Hub to Cards */}
               {wireCoords.cardPoints.map((cp, idx) => {

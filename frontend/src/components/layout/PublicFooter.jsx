@@ -13,8 +13,8 @@ export default function PublicFooter() {
           {/* Col 1 & 2: Brand & Trust Statement */}
           <div className="lg:col-span-2 space-y-4">
             <Link to="/" className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/25 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
-                <Shield className="w-4 h-4 stroke-[2]" />
+              <div className="w-8 h-8 rounded-lg overflow-hidden border border-emerald-500/30 bg-[#0B0F14] flex items-center justify-center shadow-[0_0_12px_rgba(16,185,129,0.2)]">
+                <img src="/logo.svg" alt="AuraPass" className="w-full h-full object-cover" />
               </div>
               <span className="font-bold text-base tracking-tight text-foreground">AuraPass™ Enterprise</span>
             </Link>
@@ -33,7 +33,7 @@ export default function PublicFooter() {
             {/* Business Contact & NAP info */}
             <div className="text-[11px] text-muted-foreground space-y-1 font-mono pt-2 border-t border-border/50">
               <div>📍 Ahmedabad & Gandhinagar, Gujarat, India (382421)</div>
-              <div>✉️ <a href="mailto:support@aurapass.in" className="text-foreground hover:underline">support@aurapass.in</a> • Mon–Fri, 09:00–18:00 IST</div>
+              <div>✉️ <a href="mailto:vatsalvadgama04@gmail.com" className="text-foreground hover:underline">vatsalvadgama04@gmail.com</a> • Mon–Fri, 09:00–18:00 IST</div>
             </div>
           </div>
 

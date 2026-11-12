@@ -298,11 +298,25 @@ export default function RoiCalculator() {
                 aria-label="Entrance Gates and Turnstiles"
               />
 
-              <div className="flex justify-between items-center text-[11px] font-mono text-zinc-500">
-                <span>1 Gate</span>
-                <span>3 Gates</span>
-                <span>6 Gates</span>
-                <span>12 Gates</span>
+              {/* Quick Preset Buttons for Gates */}
+              <div className="flex items-center justify-between pt-1">
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  {[1, 2, 4, 6, 8, 12].map((preset) => (
+                    <button
+                      key={preset}
+                      type="button"
+                      onClick={() => setGateCount(preset)}
+                      className={`text-[10px] font-mono px-2 py-0.5 rounded border transition-colors cursor-pointer ${
+                        gateCount === preset
+                          ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/50'
+                          : 'bg-[#171717] text-zinc-500 border-[#262626] hover:text-zinc-300'
+                      }`}
+                    >
+                      {preset} {preset === 1 ? 'Gate' : 'Gates'}
+                    </button>
+                  ))}
+                </div>
+                <span className="text-[11px] font-mono text-zinc-500">1 to 12 Gates</span>
               </div>
             </div>
 
@@ -614,8 +628,8 @@ export default function RoiCalculator() {
                   />
                 </div>
                 <div className="flex justify-between items-center text-[10px] font-mono text-zinc-500 pt-0.5">
-                  <span>Included cameras: {staffCount <= 250 ? '5' : '20'}</span>
-                  <span>Unlimited punches • Zero per-user fees</span>
+                  <span>Included cameras: {staffCount <= 25 ? '1' : staffCount <= 100 ? '2' : staffCount <= 250 ? '5' : '20'}</span>
+                  <span>{staffCount <= 25 ? 'Max 100 punches/day' : staffCount <= 100 ? 'Max 500 punches/day' : 'Unlimited punches'}</span>
                 </div>
               </div>
             </div>

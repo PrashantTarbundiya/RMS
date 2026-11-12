@@ -64,8 +64,8 @@ export default function PublicHeader() {
           
           {/* ── Brand Logo ── */}
           <Link to="/" className="flex items-center gap-2.5 group cursor-pointer" aria-label="AuraPass Home">
-            <div className="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/25 flex items-center justify-center text-emerald-600 dark:text-emerald-400 group-hover:scale-105 transition-transform duration-150">
-              <Shield className="w-4 h-4 stroke-[2]" />
+            <div className="w-8 h-8 rounded-lg overflow-hidden border border-emerald-500/30 bg-[#0B0F14] flex items-center justify-center group-hover:scale-105 transition-transform duration-150 shadow-[0_0_12px_rgba(16,185,129,0.2)]">
+              <img src="/logo.svg" alt="AuraPass" className="w-full h-full object-cover" />
             </div>
             <div className="flex items-center gap-1.5">
               <span className="font-bold text-base tracking-tight text-foreground">AuraPass</span>
