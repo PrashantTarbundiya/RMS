@@ -217,3 +217,4 @@ import AuraPassBrand from '@/components/ui/AuraPassBrand';
 // 4. Monochrome Mode for Invoices or Camera Overlays
 <AuraPassBrand variant="horizontal" theme="white" size="lg" />
 ```
+
