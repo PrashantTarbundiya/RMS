@@ -39,9 +39,10 @@ const STEPS = [
       if (sessionStorage.getItem('onboarding_camera_added') === 'true') return true;
       try { 
         const r = await api.get(`${API_BASE}/cameras`); 
-        return (r.data.cameras || []).length > 0; 
+        const cams = r.data.cameras || r.data || [];
+        return Array.isArray(cams) && cams.length > 0; 
       } catch { 
-        return false; 
+        return true; 
       }
     },
     gateMsg: 'Add at least one camera to continue',
@@ -50,7 +51,7 @@ const STEPS = [
         target: '[data-tour="add-camera-btn"]',
         title: 'Create a Camera API Key',
         desc: 'Click the "Add Camera" button to generate a secure API key. This key lets a physical camera or kiosk authenticate with AuraPass™ Enterprise securely.',
-        actionHint: 'Click the highlighted button to add a camera',
+        actionHint: 'Click "Add Camera" to register a device, or click Next Step to proceed',
         placement: 'bottom',
       },
     ],
@@ -288,24 +289,23 @@ export default function OnboardingWizard() {
     prevTargetRef.current = el;
     
     const rect = el.getBoundingClientRect();
-    if (rect.top < 64 || rect.bottom > window.innerHeight - 20) {
-      if (!isScrollingRef.current) {
-        isScrollingRef.current = true;
-        el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-        setTimeout(() => {
-          isScrollingRef.current = false;
-          positionSpotlight();
-        }, 350);
-      }
-      return;
+    const isOffscreen = rect.bottom < 64 || rect.top > window.innerHeight - 30;
+    if (isOffscreen && !isScrollingRef.current) {
+      isScrollingRef.current = true;
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      setTimeout(() => {
+        isScrollingRef.current = false;
+        positionSpotlight();
+      }, 350);
     }
 
-    const pad = 10;
+    const pad = 8;
+    const clampedHeight = Math.min(rect.height + pad * 2, window.innerHeight * 0.7);
     setSpotlightRect({
-      top: rect.top - pad,
-      left: rect.left - pad,
+      top: Math.max(56, rect.top - pad),
+      left: Math.max(0, rect.left - pad),
       width: rect.width + pad * 2,
-      height: rect.height + pad * 2,
+      height: clampedHeight,
     });
 
     requestAnimationFrame(() => {
@@ -320,42 +320,40 @@ export default function OnboardingWizard() {
       const prefPlacement = sub.placement;
       const spaceRight = vw - rect.right - 24;
       const spaceBottom = vh - rect.bottom - 24;
-      const spaceTop = rect.top - 64;
+      const spaceTop = rect.top - 70;
       const spaceLeft = rect.left - 24;
 
       let top, left, arrowDir = 'top', arrowStyle = {};
 
-      if ((prefPlacement === 'right' || (!prefPlacement && spaceRight >= ttWidth + 30)) && spaceRight >= 300) {
+      if (prefPlacement === 'right' && spaceRight >= 300) {
         arrowDir = 'left';
         left = rect.right + 16;
-        top = Math.max(64, Math.min(rect.top + rect.height / 2 - ttHeight / 2, vh - ttHeight - 16));
+        top = rect.top + rect.height / 2 - ttHeight / 2;
         const arrowTop = Math.max(16, Math.min(rect.top + rect.height / 2 - top, ttHeight - 24));
         arrowStyle = { top: `${arrowTop}px` };
-      } else if ((prefPlacement === 'left' || (!prefPlacement && spaceLeft >= ttWidth + 30)) && spaceLeft >= 300) {
+      } else if (prefPlacement === 'left' && spaceLeft >= 300) {
         arrowDir = 'right';
         left = rect.left - ttWidth - 16;
-        top = Math.max(64, Math.min(rect.top + rect.height / 2 - ttHeight / 2, vh - ttHeight - 16));
+        top = rect.top + rect.height / 2 - ttHeight / 2;
         const arrowTop = Math.max(16, Math.min(rect.top + rect.height / 2 - top, ttHeight - 24));
         arrowStyle = { top: `${arrowTop}px` };
-      } else if (prefPlacement === 'top' && spaceTop >= ttHeight) {
+      } else if (prefPlacement === 'top' || (spaceTop >= ttHeight + 20 && spaceBottom < ttHeight)) {
         arrowDir = 'bottom';
-        top = rect.top - ttHeight - 14;
-        left = Math.max(16, Math.min(rect.left + rect.width / 2 - ttWidth / 2, vw - ttWidth - 16));
-        const arrowLeft = Math.max(16, Math.min(rect.left + rect.width / 2 - left, ttWidth - 24));
-        arrowStyle = { left: `${arrowLeft}px` };
-      } else if (spaceBottom >= ttHeight || spaceBottom >= spaceTop) {
-        arrowDir = 'top';
-        top = rect.bottom + 14;
-        left = Math.max(16, Math.min(rect.left + rect.width / 2 - ttWidth / 2, vw - ttWidth - 16));
+        top = rect.top - ttHeight - 16;
+        left = rect.left + rect.width / 2 - ttWidth / 2;
         const arrowLeft = Math.max(16, Math.min(rect.left + rect.width / 2 - left, ttWidth - 24));
         arrowStyle = { left: `${arrowLeft}px` };
       } else {
-        arrowDir = 'bottom';
-        top = Math.max(64, rect.top - ttHeight - 14);
-        left = Math.max(16, Math.min(rect.left + rect.width / 2 - ttWidth / 2, vw - ttWidth - 16));
+        arrowDir = 'top';
+        top = rect.bottom + 16;
+        left = rect.left + rect.width / 2 - ttWidth / 2;
         const arrowLeft = Math.max(16, Math.min(rect.left + rect.width / 2 - left, ttWidth - 24));
         arrowStyle = { left: `${arrowLeft}px` };
       }
+
+      // Hard clamp so tooltip is NEVER positioned off-screen or stuck at top-left
+      top = Math.max(70, Math.min(top, vh - ttHeight - 20));
+      left = Math.max(16, Math.min(left, vw - ttWidth - 20));
       
       setTooltipPos({ top, left, arrowDir, arrowStyle });
     });

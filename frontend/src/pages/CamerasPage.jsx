@@ -419,7 +419,6 @@ export default function CamerasPage() {
               Connect your first CCTV stream (Hikvision, Dahua, CP Plus) or USB webcam to begin automated check-ins.
             </p>
             <button
-              data-tour="add-camera-btn"
               onClick={() => setShowAddModal(true)}
               className="button-primary text-xs py-2 px-4 mx-auto inline-flex items-center gap-1.5"
             >

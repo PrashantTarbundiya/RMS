@@ -435,7 +435,7 @@ export default function ProfilePage() {
 
       {/* ── Executive Identity Header ── */}
 
-      <div className="relative overflow-hidden rounded-2xl border border-border bg-card p-6 sm:p-8 shadow-sm dark:shadow-2xl text-card-foreground">
+      <div data-tour="org-settings" className="relative overflow-hidden rounded-2xl border border-border bg-card p-6 sm:p-8 shadow-sm dark:shadow-2xl text-card-foreground">
 
         {/* Glow ambient background element */}
 
@@ -929,7 +929,7 @@ export default function ProfilePage() {
 
           {/* Organization Parameters */}
 
-          <div data-tour="org-settings" className="card-linear p-0 bg-card border border-border rounded-xl shadow-sm">
+          <div data-tour="org-parameters" className="card-linear p-0 bg-card border border-border rounded-xl shadow-sm">
 
             <div className="p-5 border-b border-border">
 

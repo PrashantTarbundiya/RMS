@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ShieldCheck,
@@ -45,8 +46,23 @@ import Button from '../components/ui/marketing/Button';
 export default function AdminPlatformPage() {
   const { user, loading: authLoading } = useAuth();
 
-  // Tab State: 'orgs', 'tickets', 'financials', 'telemetry', 'audit'
-  const [activeTab, setActiveTab] = useState('orgs');
+  // Dynamic Tab State via URL search params (e.g. /admin?tab=financials)
+  const [searchParams, setSearchParams] = useSearchParams();
+  const rawTab = searchParams.get('tab');
+  const validTabs = useMemo(() => ['orgs', 'tickets', 'financials', 'telemetry', 'audit'], []);
+  const activeTab = validTabs.includes(rawTab) ? rawTab : 'orgs';
+
+  const setActiveTab = useCallback((tabId) => {
+    setSearchParams(prev => {
+      const next = new URLSearchParams(prev);
+      if (tabId === 'orgs') {
+        next.delete('tab');
+      } else {
+        next.set('tab', tabId);
+      }
+      return next;
+    }, { replace: true });
+  }, [setSearchParams]);
 
   // Loading & error states
   const [loading, setLoading] = useState(true);
@@ -335,6 +351,68 @@ ${selectedTicket.admin_notes || 'None'}`;
     return Array.from(depts);
   }, [selectedOrgDetails]);
 
+  // Dynamic financial SVG trajectory coordinates computed accurately
+  const chartTrajectory = useMemo(() => {
+    const raw = financials?.trajectory || [
+      { month: 'Jun', mrr: 1999, profit: 1727, overhead: 272 },
+      { month: 'Jul', mrr: 1999, profit: 1727, overhead: 272 },
+      { month: 'Aug', mrr: 3998, profit: 3454, overhead: 544 },
+      { month: 'Sep', mrr: 3998, profit: 3454, overhead: 544 },
+      { month: 'Oct', mrr: 11996, profit: 10364, overhead: 1632 },
+      { month: 'Nov (Run-Rate)', mrr: 16194, profit: 13991, overhead: 2203 }
+    ];
+
+    const maxMrr = Math.max(...raw.map(d => d.mrr || 0), 10000);
+    const maxCeil = Math.max(Math.ceil(maxMrr / 5000) * 5000, 20000);
+    const baseY = 160;
+    const topY = 25;
+    const usableHeight = baseY - topY; // 135
+
+    const getY = (val) => Math.round(baseY - ((val || 0) / maxCeil) * usableHeight);
+
+    const points = raw.map((pt, idx) => {
+      const x = 60 + idx * 100;
+      const yRev = getY(pt.mrr);
+      const yPro = getY(pt.profit);
+      const yOver = getY(pt.overhead);
+      return {
+        ...pt,
+        x,
+        yRev,
+        yPro,
+        yOver,
+        displayMonth: (pt.month || '').replace(' 2026', '')
+      };
+    });
+
+    const revPolyline = points.map(p => `${p.x},${p.yRev}`).join(' ');
+    const revPolygon = `${points[0].x},${baseY} ${revPolyline} ${points[points.length - 1].x},${baseY}`;
+
+    const proPolyline = points.map(p => `${p.x},${p.yPro}`).join(' ');
+    const proPolygon = `${points[0].x},${baseY} ${proPolyline} ${points[points.length - 1].x},${baseY}`;
+
+    const overPolyline = points.map(p => `${p.x},${p.yOver}`).join(' ');
+
+    const gridLines = [
+      { y: topY, label: `₹${(maxCeil / 1000).toFixed(0)}K` },
+      { y: topY + usableHeight * 0.25, label: `₹${((maxCeil * 0.75) / 1000).toFixed(0)}K` },
+      { y: topY + usableHeight * 0.50, label: `₹${((maxCeil * 0.50) / 1000).toFixed(0)}K` },
+      { y: topY + usableHeight * 0.75, label: `₹${((maxCeil * 0.25) / 1000).toFixed(0)}K` },
+      { y: baseY, label: '₹0' }
+    ];
+
+    return {
+      points,
+      revPolyline,
+      revPolygon,
+      proPolyline,
+      proPolygon,
+      overPolyline,
+      gridLines,
+      maxCeil
+    };
+  }, [financials]);
+
   // ─── Render: Access Restricted Guard Screen ───
   if (!authLoading && !isAuthorizedSuperAdmin) {
     return (
@@ -416,16 +494,16 @@ ${selectedTicket.admin_notes || 'None'}`;
         </div>
 
         <div className="flex items-center gap-3">
-          <Button
-            variant="outline"
-            size="sm"
+          <button
+            type="button"
             onClick={() => fetchAllData(true)}
             disabled={refreshing}
-            icon={RefreshCw}
-            className={`border-[#333] hover:bg-[#1a1a1e] text-xs ${refreshing ? 'animate-spin' : ''}`}
+            className="inline-flex items-center justify-center gap-2 px-3 py-1.5 rounded-lg border border-[#333] bg-[#0c0c10] hover:bg-[#1a1a1e] text-xs font-semibold text-zinc-300 disabled:opacity-50 transition-colors cursor-pointer select-none"
+            title="Refresh live platform data"
           >
-            {refreshing ? 'Syncing...' : 'Sync Telemetry'}
-          </Button>
+            <RefreshCw className={`w-3.5 h-3.5 text-zinc-400 shrink-0 ${refreshing ? 'animate-spin text-emerald-400' : ''}`} />
+            <span>{refreshing ? 'Syncing...' : 'Sync Telemetry'}</span>
+          </button>
 
           <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#121216] border border-[#26262c] text-xs font-mono text-zinc-400">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
@@ -436,9 +514,13 @@ ${selectedTicket.admin_notes || 'None'}`;
 
       {/* ─── Metric Ribbon Cards (Executive Overview) ─── */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3.5">
-        <div className="p-4 rounded-xl bg-[#0f0f13] border border-[#202026] shadow-sm">
+        <div 
+          onClick={() => setActiveTab('orgs')}
+          className="p-4 rounded-xl bg-[#0f0f13] border border-[#202026] hover:border-emerald-500/40 shadow-sm cursor-pointer transition-all group"
+          title="Click to view Organizations"
+        >
           <div className="flex items-center justify-between text-zinc-400 mb-2">
-            <span className="text-[11px] font-medium uppercase tracking-wider">Organizations</span>
+            <span className="text-[11px] font-medium uppercase tracking-wider group-hover:text-emerald-400 transition-colors">Organizations</span>
             <Building2 className="w-4 h-4 text-emerald-400" />
           </div>
           <div className="text-2xl font-bold text-white font-mono">
@@ -458,9 +540,13 @@ ${selectedTicket.admin_notes || 'None'}`;
           <div className="text-[11px] text-zinc-500 mt-1">Active Biometric Profiles</div>
         </div>
 
-        <div className="p-4 rounded-xl bg-[#0f0f13] border border-[#202026] shadow-sm">
+        <div 
+          onClick={() => setActiveTab('telemetry')}
+          className="p-4 rounded-xl bg-[#0f0f13] border border-[#202026] hover:border-purple-500/40 shadow-sm cursor-pointer transition-all group"
+          title="Click to view Telemetry"
+        >
           <div className="flex items-center justify-between text-zinc-400 mb-2">
-            <span className="text-[11px] font-medium uppercase tracking-wider">Live Cameras</span>
+            <span className="text-[11px] font-medium uppercase tracking-wider group-hover:text-purple-400 transition-colors">Live Cameras</span>
             <Camera className="w-4 h-4 text-purple-400" />
           </div>
           <div className="text-2xl font-bold text-white font-mono">
@@ -480,13 +566,17 @@ ${selectedTicket.admin_notes || 'None'}`;
           <div className="text-[11px] text-zinc-500 mt-1">Real-Time Clock-Ins</div>
         </div>
 
-        <div className={`p-4 rounded-xl border shadow-sm ${
-          (overview?.metrics?.open_tickets || 0) > 0
-            ? 'bg-amber-500/5 border-amber-500/40'
-            : 'bg-[#0f0f13] border-[#202026]'
-        }`}>
+        <div 
+          onClick={() => setActiveTab('tickets')}
+          className={`p-4 rounded-xl border shadow-sm cursor-pointer transition-all group ${
+            (overview?.metrics?.open_tickets || 0) > 0
+              ? 'bg-amber-500/5 border-amber-500/40 hover:border-amber-500/70'
+              : 'bg-[#0f0f13] border-[#202026] hover:border-amber-500/40'
+          }`}
+          title="Click to view Support Cases"
+        >
           <div className="flex items-center justify-between text-zinc-400 mb-2">
-            <span className="text-[11px] font-medium uppercase tracking-wider">Support Cases</span>
+            <span className="text-[11px] font-medium uppercase tracking-wider group-hover:text-amber-400 transition-colors">Support Cases</span>
             <LifeBuoy className={`w-4 h-4 ${(overview?.metrics?.open_tickets || 0) > 0 ? 'text-amber-400' : 'text-zinc-400'}`} />
           </div>
           <div className="text-2xl font-bold text-white font-mono flex items-center gap-2">
@@ -500,9 +590,13 @@ ${selectedTicket.admin_notes || 'None'}`;
           <div className="text-[11px] text-zinc-500 mt-1">Pending Resolution</div>
         </div>
 
-        <div className="p-4 rounded-xl bg-[#0f0f13] border border-[#202026] shadow-sm">
+        <div 
+          onClick={() => setActiveTab('financials')}
+          className="p-4 rounded-xl bg-[#0f0f13] border border-[#202026] hover:border-emerald-500/40 shadow-sm cursor-pointer transition-all group"
+          title="Click to view Revenue & Profit"
+        >
           <div className="flex items-center justify-between text-zinc-400 mb-2">
-            <span className="text-[11px] font-medium uppercase tracking-wider">Platform MRR</span>
+            <span className="text-[11px] font-medium uppercase tracking-wider group-hover:text-emerald-400 transition-colors">Platform MRR</span>
             <IndianRupee className="w-4 h-4 text-emerald-400" />
           </div>
           <div className="text-2xl font-bold text-white font-mono">
@@ -516,11 +610,11 @@ ${selectedTicket.admin_notes || 'None'}`;
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 bg-[#111116] p-2 rounded-xl border border-[#202026]">
         <div className="flex items-center gap-1 overflow-x-auto pb-1 sm:pb-0">
           {[
-            { id: 'orgs', label: 'Organizations & Clients', icon: Building2, count: organizations.length },
-            { id: 'tickets', label: 'Engineering Cases', icon: LifeBuoy, count: tickets.filter(t => t.status === 'open').length, highlight: true },
-            { id: 'financials', label: 'Revenue & Profit Analytics', icon: BarChart3 },
-            { id: 'telemetry', label: 'Telemetry & Models', icon: Activity },
-            { id: 'audit', label: 'Audit Stream', icon: ShieldCheck }
+            { id: 'orgs', label: 'Organizations', icon: Building2, count: organizations.length },
+            { id: 'tickets', label: 'Support Cases', icon: LifeBuoy, count: tickets.filter(t => t.status === 'open').length, highlight: true },
+            { id: 'financials', label: 'Revenue & Profit', icon: BarChart3 },
+            { id: 'telemetry', label: 'Telemetry', icon: Activity },
+            { id: 'audit', label: 'Audit Log', icon: ShieldCheck }
           ].map(tab => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
@@ -908,82 +1002,119 @@ ${selectedTicket.admin_notes || 'None'}`;
                   </linearGradient>
                 </defs>
 
-                {/* Horizontal Grid lines */}
-                <line x1="40" y1="20" x2="580" y2="20" stroke="#1f1f26" strokeDasharray="3 3" />
-                <line x1="40" y1="65" x2="580" y2="65" stroke="#1f1f26" strokeDasharray="3 3" />
-                <line x1="40" y1="110" x2="580" y2="110" stroke="#1f1f26" strokeDasharray="3 3" />
-                <line x1="40" y1="155" x2="580" y2="155" stroke="#2a2a34" />
+                {/* Dynamic Horizontal Grid lines & Y-axis labels */}
+                {chartTrajectory.gridLines.map((gl, i) => (
+                  <g key={i}>
+                    <line
+                      x1="40"
+                      y1={gl.y}
+                      x2="580"
+                      y2={gl.y}
+                      stroke={gl.y === 160 ? "#2a2a34" : "#1f1f26"}
+                      strokeDasharray={gl.y === 160 ? undefined : "3 3"}
+                    />
+                    <text
+                      x="32"
+                      y={gl.y + 3}
+                      fill="#666"
+                      fontSize="9"
+                      textAnchor="end"
+                      fontFamily="monospace"
+                    >
+                      {gl.label}
+                    </text>
+                  </g>
+                ))}
 
-                {/* Y-axis labels */}
-                <text x="32" y="24" fill="#666" fontSize="9" textAnchor="end" fontFamily="monospace">₹15K</text>
-                <text x="32" y="69" fill="#666" fontSize="9" textAnchor="end" fontFamily="monospace">₹10K</text>
-                <text x="32" y="114" fill="#666" fontSize="9" textAnchor="end" fontFamily="monospace">₹5K</text>
-                <text x="32" y="159" fill="#666" fontSize="9" textAnchor="end" fontFamily="monospace">₹0</text>
-
-                {/* Area under curve */}
+                {/* Revenue Area (Gradient Fill) */}
                 <polygon
-                  points="60,155 60,135 160,135 260,115 360,115 460,75 560,40 560,155"
+                  points={chartTrajectory.revPolygon}
                   fill="url(#revenueGrad)"
                 />
 
-                {/* Profit Area */}
+                {/* Profit Area (Gradient Fill) */}
                 <polygon
-                  points="60,155 60,138 160,138 260,121 360,121 460,86 560,55 560,155"
+                  points={chartTrajectory.proPolygon}
                   fill="url(#profitGrad)"
                 />
 
-                {/* Revenue Line */}
+                {/* Revenue Polyline */}
                 <polyline
                   fill="none"
                   stroke="#10b981"
                   strokeWidth="3"
                   strokeLinecap="round"
-                  points="60,135 160,135 260,115 360,115 460,75 560,40"
+                  strokeLinejoin="round"
+                  points={chartTrajectory.revPolyline}
                 />
 
-                {/* Profit Line */}
+                {/* Profit Polyline */}
                 <polyline
                   fill="none"
                   stroke="#2dd4bf"
                   strokeWidth="2.5"
                   strokeDasharray="4 2"
                   strokeLinecap="round"
-                  points="60,138 160,138 260,121 360,121 460,86 560,55"
+                  strokeLinejoin="round"
+                  points={chartTrajectory.proPolyline}
                 />
 
-                {/* Overhead Line */}
+                {/* Compute Overhead Polyline */}
                 <polyline
                   fill="none"
                   stroke="#71717a"
                   strokeWidth="1.5"
-                  points="60,152 160,152 260,149 360,149 460,144 560,140"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  points={chartTrajectory.overPolyline}
                 />
 
-                {/* Month labels & Data Points */}
-                {(financials?.trajectory || [
-                  { month: 'Jun 2026', mrr: 1999, profit: 1727, x: 60, yRev: 135, yPro: 138 },
-                  { month: 'Jul 2026', mrr: 1999, profit: 1727, x: 160, yRev: 135, yPro: 138 },
-                  { month: 'Aug 2026', mrr: 3998, profit: 3454, x: 260, yRev: 115, yPro: 121 },
-                  { month: 'Sep 2026', mrr: 3998, profit: 3454, x: 360, yRev: 115, yPro: 121 },
-                  { month: 'Oct 2026', mrr: 9997, profit: 8637, x: 460, yRev: 75, yPro: 86 },
-                  { month: 'Nov 2026 (Run-Rate)', mrr: 13495, profit: 11659, x: 560, yRev: 40, yPro: 55 }
-                ]).map((pt, idx) => {
-                  const x = 60 + idx * 100;
-                  return (
-                    <g key={idx}>
-                      {/* Revenue Dot */}
-                      <circle cx={x} cy={pt.yRev || 100} r="4.5" fill="#10b981" stroke="#0f0f13" strokeWidth="2" />
-                      {/* Label on top */}
-                      <text x={x} y={(pt.yRev || 100) - 8} fill="#10b981" fontSize="9" textAnchor="middle" fontWeight="bold" fontFamily="monospace">
-                        ₹{(pt.mrr / 1000).toFixed(1)}k
-                      </text>
-                      {/* X axis month */}
-                      <text x={x} y="175" fill="#888" fontSize="9" textAnchor="middle" fontFamily="monospace">
-                        {pt.month.replace(' 2026', '')}
-                      </text>
-                    </g>
-                  );
-                })}
+                {/* Data Points, Dots & Month Labels */}
+                {chartTrajectory.points.map((pt, idx) => (
+                  <g key={idx}>
+                    {/* Profit Dot */}
+                    <circle
+                      cx={pt.x}
+                      cy={pt.yPro}
+                      r="3.5"
+                      fill="#2dd4bf"
+                      stroke="#0f0f13"
+                      strokeWidth="1.5"
+                    />
+                    {/* Revenue Dot */}
+                    <circle
+                      cx={pt.x}
+                      cy={pt.yRev}
+                      r="5"
+                      fill="#10b981"
+                      stroke="#0f0f13"
+                      strokeWidth="2"
+                    />
+                    {/* Revenue Value on top */}
+                    <text
+                      x={pt.x}
+                      y={Math.max(16, pt.yRev - 9)}
+                      fill="#10b981"
+                      fontSize="9"
+                      textAnchor="middle"
+                      fontWeight="bold"
+                      fontFamily="monospace"
+                    >
+                      ₹{(pt.mrr / 1000).toFixed(1)}k
+                    </text>
+                    {/* Month Label on X-axis */}
+                    <text
+                      x={pt.x}
+                      y="178"
+                      fill="#888"
+                      fontSize="9"
+                      textAnchor="middle"
+                      fontFamily="monospace"
+                    >
+                      {pt.displayMonth}
+                    </text>
+                  </g>
+                ))}
               </svg>
             </div>
           </div>
@@ -1435,14 +1566,14 @@ ${selectedTicket.admin_notes || 'None'}`;
 
                         {/* Search & Department Filters */}
                         <div className="flex items-center gap-2">
-                          <div className="relative w-48 sm:w-60">
-                            <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-zinc-500" />
+                          <div className="relative w-52 sm:w-64">
+                            <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
                             <input
                               type="text"
                               value={employeeSearchQuery}
                               onChange={(e) => setEmployeeSearchQuery(e.target.value)}
                               placeholder="Search employee or code..."
-                              className="w-full pl-8 pr-3 py-1 rounded-md bg-[#09090c] border border-[#25252e] text-xs text-white placeholder:text-zinc-600 focus:outline-none focus:border-blue-500/60"
+                              className="w-full pl-9 pr-3 py-1.5 h-8 rounded-lg bg-[#09090c] border border-[#25252e] text-xs text-white placeholder:text-zinc-500 focus:outline-none focus:border-emerald-500/60"
                             />
                           </div>
 
@@ -1450,7 +1581,7 @@ ${selectedTicket.admin_notes || 'None'}`;
                             <select
                               value={employeeDepartmentFilter}
                               onChange={(e) => setEmployeeDepartmentFilter(e.target.value)}
-                              className="p-1 rounded-md bg-[#09090c] border border-[#25252e] text-xs text-zinc-300 focus:outline-none"
+                              className="h-8 px-2.5 rounded-lg bg-[#09090c] border border-[#25252e] text-xs text-zinc-300 focus:outline-none focus:border-emerald-500/60 cursor-pointer"
                             >
                               <option value="all">All Depts</option>
                               {rosterDepartments.map(d => (
