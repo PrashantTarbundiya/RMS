@@ -13,9 +13,11 @@ export default function PublicFooter() {
           {/* Col 1 & 2: Brand & Trust Statement */}
           <div className="lg:col-span-2 space-y-4">
             <Link to="/" className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg overflow-hidden border border-emerald-500/30 bg-[#0B0F14] flex items-center justify-center shadow-[0_0_12px_rgba(16,185,129,0.2)]">
-                <img src="/logo.svg" alt="AuraPass" className="w-full h-full object-cover" />
-              </div>
+              <img 
+                src="/logo.svg" 
+                alt="AuraPass" 
+                className="w-7 h-7 object-contain drop-shadow-[0_0_8px_rgba(16,185,129,0.35)]" 
+              />
               <span className="font-bold text-base tracking-tight text-foreground">AuraPass™ Enterprise</span>
             </Link>
             

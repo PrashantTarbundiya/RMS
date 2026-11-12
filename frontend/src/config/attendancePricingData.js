@@ -212,62 +212,37 @@ export const ATTENDANCE_PRICING_CONFIG = {
     description: 'Air-gapped on-premise facial biometric attendance running on your existing CCTV cameras, laptops, or webcams.',
     tiers: [
       {
-        tierId: 'starter',
-        name: 'Starter Tier (Free)',
-        maxStaff: 25,
-        includedCameras: 1,
-        monthlyPriceINR: 0,        // Free Forever
-        dailyPunchLimit: 100,      // Max 100 punches / day
-        logRetentionDays: 30,      // 30 days log history
-        calculatePrice: (staff) => 0,
-        description: 'Free forever up to 25 staff with fair-use pilot limits'
+        tierId: 'basic',
+        name: 'Basic Plan',
+        maxStaff: 50,
+        includedCameras: 3,        // Increased to 3 camera streams
+        monthlyPriceINR: 699,      // ₹699/month (~₹14/employee for 50 staff)
+        dailyPunchLimit: 600,
+        logRetentionDays: 90,
+        calculatePrice: () => 699,
+        description: 'Small offices, retail shops & clinics up to 50 employees (7-day free trial)'
       },
       {
-        tierId: 'smb_flex',
-        name: 'SMB Dynamic (₹12/user)',
-        maxStaff: 100,
-        includedCameras: 2,
-        basePriceINR: 599,         // Base ₹599 includes 50 staff
-        baseStaffIncluded: 50,
-        perExtraStaffINR: 12,       // ₹12/staff/month additional up to 100 staff
-        monthlyPriceINR: 599,
-        dailyPunchLimit: 500,
-        logRetentionDays: 180,
-        calculatePrice: (staff) => staff <= 50 ? 599 : 599 + ((staff - 50) * 12),
-        description: 'Flexible ~₹12/employee/mo for small businesses (26 to 100 staff)'
-      },
-      {
-        tierId: 'business_pro',
-        name: 'Business Pro (Flat)',
+        tierId: 'pro',
+        name: 'Pro Plan',
         maxStaff: 250,
-        includedCameras: 5,
-        monthlyPriceINR: 1999,     // ₹1,999/month flat
-        dailyPunchLimit: 2500,
+        includedCameras: 8,        // Increased to 8 camera streams
+        monthlyPriceINR: 1999,     // ₹1,999/month flat (~₹8/employee at scale)
+        dailyPunchLimit: 3000,
         logRetentionDays: 365,
         calculatePrice: () => 1999,
-        description: 'Flat ₹1,999/mo for up to 250 staff (~₹8/employee at scale)'
+        description: 'Growing companies & commercial branches up to 250 employees (7-day free trial)'
       },
       {
-        tierId: 'enterprise_enclave',
-        name: 'Enterprise Enclave',
-        maxStaff: 1000,
-        includedCameras: 20,
-        monthlyPriceINR: 5999,     // ₹5,999/month flat
-        dailyPunchLimit: 10000,
+        tierId: 'enterprise',
+        name: 'Enterprise Plan',
+        maxStaff: Infinity,
+        includedCameras: 25,       // Increased to 25 camera streams
+        monthlyPriceINR: 5999,     // ₹5,999/month flat (~₹6/employee)
+        dailyPunchLimit: 15000,
         logRetentionDays: 2555,    // 7 years statutory audit compliant
         calculatePrice: () => 5999,
-        description: 'Multi-lane factories, commercial towers & corporate plants (~₹6/employee)'
-      },
-      {
-        tierId: 'enterprise_campus',
-        name: 'Enterprise Campus',
-        maxStaff: Infinity,
-        includedCameras: Infinity,
-        monthlyPriceINR: 14999,    // ₹14,999/month flat
-        dailyPunchLimit: Infinity,
-        logRetentionDays: Infinity,
-        calculatePrice: () => 14999,
-        description: 'Unlimited multi-site enterprise campuses & dedicated nodes'
+        description: 'Multi-lane factories, commercial towers & corporate campuses'
       }
     ],
     additionalCameraMonthlyINR: 250, // ₹250/mo per extra RTSP stream beyond plan quota

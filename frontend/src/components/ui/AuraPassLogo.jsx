@@ -2,27 +2,18 @@ import React from 'react';
 
 /**
  * High-Precision AuraPass™ Enterprise Brand Logo Component
- * Renders the official biometric aperture & sovereign shield emblem.
+ * Renders the clean standalone biometric aperture & sovereign gateway emblem.
  */
-export default function AuraPassLogo({ size = 32, className = '', showText = false, textClassName = '' }) {
+export default function AuraPassLogo({ size = 28, className = '', showText = false, textClassName = '' }) {
   return (
     <div className={`inline-flex items-center gap-2.5 ${className}`}>
-      <div 
-        style={{ width: size, height: size }} 
-        className="rounded-xl overflow-hidden shrink-0 shadow-[0_0_15px_rgba(16,185,129,0.25)] border border-emerald-500/30 bg-[#0B0F14] flex items-center justify-center relative group"
-      >
-        <img
-          src="/logo.svg"
-          alt="AuraPass Enterprise Logo"
-          width={size}
-          height={size}
-          className="w-full h-full object-cover select-none pointer-events-none"
-          onError={(e) => {
-            // Fallback to embedded SVG if asset fails to load
-            e.currentTarget.style.display = 'none';
-          }}
-        />
-      </div>
+      <img
+        src="/logo.svg"
+        alt="AuraPass Enterprise Logo"
+        width={size}
+        height={size}
+        className="object-contain select-none pointer-events-none drop-shadow-[0_0_8px_rgba(16,185,129,0.35)]"
+      />
 
       {showText && (
         <div className="flex items-center gap-1.5">
@@ -37,4 +28,3 @@ export default function AuraPassLogo({ size = 32, className = '', showText = fal
     </div>
   );
 }
-

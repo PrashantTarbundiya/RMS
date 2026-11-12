@@ -1191,160 +1191,132 @@ export default function LandingPage() {
               </p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 items-stretch">
-              {/* Plan 1: Starter */}
-              <div className="p-5 sm:p-6 rounded-2xl bg-card border border-border flex flex-col justify-between shadow-sm">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-stretch">
+              {/* Plan 1: Basic Plan */}
+              <div className="p-6 sm:p-7 rounded-2xl bg-card border border-border flex flex-col justify-between shadow-sm">
                 <div>
-                  <div className="text-xs font-semibold text-muted-foreground uppercase mb-1">Starter Tier</div>
-                  <div className="text-3xl font-extrabold text-foreground mb-1 font-mono">₹0</div>
-                  <p className="text-xs text-muted-foreground mb-5">Free forever for micro-offices & pilots</p>
-
-                  <ul className="space-y-2 text-xs text-foreground mb-6">
-                    <li className="flex items-center gap-2">
-                      <CheckCircle size={13} className="text-emerald-500 shrink-0" />
-                      <span>Up to 25 enrolled staff</span>
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <CheckCircle size={13} className="text-emerald-500 shrink-0" />
-                      <span>1 camera / webcam stream</span>
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <CheckCircle size={13} className="text-emerald-500 shrink-0" />
-                      <span>100 punches / day cap</span>
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <CheckCircle size={13} className="text-emerald-500 shrink-0" />
-                      <span>30 days log history</span>
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <CheckCircle size={13} className="text-emerald-500 shrink-0" />
-                      <span>Standard CSV exports</span>
-                    </li>
-                  </ul>
-                </div>
-
-                <Button variant="outline" size="sm" to="/register" className="w-full">
-                  Start Free Forever
-                </Button>
-              </div>
-
-              {/* Plan 2: SMB Dynamic (New Per-Seat) */}
-              <div className="p-5 sm:p-6 rounded-2xl bg-card border border-border hover:border-emerald-500/50 flex flex-col justify-between shadow-sm transition-colors">
-                <div>
-                  <div className="text-xs font-semibold text-emerald-400 uppercase mb-1">SMB Dynamic</div>
+                  <div className="text-xs font-semibold text-emerald-400 uppercase mb-1">Basic Plan</div>
                   <div className="flex items-baseline gap-1 mb-1 font-mono">
-                    <span className="text-3xl font-extrabold text-foreground">₹599</span>
+                    <span className="text-3xl sm:text-4xl font-extrabold text-foreground">₹699</span>
                     <span className="text-xs text-muted-foreground">/ month</span>
                   </div>
-                  <p className="text-xs text-muted-foreground mb-5">₹12/employee for 26 to 100 staff</p>
+                  <p className="text-xs text-muted-foreground mb-6">Small offices, retail shops & clinics up to 50 staff</p>
 
-                  <ul className="space-y-2 text-xs text-foreground mb-6">
+                  <ul className="space-y-2.5 text-xs text-foreground mb-6">
                     <li className="flex items-center gap-2">
-                      <CheckCircle size={13} className="text-emerald-500 shrink-0" />
-                      <span>Includes 50 staff (₹12/user)</span>
+                      <CheckCircle size={14} className="text-emerald-500 shrink-0" />
+                      <span>Up to 50 enrolled staff (~₹14/emp)</span>
                     </li>
                     <li className="flex items-center gap-2">
-                      <CheckCircle size={13} className="text-emerald-500 shrink-0" />
-                      <span>+₹12/mo per extra staff</span>
+                      <CheckCircle size={14} className="text-emerald-500 shrink-0" />
+                      <span>3 camera / webcam streams</span>
                     </li>
                     <li className="flex items-center gap-2">
-                      <CheckCircle size={13} className="text-emerald-500 shrink-0" />
-                      <span>2 RTSP camera streams</span>
+                      <CheckCircle size={14} className="text-emerald-500 shrink-0" />
+                      <span>600 punches / day fair-use cap</span>
                     </li>
                     <li className="flex items-center gap-2">
-                      <CheckCircle size={13} className="text-emerald-500 shrink-0" />
-                      <span>500 punches / day cap</span>
+                      <CheckCircle size={14} className="text-emerald-500 shrink-0" />
+                      <span>90 days log history retention</span>
                     </li>
                     <li className="flex items-center gap-2">
-                      <CheckCircle size={13} className="text-emerald-500 shrink-0" />
-                      <span>180 days log history</span>
+                      <CheckCircle size={14} className="text-emerald-500 shrink-0" />
+                      <span>Standard CSV & Excel exports</span>
                     </li>
                   </ul>
                 </div>
 
-                <Button variant="secondary" size="sm" to="/register" className="w-full">
-                  Start 7-Day Trial
+                <Button variant="outline" size="md" to="/register" className="w-full">
+                  Start 7-Day Free Trial
                 </Button>
               </div>
 
-              {/* Plan 3: Business Pro (Highlighted) */}
-              <div className="p-5 sm:p-6 rounded-2xl bg-card border-2 border-emerald-500 shadow-xl flex flex-col justify-between relative">
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-2.5 py-0.5 rounded-full bg-emerald-600 text-white font-bold text-[9px] uppercase tracking-wider shadow-sm whitespace-nowrap">
+              {/* Plan 2: Pro Plan (Highlighted Most Popular) */}
+              <div className="p-6 sm:p-7 rounded-2xl bg-card border-2 border-emerald-500 shadow-xl flex flex-col justify-between relative">
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-0.5 rounded-full bg-emerald-600 text-white font-bold text-[10px] uppercase tracking-wider shadow-sm whitespace-nowrap">
                   Most Popular (Best Value)
                 </div>
 
                 <div>
-                  <div className="text-xs font-semibold text-emerald-400 uppercase mb-1">Business Pro</div>
+                  <div className="text-xs font-semibold text-emerald-400 uppercase mb-1">Pro Plan</div>
                   <div className="flex items-baseline gap-1 mb-1 font-mono">
-                    <span className="text-3xl font-extrabold text-foreground">₹1,999</span>
+                    <span className="text-3xl sm:text-4xl font-extrabold text-foreground">₹1,999</span>
                     <span className="text-xs text-muted-foreground">/ month</span>
                   </div>
-                  <p className="text-xs text-muted-foreground mb-5">Flat unlimited for up to 250 staff (~₹8/emp)</p>
+                  <p className="text-xs text-muted-foreground mb-6">Growing companies & commercial branches up to 250 staff</p>
 
-                  <ul className="space-y-2 text-xs text-foreground mb-6">
+                  <ul className="space-y-2.5 text-xs text-foreground mb-6">
                     <li className="flex items-center gap-2">
-                      <CheckCircle size={13} className="text-emerald-500 shrink-0" />
-                      <span>Up to 250 staff included</span>
+                      <CheckCircle size={14} className="text-emerald-500 shrink-0" />
+                      <span>Up to 250 enrolled staff (~₹8/emp)</span>
                     </li>
                     <li className="flex items-center gap-2">
-                      <CheckCircle size={13} className="text-emerald-500 shrink-0" />
-                      <span>5 RTSP camera streams</span>
+                      <CheckCircle size={14} className="text-emerald-500 shrink-0" />
+                      <span>8 RTSP camera streams</span>
                     </li>
                     <li className="flex items-center gap-2">
-                      <CheckCircle size={13} className="text-emerald-500 shrink-0" />
-                      <span>2,500 punches / day</span>
+                      <CheckCircle size={14} className="text-emerald-500 shrink-0" />
+                      <span>3,000 punches / day fair-use cap</span>
                     </li>
                     <li className="flex items-center gap-2">
-                      <CheckCircle size={13} className="text-emerald-500 shrink-0" />
-                      <span>Excel (.xlsx) & PDF exports</span>
+                      <CheckCircle size={14} className="text-emerald-500 shrink-0" />
+                      <span>Department shifts & 15m grace policy</span>
                     </li>
                     <li className="flex items-center gap-2">
-                      <CheckCircle size={13} className="text-emerald-500 shrink-0" />
+                      <CheckCircle size={14} className="text-emerald-500 shrink-0" />
+                      <span>Excel (.xlsx), CSV & Executive PDF exports</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <CheckCircle size={14} className="text-emerald-500 shrink-0" />
                       <span>Multi-angle 3-shot enrollment</span>
                     </li>
                   </ul>
                 </div>
 
-                <Button variant="primary" size="sm" to="/register" className="w-full">
-                  Start 7-Day Trial
+                <Button variant="primary" size="md" to="/register" className="w-full">
+                  Start 7-Day Free Trial
                 </Button>
               </div>
 
-              {/* Plan 4: Enterprise Enclave */}
-              <div className="p-5 sm:p-6 rounded-2xl bg-card border border-border flex flex-col justify-between shadow-sm">
+              {/* Plan 3: Enterprise Plan */}
+              <div className="p-6 sm:p-7 rounded-2xl bg-card border border-border flex flex-col justify-between shadow-sm">
                 <div>
-                  <div className="text-xs font-semibold text-muted-foreground uppercase mb-1">Enterprise Enclave</div>
+                  <div className="text-xs font-semibold text-muted-foreground uppercase mb-1">Enterprise Plan</div>
                   <div className="flex items-baseline gap-1 mb-1 font-mono">
-                    <span className="text-3xl font-extrabold text-foreground">₹5,999</span>
+                    <span className="text-3xl sm:text-4xl font-extrabold text-foreground">₹5,999</span>
                     <span className="text-xs text-muted-foreground">/ month</span>
                   </div>
-                  <p className="text-xs text-muted-foreground mb-5">For factories, towers & campuses up to 1,000</p>
+                  <p className="text-xs text-muted-foreground mb-6">Multi-gate factories, towers & corporate campuses up to 1,000</p>
 
-                  <ul className="space-y-2 text-xs text-foreground mb-6">
+                  <ul className="space-y-2.5 text-xs text-foreground mb-6">
                     <li className="flex items-center gap-2">
-                      <CheckCircle size={13} className="text-emerald-500 shrink-0" />
+                      <CheckCircle size={14} className="text-emerald-500 shrink-0" />
                       <span>Up to 1,000 staff (~₹6/emp)</span>
                     </li>
                     <li className="flex items-center gap-2">
-                      <CheckCircle size={13} className="text-emerald-500 shrink-0" />
-                      <span>20 RTSP camera streams</span>
+                      <CheckCircle size={14} className="text-emerald-500 shrink-0" />
+                      <span>25 RTSP camera streams</span>
                     </li>
                     <li className="flex items-center gap-2">
-                      <CheckCircle size={13} className="text-emerald-500 shrink-0" />
-                      <span>Turnstile relay wiring support</span>
+                      <CheckCircle size={14} className="text-emerald-500 shrink-0" />
+                      <span>15,000 punches / day</span>
                     </li>
                     <li className="flex items-center gap-2">
-                      <CheckCircle size={13} className="text-emerald-500 shrink-0" />
-                      <span>7-year audit retention (DPDP)</span>
+                      <CheckCircle size={14} className="text-emerald-500 shrink-0" />
+                      <span>Turnstile GPIO dry-contact relays</span>
                     </li>
                     <li className="flex items-center gap-2">
-                      <CheckCircle size={13} className="text-emerald-500 shrink-0" />
-                      <span>Dedicated engineer onboarding</span>
+                      <CheckCircle size={14} className="text-emerald-500 shrink-0" />
+                      <span>7-year audit retention (DPDP Act)</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <CheckCircle size={14} className="text-emerald-500 shrink-0" />
+                      <span>Air-gapped on-premise Docker deployment</span>
                     </li>
                   </ul>
                 </div>
 
-                <Button variant="outline" size="sm" to="/support" className="w-full">
+                <Button variant="outline" size="md" to="/support" className="w-full">
                   Contact Enterprise Sales
                 </Button>
               </div>

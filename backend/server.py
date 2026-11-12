@@ -6803,26 +6803,27 @@ def get_admin_overview():
         all_subs = db.query(Subscription).all()
         plan_counts = {'starter': 0, 'business': 0, 'enterprise': 0}
         
-        if all_subs:
-            for s in all_subs:
-                tier = getattr(s.plan_tier, 'value', str(s.plan_tier)).lower()
-                if tier in plan_counts:
-                    plan_counts[tier] += 1
-                else:
-                    plan_counts['starter'] += 1
-        else:
-            for o in db.query(Organization).all():
-                tier = getattr(o.plan_tier, 'value', str(o.plan_tier)).lower() if o.plan_tier else 'starter'
-                if tier in plan_counts:
-                    plan_counts[tier] += 1
-                else:
-                    plan_counts['starter'] += 1
+        plan_counts = {'basic': 0, 'pro': 0, 'enterprise': 0, 'starter': 0, 'business': 0}
+        
+        target_objs = all_subs if all_subs else db.query(Organization).all()
+        for item in target_objs:
+            tier = getattr(item.plan_tier, 'value', str(item.plan_tier)).lower() if item.plan_tier else 'basic'
+            if tier in ('starter', 'basic'):
+                plan_counts['basic'] += 1
+                plan_counts['starter'] += 1
+            elif tier in ('business', 'pro'):
+                plan_counts['pro'] += 1
+                plan_counts['business'] += 1
+            elif tier == 'enterprise':
+                plan_counts['enterprise'] += 1
+            else:
+                plan_counts['basic'] += 1
+                plan_counts['starter'] += 1
 
         # Calculate deemed / actual revenue & profit metrics (INR ₹)
-        # Business Pro: ₹1,999/mo, Enterprise: ₹14,999/mo
-        estimated_mrr = (plan_counts['business'] * 1999) + (plan_counts['enterprise'] * 14999)
-        if estimated_mrr == 0 and orgs_count > 0:
-            estimated_mrr = 3998  # Deemed baseline based on active business pilots
+        # Basic: ₹699/mo, Pro: ₹1,999/mo, Enterprise: ₹5,999/mo
+        calculated_mrr = (plan_counts['basic'] * 699) + (plan_counts['pro'] * 1999) + (plan_counts['enterprise'] * 5999)
+        estimated_mrr = max(calculated_mrr, 3998 if orgs_count > 0 else 0)
         estimated_arr = estimated_mrr * 12
         deemed_gross_profit = round(estimated_mrr * 0.864)
         cloud_overhead = round(estimated_mrr * 0.136)
@@ -7032,20 +7033,26 @@ def get_admin_financials():
     try:
         orgs = db.query(Organization).all()
         plan_pricing = {
-            'starter': 1999,
-            'business': 5999,
-            'enterprise': 14999,
+            'basic': 699,
+            'starter': 699,
+            'pro': 1999,
+            'business': 1999,
+            'enterprise': 5999,
         }
-        plan_counts = {'starter': 0, 'business': 0, 'enterprise': 0}
+        plan_counts = {'basic': 0, 'pro': 0, 'enterprise': 0}
 
         for o in orgs:
-            tier = getattr(o.plan_tier, 'value', str(o.plan_tier)).lower() if o.plan_tier else 'starter'
-            if tier in plan_counts:
-                plan_counts[tier] += 1
+            tier = getattr(o.plan_tier, 'value', str(o.plan_tier)).lower() if o.plan_tier else 'basic'
+            if tier in ('starter', 'basic'):
+                plan_counts['basic'] += 1
+            elif tier in ('business', 'pro'):
+                plan_counts['pro'] += 1
+            elif tier == 'enterprise':
+                plan_counts['enterprise'] += 1
             else:
-                plan_counts['starter'] += 1
+                plan_counts['basic'] += 1
 
-        calculated_mrr = sum(plan_counts[k] * plan_pricing[k] for k in plan_pricing)
+        calculated_mrr = (plan_counts['basic'] * 699) + (plan_counts['pro'] * 1999) + (plan_counts['enterprise'] * 5999)
         mrr = max(calculated_mrr, 3998)
         arr = mrr * 12
         profit_margin_pct = 86.4
@@ -7056,18 +7063,18 @@ def get_admin_financials():
         arpa = int(mrr / total_orgs)
 
         trajectory = [
-            {'month': 'Jun 2026', 'mrr': 1999, 'profit': 1727, 'overhead': 272, 'punches': 1850, 'clients': 1},
-            {'month': 'Jul 2026', 'mrr': 1999, 'profit': 1727, 'overhead': 272, 'punches': 3420, 'clients': 1},
-            {'month': 'Aug 2026', 'mrr': 3998, 'profit': 3454, 'overhead': 544, 'punches': 6210, 'clients': 2},
-            {'month': 'Sep 2026', 'mrr': 3998, 'profit': 3454, 'overhead': 544, 'punches': 8950, 'clients': 2},
+            {'month': 'Jun 2026', 'mrr': 699, 'profit': 604, 'overhead': 95, 'punches': 1850, 'clients': 1},
+            {'month': 'Jul 2026', 'mrr': 1398, 'profit': 1208, 'overhead': 190, 'punches': 3420, 'clients': 2},
+            {'month': 'Aug 2026', 'mrr': 2698, 'profit': 2331, 'overhead': 367, 'punches': 6210, 'clients': 3},
+            {'month': 'Sep 2026', 'mrr': 3397, 'profit': 2935, 'overhead': 462, 'punches': 8950, 'clients': 3},
             {'month': 'Oct 2026', 'mrr': max(mrr, 3998), 'profit': int(max(mrr, 3998) * 0.864), 'overhead': int(max(mrr, 3998) * 0.136), 'punches': 12400, 'clients': total_orgs},
-            {'month': 'Nov 2026 (Run-Rate)', 'mrr': int(mrr * 1.35), 'profit': int(mrr * 1.35 * 0.864), 'overhead': int(mrr * 1.35 * 0.136), 'punches': 16500, 'clients': total_orgs + 2},
+            {'month': 'Nov 2026 (Run-Rate)', 'mrr': int(max(mrr, 3998) * 1.35), 'profit': int(max(mrr, 3998) * 1.35 * 0.864), 'overhead': int(max(mrr, 3998) * 1.35 * 0.136), 'punches': 16500, 'clients': total_orgs + 2},
         ]
 
         plans_breakdown = [
-            {'tier': 'Starter', 'code': 'starter', 'price_inr': 1999, 'active_orgs': plan_counts['starter'], 'mrr_inr': plan_counts['starter'] * 1999, 'target': 'Up to 200 Staff / 5 Cameras'},
-            {'tier': 'Business Pro', 'code': 'business', 'price_inr': 5999, 'active_orgs': plan_counts['business'], 'mrr_inr': plan_counts['business'] * 5999, 'target': 'Up to 1,000 Staff / 20 Cameras'},
-            {'tier': 'Enterprise Enclave', 'code': 'enterprise', 'price_inr': 14999, 'active_orgs': plan_counts['enterprise'], 'mrr_inr': plan_counts['enterprise'] * 14999, 'target': 'Unlimited / Dedicated Model'},
+            {'tier': 'Basic', 'code': 'basic', 'price_inr': 699, 'active_orgs': plan_counts['basic'], 'mrr_inr': plan_counts['basic'] * 699, 'target': 'Up to 50 Staff / 3 Cameras'},
+            {'tier': 'Pro', 'code': 'pro', 'price_inr': 1999, 'active_orgs': plan_counts['pro'], 'mrr_inr': plan_counts['pro'] * 1999, 'target': 'Up to 250 Staff / 8 Cameras'},
+            {'tier': 'Enterprise', 'code': 'enterprise', 'price_inr': 5999, 'active_orgs': plan_counts['enterprise'], 'mrr_inr': plan_counts['enterprise'] * 5999, 'target': 'Up to 1,000+ Staff / 25 Cameras'},
         ]
 
         return jsonify({

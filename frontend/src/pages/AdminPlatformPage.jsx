@@ -475,9 +475,11 @@ ${selectedTicket.admin_notes || 'None'}`;
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[#202024] pb-6">
         <div>
           <div className="flex items-center gap-2.5 mb-1.5 flex-wrap">
-            <div className="w-8 h-8 rounded-lg bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
-              <ShieldCheck className="w-5 h-5" />
-            </div>
+            <img
+              src="/logo.svg"
+              alt="AuraPass"
+              className="w-7 h-7 object-contain drop-shadow-[0_0_8px_rgba(16,185,129,0.35)] shrink-0 select-none pointer-events-none"
+            />
             <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">
               AuraPass™ Platform Control Center
             </h1>
@@ -1122,9 +1124,9 @@ ${selectedTicket.admin_notes || 'None'}`;
           {/* Pricing Tiers & Unit Economics Breakdown */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {(financials?.plans || [
-              { tier: 'Starter', price_inr: 1999, active_orgs: 3, mrr_inr: 5997, target: 'Up to 200 Staff / 5 Cameras' },
-              { tier: 'Business Pro', price_inr: 5999, active_orgs: 1, mrr_inr: 5999, target: 'Up to 1,000 Staff / 20 Cameras' },
-              { tier: 'Enterprise Enclave', price_inr: 14999, active_orgs: 0, mrr_inr: 0, target: 'Unlimited / Dedicated Model' }
+              { tier: 'Basic Plan', price_inr: 699, active_orgs: 3, mrr_inr: 2097, target: 'Up to 50 Staff / 3 Cameras' },
+              { tier: 'Pro Plan', price_inr: 1999, active_orgs: 1, mrr_inr: 1999, target: 'Up to 250 Staff / 8 Cameras' },
+              { tier: 'Enterprise Enclave', price_inr: 5999, active_orgs: 0, mrr_inr: 0, target: 'Up to 1,000+ Staff / 25 Cameras' }
             ]).map((p, idx) => (
               <div key={idx} className="p-5 rounded-xl bg-[#0f0f13] border border-[#202026] space-y-3">
                 <div className="flex items-center justify-between">
@@ -1722,9 +1724,9 @@ ${selectedTicket.admin_notes || 'None'}`;
                   </label>
                   <div className="space-y-2">
                     {[
-                      { id: 'starter', name: 'Starter Trial', price: '₹1,999 / month' },
-                      { id: 'business', name: 'Business Pro', price: '₹5,999 / month' },
-                      { id: 'enterprise', name: 'Enterprise Custom', price: '₹14,999+ / month' }
+                      { id: 'starter', name: 'Basic Plan', price: '₹699 / month' },
+                      { id: 'business', name: 'Pro Plan', price: '₹1,999 / month' },
+                      { id: 'enterprise', name: 'Enterprise Enclave', price: '₹5,999 / month' }
                     ].map(tier => (
                       <div
                         key={tier.id}

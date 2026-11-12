@@ -31,17 +31,12 @@ def calculate_greythr_monthly(staff):
     return 4495 + (max(0, staff - 50) * 85)
 
 def get_aurapass_tier_price(staff):
-    if staff <= 25:
-        return 0, 'Starter Tier (Free)', 1
-    elif staff <= 100:
-        price = 599 if staff <= 50 else 599 + ((staff - 50) * 12)
-        return price, 'SMB Dynamic (₹12/user)', 2
+    if staff <= 50:
+        return 699, 'Basic Plan', 3
     elif staff <= 250:
-        return 1999, 'Business Pro (Flat)', 5
-    elif staff <= 1000:
-        return 5999, 'Enterprise Enclave', 20
+        return 1999, 'Pro Plan', 8
     else:
-        return 14999, 'Enterprise Campus', 999999
+        return 5999, 'Enterprise Plan', 25
 
 
 # ─── PHASE 3 VERIFICATION TESTS: 590-EMPLOYEE TEST CASE ───────────────────────
@@ -181,32 +176,26 @@ def test_fingerprint_capex_and_tco():
 # ─── PHASE 4 & 9: AURAPASS TIER & SAVINGS RECONCILIATION ────────────────────
 
 def test_aurapass_tier_pricing():
-    """Verify AuraPass pricing tiers scale with employee count."""
-    p20, t20, _ = get_aurapass_tier_price(20)
-    assert p20 == 0
-    assert 'Starter' in t20
+    """Verify AuraPass 3 pricing tiers scale with employee count."""
+    p20, t20, c20 = get_aurapass_tier_price(20)
+    assert p20 == 699
+    assert t20 == 'Basic Plan'
+    assert c20 == 3
 
-    # SMB Dynamic tier for 50 staff (₹599 base, ₹11.98/emp)
-    p50, t50, _ = get_aurapass_tier_price(50)
-    assert p50 == 599
-    assert 'SMB Dynamic' in t50
+    p50, t50, c50 = get_aurapass_tier_price(50)
+    assert p50 == 699
+    assert t50 == 'Basic Plan'
+    assert c50 == 3
 
-    # SMB Dynamic tier for 80 staff (₹599 + 30*12 = ₹959, ~₹12/emp)
-    p80, t80, _ = get_aurapass_tier_price(80)
-    assert p80 == 959
-    assert 'SMB Dynamic' in t80
-
-    p150, t150, _ = get_aurapass_tier_price(150)
+    p150, t150, c150 = get_aurapass_tier_price(150)
     assert p150 == 1999
-    assert 'Business Pro' in t150
+    assert t150 == 'Pro Plan'
+    assert c150 == 8
 
-    p590, t590, _ = get_aurapass_tier_price(590)
+    p590, t590, c590 = get_aurapass_tier_price(590)
     assert p590 == 5999
-    assert 'Enterprise Enclave' in t590
-
-    p1500, t1500, _ = get_aurapass_tier_price(1500)
-    assert p1500 == 14999
-    assert 'Enterprise Campus' in t1500
+    assert t590 == 'Enterprise Plan'
+    assert c590 == 25
 
 
 def test_savings_reconciliation_monthly_and_annual():

@@ -628,8 +628,8 @@ export default function RoiCalculator() {
                   />
                 </div>
                 <div className="flex justify-between items-center text-[10px] font-mono text-zinc-500 pt-0.5">
-                  <span>Included cameras: {staffCount <= 25 ? '1' : staffCount <= 100 ? '2' : staffCount <= 250 ? '5' : '20'}</span>
-                  <span>{staffCount <= 25 ? 'Max 100 punches/day' : staffCount <= 100 ? 'Max 500 punches/day' : 'Unlimited punches'}</span>
+                  <span>Included cameras: {staffCount <= 50 ? '3' : staffCount <= 250 ? '8' : '25'}</span>
+                  <span>{staffCount <= 50 ? 'Max 600 punches/day' : staffCount <= 250 ? 'Max 3,000 punches/day' : 'Max 15,000 punches/day'}</span>
                 </div>
               </div>
             </div>
@@ -772,7 +772,7 @@ export default function RoiCalculator() {
                 iconRight={ArrowRight}
                 className="w-full justify-center shadow-lg"
               >
-                Start Free Trial (25 Staff)
+                Start 7-Day Free Trial
               </Button>
 
               <button
