@@ -1,4 +1,4 @@
-# ==============================================================================
+﻿# ==============================================================================
 # AuraPass Enterprise - Automated AWS EC2 Live Deployment Script
 # Target: https://13-60-225-165.sslip.io
 # ==============================================================================
@@ -32,6 +32,8 @@ New-Item -ItemType Directory -Path "$STAGING/reports" -Force | Out-Null
 Copy-Item backend/server.py $STAGING/
 Copy-Item backend/middleware.py $STAGING/
 Copy-Item backend/inference.py $STAGING/
+Copy-Item backend/gpu_trainer.py $STAGING/
+Copy-Item backend/billing.py $STAGING/
 Copy-Item backend/ensemble.py $STAGING/
 Copy-Item backend/face_detection.py $STAGING/
 Copy-Item backend/face_alignment.py $STAGING/
