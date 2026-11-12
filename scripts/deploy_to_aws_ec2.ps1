@@ -1,4 +1,4 @@
-# ==============================================================================
+﻿# ==============================================================================
 # AuraPass Enterprise - Automated AWS EC2 Live Deployment Script
 # Target: https://13-60-225-165.sslip.io
 # ==============================================================================
@@ -61,7 +61,7 @@ $remoteScript = @'
 set -e
 echo "  -> Updating frontend in rms_frontend..."
 docker cp /tmp/frontend_dist.tar.gz rms_frontend:/tmp/
-docker exec rms_frontend sh -c "rm -rf /usr/share/nginx/html && mkdir -p /usr/share/nginx/html && tar -xzf /tmp/frontend_dist.tar.gz -C /usr/share/nginx/html/"
+docker exec rms_frontend tar -xzf /tmp/frontend_dist.tar.gz -C /usr/share/nginx/html/
 docker cp /tmp/default.conf rms_frontend:/etc/nginx/conf.d/default.conf
 docker exec rms_frontend nginx -t
 docker exec rms_frontend nginx -s reload
