@@ -20,7 +20,8 @@ export default function TestPage() {
   const [error, setError] = useState('');
   const [customThreshold, setCustomThreshold] = useState(() => {
     const saved = localStorage.getItem('rms_recognition_threshold');
-    return saved ? parseFloat(saved) : 0.70;
+    const parsed = saved ? parseFloat(saved) : 0.70;
+    return parsed >= 0.50 ? parsed : 0.70;
   });
   const [webcamError, setWebcamError] = useState('');
   const [webcamReady, setWebcamReady] = useState(false);
@@ -55,7 +56,8 @@ export default function TestPage() {
           localStorage.setItem('enableInsightFace', res.data.ENABLE_INSIGHTFACE ? 'true' : 'false');
         }
         if (res.data.CONFIRM_THRESHOLD !== undefined) {
-          setCustomThreshold(res.data.CONFIRM_THRESHOLD);
+          const ct = parseFloat(res.data.CONFIRM_THRESHOLD);
+          setCustomThreshold(ct >= 0.50 ? ct : 0.70);
         }
       }
     }).catch(() => {});

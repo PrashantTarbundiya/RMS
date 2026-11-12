@@ -315,25 +315,58 @@ def _lazy_warmup():
 
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'webp', 'bmp'}
 ALLOWED_IMAGE_MIMETYPES = {'image/jpeg', 'image/png', 'image/webp', 'image/bmp'}
-MAX_FILES_PER_UPLOAD = 20
+MAX_FILES_PER_UPLOAD = 15
+MAX_SINGLE_FILE_SIZE = 10 * 1024 * 1024   # 10 MB per file limit
+MAX_BATCH_UPLOAD_SIZE = 35 * 1024 * 1024  # 35 MB total batch limit
 MAX_NAME_LENGTH = 50
 MAX_IMAGE_DIMENSION = 1024  # Resize uploads larger than this
+
+def _verify_image_magic_bytes(header_bytes: bytes) -> bool:
+    """Verify standard binary magic headers for supported image formats."""
+    if not header_bytes or len(header_bytes) < 4:
+        return False
+    # JPEG: starts with FF D8 FF
+    if header_bytes.startswith(b'\xff\xd8\xff'):
+        return True
+    # PNG: starts with 89 50 4E 47 0D 0A 1A 0A
+    if header_bytes.startswith(b'\x89PNG\r\n\x1a\n'):
+        return True
+    # WEBP: RIFF....WEBP
+    if header_bytes[:4] == b'RIFF' and len(header_bytes) >= 12 and header_bytes[8:12] == b'WEBP':
+        return True
+    # BMP: starts with BM
+    if header_bytes.startswith(b'BM'):
+        return True
+    return False
 
 def _allowed_file(file_obj):
     filename = getattr(file_obj, 'filename', '')
     if isinstance(file_obj, str):
         filename = file_obj
 
-    # If an extension is present, it MUST strictly match ALLOWED_EXTENSIONS
+    # 1. Extension check
     if '.' in filename:
         ext = filename.rsplit('.', 1)[1].lower()
-        return ext in ALLOWED_EXTENSIONS
+        if ext not in ALLOWED_EXTENSIONS:
+            return False
 
-    # Mobile/Blob uploads without extension: require strict image MIME type
+    # 2. MIME type check if present
     if hasattr(file_obj, 'mimetype') and file_obj.mimetype:
-        return file_obj.mimetype.lower() in ALLOWED_IMAGE_MIMETYPES
-        
-    return False
+        if file_obj.mimetype.lower() not in ALLOWED_IMAGE_MIMETYPES:
+            return False
+
+    # 3. Magic byte inspection from file stream
+    if hasattr(file_obj, 'stream') and hasattr(file_obj.stream, 'read') and hasattr(file_obj.stream, 'seek'):
+        try:
+            pos = file_obj.stream.tell()
+            header = file_obj.stream.read(16)
+            file_obj.stream.seek(pos)
+            if not _verify_image_magic_bytes(header):
+                return False
+        except Exception:
+            return False
+
+    return True
 
 _VALID_NAME_PATTERN = re.compile(r'^[A-Za-z0-9_-]+$')
 
@@ -3860,13 +3893,31 @@ def load_facenet512(org_id=None):
         return None, None
 
 def load_insightface(org_id=None):
-    """Load InsightFace encodings."""
+    """Load InsightFace encodings with auto-sync from cleaned dataset if missing."""
     try:
         from org_storage import load_encodings
         encodings, names = load_encodings(org_id, model_name="InsightFace")
-        if encodings:
+        if encodings and len(encodings) > 0:
             logger.info(f"InsightFace loaded for org {org_id or 'global'}: {len(encodings)} encodings")
             return encodings, names
+            
+        # If encodings is empty/missing, attempt auto-generation from enrolled dataset
+        try:
+            from org_storage import get_dataset_cleaned_dir, get_encodings_path
+            org_dataset_dir = get_dataset_cleaned_dir(org_id)
+            if os.path.exists(org_dataset_dir):
+                persons = [d for d in os.listdir(org_dataset_dir) if os.path.isdir(os.path.join(org_dataset_dir, d)) and not d.startswith('.')]
+                if persons:
+                    logger.info(f"Auto-generating missing InsightFace encodings for org {org_id} ({len(persons)} persons)...")
+                    from gpu_trainer import retrain_all_gpu
+                    enc_path = get_encodings_path(org_id, 'InsightFace')
+                    encs, p_names, total = retrain_all_gpu(org_dataset_dir, enc_path, num_augments=0)
+                    if encs and len(encs) > 0:
+                        logger.info(f"Auto-generated {len(encs)} InsightFace encodings for org {org_id}")
+                        return encs, p_names
+        except Exception as auto_err:
+            logger.warning(f"InsightFace auto-sync notice for org {org_id}: {auto_err}")
+
         logger.info(f"No InsightFace encodings found for org {org_id}")
         return None, None
     except Exception as e:
@@ -4081,6 +4132,7 @@ def get_persons(org_id=None):
     return jsonify(persons)
 
 @app.route('/api/upload', methods=['POST'])
+@limiter.limit("20 per minute; 100 per hour")
 @require_auth
 @require_role('org_admin')
 @inject_org_id
@@ -4115,13 +4167,31 @@ def upload_person(org_id):
     extra_files = request.files.getlist('extra_files')
     auto_imgs = request.files.getlist('images') or request.files.getlist('photos') or request.files.getlist('files')
     
-    all_files = front_imgs + left_imgs + right_imgs + extra_files + auto_imgs
+    all_files = [f for f in (front_imgs + left_imgs + right_imgs + extra_files + auto_imgs) if f and getattr(f, 'filename', '')]
     if len(all_files) > MAX_FILES_PER_UPLOAD:
         return jsonify({'error': f'Maximum {MAX_FILES_PER_UPLOAD} files allowed per upload'}), 400
+
+    # Total batch payload and per-file size validation
+    total_batch_size = 0
+    for file_item in all_files:
+        try:
+            file_item.stream.seek(0, os.SEEK_END)
+            f_size = file_item.stream.tell()
+            file_item.stream.seek(0)
+            if f_size > MAX_SINGLE_FILE_SIZE:
+                return jsonify({'error': f'File {file_item.filename} exceeds 10MB limit ({f_size / (1024*1024):.1f}MB)'}), 413
+            total_batch_size += f_size
+        except Exception as seek_err:
+            logger.warning(f"Error checking file size for {file_item.filename}: {seek_err}")
+            file_item.stream.seek(0)
+
+    if total_batch_size > MAX_BATCH_UPLOAD_SIZE:
+        return jsonify({'error': f'Total batch upload exceeds 35MB limit ({total_batch_size / (1024*1024):.1f}MB)'}), 413
 
     # Convert to PIL/Numpy for add_person_utils
     from PIL import Image
     import numpy as np
+    Image.MAX_IMAGE_PIXELS = 25_000_000  # Prevent DecompressionBombError DOS
     
     image_data_list = []
     rejected_count = 0
@@ -4132,13 +4202,18 @@ def upload_person(org_id):
         if file_storage:
             if not _allowed_file(file_storage):
                 rejected_count += 1
-                logger.warning(f"Rejected non-image file: {file_storage.filename}")
+                logger.warning(f"Rejected non-image or invalid format file: {file_storage.filename}")
                 return
             try:
                 # Read stream bytes to check MD5 for deduplication
                 img_bytes = file_storage.read()
                 file_storage.stream.seek(0)
                 
+                # Integrity check with PIL
+                with Image.open(file_storage.stream) as test_img:
+                    test_img.verify()
+                file_storage.stream.seek(0)
+
                 img_hash = compute_image_hash(img_bytes)
                 if img_hash in seen_hashes:
                     logger.info(f"Skipping duplicate upload in batch: {file_storage.filename}")
@@ -4152,7 +4227,7 @@ def upload_person(org_id):
                 image_data_list.append((np.array(img), angle_label))
             except Exception as e:
                 rejected_count += 1
-                logger.error(f"Failed to read image {angle_label}: {e}")
+                logger.error(f"Failed to read/verify image {angle_label}: {e}")
 
     for f in front_imgs:
         process_upload(f, 'frontal')
@@ -4233,12 +4308,22 @@ def upload_person(org_id):
 
 
 @app.route('/api/upload/detect-angle', methods=['POST'])
+@limiter.limit("60 per minute")
 @require_auth
 def detect_photo_angle():
     """Real-time head-pose angle detector for live tagging in frontend."""
     file = request.files.get('image') or request.files.get('file')
     if not file or not _allowed_file(file):
         return jsonify({'error': 'Valid image file required'}), 400
+
+    try:
+        file.stream.seek(0, os.SEEK_END)
+        f_size = file.stream.tell()
+        file.stream.seek(0)
+        if f_size > MAX_SINGLE_FILE_SIZE:
+            return jsonify({'error': 'Image exceeds 10MB limit'}), 413
+    except Exception:
+        file.stream.seek(0)
 
     try:
         from PIL import Image
@@ -6451,6 +6536,7 @@ def move_person_photo(name):
         })
 
 @app.route('/api/persons/<name>/retrain', methods=['POST'])
+@limiter.limit("5 per minute; 20 per hour")
 @require_auth
 @require_role('org_admin')
 @inject_org_id
@@ -6504,6 +6590,7 @@ def trigger_person_retrain(name, org_id):
     return jsonify({'message': f"Retraining started for '{name}'."})
 
 @app.route('/api/train/all', methods=['POST'])
+@limiter.limit("5 per minute; 20 per hour")
 @require_auth
 @require_role('org_admin')
 @inject_org_id

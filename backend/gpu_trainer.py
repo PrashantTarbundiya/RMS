@@ -277,6 +277,8 @@ def gpu_embed_batch(face_crops: list, device: str = 'cuda') -> list:
     """
     global _ort_session
     if _ort_session is None:
+        _ort_session = load_insightface_model()
+    if _ort_session is None:
         return [None] * len(face_crops)
 
     # Pre-process all crops
@@ -386,7 +388,7 @@ def enroll_with_gpu(
     """
     from face_detection import SideFaceDetector
     # No `from model import ...` here — using internal _clahe/_augment to avoid TF loading
-
+    load_insightface_model()
     t_start = time.time()
     provider_label = _active_device or 'ort'
     log.info(f"[{provider_label.upper()}] Enrolling '{person_name}' — {len(image_paths)} images, {num_augments} augments")
@@ -414,15 +416,17 @@ def enroll_with_gpu(
                 continue
 
             faces = detector.detect_faces(img, profile_only=False)
+            from face_alignment import align_face_5point, align_face_from_bbox
             if faces:
                 face = max(faces, key=lambda x: x['bbox']['w'] * x['bbox']['h'])
-                bx = face['bbox']
-                H, W = img.shape[:2]
-                mx, my = int(bx['w'] * 0.22), int(bx['h'] * 0.22)
-                crop = img[max(0, bx['y']-my):min(H, bx['y']+bx['h']+my),
-                           max(0, bx['x']-mx):min(W, bx['x']+bx['w']+mx)]
+                five_pts = face.get('five_points')
+                if five_pts and len(five_pts) == 5:
+                    pts_arr = np.array([[p['x'], p['y']] for p in five_pts], dtype=np.float32)
+                    crop = align_face_5point(img, pts_arr, output_size=(112, 112))
+                else:
+                    crop = align_face_from_bbox(img, face['bbox'], output_size=(112, 112))
             else:
-                crop = img
+                crop = cv2.resize(img, (112, 112))
 
             if crop.size == 0:
                 continue
@@ -480,7 +484,7 @@ def retrain_all_gpu(
     """
     from face_detection import SideFaceDetector
     # Uses internal _clahe/_augment (no TF/DeepFace dependency)
-
+    load_insightface_model()
     provider_label = _active_device or 'ort'
     log.info(f"[{provider_label.upper()}] Full retrain from: {dataset_path}")
 
@@ -511,15 +515,17 @@ def retrain_all_gpu(
                     if img is None:
                         continue
                     faces = detector.detect_faces(img, profile_only=False)
+                    from face_alignment import align_face_5point, align_face_from_bbox
                     if faces:
                         face = max(faces, key=lambda x: x['bbox']['w'] * x['bbox']['h'])
-                        bx = face['bbox']
-                        H, W = img.shape[:2]
-                        mx, my = int(bx['w'] * 0.22), int(bx['h'] * 0.22)
-                        crop = img[max(0, bx['y']-my):min(H, bx['y']+bx['h']+my),
-                                   max(0, bx['x']-mx):min(W, bx['x']+bx['w']+mx)]
+                        five_pts = face.get('five_points')
+                        if five_pts and len(five_pts) == 5:
+                            pts_arr = np.array([[p['x'], p['y']] for p in five_pts], dtype=np.float32)
+                            crop = align_face_5point(img, pts_arr, output_size=(112, 112))
+                        else:
+                            crop = align_face_from_bbox(img, face['bbox'], output_size=(112, 112))
                     else:
-                        crop = img
+                        crop = cv2.resize(img, (112, 112))
                     if crop.size == 0:
                         continue
                     crop = _clahe(crop)

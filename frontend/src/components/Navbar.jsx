@@ -176,9 +176,11 @@ export function Navbar() {
               {/* Drawer Header */}
               <div className="flex items-center justify-between pb-4 border-b border-[#262626] mb-4">
                 <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-md border border-border flex items-center justify-center bg-[#010102]">
-                    <span className="font-mono text-primary font-bold text-sm">A</span>
-                  </div>
+                  <img
+                    src="/logo.svg"
+                    alt="AuraPass"
+                    className="w-7 h-7 object-contain shrink-0 drop-shadow-[0_0_8px_rgba(16,185,129,0.35)]"
+                  />
                   <div className="brand-text">
                     <span className="text-ink font-semibold tracking-tight text-xs font-display">AuraPass™</span>
                     {user && <span className="block text-[10px] text-ink-subtle font-mono truncate max-w-[120px]">{user.org_name}</span>}
@@ -249,10 +251,12 @@ export function Navbar() {
         <div className="sidebar-header">
           <div className="flex items-center justify-between w-full gap-2">
             {!isCollapsed ? (
-              <Link to="/" className="brand flex-1 min-w-0">
-                <div className="w-8 h-8 rounded-md border border-border flex items-center justify-center mr-2 bg-card shrink-0">
-                  <span className="font-mono text-primary font-bold">A</span>
-                </div>
+              <Link to="/" className="brand flex-1 min-w-0 flex items-center gap-2">
+                <img
+                  src="/logo.svg"
+                  alt="AuraPass"
+                  className="w-7 h-7 object-contain shrink-0 drop-shadow-[0_0_8px_rgba(16,185,129,0.35)]"
+                />
                 <div className="brand-text truncate">
                   <h1 className="truncate">AuraPass™</h1>
                   {user && (
@@ -263,10 +267,12 @@ export function Navbar() {
                 </div>
               </Link>
             ) : (
-              <Link to="/" className="brand justify-center mx-auto">
-                <div className="w-8 h-8 rounded-md border border-border flex items-center justify-center bg-card shrink-0">
-                  <span className="font-mono text-primary font-bold">A</span>
-                </div>
+              <Link to="/" className="brand justify-center mx-auto" title="AuraPass">
+                <img
+                  src="/logo.svg"
+                  alt="AuraPass"
+                  className="w-7 h-7 object-contain shrink-0 drop-shadow-[0_0_8px_rgba(16,185,129,0.35)]"
+                />
               </Link>
             )}
             <button 

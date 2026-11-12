@@ -118,3 +118,4 @@ In the user's screenshot, the desktop window title showed `RMS Face AI — Biome
   />
   ```
 - No nested bounding boxes or frames. The symbol floats cleanly and is instantly recognizable as an entrance gateway shield with a central biometric verification aperture.
+

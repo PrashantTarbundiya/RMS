@@ -129,11 +129,11 @@ class TestUniversalSaaSSecurity(unittest.TestCase):
 
     def test_allowed_file_validation(self):
         """Verify file upload extension check cannot be bypassed with spoofed MIME."""
-        # Legitimate images
-        legit_jpg = FileStorage(stream=BytesIO(b"fake data"), filename="face.jpg", content_type="image/jpeg")
+        # Legitimate images with valid binary magic bytes
+        legit_jpg = FileStorage(stream=BytesIO(b"\xff\xd8\xff\xe0" + b"fake data"), filename="face.jpg", content_type="image/jpeg")
         self.assertTrue(_allowed_file(legit_jpg))
 
-        legit_png = FileStorage(stream=BytesIO(b"fake data"), filename="photo.png", content_type="image/png")
+        legit_png = FileStorage(stream=BytesIO(b"\x89PNG\r\n\x1a\n" + b"fake data"), filename="photo.png", content_type="image/png")
         self.assertTrue(_allowed_file(legit_png))
 
         # Malicious file with spoofed MIME type — MUST be rejected

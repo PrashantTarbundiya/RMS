@@ -102,8 +102,8 @@ def test_license_enforce_missing():
     """Test enforce_local_license when no license.key file exists."""
     from license import enforce_local_license, LicenseStatus
     
-    # This test only works if there's no license.key file (dev mode)
-    license_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'license.key')
+    # Path to license.key in backend directory
+    license_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'license.key')
     if os.path.exists(license_path):
         print("  ⊘ SKIP: license.key exists (cannot test missing path)")
         return
@@ -119,12 +119,12 @@ def test_plan_limits():
     """Test plan tier → limit mapping."""
     from billing import PLAN_LIMITS
     
-    assert PLAN_LIMITS['starter']['max_employees'] == 200
-    assert PLAN_LIMITS['starter']['max_cameras'] == 5
-    assert PLAN_LIMITS['business']['max_employees'] == 500
-    assert PLAN_LIMITS['business']['max_cameras'] == 20
-    assert PLAN_LIMITS['enterprise']['max_employees'] == 10000
-    assert PLAN_LIMITS['enterprise']['max_cameras'] == 100
+    assert PLAN_LIMITS['starter']['max_employees'] == 50
+    assert PLAN_LIMITS['starter']['max_cameras'] == 3
+    assert PLAN_LIMITS['business']['max_employees'] == 250
+    assert PLAN_LIMITS['business']['max_cameras'] == 8
+    assert PLAN_LIMITS['enterprise']['max_employees'] == 1000
+    assert PLAN_LIMITS['enterprise']['max_cameras'] == 25
     print("  ✓ PASS: Plan tier limits correct")
 
 

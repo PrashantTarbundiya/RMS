@@ -272,9 +272,9 @@ def find_match_knn(embedding, known_encodings, known_names, k=KNN_K, max_dist=No
     if custom_t is not None and custom_t >= 0.50:
         # Interpreted as confidence threshold (0.50 to 0.95):
         if model_name == 'InsightFace':
-            base_thresh = 0.28 - (custom_t - 0.70) * 0.15
-            base_thresh = max(0.20, min(0.33, base_thresh))
-            cutoff = min(0.34, base_thresh + 0.05)
+            base_thresh = 0.32 - (custom_t - 0.70) * 0.15
+            base_thresh = max(0.24, min(0.36, base_thresh))
+            cutoff = min(0.38, base_thresh + 0.05)
         elif model_name == 'GhostFaceNet':
             base_thresh = 0.32 - (custom_t - 0.70) * 0.15
             base_thresh = max(0.24, min(0.36, base_thresh))
@@ -286,8 +286,8 @@ def find_match_knn(embedding, known_encodings, known_names, k=KNN_K, max_dist=No
     else:
         # Interpreted directly as distance threshold (< 0.50) or default
         if model_name == 'InsightFace':
-            base_thresh = 0.28 if custom_t is None else min(custom_t, 0.33)
-            cutoff = min(0.34, base_thresh + 0.05)
+            base_thresh = 0.32 if custom_t is None else min(custom_t, 0.36)
+            cutoff = min(0.38, base_thresh + 0.05)
         elif model_name == 'GhostFaceNet':
             base_thresh = 0.32 if custom_t is None else min(custom_t, 0.36)
             cutoff = min(0.37, base_thresh + 0.05)
@@ -328,8 +328,8 @@ def find_match_knn(embedding, known_encodings, known_names, k=KNN_K, max_dist=No
     best_name = distances[0][1]
 
     # --- Gate 1: Absolute distance cutoff ---
-    # Strict threshold: FaceNet512 <= 0.32, InsightFace <= 0.30
-    strict_max = 0.30 if model_name == 'InsightFace' else 0.32
+    # Calibrated genuine match thresholds: FaceNet512 <= 0.34, InsightFace ArcFace <= 0.36
+    strict_max = 0.36 if model_name == 'InsightFace' else 0.34
     effective_cutoff = min(cutoff, strict_max + (0.03 * profile_factor))
 
     if best_dist > effective_cutoff:
