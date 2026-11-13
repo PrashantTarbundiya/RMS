@@ -1,31 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none">
-  <defs>
-    <linearGradient id="favAuraGrad" x1="2" y1="2" x2="30" y2="30" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stopColor="#00E5FF" />
-      <stop offset="50%" stopColor="#10B981" />
-      <stop offset="100%" stopColor="#059669" />
-    </linearGradient>
-  </defs>
-
-  <!-- Outer Sovereign Gateway (Clean & Bold for small favicon display) -->
-  <path
-    d="M16 2L3 8V16.5C3 24.5 8.7 31.8 16 33.5C23.3 31.8 29 24.5 29 16.5V8L16 2Z"
-    stroke="url(#favAuraGrad)"
-    stroke-width="2.6"
-    stroke-linecap="round"
-    stroke-linejoin="round"
-  />
-
-  <!-- Stylized "A" Chevron -->
-  <path
-    d="M9 18.5L16 11.5L23 18.5"
-    stroke="#00E5FF"
-    stroke-width="2.2"
-    stroke-linecap="round"
-    stroke-linejoin="round"
-  />
-
-  <!-- Central Target Core -->
-  <circle cx="16" cy="18" r="3" fill="#FFFFFF" />
-  <circle cx="16" cy="18" r="1.4" fill="#10B981" />
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+  <!-- AuraPass™ Biometric Shield Emblem -->
+  <image href="/brand/aurapass-emblem.png" width="512" height="512" />
 </svg>

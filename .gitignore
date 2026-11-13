@@ -7,6 +7,10 @@ __pycache__/
 # Build artifacts & scratch
 *.tar.gz
 *.png
+!frontend/public/*.png
+!frontend/public/brand/*.png
+!frontend/src/assets/brand/*.png
+!docs/brand/*.png
 scratch/
 frontend/dist/
 .eggs/
