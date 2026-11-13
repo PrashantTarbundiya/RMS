@@ -65,7 +65,7 @@ export default function PublicHeader() {
           
           {/* ── Brand Logo ── */}
           <Link to="/" className="flex items-center group cursor-pointer" aria-label="AuraPass Home">
-            <AuraPassBrand size={28} showBadge={true} badgeText="ENTERPRISE" />
+            <AuraPassBrand size={34} showBadge={true} badgeText="ENTERPRISE" />
           </Link>
 
           {/* ── Desktop Navigation Links ── */}

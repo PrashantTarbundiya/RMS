@@ -14,7 +14,7 @@ export default function PublicFooter() {
           {/* Col 1 & 2: Brand & Trust Statement */}
           <div className="lg:col-span-2 space-y-4">
             <Link to="/" className="inline-flex items-center">
-              <AuraPassBrand size={26} showBadge={true} badgeText="ENTERPRISE" />
+              <AuraPassBrand size={32} showBadge={true} badgeText="ENTERPRISE" />
             </Link>
             
             <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed max-w-sm prose-readable">

@@ -384,18 +384,28 @@ for match in pipeline.detect():
             <div ref={hubRef} className="relative flex flex-col items-center justify-center shrink-0 px-4">
               <div className="relative flex items-center justify-center">
                 {/* Outer Concentric Animated Pulse Waves */}
-                <div className="absolute w-36 h-36 rounded-full border border-emerald-500/20 animate-ping" style={{ animationDuration: '3s' }} />
-                <div className="absolute w-28 h-28 rounded-full border border-emerald-500/30 animate-pulse" style={{ animationDuration: '2s' }} />
+                <div className="absolute w-40 h-40 rounded-full border border-emerald-500/20 animate-ping" style={{ animationDuration: '3s' }} />
+                <div className="absolute w-32 h-32 rounded-full border border-emerald-500/30 animate-pulse" style={{ animationDuration: '2s' }} />
 
                 {/* Center Solid Emblem Hub */}
                 <div
                   ref={circleHubRef}
-                  className="w-20 h-20 rounded-full bg-[#111111] border-2 border-emerald-500/60 shadow-[0_0_35px_rgba(16,185,129,0.35)] flex flex-col items-center justify-center relative z-10 group hover:scale-105 transition-transform duration-200 cursor-pointer"
+                  className="w-24 h-24 rounded-full bg-[#0d1410] border-2 border-emerald-500/70 shadow-[0_0_40px_rgba(16,185,129,0.35)] flex flex-col items-center justify-center relative z-10 group hover:scale-105 transition-transform duration-200 cursor-pointer p-2"
+                  title="AuraPass Multi-Model Biometric Routing Engine"
                 >
-                  <div className="w-9 h-9 rounded-full bg-emerald-500/15 flex items-center justify-center text-emerald-400 mb-0.5">
-                    <Shield className="w-5 h-5 stroke-[2.2]" />
-                  </div>
-                  <span className="font-mono text-[9px] font-bold tracking-tight text-white uppercase">AuraPass</span>
+                  <picture className="inline-flex items-center justify-center shrink-0">
+                    <source srcSet="/brand/aurapass-emblem.webp" type="image/webp" />
+                    <img
+                      src="/brand/aurapass-emblem.png"
+                      alt="AuraPass AI Shield Emblem"
+                      width={50}
+                      height={50}
+                      className="w-12 h-12 object-contain drop-shadow-[0_0_12px_rgba(16,185,129,0.5)] select-none pointer-events-none transition-transform duration-300 group-hover:scale-110"
+                    />
+                  </picture>
+                  <span className="font-mono text-[8.5px] font-bold tracking-tight text-emerald-400 uppercase mt-0.5">
+                    AuraPass
+                  </span>
                 </div>
               </div>
 
@@ -501,9 +511,18 @@ for match in pipeline.detect():
             {/* Central Badge Flow Indicator */}
             <div className="flex items-center justify-center gap-3 py-2">
               <div className="h-px bg-emerald-500/40 flex-1" />
-              <div className="px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-mono text-xs flex items-center gap-1.5">
-                <Shield size={13} />
-                <span>AuraPass Routing Layer</span>
+              <div className="px-3.5 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-mono text-xs flex items-center gap-2 shadow-sm">
+                <picture className="inline-flex items-center justify-center shrink-0">
+                  <source srcSet="/brand/aurapass-emblem.webp" type="image/webp" />
+                  <img
+                    src="/brand/aurapass-emblem.png"
+                    alt="AuraPass"
+                    width={18}
+                    height={18}
+                    className="w-4.5 h-4.5 object-contain"
+                  />
+                </picture>
+                <span className="font-semibold">AuraPass Routing Layer</span>
               </div>
               <div className="h-px bg-emerald-500/40 flex-1" />
             </div>

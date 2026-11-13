@@ -28,7 +28,7 @@ export default function AuraPassBrand({
   };
 
   const resolvedSize = typeof size === 'number' 
-    ? { symbol: size, text: size >= 36 ? 'text-xl' : 'text-base', height: size }
+    ? { symbol: size, text: size >= 36 ? 'text-xl' : (size >= 30 ? 'text-lg' : 'text-base'), height: size }
     : (sizeMap[size] || sizeMap.md);
 
   // Image / SVG Source Resolver based on theme & variant
