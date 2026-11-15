@@ -481,7 +481,7 @@ export default function KioskPage() {
   useEffect(() => {
     if (!webcamReady) return;
     const wsUrl = API_BASE.startsWith('http')
-      ? API_BASE.replace(/^http/, 'ws')
+      ? API_BASE.replace(/^http/, 'ws').replace(/\/api\/?$/, '')
       : `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}`;
     const socket = io(wsUrl, {
       path: '/socket.io',
