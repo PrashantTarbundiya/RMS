@@ -30,6 +30,7 @@ New-Item -ItemType Directory -Path "$STAGING/database" -Force | Out-Null
 New-Item -ItemType Directory -Path "$STAGING/reports" -Force | Out-Null
 
 Copy-Item backend/server.py $STAGING/
+Copy-Item backend/auth.py $STAGING/
 Copy-Item backend/middleware.py $STAGING/
 Copy-Item backend/inference.py $STAGING/
 Copy-Item backend/gpu_trainer.py $STAGING/
@@ -42,6 +43,7 @@ Copy-Item backend/org_storage.py $STAGING/
 Copy-Item backend/requirements.txt $STAGING/
 Copy-Item backend/database/models.py $STAGING/database/
 Copy-Item backend/database/db.py $STAGING/database/
+Copy-Item backend/database/seed.py $STAGING/database/
 Copy-Item -Recurse backend/reports/* $STAGING/reports/
 
 if (Test-Path backend_update.tar.gz) { Remove-Item backend_update.tar.gz -Force }

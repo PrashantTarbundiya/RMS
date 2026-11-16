@@ -1,6 +1,44 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as SecureStore from 'expo-secure-store';
 import { setupAuthInterceptor, api } from '../services/api';
+
+// Hardware-backed secure storage for iOS Keychain & Android Keystore (Check 13.1)
+const setSecureToken = async (key, value) => {
+  if (Platform.OS !== 'web') {
+    try {
+      await SecureStore.setItemAsync(key, value);
+      return;
+    } catch (e) {
+      console.warn(`SecureStore set failed for ${key}:`, e);
+    }
+  }
+  await AsyncStorage.setItem(key, value);
+};
+
+const getSecureToken = async (key) => {
+  if (Platform.OS !== 'web') {
+    try {
+      const val = await SecureStore.getItemAsync(key);
+      if (val !== null) return val;
+    } catch (e) {
+      console.warn(`SecureStore get failed for ${key}:`, e);
+    }
+  }
+  return await AsyncStorage.getItem(key);
+};
+
+const removeSecureToken = async (key) => {
+  if (Platform.OS !== 'web') {
+    try {
+      await SecureStore.deleteItemAsync(key);
+    } catch (e) {
+      console.warn(`SecureStore delete failed for ${key}:`, e);
+    }
+  }
+  await AsyncStorage.removeItem(key);
+};
 
 const AuthContext = createContext(null);
 
@@ -24,8 +62,8 @@ export function AuthProvider({ children }) {
     setAccessToken(null);
     setRefreshToken(null);
     setUser(null);
-    await AsyncStorage.removeItem('rms_access_token');
-    await AsyncStorage.removeItem('rms_refresh_token');
+    await removeSecureToken('rms_access_token');
+    await removeSecureToken('rms_refresh_token');
   }, []);
 
   useEffect(() => {
@@ -37,7 +75,7 @@ export function AuthProvider({ children }) {
         const newToken = response.data.access_token;
         setAccessToken(newToken);
         setUser(response.data.user);
-        await AsyncStorage.setItem('rms_access_token', newToken);
+        await setSecureToken('rms_access_token', newToken);
         failedRequest.headers.Authorization = `Bearer ${newToken}`;
         return api.request(failedRequest);
       } catch (e) {
@@ -67,8 +105,8 @@ export function AuthProvider({ children }) {
         }
       }
 
-      const savedToken = await AsyncStorage.getItem('rms_access_token');
-      const savedRefresh = await AsyncStorage.getItem('rms_refresh_token');
+      const savedToken = await getSecureToken('rms_access_token');
+      const savedRefresh = await getSecureToken('rms_refresh_token');
       
       if (savedToken && savedRefresh) {
         setAccessToken(savedToken);
@@ -85,7 +123,7 @@ export function AuthProvider({ children }) {
             const refreshRes = await api.post('/auth/refresh', { refresh_token: savedRefresh });
             setAccessToken(refreshRes.data.access_token);
             setUser(refreshRes.data.user);
-            await AsyncStorage.setItem('rms_access_token', refreshRes.data.access_token);
+            await setSecureToken('rms_access_token', refreshRes.data.access_token);
           } catch {
              await logout();
           }
@@ -106,8 +144,8 @@ export function AuthProvider({ children }) {
     setUser(userData);
     setIsMultiTenant(true);
 
-    await AsyncStorage.setItem('rms_access_token', access_token);
-    await AsyncStorage.setItem('rms_refresh_token', refresh_token);
+    await setSecureToken('rms_access_token', access_token);
+    await setSecureToken('rms_refresh_token', refresh_token);
 
     return userData;
   }, []);

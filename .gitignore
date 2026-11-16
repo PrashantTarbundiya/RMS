@@ -1,3 +1,16 @@
+# Audit files
+AUDIT.md
+
+# Secrets, licenses, and private keys
+*.key
+*.pem
+license.key
+backend/license.key
+backend/device_id.txt
+backend/secrets.json
+.env*
+!.env.example
+
 # Python
 __pycache__/
 *.py[cod]
@@ -15,6 +28,8 @@ scratch/
 frontend/dist/
 .eggs/
 .pytest_cache/
+.playwright-mcp/
+.vercel/
 
 # Virtual environment
 .venv/

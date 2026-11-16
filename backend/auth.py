@@ -23,7 +23,27 @@ logger = logging.getLogger('rms-api')
 # Configuration
 # ──────────────────────────────────────────────────────────────────────
 
-JWT_SECRET_KEY = os.environ.get('JWT_SECRET_KEY', 'dev-jwt-secret-change-in-production')
+# Production validation: ensure JWT_SECRET_KEY is never default in production
+_INSECURE_DEV_SECRET = 'dev-jwt-secret-change-in-production'
+_raw_jwt_secret = os.environ.get('JWT_SECRET_KEY')
+_is_prod = (
+    os.environ.get('FLASK_ENV') == 'production' or 
+    os.environ.get('ENV') == 'production' or 
+    os.environ.get('AURA_ENVIRONMENT') == 'production' or
+    os.environ.get('FLASK_DEBUG', '0') == '0' and os.environ.get('DEBUG', '0') == '0' and not os.environ.get('DEV_MODE')
+)
+
+if not _raw_jwt_secret:
+    if _is_prod:
+        logger.critical("FATAL: JWT_SECRET_KEY environment variable is missing in production!")
+        raise RuntimeError("CRITICAL SECURITY ERROR: JWT_SECRET_KEY environment variable must be configured in production.")
+    logger.warning("SECURITY WARNING: Using dev-jwt-secret for local dev. Set JWT_SECRET_KEY in production.")
+    JWT_SECRET_KEY = _INSECURE_DEV_SECRET
+elif _raw_jwt_secret == _INSECURE_DEV_SECRET and _is_prod:
+    logger.critical("FATAL: Default dev-jwt-secret detected in production environment!")
+    raise RuntimeError("CRITICAL SECURITY ERROR: Default dev JWT secret cannot be used in production.")
+else:
+    JWT_SECRET_KEY = _raw_jwt_secret
 JWT_ALGORITHM = 'HS256'
 JWT_ACCESS_TOKEN_EXPIRES = timedelta(
     minutes=int(os.environ.get('JWT_ACCESS_TOKEN_EXPIRES_MINUTES', '15'))

@@ -107,16 +107,33 @@ if sentry_dsn:
         traces_sample_rate=1.0
     )
 
+# Trusted reverse-proxy configuration: ensure remote_addr reflects the true client IP
+from werkzeug.middleware.proxy_fix import ProxyFix
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
+
 # Rate Limiting
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 
 def get_rate_limit_key():
-    from middleware import get_current_org_id
-    org_id = get_current_org_id()
-    return org_id if org_id else get_remote_address()
+    from middleware import get_current_org_id, get_current_user_id
+    try:
+        user_id = get_current_user_id()
+        if user_id:
+            return f"user:{user_id}"
+        org_id = get_current_org_id()
+        if org_id:
+            return f"org:{org_id}"
+    except Exception:
+        pass
+    return f"ip:{get_remote_address()}"
 
-limiter_storage = os.environ.get('REDIS_URL', 'memory://')
+limiter_storage = os.environ.get('REDIS_URL')
+if not limiter_storage:
+    if os.environ.get('FLASK_ENV') == 'production':
+        logger.warning("SECURITY NOTICE: REDIS_URL not set in production. Falling back to memory storage.")
+    limiter_storage = 'memory://'
+
 limiter = Limiter(
     get_rate_limit_key,
     app=app,
@@ -2521,6 +2538,36 @@ def delete_camera(org_id, camera_id):
         return jsonify({'error': 'Failed to delete camera.'}), 500
 
 
+# Bot Protection (Cloudflare Turnstile verification for public forms - Check 6.3)
+def verify_turnstile_token(token, remote_ip=None):
+    """
+    Verify Cloudflare Turnstile token on public forms (Check 6.3).
+    If TURNSTILE_SECRET_KEY is configured in environment, verifies against Cloudflare API.
+    """
+    secret = os.environ.get('TURNSTILE_SECRET_KEY')
+    if not secret:
+        if os.environ.get('REQUIRE_TURNSTILE') == '1':
+            return False, "Bot verification is required on this form."
+        return True, None
+
+    if not token:
+        return False, "Bot verification challenge token is missing."
+
+    try:
+        import requests
+        payload = {'secret': secret, 'response': token}
+        if remote_ip:
+            payload['remoteip'] = remote_ip
+        resp = requests.post('https://challenges.cloudflare.com/turnstile/v0/siteverify', data=payload, timeout=4)
+        data = resp.json()
+        if data.get('success'):
+            return True, None
+        return False, "Bot verification failed. Please try again."
+    except Exception as e:
+        logger.error(f"Turnstile verification error: {e}")
+        return True, None
+
+
 # ─── Authentication Endpoints ─────────────────────────────────────────
 @app.route('/api/auth/register', methods=['POST'])
 @limiter.limit("5 per minute")
@@ -2547,6 +2594,12 @@ def auth_register():
     data = request.get_json(silent=True) or {}
     if not data:
         return jsonify({'error': 'JSON body required.'}), 400
+
+    # Bot protection check (Check 6.3)
+    turnstile_token = data.get('turnstile_token') or data.get('cf_turnstile_token')
+    is_valid_bot, bot_err = verify_turnstile_token(turnstile_token, request.remote_addr)
+    if not is_valid_bot:
+        return jsonify({'error': bot_err}), 400
 
     org_payload = data.get('org_name')
     if isinstance(org_payload, dict):
@@ -6728,6 +6781,13 @@ def submit_support_ticket():
     from database.models import SupportTicket
 
     data = request.get_json(silent=True) or {}
+
+    # Bot protection check (Check 6.3)
+    turnstile_token = data.get('turnstile_token') or data.get('cf_turnstile_token')
+    is_valid_bot, bot_err = verify_turnstile_token(turnstile_token, request.remote_addr)
+    if not is_valid_bot:
+        return jsonify({'error': bot_err}), 400
+
     name = (data.get('name') or '').strip()
     email = (data.get('email') or '').strip()
     organization = (data.get('organization') or '').strip()
